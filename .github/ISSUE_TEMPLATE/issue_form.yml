@@ -12,18 +12,19 @@ body:
       required: true
 
   - type: input
-    id: branchName
-    attributes:
-      label: '브랜치 이름 (이슈 요약)'
-      description: '영문 소문자로 브랜치 이름을 지어주세요. (ex: <타입>/#이슈번호)'
-    validations:
-      required: true
-
-  - type: input
     id: branchPrefix
     attributes:
       label: '브랜치 전략(GitFlow)'
       description: 'feat/fix/docs/style/refactor/test/chore 중 해당 이슈와 걸맞게 작성해주세요.'
+    validations:
+      required: true
+
+  - type: input
+    id: branchName
+    attributes:
+      label: '브랜치 설명'
+      description: '영문 소문자로 간단한 설명 (예: login, fix-button)'
+      placeholder: 'login'
     validations:
       required: true
 
