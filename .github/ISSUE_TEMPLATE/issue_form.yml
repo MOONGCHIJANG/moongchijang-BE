@@ -1,14 +1,13 @@
-name: 'Scrum 이슈 생성'
+name: '✨Scrum 이슈 생성'
 description: 'Scrum Repo에 이슈를 생성하며, 생성된 이슈는 Jira와 연동됩니다.'
 labels: [ order ]
-title: '이슈 이름을 작성해주세요.'
 body:
   - type: input
     id: parentKey
     attributes:
       label: '상위 작업 Ticket Number'
       description: '상위 작업의 Ticket Number를 기입해주세요.'
-      placeholder: 'TEST-00'
+      placeholder: 'SCRUM-00'
     validations:
       required: true
 
@@ -16,7 +15,7 @@ body:
     id: branchName
     attributes:
       label: '브랜치 이름 (이슈 요약)'
-      description: '영문 소문자로 브랜치 이름을 지어주세요. (ex: [도메인명]-[기능])'
+      description: '영문 소문자로 브랜치 이름을 지어주세요. (ex: <타입>/#이슈번호)'
     validations:
       required: true
 

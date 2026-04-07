@@ -18,10 +18,10 @@ jobs:
       - name: Checkout main code
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: develop
 
       - name: Issue Parser
-        uses: stefanbuck/github-issue-praser@v3
+        uses: stefanbuck/github-issue-parser@v3
         id: issue-parser
         with:
           template-path: .github/ISSUE_TEMPLATE/issue_form.yml
@@ -45,7 +45,7 @@ jobs:
         id: create
         uses: atlassian/gajira-create@v3
         with:
-          project: TEST
+          project: SCRUM
           issuetype: Sub-task
           summary: "${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
@@ -62,11 +62,11 @@ jobs:
       - name: Checkout develop code
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: develop
 
       - name: Create branch with Ticket number
         run: |
-          BRANCH_NAME="${{ steps.issue-parser.outputs.issueparser_branchPrefix }}/#${{ steps.issue-parser.outputs.issueparser_parentKey }}-${{ steps.issue-parser.outputs.issueparser_branchName }}"
+          BRANCH_NAME="[${{ steps.issue-parser.outputs.issueparser_parentKey }}] ${{ steps.issue-parser.outputs.issueparser_branchPrefix }}/#${{ github.event.issue.number }}"
           git checkout -b "$BRANCH_NAME"
           git push origin "$BRANCH_NAME"
 
