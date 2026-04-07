@@ -1,0 +1,50 @@
+name: 'Scrum 이슈 생성'
+description: 'Scrum Repo에 이슈를 생성하며, 생성된 이슈는 Jira와 연동됩니다.'
+labels: [ order ]
+title: '이슈 이름을 작성해주세요.'
+body:
+  - type: input
+    id: parentKey
+    attributes:
+      label: '상위 작업 Ticket Number'
+      description: '상위 작업의 Ticket Number를 기입해주세요.'
+      placeholder: 'TEST-00'
+    validations:
+      required: true
+
+  - type: input
+    id: branchName
+    attributes:
+      label: '브랜치 이름 (이슈 요약)'
+      description: '영문 소문자로 브랜치 이름을 지어주세요. (ex: [도메인명]-[기능])'
+    validations:
+      required: true
+
+  - type: input
+    id: branchPrefix
+    attributes:
+      label: '브랜치 전략(GitFlow)'
+      description: 'feat/fix/docs/style/refactor/test/chore 중 해당 이슈와 걸맞게 작성해주세요.'
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 📄 설명
+      description: 새로운 기능에 대한 설명을 작성해 주세요.
+      placeholder: 자세히 적을수록 좋습니다!
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: ✅ 작업할 내용
+      description: 할 일을 체크박스 형태로 작성해주세요.
+      placeholder: 최대한 세분화 해서 적어주세요!
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 🙋🏻 참고 자료
+      description: 참고 자료가 있다면 작성해 주세요.
