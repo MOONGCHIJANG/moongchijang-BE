@@ -1,0 +1,41 @@
+name: Add Jira ticket to PR title
+
+on:
+  pull_request:
+    types:
+      - opened
+
+permissions:
+  pull-requests: write
+
+jobs:
+  update-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Jira ticket and update PR title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const title = context.payload.pull_request.title;
+
+            const match = branch.match(/\/(SCRUM-\d+)-/);
+            if (!match) {
+              console.log('No Jira ticket found in branch name:', branch);
+              return;
+            }
+
+            const ticket = match[1];
+            if (title.startsWith(ticket)) {
+              console.log('PR title already has ticket:', title);
+              return;
+            }
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              title: `${ticket} ${title}`,
+            });
+
+            console.log(`Updated PR title: ${ticket} ${title}`);
