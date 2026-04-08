@@ -26,7 +26,7 @@ jobs:
             }
 
             const ticket = match[1];
-            if (title.startsWith(ticket)) {
+            if (title.startsWith(`[${ticket}]`)) {
               console.log('PR title already has ticket:', title);
               return;
             }
@@ -35,7 +35,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number,
-              title: `${ticket} ${title}`,
+              title: `[${ticket}] ${title}`,
             });
 
-            console.log(`Updated PR title: ${ticket} ${title}`);
+            console.log(`Updated PR title: [${ticket}] ${title}`);
