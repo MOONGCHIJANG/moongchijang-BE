@@ -1,4 +1,4 @@
-name: '✨Scrum 이슈 생성'
+name: '✨ Scrum 이슈 생성'
 description: 'Scrum Repo에 이슈를 생성하며, 생성된 이슈는 Jira와 연동됩니다.'
 labels: [ order ]
 body:
