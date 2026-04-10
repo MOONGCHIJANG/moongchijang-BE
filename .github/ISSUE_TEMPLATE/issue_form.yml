@@ -1,4 +1,4 @@
-name: '✨Scrum 이슈 생성'
+name: '✨ Scrum 이슈 생성'
 description: 'Scrum Repo에 이슈를 생성하며, 생성된 이슈는 Jira와 연동됩니다.'
 labels: [ order ]
 body:
@@ -16,15 +16,6 @@ body:
     attributes:
       label: '브랜치 전략(GitFlow)'
       description: 'feat/fix/docs/style/refactor/test/chore 중 해당 이슈와 걸맞게 작성해주세요.'
-    validations:
-      required: true
-
-  - type: input
-    id: branchName
-    attributes:
-      label: '브랜치 설명'
-      description: '영문 소문자로 간단한 설명 (예: login, fix-button)'
-      placeholder: 'login'
     validations:
       required: true
 
