@@ -2,7 +2,7 @@ package com.moongchijang.global.exception
 
 enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     // 100 Test
-    TEST_ERROR(100_000, "테스트 에러입니다.", 100),
+    TEST_ERROR(100_000, "테스트 에러입니다.", 200),
 
     // 400 Bad Request
     BAD_REQUEST(400_000, "잘못된 요청입니다.", 400),
@@ -42,6 +42,4 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
 
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(500_000, "서버 내부 오류입니다.", 500);
-
-    fun resolvedHttpStatus(): Int = if (httpStatus == 100) 200 else httpStatus
 }

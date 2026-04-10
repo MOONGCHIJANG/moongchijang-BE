@@ -3,6 +3,7 @@ package com.moongchijang.global.handler
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
@@ -15,11 +16,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @ExceptionHandler(CustomException::class)
     fun handleCustomException(e: CustomException): ResponseEntity<ApiResponse<Nothing>> {
         val errorCode = e.errorCode
         return ResponseEntity
-            .status(errorCode.resolvedHttpStatus())
+            .status(errorCode.httpStatus)
             .body(ApiResponse.fail(errorCode, e.errorMessage))
     }
 
@@ -49,6 +52,7 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception::class)
     fun handleException(e: Exception): ResponseEntity<ApiResponse<Nothing>> {
+        log.error("Unhandled exception occurred", e)
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ApiResponse.fail(ErrorCode.INTERNAL_SERVER_ERROR))
