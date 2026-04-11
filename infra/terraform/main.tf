@@ -119,6 +119,7 @@ data "aws_ssm_parameter" "al2023_arm_ami" {
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ssm_parameter.al2023_arm_ami.value
   instance_type          = var.ec2_instance_type
+  key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 

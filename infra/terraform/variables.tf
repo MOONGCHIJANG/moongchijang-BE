@@ -18,6 +18,11 @@ variable "ec2_instance_type" {
   type        = string
 }
 
+variable "key_name" {
+  description = "EC2 key pair name"
+  type        = string
+}
+
 variable "ssh_cidr" {
   description = "CIDR block allowed for SSH access"
   type        = string
