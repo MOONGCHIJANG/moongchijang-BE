@@ -1,4 +1,7 @@
 spring:
+  web:
+    resources:
+      add-mappings: true
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -14,6 +17,9 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+
+server:
+  forward-headers-strategy: framework
 
 app:
   s3:
