@@ -1,0 +1,30 @@
+services:
+  app-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: moongchijang-dev
+    env_file:
+      - ../.env.dev
+    restart: unless-stopped
+
+  app-prod:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: moongchijang-prod
+    env_file:
+      - ../.env.prod
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.29-alpine
+    container_name: moongchijang-nginx
+    depends_on:
+      - app-dev
+      - app-prod
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
