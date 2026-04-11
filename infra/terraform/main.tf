@@ -247,3 +247,24 @@ resource "aws_elasticache_cluster" "redis" {
     Project = var.project_name
   }
 }
+
+// ECR 생성
+resource "aws_ecr_repository" "app" {
+  name                 = "${var.project_name}-be"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name    = "${var.project_name}-be"
+    Project = var.project_name
+  }
+}
+
+// EC2가 ECR pull 할 수 있게 IAM 권한 추가
+resource "aws_iam_role_policy_attachment" "ec2_ecr_readonly" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
