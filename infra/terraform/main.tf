@@ -1,3 +1,4 @@
+// S3 버킷 생성
 resource "aws_s3_bucket" "terraform_test_bucket" {
   bucket = var.bucket_name
 
@@ -7,6 +8,7 @@ resource "aws_s3_bucket" "terraform_test_bucket" {
   }
 }
 
+// 애플리케이션 서버 보안 그룹 설정
 resource "aws_security_group" "app_sg" {
   name        = "${var.project_name}-app-sg"
   description = "Security group for app server"
@@ -48,6 +50,7 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
+// EC2 IAM 역할 설정
 resource "aws_iam_role" "ec2_role" {
   name = "${var.project_name}-ec2-role"
 
@@ -65,21 +68,24 @@ resource "aws_iam_role" "ec2_role" {
   })
 }
 
+// EC2 S3 접근 권한 연결
 resource "aws_iam_role_policy_attachment" "ec2_s3_access" {
   role       = aws_iam_role.ec2_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
+// EC2 인스턴스 프로파일 설정
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "${var.project_name}-ec2-profile"
   role = aws_iam_role.ec2_role.name
 }
 
-
+// Amazon Linux 2023 ARM AMI 조회
 data "aws_ssm_parameter" "al2023_arm_ami" {
   name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
 }
 
+// EC2 인스턴스 생성
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ssm_parameter.al2023_arm_ami.value
   instance_type          = var.ec2_instance_type
@@ -92,10 +98,12 @@ resource "aws_instance" "app_server" {
   }
 }
 
+// 기본 VPC 조회
 data "aws_vpc" "default" {
   default = true
 }
 
+// 기본 서브넷 목록 조회
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
@@ -103,6 +111,7 @@ data "aws_subnets" "default" {
   }
 }
 
+// RDS 보안 그룹 설정
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project_name}-rds-sg"
   description = "Security group for RDS"
@@ -128,6 +137,7 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
+// RDS 서브넷 그룹 설정
 resource "aws_db_subnet_group" "main" {
   name       = "${var.project_name}-db-subnet-group"
   subnet_ids = data.aws_subnets.default.ids
@@ -138,6 +148,7 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
+// MySQL RDS 인스턴스 생성
 resource "aws_db_instance" "main" {
   identifier             = "${var.project_name}-mysql-db"
   engine                 = "mysql"
@@ -156,6 +167,60 @@ resource "aws_db_instance" "main" {
 
   tags = {
     Name    = "${var.project_name}-mysql-db"
+    Project = var.project_name
+  }
+}
+
+// Redis 보안 그룹 설정
+resource "aws_security_group" "redis_sg" {
+  name        = "${var.project_name}-redis-sg"
+  description = "Security group for Redis"
+
+  ingress {
+    description     = "Redis from EC2"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.app_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name    = "${var.project_name}-redis-sg"
+    Project = var.project_name
+  }
+}
+
+// Redis 서브넷 그룹 설정
+resource "aws_elasticache_subnet_group" "redis" {
+  name       = "${var.project_name}-redis-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
+
+  tags = {
+    Name    = "${var.project_name}-redis-subnet-group"
+    Project = var.project_name
+  }
+}
+
+// Redis 클러스터 생성
+resource "aws_elasticache_cluster" "redis" {
+  cluster_id           = "${var.project_name}-redis"
+  engine               = "redis"
+  node_type            = var.redis_node_type
+  num_cache_nodes      = 1
+  parameter_group_name = "default.redis7"
+  port                 = 6379
+  subnet_group_name    = aws_elasticache_subnet_group.redis.name
+  security_group_ids   = [aws_security_group.redis_sg.id]
+
+  tags = {
+    Name    = "${var.project_name}-redis"
     Project = var.project_name
   }
 }

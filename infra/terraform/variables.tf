@@ -43,3 +43,8 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "redis_node_type" {
+  description = "ElastiCache Redis node type"
+  type        = string
+}

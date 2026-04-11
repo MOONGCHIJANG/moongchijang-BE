@@ -12,3 +12,8 @@ output "rds_endpoint" {
   description = "RDS endpoint"
   value       = aws_db_instance.main.endpoint
 }
+
+output "redis_endpoint" {
+  description = "Redis endpoint"
+  value       = aws_elasticache_cluster.redis.cache_nodes[0].address
+}
