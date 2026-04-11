@@ -40,6 +40,7 @@ dependencies {
     testAnnotationProcessor("org.projectlombok:lombok")
     runtimeOnly("com.mysql:mysql-connector-j")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation(platform("software.amazon.awssdk:bom:2.31.18"))
     implementation("software.amazon.awssdk:s3")
 }
 
