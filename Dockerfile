@@ -33,8 +33,8 @@ FROM eclipse-temurin:21-jre
 # 실행 작업 디렉터리 설정
 WORKDIR /app
 
-# 빌드 결과 JAR 복사
-COPY --from=builder /app/build/libs/*.jar app.jar
+# 실행 가능한 JAR 복사
+COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
 
 # 애플리케이션 포트 노출
 EXPOSE 8080
