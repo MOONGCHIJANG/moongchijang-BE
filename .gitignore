@@ -47,6 +47,11 @@ out/
 .env.local
 .env.*.local
 *.env
+.env.*
+!.env.dev.example
+!.env.prod.example
+docker/.env
+!docker/.env.example
 
 ### Logs ###
 logs/
@@ -61,10 +66,6 @@ Thumbs.db
 *.key
 credentials.json
 secrets.json
-.env
-.env.*
-!.env.dev.example
-!.env.prod.example
 
 ### Local config ###
 local.properties
