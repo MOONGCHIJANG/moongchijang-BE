@@ -61,8 +61,11 @@ Thumbs.db
 *.key
 credentials.json
 secrets.json
+.env
+.env.*
+!.env.dev.example
+!.env.prod.example
 
 ### Local config ###
 local.properties
-application-local.yml
 application-local.properties
