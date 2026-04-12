@@ -28,9 +28,40 @@ jobs:
       - name: Run tests
         run: ./gradlew test --no-daemon
 
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     needs: test
+    environment: production
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 검증된 main 이미지를 빌드하고 ECR에 push
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push prod image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: true
+          tags: ${{ vars.ECR_REPOSITORY_URL }}:main
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
     environment: production
 
     steps:
@@ -46,4 +77,10 @@ jobs:
             git fetch origin
             git checkout main
             git pull origin main
-            docker compose up -d --build app-prod
+            cd docker
+
+            export ECR_REPOSITORY_URL="${{ vars.ECR_REPOSITORY_URL }}"
+            ECR_REGISTRY="${ECR_REPOSITORY_URL%%/*}"
+            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+            docker compose --profile prod pull app-prod
+            docker compose --profile prod up -d nginx app-prod

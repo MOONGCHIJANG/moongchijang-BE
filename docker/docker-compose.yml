@@ -1,28 +1,26 @@
 services:
   app-dev:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    # develop 태그 이미지를 사용하는 dev 애플리케이션
+    profiles: ["dev"]
+    image: ${ECR_REPOSITORY_URL}:develop
     container_name: moongchijang-dev
     env_file:
       - ../.env.dev
     restart: unless-stopped
 
   app-prod:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    # main 태그 이미지를 사용하는 prod 애플리케이션
+    profiles: ["prod"]
+    image: ${ECR_REPOSITORY_URL}:main
     container_name: moongchijang-prod
     env_file:
       - ../.env.prod
     restart: unless-stopped
 
   nginx:
+    # 공용 리버스 프록시. prod는 /, dev는 /dev/ 경로로 라우팅
     image: nginx:1.29-alpine
     container_name: moongchijang-nginx
-    depends_on:
-      - app-dev
-      - app-prod
     ports:
       - "80:80"
     volumes:
