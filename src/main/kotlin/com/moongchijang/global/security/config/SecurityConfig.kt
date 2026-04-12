@@ -18,6 +18,10 @@ class SecurityConfig {
         http
             .csrf { it.disable() }
             .cors {  }
+        http
+            .csrf { it.disable() }
+            .cors { }
+            .sessionManagement { it.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
                 it.requestMatchers(
                     "/health",
