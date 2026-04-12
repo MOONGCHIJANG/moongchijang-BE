@@ -82,5 +82,5 @@ jobs:
             export ECR_REPOSITORY_URL="${{ vars.ECR_REPOSITORY_URL }}"
             ECR_REGISTRY="${ECR_REPOSITORY_URL%%/*}"
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-            docker compose pull app-prod
-            docker compose up -d app-prod
+            docker compose --profile prod pull app-prod
+            docker compose --profile prod up -d nginx app-prod
