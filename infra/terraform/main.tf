@@ -263,6 +263,28 @@ resource "aws_ecr_repository" "app" {
   }
 }
 
+// ECR 레포지토리에 수명 정책을 추가해서 오래된 이미지 자동으로 정리
+resource "aws_ecr_lifecycle_policy" "app" {
+  repository = aws_ecr_repository.app.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 10 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
 // EC2가 ECR pull 할 수 있게 IAM 권한 추가
 resource "aws_iam_role_policy_attachment" "ec2_ecr_readonly" {
   role       = aws_iam_role.ec2_role.name
