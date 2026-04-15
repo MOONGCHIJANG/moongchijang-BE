@@ -32,7 +32,12 @@ jobs:
       - name: Build jar
         run: ./gradlew bootJar --no-daemon
 
-      # GitHub Actions에서 dev 이미지를 빌드하고 ECR에 push
+      # Docker 이미지에서 사용할 실행 JAR 파일명을 고정합니다.
+      - name: Prepare jar for Docker image
+        run: |
+          JAR_FILE=$(find build/libs -maxdepth 1 -type f -name "*.jar" ! -name "*-plain.jar" | head -n 1)
+          cp "$JAR_FILE" build/libs/app.jar
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:

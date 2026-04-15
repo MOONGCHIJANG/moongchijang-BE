@@ -4,8 +4,8 @@ FROM eclipse-temurin:21-jre
 # 애플리케이션 작업 디렉터리 설정
 WORKDIR /app
 
-# GitHub Actions에서 미리 빌드한 실행 JAR 복사
-COPY build/libs/*-SNAPSHOT.jar app.jar
+# GitHub Actions에서 준비한 실행 JAR 복사
+COPY build/libs/app.jar app.jar
 
 # 애플리케이션 포트 노출
 EXPOSE 8080
