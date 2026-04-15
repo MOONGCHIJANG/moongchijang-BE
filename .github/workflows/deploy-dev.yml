@@ -16,6 +16,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # JAR 빌드를 위해 JDK 21 환경을 설정하고 Gradle 캐시를 사용합니다.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      # Gradle Wrapper 실행 권한을 부여합니다.
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      # Docker 이미지 생성 전에 실행 가능한 JAR를 먼저 빌드합니다.
+      - name: Build jar
+        run: ./gradlew bootJar --no-daemon
+
       # GitHub Actions에서 dev 이미지를 빌드하고 ECR에 push
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -28,14 +44,15 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # ARM64 기반 EC2 환경에 배포할 이미지를 빌드하기 위해 QEMU 설정
+      # ARM64 기반 EC2 환경에 배포할 이미지를 빌드하기 위해 QEMU를 설정합니다.
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
-      # Buildx를 사용해 특정 아키텍처의 Docker 이미지를 빌드하고 푸시
+      # 특정 아키텍처 이미지를 빌드하기 위해 Buildx를 설정합니다.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # 빌드된 JAR를 포함한 Docker 이미지를 생성하고 ECR에 푸시합니다.
       - name: Build and push dev image
         uses: docker/build-push-action@v6
         with:
@@ -43,6 +60,8 @@ jobs:
           file: ./docker/Dockerfile
           push: true
           platforms: linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ${{ vars.ECR_REPOSITORY_URL }}:develop
 
   deploy:
@@ -66,7 +85,4 @@ jobs:
             cd docker
 
             export ECR_REPOSITORY_URL="${{ vars.ECR_REPOSITORY_URL }}"
-            ECR_REGISTRY="${ECR_REPOSITORY_URL%%/*}"
-            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-            docker compose --profile dev pull app-dev
-            docker compose --profile dev up -d nginx app-dev
+            ECR_REGISTRY="${ECR_RE
