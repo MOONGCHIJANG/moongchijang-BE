@@ -60,3 +60,9 @@ allOpen {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+tasks.bootJar {
+    layered {
+        enabled.set(true)
+    }
+}
