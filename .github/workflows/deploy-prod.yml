@@ -118,3 +118,6 @@ jobs:
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
             docker compose --profile prod pull app-prod
             docker compose --profile prod up -d nginx app-prod
+
+            # 태그 없는 미사용 이미지를 정리해 디스크 사용량 누적을 완화합니다.
+            docker image prune -f
