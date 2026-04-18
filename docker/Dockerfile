@@ -1,23 +1,39 @@
-# 애플리케이션 실행 전용 이미지
+# ===========================
+# 1단계: 빌드된 JAR에서 레이어 추출
+# ===========================
+FROM eclipse-temurin:21-jre AS builder
+
+WORKDIR /builder
+
+# GitHub Actions에서 준비한 실행 JAR 복사
+COPY build/libs/app.jar app.jar
+
+# Spring Boot layertools를 이용해 레이어를 추출
+RUN java -Djarmode=layertools -jar app.jar extract
+
+# ==================
+# 2단계: 실행 전용 이미지
+# ==================
 FROM eclipse-temurin:21-jre
 
-# 애플리케이션 작업 디렉터리 설정
 WORKDIR /app
 
 # 비특권 사용자와 그룹 생성
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
-# GitHub Actions에서 준비한 실행 JAR 복사
-COPY build/libs/app.jar app.jar
+# 추출된 레이어를 순서대로 복사
+COPY --from=builder /builder/dependencies/ ./
+COPY --from=builder /builder/spring-boot-loader/ ./
+COPY --from=builder /builder/snapshot-dependencies/ ./
+COPY --from=builder /builder/application/ ./
 
-# 애플리케이션 실행 권한을 appuser에게 부여
-RUN chown appuser:appgroup /app/app.jar
+# 파일 권한 부여
+RUN chown -R appuser:appgroup /app
 
-# 비특권 사용자로 애플리케이션 실행
+# 비특권 사용자로 실행
 USER appuser
 
-# 애플리케이션 포트 노출
 EXPOSE 8080
 
-# Spring Boot 애플리케이션 실행
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Spring Boot loader를 직접 실행
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
