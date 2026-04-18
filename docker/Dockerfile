@@ -21,14 +21,11 @@ WORKDIR /app
 # 비특권 사용자와 그룹 생성
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
-# 추출된 레이어를 순서대로 복사
-COPY --from=builder /builder/dependencies/ ./
-COPY --from=builder /builder/spring-boot-loader/ ./
-COPY --from=builder /builder/snapshot-dependencies/ ./
-COPY --from=builder /builder/application/ ./
-
-# 파일 권한 부여
-RUN chown -R appuser:appgroup /app
+# 추출된 레이어를 복사하면서 실행 사용자 권한을 함께 설정
+COPY --chown=appuser:appgroup --from=builder /builder/dependencies/ ./
+COPY --chown=appuser:appgroup --from=builder /builder/spring-boot-loader/ ./
+COPY --chown=appuser:appgroup --from=builder /builder/snapshot-dependencies/ ./
+COPY --chown=appuser:appgroup --from=builder /builder/application/ ./
 
 # 비특권 사용자로 실행
 USER appuser
