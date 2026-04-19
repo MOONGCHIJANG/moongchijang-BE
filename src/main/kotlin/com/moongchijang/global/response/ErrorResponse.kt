@@ -1,7 +1,7 @@
 package com.moongchijang.global.response
 
 data class ErrorResponse(
-    val code: Int,
+    val code: String,
     val message: String,
-    val errorMessage: String?
+    val detail: String?
 )

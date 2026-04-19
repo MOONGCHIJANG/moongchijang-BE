@@ -23,7 +23,7 @@ class GlobalExceptionHandler {
         val errorCode = e.errorCode
         return ResponseEntity
             .status(errorCode.httpStatus)
-            .body(ApiResponse.fail(errorCode, e.errorMessage))
+            .body(ApiResponse.fail(errorCode, e.detail))
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)

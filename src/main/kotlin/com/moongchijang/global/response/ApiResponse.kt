@@ -14,14 +14,14 @@ data class ApiResponse<T>(
         fun success(): ApiResponse<Nothing> =
             ApiResponse(success = true, data = null, error = null)
 
-        fun fail(errorCode: ErrorCode, errorMessage: String? = null): ApiResponse<Nothing> =
+        fun fail(errorCode: ErrorCode, detail: String? = null): ApiResponse<Nothing> =
             ApiResponse(
                 success = false,
                 data = null,
                 error = ErrorResponse(
-                    code = errorCode.code,
+                    code = errorCode.name,
                     message = errorCode.message,
-                    errorMessage = errorMessage
+                    detail = detail
                 )
             )
     }
