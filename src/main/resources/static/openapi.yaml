@@ -1773,9 +1773,9 @@ components:
       properties:
         productName: { type: string }
         productDescription: { type: string }
-        price: { type: integer }
-        targetQuantity: { type: integer }
-        maxQuantity: { type: integer }
+        price: { type: integer, minimum: 1 }
+        targetQuantity: { type: integer, minimum: 1 }
+        maxQuantity: { type: integer, minimum: 1 }
         deadline: { type: string, format: date-time }
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
@@ -1799,7 +1799,7 @@ components:
         achievementRate: { type: integer }
         status:
           type: string
-          enum: [IN_PROGRESS, ACHIEVED]
+          enum: [IN_PROGRESS, ACHIEVED, FAILED]
         deadline: { type: string, format: date-time }
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
