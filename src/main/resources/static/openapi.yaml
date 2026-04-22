@@ -1605,6 +1605,7 @@ components:
             type: object
             properties:
               timeSlot: { type: string, example: "13:00~14:00" }
+              totalReservationCount: { type: integer }
               waitingCount: { type: integer }
               completedCount: { type: integer }
         error: { nullable: true, example: null }
@@ -1626,9 +1627,9 @@ components:
               deadline: { type: string, format: date }
               status:
                 type: string
-                enum: [IN_PROGRESS, ACHIEVED]
+                enum: [IN_PROGRESS, ACHIEVED, FAILED]
         error: { nullable: true, example: null }
-
+    
     ApiResponseReservationPage:
       type: object
       properties:
