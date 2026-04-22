@@ -1716,8 +1716,8 @@ components:
                   productName: { type: string }
                   storeName: { type: string }
                   pickupDate: { type: string, format: date, nullable: true }
-              pickupTimeStart: { type: string, format: time, nullable: true }
-              pickupTimeEnd: { type: string, format: time, nullable: true }
+                  pickupTimeStart: { type: string, format: time, nullable: true }
+                  pickupTimeEnd: { type: string, format: time, nullable: true }
                   paymentAmount: { type: integer }
                   quantity: { type: integer }
                   achievementRate: { type: integer }
