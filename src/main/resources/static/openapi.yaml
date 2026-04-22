@@ -1746,34 +1746,67 @@ components:
               achievementRate: { type: integer }
               currentQuantity: { type: integer }
               targetQuantity: { type: integer }
+              remainingQuantity: { type: integer }
               isOrderConfirmed: { type: boolean }
               isOrderSheetSent: { type: boolean }
         error: { nullable: true, example: null }
 
     AdminGroupBuyCreate:
       type: object
-      required: [storeId, productName, price, targetQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd]
+      required: [ storeId, productName, productDescription, price, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation ]
       properties:
         requestId: { type: integer, format: int64, nullable: true }
         storeId: { type: integer, format: int64 }
         productName: { type: string }
+        productDescription: { type: string }
         price: { type: integer, minimum: 1 }
         targetQuantity: { type: integer, minimum: 1 }
+        maxQuantity: { type: integer, minimum: 1 }
         deadline: { type: string, format: date-time }
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
         pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string }
 
     AdminGroupBuyUpdate:
       type: object
       properties:
         productName: { type: string }
+        productDescription: { type: string }
         price: { type: integer }
         targetQuantity: { type: integer }
+        maxQuantity: { type: integer }
         deadline: { type: string, format: date-time }
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
         pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string }
+        
+    AdminGroupBuyDetail:
+      type: object
+      properties:
+        groupBuyId: { type: integer, format: int64 }
+        requestId: { type: integer, format: int64, nullable: true }
+        storeId: { type: integer, format: int64 }
+        storeName: { type: string }
+        productName: { type: string }
+        productDescription: { type: string }
+        price: { type: integer }
+        targetQuantity: { type: integer }
+        maxQuantity: { type: integer, nullable: true }
+        currentQuantity: { type: integer }
+        remainingQuantity: { type: integer }
+        achievementRate: { type: integer }
+        status:
+          type: string
+          enum: [IN_PROGRESS, ACHIEVED]
+        deadline: { type: string, format: date-time }
+        pickupDate: { type: string, format: date }
+        pickupTimeStart: { type: string, format: time }
+        pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string }
+        isOrderConfirmed: { type: boolean }
+        isOrderSheetSent: { type: boolean }
 
     ApiResponseGroupBuyId:
       type: object
@@ -1790,7 +1823,7 @@ components:
       properties:
         success: { type: boolean, example: true }
         data:
-          $ref: '#/components/schemas/AdminGroupBuyCreate'
+          $ref: '#/components/schemas/AdminGroupBuyDetail'
         error: { nullable: true, example: null }
 
     ApiResponseAdminRefundPage:
