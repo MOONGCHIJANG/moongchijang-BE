@@ -1129,11 +1129,15 @@ components:
         achievementRate: { type: integer, description: 달성률 % }
         currentQuantity: { type: integer }
         targetQuantity: { type: integer }
+        maxQuantity: { type: integer, nullable: true }
         deadline: { type: string, format: date-time }
-        pickupDateTime: { type: string, format: date-time }
+        pickupDate: { type: string, format: date }
+        pickupStartAt: { type: string, format: date-time }
+        pickupEndAt: { type: string, format: date-time }
         dDay: { type: integer }
         isWishlisted: { type: boolean }
         isClosed: { type: boolean }
+        canParticipate: { type: boolean }
 
     ApiResponseGroupBuyFeedPage:
       type: object
@@ -1172,15 +1176,19 @@ components:
             achievementRate: { type: integer }
             currentQuantity: { type: integer }
             targetQuantity: { type: integer }
+            maxQuantity: { type: integer, nullable: true }
             deadline: { type: string, format: date-time }
-            pickupDateTime: { type: string, format: date-time }
+            pickupDate: { type: string, format: date }
+            pickupStartAt: { type: string, format: date-time }
+            pickupEndAt: { type: string, format: date-time }
             pickupLocation: { type: string }
-            pickupLatitude: { type: number, format: double }
-            pickupLongitude: { type: number, format: double }
+            pickupLatitude: { type: number, format: double, nullable: true }
+            pickupLongitude: { type: number, format: double, nullable: true }
             dDay: { type: integer }
             isWishlisted: { type: boolean }
             isClosed: { type: boolean }
             isParticipated: { type: boolean }
+            canParticipate: { type: boolean }
         error: { nullable: true, example: null }
 
     ApiResponseGroupBuyProgress:
@@ -1197,6 +1205,15 @@ components:
             isClosed: { type: boolean }
         error: { nullable: true, example: null }
 
+    GroupBuyProgressItem:
+      type: object
+      properties:
+        groupBuyId: { type: integer, format: int64 }
+        achievementRate: { type: integer }
+        currentQuantity: { type: integer }
+        targetQuantity: { type: integer }
+        isClosed: { type: boolean }
+
     ApiResponseGroupBuyProgressList:
       type: object
       properties:
@@ -1204,7 +1221,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ApiResponseGroupBuyProgress/properties/data'
+            $ref: '#/components/schemas/GroupBuyProgressItem'
         error: { nullable: true, example: null }
 
     ApiResponseShareMeta:
@@ -1221,6 +1238,8 @@ components:
             storeName: { type: string }
             deadline: { type: string, format: date-time }
             pickupDate: { type: string, format: date }
+            pickupStartAt: { type: string, format: date-time, nullable: true }
+            pickupEndAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
     # ── GroupBuyRequest ────────────────────────────────────────
