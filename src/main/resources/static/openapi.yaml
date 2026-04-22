@@ -1129,11 +1129,15 @@ components:
         achievementRate: { type: integer, description: 달성률 % }
         currentQuantity: { type: integer }
         targetQuantity: { type: integer }
+        maxQuantity: { type: integer, nullable: true }
         deadline: { type: string, format: date-time }
-        pickupDateTime: { type: string, format: date-time }
+        pickupDate: { type: string, format: date }
+        pickupStartAt: { type: string, format: date-time }
+        pickupEndAt: { type: string, format: date-time }
         dDay: { type: integer }
         isWishlisted: { type: boolean }
         isClosed: { type: boolean }
+        canParticipate: { type: boolean }
 
     ApiResponseGroupBuyFeedPage:
       type: object
@@ -1172,15 +1176,19 @@ components:
             achievementRate: { type: integer }
             currentQuantity: { type: integer }
             targetQuantity: { type: integer }
+            maxQuantity: { type: integer, nullable: true }
             deadline: { type: string, format: date-time }
-            pickupDateTime: { type: string, format: date-time }
+            pickupDate: { type: string, format: date }
+            pickupStartAt: { type: string, format: date-time }
+            pickupEndAt: { type: string, format: date-time }
             pickupLocation: { type: string }
-            pickupLatitude: { type: number, format: double }
-            pickupLongitude: { type: number, format: double }
+            pickupLatitude: { type: number, format: double, nullable: true }
+            pickupLongitude: { type: number, format: double, nullable: true }
             dDay: { type: integer }
             isWishlisted: { type: boolean }
             isClosed: { type: boolean }
             isParticipated: { type: boolean }
+            canParticipate: { type: boolean }
         error: { nullable: true, example: null }
 
     ApiResponseGroupBuyProgress:
@@ -1197,6 +1205,15 @@ components:
             isClosed: { type: boolean }
         error: { nullable: true, example: null }
 
+    GroupBuyProgressItem:
+      type: object
+      properties:
+        groupBuyId: { type: integer, format: int64 }
+        achievementRate: { type: integer }
+        currentQuantity: { type: integer }
+        targetQuantity: { type: integer }
+        isClosed: { type: boolean }
+
     ApiResponseGroupBuyProgressList:
       type: object
       properties:
@@ -1204,7 +1221,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ApiResponseGroupBuyProgress/properties/data'
+            $ref: '#/components/schemas/GroupBuyProgressItem'
         error: { nullable: true, example: null }
 
     ApiResponseShareMeta:
@@ -1221,6 +1238,8 @@ components:
             storeName: { type: string }
             deadline: { type: string, format: date-time }
             pickupDate: { type: string, format: date }
+            pickupStartAt: { type: string, format: date-time, nullable: true }
+            pickupEndAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
     # ── GroupBuyRequest ────────────────────────────────────────
@@ -1438,37 +1457,73 @@ components:
     NotificationItem:
       type: object
       properties:
-        id: { type: integer, format: int64 }
+        id:
+          type: integer
+          format: int64
         category:
           type: string
           enum: [WISHLIST, PARTICIPATION, PICKUP, REQUEST]
-        type: { type: string, description: "PICKUP_TODAY | PICKUP_TOMORROW | WISH_DEADLINE_D3 등" }
-        title: { type: string }
-        body: { type: string }
-        isRead: { type: boolean }
-        targetId: { type: integer, format: int64 }
+        type:
+          type: string
+          enum:
+            - PICKUP_TODAY
+            - PICKUP_TOMORROW
+            - PICKUP_NOT_CONFIRMED
+            - WISHLIST_DEADLINE_D3
+            - WISHLIST_DEADLINE_D1
+            - WISHLIST_TARGET_ACHIEVED
+            - PARTICIPATION_CONFIRMED
+            - GROUP_BUY_ACHIEVED
+            - GROUP_BUY_FAILED
+            - REQUEST_OPENED
+            - REQUEST_REJECTED
+            - REQUEST_NEW_PARTICIPANT
+            - REQUEST_TARGET_ACHIEVED
+            - REQUEST_DEADLINE_D3
+        title:
+          type: string
+        body:
+          type: string
         targetType:
           type: string
-          enum: [GROUP_BUY, GROUP_BUY_REQUEST, PARTICIPATION, PICKUP]
-        actionType: { type: string, nullable: true }
-        dateGroup: { type: string, enum: [TODAY, YESTERDAY, BEFORE] }
-        createdAt: { type: string, format: date-time }
+          enum: [GROUP_BUY, GROUP_BUY_REQUEST, PARTICIPATION]
+          nullable: true
+        targetId:
+          type: integer
+          format: int64
+          nullable: true
+        isRead:
+          type: boolean
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationItem'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        number:
+          type: integer
+        size:
+          type: integer
 
     ApiResponseNotificationPage:
       type: object
       properties:
         success: { type: boolean, example: true }
         data:
-          type: object
-          properties:
-            content:
-              type: array
-              items:
-                $ref: '#/components/schemas/NotificationItem'
-            totalElements: { type: integer }
-            totalPages: { type: integer }
-            number: { type: integer }
-            size: { type: integer }
+          $ref: '#/components/schemas/NotificationPage'
         error: { nullable: true, example: null }
 
     ApiResponseUnreadCount:
@@ -1506,6 +1561,9 @@ components:
                     enum: [BEFORE_ACHIEVED, ACHIEVED]
                   dDay: { type: integer }
                   groupBuyId: { type: integer, format: int64 }
+                  canCancel: { type: boolean }
+                  canViewPickup: { type: boolean }
+                  canViewQr: { type: boolean }
             totalElements: { type: integer }
             totalPages: { type: integer }
         error: { nullable: true, example: null }
@@ -1547,6 +1605,7 @@ components:
             type: object
             properties:
               timeSlot: { type: string, example: "13:00~14:00" }
+              totalReservationCount: { type: integer }
               waitingCount: { type: integer }
               completedCount: { type: integer }
         error: { nullable: true, example: null }
@@ -1568,9 +1627,9 @@ components:
               deadline: { type: string, format: date }
               status:
                 type: string
-                enum: [IN_PROGRESS, ACHIEVED]
+                enum: [IN_PROGRESS, ACHIEVED, FAILED]
         error: { nullable: true, example: null }
-
+    
     ApiResponseReservationPage:
       type: object
       properties:
@@ -1687,34 +1746,67 @@ components:
               achievementRate: { type: integer }
               currentQuantity: { type: integer }
               targetQuantity: { type: integer }
+              remainingQuantity: { type: integer }
               isOrderConfirmed: { type: boolean }
               isOrderSheetSent: { type: boolean }
         error: { nullable: true, example: null }
 
     AdminGroupBuyCreate:
       type: object
-      required: [storeId, productName, price, targetQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd]
+      required: [ storeId, productName, productDescription, price, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation ]
       properties:
         requestId: { type: integer, format: int64, nullable: true }
         storeId: { type: integer, format: int64 }
         productName: { type: string }
+        productDescription: { type: string }
         price: { type: integer, minimum: 1 }
         targetQuantity: { type: integer, minimum: 1 }
+        maxQuantity: { type: integer, minimum: 1 }
         deadline: { type: string, format: date-time }
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
         pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string }
 
     AdminGroupBuyUpdate:
       type: object
       properties:
         productName: { type: string }
-        price: { type: integer }
-        targetQuantity: { type: integer }
+        productDescription: { type: string }
+        price: { type: integer, minimum: 1 }
+        targetQuantity: { type: integer, minimum: 1 }
+        maxQuantity: { type: integer, minimum: 1 }
         deadline: { type: string, format: date-time }
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
         pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string }
+        
+    AdminGroupBuyDetail:
+      type: object
+      properties:
+        groupBuyId: { type: integer, format: int64 }
+        requestId: { type: integer, format: int64, nullable: true }
+        storeId: { type: integer, format: int64 }
+        storeName: { type: string }
+        productName: { type: string }
+        productDescription: { type: string }
+        price: { type: integer }
+        targetQuantity: { type: integer }
+        maxQuantity: { type: integer, nullable: true }
+        currentQuantity: { type: integer }
+        remainingQuantity: { type: integer }
+        achievementRate: { type: integer }
+        status:
+          type: string
+          enum: [IN_PROGRESS, ACHIEVED, FAILED]
+        deadline: { type: string, format: date-time }
+        pickupDate: { type: string, format: date }
+        pickupTimeStart: { type: string, format: time }
+        pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string }
+        isOrderConfirmed: { type: boolean }
+        isOrderSheetSent: { type: boolean }
 
     ApiResponseGroupBuyId:
       type: object
@@ -1731,7 +1823,7 @@ components:
       properties:
         success: { type: boolean, example: true }
         data:
-          $ref: '#/components/schemas/AdminGroupBuyCreate'
+          $ref: '#/components/schemas/AdminGroupBuyDetail'
         error: { nullable: true, example: null }
 
     ApiResponseAdminRefundPage:
