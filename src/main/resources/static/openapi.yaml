@@ -1984,6 +1984,7 @@ components:
         currentQuantity: { type: integer }
         remainingQuantity: { type: integer }
         achievementRate: { type: integer }
+        notice: { type: string, nullable: true }
         status:
           type: string
           enum: [IN_PROGRESS, ACHIEVED, FAILED]
@@ -2004,30 +2005,6 @@ components:
           properties:
             groupBuyId: { type: integer, format: int64 }
         error: { nullable: true, example: null }
-
-    AdminGroupBuyDetail:
-      type: object
-      properties:
-        groupBuyId: { type: integer, format: int64 }
-        storeName: { type: string }
-        productName: { type: string }
-        price: { type: integer }
-        targetQuantity: { type: integer }
-        maxQuantity: { type: integer }
-        currentQuantity: { type: integer }
-        achievementRate: { type: integer }
-        description: { type: string, nullable: true }
-        notice: { type: string, nullable: true }
-        deadline: { type: string, format: date-time }
-        pickupDate: { type: string, format: date }
-        pickupTimeStart: { type: string, format: time }
-        pickupTimeEnd: { type: string, format: time }
-        status:
-          type: string
-          enum: [IN_PROGRESS, ACHIEVED, FAILED]
-        isOrderConfirmed: { type: boolean }
-        isOrderSheetSent: { type: boolean }
-        requestId: { type: integer, format: int64, nullable: true }
 
     ApiResponseAdminGroupBuyDetail:
       type: object
