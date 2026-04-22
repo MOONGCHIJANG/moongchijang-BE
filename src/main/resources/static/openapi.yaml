@@ -1253,8 +1253,8 @@ components:
         maxQuantity: { type: integer, nullable: true }
         deadline: { type: string, format: date-time }
         pickupDate: { type: string, format: date }
-        pickupStartAt: { type: string, format: date-time }
-        pickupEndAt: { type: string, format: date-time }
+        pickupTimeStart: { type: string, format: time }
+        pickupTimeEnd: { type: string, format: time }
         dDay: { type: integer }
         isWishlisted: { type: boolean }
         isClosed: { type: boolean }
@@ -1300,8 +1300,8 @@ components:
             maxQuantity: { type: integer, nullable: true }
             deadline: { type: string, format: date-time }
             pickupDate: { type: string, format: date }
-            pickupStartAt: { type: string, format: date-time }
-            pickupEndAt: { type: string, format: date-time }
+            pickupTimeStart: { type: string, format: time }
+            pickupTimeEnd: { type: string, format: time }
             pickupLocation: { type: string }
             pickupLatitude: { type: number, format: double, nullable: true }
             pickupLongitude: { type: number, format: double, nullable: true }
@@ -1361,8 +1361,8 @@ components:
             storeName: { type: string }
             deadline: { type: string, format: date-time }
             pickupDate: { type: string, format: date }
-            pickupStartAt: { type: string, format: date-time, nullable: true }
-            pickupEndAt: { type: string, format: date-time, nullable: true }
+            pickupTimeStart: { type: string, format: time, nullable: true }
+            pickupTimeEnd: { type: string, format: time, nullable: true }
         error: { nullable: true, example: null }
 
     # ── GroupBuyRequest ────────────────────────────────────────
@@ -1541,7 +1541,9 @@ components:
               participationId: { type: integer, format: int64 }
               productName: { type: string }
               storeName: { type: string }
-              pickupDateTime: { type: string, format: date-time, nullable: true }
+              pickupDate: { type: string, format: date, nullable: true }
+              pickupTimeStart: { type: string, format: time, nullable: true }
+              pickupTimeEnd: { type: string, format: time, nullable: true }
               paymentAmount: { type: integer }
               quantity: { type: integer }
               refundStatus:
@@ -1713,7 +1715,9 @@ components:
                   participationId: { type: integer, format: int64 }
                   productName: { type: string }
                   storeName: { type: string }
-                  pickupDateTime: { type: string, format: date-time, nullable: true }
+                  pickupDate: { type: string, format: date, nullable: true }
+              pickupTimeStart: { type: string, format: time, nullable: true }
+              pickupTimeEnd: { type: string, format: time, nullable: true }
                   paymentAmount: { type: integer }
                   quantity: { type: integer }
                   achievementRate: { type: integer }
@@ -1984,6 +1988,7 @@ components:
         currentQuantity: { type: integer }
         remainingQuantity: { type: integer }
         achievementRate: { type: integer }
+        notice: { type: string, nullable: true }
         status:
           type: string
           enum: [IN_PROGRESS, ACHIEVED, FAILED]
@@ -2004,30 +2009,6 @@ components:
           properties:
             groupBuyId: { type: integer, format: int64 }
         error: { nullable: true, example: null }
-
-    AdminGroupBuyDetail:
-      type: object
-      properties:
-        groupBuyId: { type: integer, format: int64 }
-        storeName: { type: string }
-        productName: { type: string }
-        price: { type: integer }
-        targetQuantity: { type: integer }
-        maxQuantity: { type: integer }
-        currentQuantity: { type: integer }
-        achievementRate: { type: integer }
-        description: { type: string, nullable: true }
-        notice: { type: string, nullable: true }
-        deadline: { type: string, format: date-time }
-        pickupDate: { type: string, format: date }
-        pickupTimeStart: { type: string, format: time }
-        pickupTimeEnd: { type: string, format: time }
-        status:
-          type: string
-          enum: [IN_PROGRESS, ACHIEVED, FAILED]
-        isOrderConfirmed: { type: boolean }
-        isOrderSheetSent: { type: boolean }
-        requestId: { type: integer, format: int64, nullable: true }
 
     ApiResponseAdminGroupBuyDetail:
       type: object
