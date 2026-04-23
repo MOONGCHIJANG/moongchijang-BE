@@ -1209,7 +1209,7 @@ components:
         data: { nullable: true, example: null }
         error:
           type: object
-          required: [code, message]
+          required: [code, message, detail]
           properties:
             code: { type: string, example: GROUPBUY_NOT_FOUND }
             message: { type: string, example: 존재하지 않는 공구입니다 }
@@ -1247,7 +1247,7 @@ components:
     # ── GroupBuy ───────────────────────────────────────────────
     GroupBuyFeedItem:
       type: object
-      required: [id, storeName, region, productName, thumbnailUrl, price, achievementRate, currentQuantity, targetQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, dDay, isWishlisted, isClosed, canParticipate]
+      required: [id, storeName, region, productName, thumbnailUrl, price, achievementRate, currentQuantity, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, dDay, isWishlisted, isClosed, canParticipate]
       properties:
         id: { type: integer, format: int64 }
         storeName: { type: string }
@@ -1294,7 +1294,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [id, storeName, region, productName, productDescription, notice, imageUrls, price, achievementRate, currentQuantity, targetQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, pickupLatitude, pickupLongitude, dDay, isWishlisted, isClosed, isParticipated, canParticipate, minQuantityPerPerson, maxQuantityPerPerson]
+          required: [id, storeName, region, productName, productDescription, notice, imageUrls, price, achievementRate, currentQuantity, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, pickupLatitude, pickupLongitude, dDay, isWishlisted, isClosed, isParticipated, canParticipate]
           properties:
             id: { type: integer, format: int64 }
             storeName: { type: string }
@@ -1322,8 +1322,6 @@ components:
             isClosed: { type: boolean }
             isParticipated: { type: boolean }
             canParticipate: { type: boolean }
-            minQuantityPerPerson: { type: integer, description: "인당 최소 구매 수량. 예) 1" }
-            maxQuantityPerPerson: { type: integer, nullable: true, description: "인당 최대 구매 수량. null이면 제한 없음. 예) 2" }
         error: { nullable: true, example: null }
 
     ApiResponseGroupBuyProgress:
@@ -1546,7 +1544,7 @@ components:
 
     PaymentFail:
       type: object
-      required: [paymentId, participationId, errorCode]
+      required: [paymentId, participationId, errorCode, message]
       description: 포트원 v2 결제 실패/취소 콜백 처리
       properties:
         paymentId:
