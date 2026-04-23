@@ -1653,7 +1653,7 @@ components:
     # ── Notification ───────────────────────────────────────────
     NotificationItem:
       type: object
-      required: [id, category, type, title, body, targetType, targetId, isRead, readAt, createdAt]
+      required: [id, category, type, title, body, targetType, targetId, isRead, readAt, actionType, dateGroup, createdAt]
       properties:
         id:
           type: integer
@@ -1696,6 +1696,15 @@ components:
           type: string
           format: date-time
           nullable: true
+        actionType:
+          type: string
+          nullable: true
+          enum: [QR_CODE, PICKUP_GUIDE, GROUP_BUY_DETAIL, MY_PAGE_ACTIVE, MY_PAGE_REFUND, REQUEST_STATUS]
+          description: "인라인 액션 버튼 유형. null이면 버튼 미노출"
+        dateGroup:
+          type: string
+          enum: [TODAY, YESTERDAY, BEFORE]
+          description: "알림 날짜 그룹 (오늘/어제/이전)"
         createdAt:
           type: string
           format: date-time
