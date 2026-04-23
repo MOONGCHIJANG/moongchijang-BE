@@ -1195,6 +1195,7 @@ components:
     # ── 공통 응답 래퍼 ──────────────────────────────────────────
     ApiResponseEmpty:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data: { nullable: true, example: null }
@@ -1202,11 +1203,13 @@ components:
 
     ApiResponseError:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: false }
         data: { nullable: true, example: null }
         error:
           type: object
+          required: [code, message, detail]
           properties:
             code: { type: string, example: GROUPBUY_NOT_FOUND }
             message: { type: string, example: 존재하지 않는 공구입니다 }
@@ -1215,10 +1218,12 @@ components:
     # ── Auth ───────────────────────────────────────────────────
     ApiResponseAuthToken:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [accessToken, refreshToken, isNewUser]
           properties:
             accessToken: { type: string }
             refreshToken: { type: string }
@@ -1227,10 +1232,12 @@ components:
 
     ApiResponseUserInfo:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [id, nickname, profileImageUrl]
           properties:
             id: { type: integer, format: int64 }
             nickname: { type: string }
@@ -1240,6 +1247,7 @@ components:
     # ── GroupBuy ───────────────────────────────────────────────
     GroupBuyFeedItem:
       type: object
+      required: [id, storeName, region, productName, thumbnailUrl, price, achievementRate, currentQuantity, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, dDay, isWishlisted, isClosed, canParticipate]
       properties:
         id: { type: integer, format: int64 }
         storeName: { type: string }
@@ -1262,10 +1270,12 @@ components:
 
     ApiResponseGroupBuyFeedPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [content, totalElements, totalPages, number, size]
           properties:
             content:
               type: array
@@ -1279,10 +1289,12 @@ components:
 
     ApiResponseGroupBuyDetail:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [id, storeName, region, productName, productDescription, notice, imageUrls, price, achievementRate, currentQuantity, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, pickupLatitude, pickupLongitude, dDay, isWishlisted, isClosed, isParticipated, canParticipate]
           properties:
             id: { type: integer, format: int64 }
             storeName: { type: string }
@@ -1310,16 +1322,16 @@ components:
             isClosed: { type: boolean }
             isParticipated: { type: boolean }
             canParticipate: { type: boolean }
-            minQuantityPerPerson: { type: integer, description: "인당 최소 구매 수량. 예) 1" }
-            maxQuantityPerPerson: { type: integer, nullable: true, description: "인당 최대 구매 수량. null이면 제한 없음. 예) 2" }
         error: { nullable: true, example: null }
 
     ApiResponseGroupBuyProgress:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [groupBuyId, achievementRate, currentQuantity, targetQuantity, isClosed]
           properties:
             groupBuyId: { type: integer, format: int64 }
             achievementRate: { type: integer }
@@ -1330,6 +1342,7 @@ components:
 
     GroupBuyProgressItem:
       type: object
+      required: [groupBuyId, achievementRate, currentQuantity, targetQuantity, isClosed]
       properties:
         groupBuyId: { type: integer, format: int64 }
         achievementRate: { type: integer }
@@ -1339,6 +1352,7 @@ components:
 
     ApiResponseGroupBuyProgressList:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
@@ -1349,10 +1363,12 @@ components:
 
     ApiResponseShareMeta:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [shareUrl, title, description, imageUrl, storeName, deadline, pickupDate, pickupTimeStart, pickupTimeEnd]
           properties:
             shareUrl: { type: string }
             title: { type: string }
@@ -1403,16 +1419,19 @@ components:
 
     ApiResponseRequestId:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [requestId]
           properties:
             requestId: { type: integer, format: int64 }
         error: { nullable: true, example: null }
 
     GroupBuyRequestDetail:
       type: object
+      required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, rejectionReason, createdAt]
       properties:
         requestId: { type: integer, format: int64 }
         storeName: { type: string }
@@ -1431,6 +1450,7 @@ components:
 
     ApiResponseGroupBuyRequestList:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
@@ -1441,6 +1461,7 @@ components:
 
     ApiResponseGroupBuyRequestDetail:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
@@ -1450,10 +1471,12 @@ components:
     # ── Wishlist ───────────────────────────────────────────────
     ApiResponseWishlistPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [content, totalElements, totalPages, number, size, urgentCount]
           properties:
             content:
               type: array
@@ -1490,10 +1513,12 @@ components:
 
     ApiResponseParticipationCreated:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [participationId, orderName, totalAmount, productAmount, feeAmount]
           properties:
             participationId: { type: integer, format: int64 }
             orderName: { type: string, description: "포트원 SDK에 전달할 주문명. 예) 두쫀쿠 오리지널 1개" }
@@ -1519,6 +1544,7 @@ components:
 
     PaymentFail:
       type: object
+      required: [paymentId, participationId, errorCode, message]
       description: 포트원 v2 결제 실패/취소 콜백 처리
       properties:
         paymentId:
@@ -1531,12 +1557,14 @@ components:
 
     ApiResponseRefundList:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: array
           items:
             type: object
+            required: [participationId, productName, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, paymentAmount, quantity, refundStatus, cancelReason]
             properties:
               participationId: { type: integer, format: int64 }
               productName: { type: string }
@@ -1559,17 +1587,19 @@ components:
     # ── Pickup & QR ────────────────────────────────────────────
     ApiResponsePickupInfo:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [participationId, storeName, storePhone, storeAddress, latitude, longitude, transitInfo, pickupDate, pickupTimeStart, pickupTimeEnd, productName, quantity, remainingMinutes]
           properties:
             participationId: { type: integer, format: int64 }
             storeName: { type: string }
             storePhone: { type: string }
             storeAddress: { type: string }
-            latitude: { type: number, format: double }
-            longitude: { type: number, format: double }
+            latitude: { type: number, format: double, nullable: true }
+            longitude: { type: number, format: double, nullable: true }
             transitInfo: { type: string, nullable: true, description: "대중교통 안내 텍스트. 예) 2호선 성수역 3번 출구에서 도보 5분" }
             pickupDate: { type: string, format: date }
             pickupTimeStart: { type: string, format: time }
@@ -1581,10 +1611,12 @@ components:
 
     ApiResponseQrCode:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [qrCode, nickname, productName, quantity, isUsed, storeName, pickupDate, pickupTimeStart, pickupTimeEnd]
           properties:
             qrCode: { type: string, format: uuid }
             nickname: { type: string }
@@ -1599,10 +1631,12 @@ components:
 
     ApiResponsePickupVerify:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [participationId, userName, productName, quantity, pickupDate, pickupTimeStart, pickupTimeEnd, pickupStatus]
           properties:
             participationId: { type: integer, format: int64 }
             userName: { type: string }
@@ -1619,6 +1653,7 @@ components:
     # ── Notification ───────────────────────────────────────────
     NotificationItem:
       type: object
+      required: [id, category, type, title, body, targetType, targetId, isRead, readAt, createdAt]
       properties:
         id:
           type: integer
@@ -1667,6 +1702,7 @@ components:
 
     NotificationPage:
       type: object
+      required: [content, totalElements, totalPages, number, size]
       properties:
         content:
           type: array
@@ -1683,6 +1719,7 @@ components:
 
     ApiResponseNotificationPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
@@ -1691,10 +1728,12 @@ components:
 
     ApiResponseUnreadCount:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [count]
           properties:
             count: { type: integer }
         error: { nullable: true, example: null }
@@ -1702,15 +1741,18 @@ components:
     # ── MyPage ─────────────────────────────────────────────────
     ApiResponseParticipationPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [content, totalElements, totalPages]
           properties:
             content:
               type: array
               items:
                 type: object
+                required: [participationId, productName, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, paymentAmount, quantity, achievementRate, achievementStatus, dDay, groupBuyId, canCancel, canViewPickup, canViewQr]
                 properties:
                   participationId: { type: integer, format: int64 }
                   productName: { type: string }
@@ -1735,10 +1777,12 @@ components:
 
     ApiResponseTabCounts:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [activeCount, completedCount, refundedCount, requestCount]
           properties:
             activeCount: { type: integer, description: 참여중 }
             completedCount: { type: integer, description: 완료 }
@@ -1749,10 +1793,12 @@ components:
     # ── Owner ──────────────────────────────────────────────────
     ApiResponseOwnerSummary:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [pickupWaitingCount, pickupCompletedCount, activeGroupBuyCount, nextPickupTime]
           properties:
             pickupWaitingCount: { type: integer }
             pickupCompletedCount: { type: integer }
@@ -1762,12 +1808,14 @@ components:
 
     ApiResponsePickupScheduleList:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: array
           items:
             type: object
+            required: [timeSlot, totalReservationCount, waitingCount, completedCount]
             properties:
               timeSlot: { type: string, example: "13:00~14:00" }
               totalReservationCount: { type: integer }
@@ -1777,12 +1825,14 @@ components:
 
     ApiResponseOwnerGroupBuyList:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: array
           items:
             type: object
+            required: [groupBuyId, productName, achievementRate, currentQuantity, targetQuantity, deadline, status]
             properties:
               groupBuyId: { type: integer, format: int64 }
               productName: { type: string }
@@ -1797,15 +1847,18 @@ components:
     
     ApiResponseReservationPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [content, waitingCount, completedCount, totalElements, totalPages]
           properties:
             content:
               type: array
               items:
                 type: object
+                required: [participationId, userName, productName, quantity, pickupDate, pickupTimeStart, pickupTimeEnd, status]
                 properties:
                   participationId: { type: integer, format: int64 }
                   userName: { type: string }
@@ -1826,10 +1879,12 @@ components:
     # ── Admin ──────────────────────────────────────────────────
     ApiResponseAdminDashboardSummary:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [pendingRequestCount, activeGroupBuyCount, achievementRate, pendingRefundCount]
           properties:
             pendingRequestCount:
               type: integer
@@ -1848,15 +1903,18 @@ components:
 
     ApiResponseAdminRequestPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [content, totalElements, totalPages]
           properties:
             content:
               type: array
               items:
                 type: object
+                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterName, createdAt]
                 properties:
                   requestId: { type: integer, format: int64 }
                   storeName: { type: string }
@@ -1874,10 +1932,12 @@ components:
 
     ApiResponseAdminRequestDetail:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, additionalNote, status, contactPhone, contactInstagram, rejectionReason, requesterName, createdAt]
           properties:
             requestId: { type: integer, format: int64 }
             storeName: { type: string }
@@ -1918,12 +1978,14 @@ components:
 
     ApiResponseAdminGroupBuyList:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: array
           items:
             type: object
+            required: [groupBuyId, storeName, productName, status, deadline, achievementRate, currentQuantity, targetQuantity, remainingQuantity, isOrderConfirmed, isOrderSheetSent]
             properties:
               groupBuyId: { type: integer, format: int64 }
               storeName: { type: string }
@@ -1975,6 +2037,7 @@ components:
         
     AdminGroupBuyDetail:
       type: object
+      required: [groupBuyId, requestId, storeId, storeName, productName, productDescription, price, targetQuantity, maxQuantity, currentQuantity, remainingQuantity, achievementRate, notice, status, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, isOrderConfirmed, isOrderSheetSent]
       properties:
         groupBuyId: { type: integer, format: int64 }
         requestId: { type: integer, format: int64, nullable: true }
@@ -2002,16 +2065,19 @@ components:
 
     ApiResponseGroupBuyId:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [groupBuyId]
           properties:
             groupBuyId: { type: integer, format: int64 }
         error: { nullable: true, example: null }
 
     ApiResponseAdminGroupBuyDetail:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
@@ -2020,15 +2086,18 @@ components:
 
     ApiResponseAdminRefundPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [content, totalElements, totalPages]
           properties:
             content:
               type: array
               items:
                 type: object
+                required: [participationId, userName, productName, storeName, paymentAmount, refundStatus, refundReason, createdAt]
                 properties:
                   participationId: { type: integer, format: int64 }
                   userName: { type: string }
@@ -2058,15 +2127,18 @@ components:
 
     ApiResponseSettlementPage:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [content, totalElements, totalPages]
           properties:
             content:
               type: array
               items:
                 type: object
+                required: [settlementId, storeName, productName, totalAmount, escrowStatus, scheduledPaymentDate, settlementMethod, memo, createdAt]
                 properties:
                   settlementId: { type: integer, format: int64 }
                   storeName: { type: string }
@@ -2099,10 +2171,12 @@ components:
 
     ApiResponseSettlementId:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
+          required: [settlementId]
           properties:
             settlementId: { type: integer, format: int64 }
         error: { nullable: true, example: null }
