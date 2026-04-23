@@ -1696,6 +1696,14 @@ components:
           type: string
           format: date-time
           nullable: true
+        actionType:
+          type: string
+          nullable: true
+          description: "인라인 액션 버튼 유형. null이면 버튼 없음 (예: QR_CODE, PICKUP_GUIDE, GROUP_BUY_DETAIL)"
+        dateGroup:
+          type: string
+          enum: [TODAY, YESTERDAY, BEFORE]
+          description: "알림 날짜 그룹 (오늘/어제/이전)"
         createdAt:
           type: string
           format: date-time
