@@ -7,6 +7,7 @@ import com.moongchijang.domain.auth.application.dto.response.AuthLoginResponse
 import com.moongchijang.global.response.ApiResponse
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -18,18 +19,21 @@ class AuthController(
     private val authService: AuthService,
     private val tokenService: TokenService,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/kakao")
     fun loginWithKakao(
         @Valid @RequestBody request: KakaoLoginRequest,
         response: HttpServletResponse,
     ): ApiResponse<AuthLoginResponse> {
+        log.info("[AuthController] 카카오 로그인 요청 수신")
         val result = authService.loginWithKakao(request.authorizationCode)
 
         tokenService.addRefreshTokenCookie(
             response = response,
             refreshToken = result.refreshToken,
         )
+        log.info("[AuthController] 카카오 로그인 응답 완료: userId={}", result.response.user.id)
 
         return ApiResponse.success(result.response)
     }

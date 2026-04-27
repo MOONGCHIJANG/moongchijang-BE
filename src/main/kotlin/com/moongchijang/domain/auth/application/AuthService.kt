@@ -7,6 +7,7 @@ import com.moongchijang.domain.auth.application.dto.response.AuthUserResponse
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.security.jwt.JwtTokenProvider
 import jakarta.transaction.Transactional
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
@@ -16,9 +17,11 @@ class AuthService(
     private val tokenService: TokenService,
     private val jwtTokenProvider: JwtTokenProvider,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun loginWithKakao(authorizationCode: String): AuthLoginResult {
+        log.info("[AuthService] 카카오 로그인 처리 시작")
         val kakaoUser: KakaoAuthUser = kakaoAuthService.getKakaoUser(authorizationCode)
 
         val (user, isNewUser) = userService.findOrCreateKakaoUser(
@@ -37,6 +40,12 @@ class AuthService(
             expiresIn = expiresIn,
             isNewUser = isNewUser,
             user = AuthUserResponse.from(user),
+        )
+
+        log.info(
+            "[AuthService] 카카오 로그인 처리 완료: userId={}, isNewUser={}",
+            user.id,
+            isNewUser,
         )
 
         return AuthLoginResult(

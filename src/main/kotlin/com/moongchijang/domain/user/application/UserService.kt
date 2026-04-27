@@ -5,6 +5,7 @@ import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -13,6 +14,7 @@ import java.time.LocalDateTime
 class UserService(
     private val userRepository: UserRepository
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun findOrCreateKakaoUser(
@@ -20,8 +22,16 @@ class UserService(
         email: String,
         nickname: String,
     ): Pair<User, Boolean> {
-        findActiveKakaoUser(providerId)?.let { return it to false }
-        findDeletedKakaoUser(providerId)?.let { return restoreDeletedUser(it, email, nickname) to false }
+        findActiveKakaoUser(providerId)?.let {
+            log.info("[UserService] 기존 카카오 사용자 로그인 처리: userId={}", it.id)
+            return it to false
+        }
+        findDeletedKakaoUser(providerId)?.let {
+            val restored = restoreDeletedUser(it, email, nickname)
+            log.info("[UserService] 탈퇴 카카오 사용자 복구 처리: userId={}", restored.id)
+            return restored to false
+        }
+        log.info("[UserService] 신규 카카오 사용자 생성 처리")
         return createNewKakaoUser(providerId, email, nickname) to true
     }
 
@@ -42,6 +52,7 @@ class UserService(
         nickname: String,
         phoneNumber: String,
     ): User {
+        log.info("[UserService] 추가정보 입력 처리 시작: userId={}", userId)
         validateNicknameFormat(nickname)
         validatePhoneNumberFormat(phoneNumber)
 
@@ -55,6 +66,7 @@ class UserService(
         }
 
         user.completeSignup(nickname, phoneNumber)
+        log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
         return user
     }
 
@@ -102,7 +114,9 @@ class UserService(
             email = email,
             nickname = nickname,
         )
-        return userRepository.save(newUser)
+        val savedUser = userRepository.save(newUser)
+        log.info("[UserService] 신규 카카오 사용자 생성 완료: userId={}", savedUser.id)
+        return savedUser
     }
 
     private fun validateRejoinAvailable(deletedAt: LocalDateTime) {

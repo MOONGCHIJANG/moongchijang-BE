@@ -1,8 +1,8 @@
 package com.moongchijang.domain.auth.application
 
-import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.ResponseCookie
@@ -15,11 +15,13 @@ class TokenService(
     private val redisTemplate: StringRedisTemplate,
     @Value("\${auth.refresh.expiration-days}") private val refreshExpirationDays: Long,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
     private val refreshCookieName = "refreshToken"
 
     fun issueRefreshToken(userId: Long): String {
         val refreshToken = UUID.randomUUID().toString()
         saveRefreshToken(userId, refreshToken)
+        log.info("[TokenService] 리프레시 토큰 발급 완료: userId={}", userId)
         return refreshToken
     }
 
@@ -29,6 +31,7 @@ class TokenService(
         }
         val newRefreshToken = UUID.randomUUID().toString()
         saveRefreshToken(userId, newRefreshToken)
+        log.info("[TokenService] 리프레시 토큰 재발급 완료: userId={}", userId)
         return newRefreshToken
     }
 
@@ -43,6 +46,7 @@ class TokenService(
             redisTemplate.delete(tokenKey(savedRefreshToken))
         }
         redisTemplate.delete(userKey(userId))
+        log.info("[TokenService] 리프레시 토큰 삭제 완료: userId={}", userId)
     }
 
     fun extractRefreshToken(request: HttpServletRequest): String? {

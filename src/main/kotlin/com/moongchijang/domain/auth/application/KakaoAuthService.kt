@@ -5,6 +5,7 @@ import com.moongchijang.domain.auth.infrastructure.oauth.kakao.client.KakaoAuthC
 import com.moongchijang.domain.auth.infrastructure.oauth.kakao.client.KakaoUserInfoClient
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -13,9 +14,11 @@ class KakaoAuthService(
     private val kakaoAuthClient: KakaoAuthClient,
     private val kakaoUserInfoClient: KakaoUserInfoClient,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional(readOnly = true)
     fun getKakaoUser(authorizationCode: String): KakaoAuthUser {
+        log.info("[KakaoAuthService] 카카오 사용자 조회 시작")
         val kakaoAccessToken = kakaoAuthClient.getAccessToken(authorizationCode)
         val userInfo = kakaoUserInfoClient.getUserInfo(kakaoAccessToken)
 
@@ -30,10 +33,12 @@ class KakaoAuthService(
             ?.takeIf { it.isNotBlank() }
             ?: throw CustomException(ErrorCode.KAKAO_USER_INFO_INVALID)
 
-        return KakaoAuthUser(
+        val kakaoUser = KakaoAuthUser(
             providerId = providerId,
             email = email,
             nickname = nickname,
         )
+        log.info("[KakaoAuthService] 카카오 사용자 조회 완료: providerId={}", providerId)
+        return kakaoUser
     }
 }
