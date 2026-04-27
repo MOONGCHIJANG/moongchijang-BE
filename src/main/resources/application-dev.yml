@@ -18,6 +18,10 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+  flyway:
+    enabled: true
+
+
 server:
   forward-headers-strategy: framework
 
