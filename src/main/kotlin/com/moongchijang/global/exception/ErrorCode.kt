@@ -23,6 +23,12 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     REFRESH_TOKEN_MISMATCH(401_009, "저장된 리프레시 토큰과 일치하지 않습니다.", 401),
     EXPIRED_REFRESH_TOKEN(401_010, "리프레시 토큰이 만료되었습니다.", 401),
     REFRESH_TOKEN_NOT_FOUND(401_011, "저장된 리프레시 토큰이 존재하지 않습니다.", 401),
+    KAKAO_TOKEN_REQUEST_INVALID(401_012, "카카오 토큰 요청 파라미터가 올바르지 않습니다.", 401),
+    KAKAO_TOKEN_EXCHANGE_FAILED(401_013, "카카오 토큰 교환에 실패했습니다.", 401),
+    KAKAO_TOKEN_RESPONSE_INVALID(401_014, "카카오 토큰 응답이 올바르지 않습니다.", 401),
+    KAKAO_ACCESS_TOKEN_MISSING(401_015, "카카오 액세스 토큰이 응답에 없습니다.", 401),
+    KAKAO_USER_INFO_FETCH_FAILED(401_016, "카카오 사용자 정보 조회에 실패했습니다.", 401),
+    KAKAO_USER_INFO_INVALID(401_017, "카카오 사용자 정보가 유효하지 않습니다.", 401),
 
     // 403 Forbidden
     FORBIDDEN(403_000, "접속 권한이 없습니다.", 403),

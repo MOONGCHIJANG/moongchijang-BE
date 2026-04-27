@@ -25,3 +25,11 @@ app:
   s3:
     bucket: ${S3_BUCKET}
     prefix: ${S3_PREFIX}
+
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: ${KAKAO_REDIRECT_URI}
