@@ -45,6 +45,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
 
     // 409 Conflict
     DUPLICATE_EMAIL(409_001, "이미 사용 중인 이메일입니다.", 409),
+    REJOIN_NOT_AVAILABLE_YET(409_002, "탈퇴 후 30일 이후에 다시 가입할 수 있습니다.", 409),
 
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(500_000, "서버 내부 오류입니다.", 500);

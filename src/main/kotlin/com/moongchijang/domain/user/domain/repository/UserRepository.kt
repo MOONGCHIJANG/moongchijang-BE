@@ -6,9 +6,19 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserRepository : JpaRepository<User, Long> {
 
-    fun findByProviderAndProviderId(provider: AuthProvider, providerId: String): User?
+    // 활성(미탈퇴) 유저 조회
+    fun findByProviderAndProviderIdAndDeletedAtIsNull(
+        provider: AuthProvider,
+        providerId: String,
+    ): User?
 
-    fun existsByNickname(nickname: String): Boolean
+    // 탈퇴 유저 조회
+    fun findByProviderAndProviderIdAndDeletedAtIsNotNull(
+        provider: AuthProvider,
+        providerId: String,
+    ): User?
 
-    fun existsByEmail(email: String): Boolean
+    fun existsByNicknameAndDeletedAtIsNull(nickname: String): Boolean
+
+    fun existsByEmailAndDeletedAtIsNull(email: String): Boolean
 }
