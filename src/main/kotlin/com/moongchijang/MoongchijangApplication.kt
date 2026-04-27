@@ -2,8 +2,10 @@ package com.moongchijang
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 
 @SpringBootApplication
+@EnableJpaAuditing
 class MoongchijangApplication
 
 fun main(args: Array<String>) {
