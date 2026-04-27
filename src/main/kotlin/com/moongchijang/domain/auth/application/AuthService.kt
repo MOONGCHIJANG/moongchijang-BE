@@ -86,4 +86,11 @@ class AuthService(
             refreshToken = newRefreshToken,
         )
     }
+
+    @Transactional
+    fun logout(userId: Long) {
+        log.info("[AuthService] 로그아웃 처리 시작: userId={}", userId)
+        tokenService.deleteByUserId(userId)
+        log.info("[AuthService] 로그아웃 처리 완료: userId={}", userId)
+    }
 }
