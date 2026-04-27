@@ -31,6 +31,7 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/health",
                     "/api/v1/auth/kakao",
+                    "/api/v1/auth/refresh",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                 ).permitAll()

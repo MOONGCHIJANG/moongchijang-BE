@@ -1,11 +1,16 @@
 package com.moongchijang.domain.auth.application
 
+import com.moongchijang.domain.auth.application.dto.AccessTokenReissueResult
 import com.moongchijang.domain.auth.application.dto.AuthLoginResult
 import com.moongchijang.domain.auth.application.dto.KakaoAuthUser
+import com.moongchijang.domain.auth.application.dto.response.AccessTokenResponse
 import com.moongchijang.domain.auth.application.dto.response.AuthLoginResponse
 import com.moongchijang.domain.auth.application.dto.response.AuthUserResponse
 import com.moongchijang.domain.user.application.UserService
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.security.jwt.JwtTokenProvider
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -51,6 +56,34 @@ class AuthService(
         return AuthLoginResult(
             response = response,
             refreshToken = refreshToken,
+        )
+    }
+
+    @Transactional
+    fun reissueAccessToken(request: HttpServletRequest): AccessTokenReissueResult {
+        log.info("[AuthService] 액세스 토큰 재발급 처리 시작")
+
+        val refreshToken = tokenService.extractRefreshToken(request)
+            ?: throw CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND)
+
+        val userId = tokenService.getUserIdByRefreshToken(refreshToken)
+            ?: throw CustomException(ErrorCode.INVALID_REFRESH_TOKEN)
+
+        val newRefreshToken = tokenService.reissueRefreshToken(userId, refreshToken)
+        val accessToken = jwtTokenProvider.generateAccessToken(userId)
+        val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
+
+        val response = AccessTokenResponse(
+            accessToken = accessToken,
+            tokenType = "Bearer",
+            expiresIn = expiresIn,
+        )
+
+        log.info("[AuthService] 액세스 토큰 재발급 처리 완료: userId={}", userId)
+
+        return AccessTokenReissueResult(
+            response = response,
+            refreshToken = newRefreshToken,
         )
     }
 }
