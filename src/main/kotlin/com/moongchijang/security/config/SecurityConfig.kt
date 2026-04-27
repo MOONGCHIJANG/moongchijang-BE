@@ -26,8 +26,9 @@ class SecurityConfig {
             .authorizeHttpRequests {
                 it.requestMatchers(
                     "/health",
+                    "/api/v1/auth/kakao",
                     "/swagger-ui/**",
-                    "/v3/api-docs/**"
+                    "/v3/api-docs/**",
                 ).permitAll()
 
                 // 개발 진행 시에는 모든 경로 허용 후 실제 배포 시 변경 필요
