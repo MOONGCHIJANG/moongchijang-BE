@@ -1,5 +1,7 @@
 package com.moongchijang.security.jwt
 
+import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -12,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 @Component
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider,
+    private val userRepository: UserRepository,
 ) : OncePerRequestFilter() {
 
     private val whitelist = listOf(
@@ -36,8 +39,18 @@ class JwtAuthenticationFilter(
 
         if (!token.isNullOrBlank() && jwtTokenProvider.validateToken(token) == TokenStatus.VALID) {
             val userId = jwtTokenProvider.getUserIdFromToken(token)
-            val authentication = UsernamePasswordAuthenticationToken(userId, null, emptyList())
-            SecurityContextHolder.getContext().authentication = authentication
+            val user = userRepository.findById(userId).orElse(null)
+
+            if (user != null && user.deletedAt == null) {
+                val principal = CustomUserPrincipal(
+                    id = user.id!!,
+                    email = user.email,
+                    role = user.role,
+                )
+
+                val authentication = UsernamePasswordAuthenticationToken(principal, null, principal.authorities)
+                SecurityContextHolder.getContext().authentication = authentication
+            }
         }
 
         filterChain.doFilter(request, response)
