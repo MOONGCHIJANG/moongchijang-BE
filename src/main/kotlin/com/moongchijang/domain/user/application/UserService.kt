@@ -27,12 +27,35 @@ class UserService(
 
     @Transactional(readOnly = true)
     fun existsByNickname(nickname: String): Boolean {
+        validateNicknameFormat(nickname)
         return userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
     }
 
     @Transactional(readOnly = true)
     fun existsByEmail(email: String): Boolean {
         return userRepository.existsByEmailAndDeletedAtIsNull(email)
+    }
+
+    @Transactional
+    fun updateAdditionalInfo(
+        userId: Long,
+        nickname: String,
+        phoneNumber: String,
+    ): User {
+        validateNicknameFormat(nickname)
+        validatePhoneNumberFormat(phoneNumber)
+
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(nickname) &&
+            user.nickname != nickname
+        if (duplicated) {
+            throw CustomException(ErrorCode.DUPLICATE_NICKNAME)
+        }
+
+        user.completeSignup(nickname, phoneNumber)
+        return user
     }
 
     private fun findActiveKakaoUser(providerId: String): User? {
@@ -86,6 +109,20 @@ class UserService(
         val rejoinAvailableAt = deletedAt.plusDays(30)
         if (LocalDateTime.now().isBefore(rejoinAvailableAt)) {
             throw CustomException(ErrorCode.REJOIN_NOT_AVAILABLE_YET)
+        }
+    }
+
+    private fun validateNicknameFormat(nickname: String) {
+        val nicknameRegex = Regex("^[A-Za-z0-9가-힣]{2,10}$")
+        if (!nicknameRegex.matches(nickname)) {
+            throw CustomException(ErrorCode.INVALID_NICKNAME_FORMAT)
+        }
+    }
+
+    private fun validatePhoneNumberFormat(phoneNumber: String) {
+        val phoneRegex = Regex("^01[0-9]-[0-9]{3,4}-[0-9]{4}$")
+        if (!phoneRegex.matches(phoneNumber)) {
+            throw CustomException(ErrorCode.INVALID_PHONE_NUMBER_FORMAT)
         }
     }
 }
