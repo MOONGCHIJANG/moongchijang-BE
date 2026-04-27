@@ -1,4 +1,4 @@
-package com.moongchijang.domain.auth.presentation.dto.response
+package com.moongchijang.domain.auth.application.dto.response
 
 data class AuthLoginResponse(
     val accessToken: String,

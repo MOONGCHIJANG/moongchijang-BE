@@ -1,4 +1,4 @@
-package com.moongchijang.domain.auth.presentation.dto.request
+package com.moongchijang.domain.auth.application.dto.request
 
 import jakarta.validation.constraints.NotBlank
 

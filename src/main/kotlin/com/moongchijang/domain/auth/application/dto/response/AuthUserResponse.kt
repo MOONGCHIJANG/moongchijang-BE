@@ -1,4 +1,4 @@
-package com.moongchijang.domain.auth.presentation.dto.response
+package com.moongchijang.domain.auth.application.dto.response
 
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.UserRole
