@@ -1,4 +1,4 @@
-package com.moongchijang.domain.user.entity
+package com.moongchijang.domain.user.domain.entity
 
 enum class UserRole {
     BUYER,

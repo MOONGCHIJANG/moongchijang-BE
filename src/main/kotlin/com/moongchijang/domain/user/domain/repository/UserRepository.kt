@@ -1,7 +1,7 @@
-package com.moongchijang.domain.user.repository
+package com.moongchijang.domain.user.domain.repository
 
-import com.moongchijang.domain.user.entity.AuthProvider
-import com.moongchijang.domain.user.entity.User
+import com.moongchijang.domain.user.domain.entity.AuthProvider
+import com.moongchijang.domain.user.domain.entity.User
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserRepository : JpaRepository<User, Long> {

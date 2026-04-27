@@ -1,4 +1,4 @@
-package com.moongchijang.domain.user.entity
+package com.moongchijang.domain.user.domain.entity
 
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.Column
