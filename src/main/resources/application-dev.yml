@@ -15,8 +15,12 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
+
+  flyway:
+    enabled: true
+
 
 server:
   forward-headers-strategy: framework
@@ -30,3 +34,20 @@ springdoc:
   swagger-ui:
     url: /dev/openapi.yaml
     config-url: /dev/v3/api-docs/swagger-config
+
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token:
+    expiration-minutes: 60
+
+auth:
+  refresh:
+    expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}

@@ -22,6 +22,7 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-h2console")
+    implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
@@ -39,6 +40,14 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.31.18"))
     implementation("software.amazon.awssdk:s3")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
+
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
+    // Flyway
+    implementation("org.flywaydb:flyway-core")
 }
 
 kotlin {

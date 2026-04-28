@@ -9,6 +9,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     INVALID_FILE_FORMAT(400_001, "업로드된 파일 형식이 올바르지 않습니다.", 400),
     INVALID_INPUT(400_002, "입력값이 올바르지 않습니다.", 400),
     NULL_VALUE(400_003, "Null 값이 들어왔습니다.", 400),
+    INVALID_NICKNAME_FORMAT(400_004, "2~10자, 한글/영문/숫자만 입력 가능해요.", 400),
+    INVALID_PHONE_NUMBER_FORMAT(400_005, "올바른 전화번호를 입력해주세요.", 400),
 
     // 401 Unauthorized
     TOKEN_EXPIRED(401_000, "토큰이 만료되었습니다.", 401),
@@ -23,6 +25,12 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     REFRESH_TOKEN_MISMATCH(401_009, "저장된 리프레시 토큰과 일치하지 않습니다.", 401),
     EXPIRED_REFRESH_TOKEN(401_010, "리프레시 토큰이 만료되었습니다.", 401),
     REFRESH_TOKEN_NOT_FOUND(401_011, "저장된 리프레시 토큰이 존재하지 않습니다.", 401),
+    KAKAO_TOKEN_REQUEST_INVALID(401_012, "카카오 토큰 요청 파라미터가 올바르지 않습니다.", 401),
+    KAKAO_TOKEN_EXCHANGE_FAILED(401_013, "카카오 토큰 교환에 실패했습니다.", 401),
+    KAKAO_TOKEN_RESPONSE_INVALID(401_014, "카카오 토큰 응답이 올바르지 않습니다.", 401),
+    KAKAO_ACCESS_TOKEN_MISSING(401_015, "카카오 액세스 토큰이 응답에 없습니다.", 401),
+    KAKAO_USER_INFO_FETCH_FAILED(401_016, "카카오 사용자 정보 조회에 실패했습니다.", 401),
+    KAKAO_USER_INFO_INVALID(401_017, "카카오 사용자 정보가 유효하지 않습니다.", 401),
 
     // 403 Forbidden
     FORBIDDEN(403_000, "접속 권한이 없습니다.", 403),
@@ -39,6 +47,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
 
     // 409 Conflict
     DUPLICATE_EMAIL(409_001, "이미 사용 중인 이메일입니다.", 409),
+    REJOIN_NOT_AVAILABLE_YET(409_002, "탈퇴 후 30일 이후에 다시 가입할 수 있습니다.", 409),
+    DUPLICATE_NICKNAME(409_003, "이미 사용 중인 닉네임이에요.", 409),
 
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(500_000, "서버 내부 오류입니다.", 500);
