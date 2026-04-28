@@ -36,8 +36,11 @@ class TokenService(
     }
 
     fun getUserIdByRefreshToken(refreshToken: String): Long? {
-        val userId = redisTemplate.opsForValue().get(tokenKey(refreshToken)) ?: return null
-        return userId.toLongOrNull()
+        val userIdText = redisTemplate.opsForValue().get(tokenKey(refreshToken)) ?: return null
+        val userId = userIdText.toLongOrNull() ?: return null
+        val currentUserToken = redisTemplate.opsForValue().get(userKey(userId))
+
+        return if (currentUserToken == refreshToken) userId else null
     }
 
     fun deleteByUserId(userId: Long) {
@@ -80,6 +83,10 @@ class TokenService(
 
     private fun saveRefreshToken(userId: Long, refreshToken: String) {
         val ttl = Duration.ofDays(refreshExpirationDays)
+        val oldRefreshToken = redisTemplate.opsForValue().get(userKey(userId))
+        if (!oldRefreshToken.isNullOrBlank() && oldRefreshToken != refreshToken) {
+            redisTemplate.delete(tokenKey(oldRefreshToken))
+        }
         redisTemplate.opsForValue().set(userKey(userId), refreshToken, ttl)
         redisTemplate.opsForValue().set(tokenKey(refreshToken), userId.toString(), ttl)
     }
