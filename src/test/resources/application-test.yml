@@ -1,3 +1,20 @@
 spring:
   flyway:
     enabled: false
+
+oauth:
+  kakao:
+    client-id: test-client-id
+    client-secret: test-client-secret
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: http://localhost:3000/oauth
+
+jwt:
+  secret: test-jwt-secret-test-jwt-secret-test-jwt-secret
+  access-token:
+    expiration-minutes: 60
+
+auth:
+  refresh:
+    expiration-days: 14
