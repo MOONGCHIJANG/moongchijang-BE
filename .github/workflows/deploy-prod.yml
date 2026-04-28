@@ -115,6 +115,9 @@ jobs:
 
             export ECR_REPOSITORY_URL="${{ vars.ECR_REPOSITORY_URL }}"
             ECR_REGISTRY="${ECR_REPOSITORY_URL%%/*}"
+            test -f ../.env.prod
+            grep -q '^DB_URL=' ../.env.prod
+            grep -q '^SPRING_PROFILES_ACTIVE=' ../.env.prod
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
             docker compose --profile prod pull app-prod
             docker compose --profile prod up -d nginx app-prod
