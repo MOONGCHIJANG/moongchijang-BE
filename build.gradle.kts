@@ -48,6 +48,7 @@ dependencies {
 
     // Flyway
     implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-mysql")
 }
 
 kotlin {
