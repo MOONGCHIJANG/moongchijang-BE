@@ -32,6 +32,11 @@ app:
     bucket: ${S3_BUCKET}
     prefix: ${S3_PREFIX}
 
+naver:
+  api:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
+
 springdoc:
   swagger-ui:
     url: /dev/openapi.yaml
