@@ -50,6 +50,14 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     REJOIN_NOT_AVAILABLE_YET(409_002, "탈퇴 후 30일 이후에 다시 가입할 수 있습니다.", 409),
     DUPLICATE_NICKNAME(409_003, "이미 사용 중인 닉네임이에요.", 409),
 
+    // GroupBuyRequest
+    GROUPBUY_REQUEST_NOT_FOUND(404_010, "공구 요청을 찾을 수 없습니다.", 404),
+    GROUPBUY_REQUEST_FORBIDDEN(403_010, "본인의 공구 요청만 조회할 수 있습니다.", 403),
+    GROUPBUY_REQUEST_INVALID_DATE(400_010, "희망 픽업 날짜는 오늘 이후여야 합니다.", 400),
+
+    // Store
+    STORE_SEARCH_FAILED(502_001, "매장 검색 중 오류가 발생했습니다.", 502),
+
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(500_000, "서버 내부 오류입니다.", 500);
 }
