@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/stores")
-@Tag(name = "GroupBuyRequest", description = "공구 개설 요청 (소비자)")
+@Tag(name = "Store", description = "매장 검색 API")
 class StoreSearchController(
     private val storeSearchService: StoreSearchService
 ) {

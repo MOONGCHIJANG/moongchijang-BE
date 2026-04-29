@@ -10,9 +10,10 @@ import org.springframework.web.client.RestClientException
 
 @Component
 class NaverLocalSearchClient(
-    private val naverApiProperties: NaverApiProperties
+    private val naverApiProperties: NaverApiProperties,
+    restClientBuilder: RestClient.Builder
 ) {
-    private val restClient = RestClient.create()
+    private val restClient = restClientBuilder.build()
 
     fun search(keyword: String, display: Int = 5): NaverLocalSearchResponse {
         return try {
