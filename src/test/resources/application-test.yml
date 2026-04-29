@@ -18,3 +18,8 @@ jwt:
 auth:
   refresh:
     expiration-days: 14
+
+naver:
+  api:
+    client-id: test-naver-client-id
+    client-secret: test-naver-client-secret
