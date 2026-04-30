@@ -1,6 +1,6 @@
 package com.moongchijang.security.jwt
 
-import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.domain.user.repository.UserRepository
 import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
