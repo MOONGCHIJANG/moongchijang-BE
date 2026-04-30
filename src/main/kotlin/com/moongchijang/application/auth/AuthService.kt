@@ -3,9 +3,9 @@ package com.moongchijang.application.auth
 import com.moongchijang.application.auth.dto.AccessTokenReissueResult
 import com.moongchijang.application.auth.dto.AuthLoginResult
 import com.moongchijang.application.auth.dto.KakaoAuthUser
-import com.moongchijang.application.auth.dto.response.AccessTokenResponse
-import com.moongchijang.application.auth.dto.response.AuthLoginResponse
-import com.moongchijang.application.auth.dto.response.AuthUserResponse
+import com.moongchijang.application.auth.dto.AccessTokenResponse
+import com.moongchijang.application.auth.dto.AuthLoginResponse
+import com.moongchijang.application.auth.dto.AuthUserResponse
 import com.moongchijang.application.user.UserService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode

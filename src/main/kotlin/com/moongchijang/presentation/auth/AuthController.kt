@@ -2,9 +2,9 @@ package com.moongchijang.presentation.auth
 
 import com.moongchijang.application.auth.AuthService
 import com.moongchijang.application.auth.TokenService
-import com.moongchijang.application.auth.dto.request.KakaoLoginRequest
-import com.moongchijang.application.auth.dto.response.AccessTokenResponse
-import com.moongchijang.application.auth.dto.response.AuthLoginResponse
+import com.moongchijang.application.auth.dto.KakaoLoginRequest
+import com.moongchijang.application.auth.dto.AccessTokenResponse
+import com.moongchijang.application.auth.dto.AuthLoginResponse
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse

@@ -1,9 +1,9 @@
 package com.moongchijang.presentation.user
 
 import com.moongchijang.application.user.UserService
-import com.moongchijang.application.user.dto.request.AdditionalInfoUpsertRequest
-import com.moongchijang.application.user.dto.response.AdditionalInfoUpdatedResponse
-import com.moongchijang.application.user.dto.response.NicknameAvailabilityResponse
+import com.moongchijang.application.user.dto.AdditionalInfoUpsertRequest
+import com.moongchijang.application.user.dto.AdditionalInfoUpdatedResponse
+import com.moongchijang.application.user.dto.NicknameAvailabilityResponse
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse

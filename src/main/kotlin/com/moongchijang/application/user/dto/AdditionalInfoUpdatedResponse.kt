@@ -1,4 +1,4 @@
-package com.moongchijang.application.user.dto.response
+package com.moongchijang.application.user.dto
 
 import com.moongchijang.domain.user.entity.User
 import io.swagger.v3.oas.annotations.media.Schema

@@ -1,4 +1,4 @@
-package com.moongchijang.application.user.dto.request
+package com.moongchijang.application.user.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
