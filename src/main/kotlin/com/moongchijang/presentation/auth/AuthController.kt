@@ -9,6 +9,12 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
@@ -21,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Auth", description = "인증 API")
 class AuthController(
     private val authService: AuthService,
     private val tokenService: TokenService,
@@ -28,6 +35,14 @@ class AuthController(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/kakao")
+    @Operation(summary = "카카오 로그인", description = "인가 코드를 받아 로그인/회원가입 분기 후 액세스 토큰을 발급합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "로그인 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 요청", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
     fun loginWithKakao(
         @Valid @RequestBody request: KakaoLoginRequest,
         response: HttpServletResponse,
@@ -45,6 +60,13 @@ class AuthController(
     }
 
     @PostMapping("/refresh")
+    @Operation(summary = "액세스 토큰 재발급", description = "리프레시 토큰 쿠키를 검증해 액세스 토큰을 재발급합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "재발급 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "리프레시 토큰 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
     fun reissueAccessToken(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -62,6 +84,13 @@ class AuthController(
     }
 
     @PostMapping("/logout")
+    @Operation(summary = "로그아웃", description = "리프레시 토큰을 폐기하고 쿠키를 제거합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "로그아웃 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
     fun logout(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
         response: HttpServletResponse,
