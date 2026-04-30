@@ -1,4 +1,4 @@
-package com.moongchijang.infrastructure.oauth.kakao.config
+package com.moongchijang.global.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 

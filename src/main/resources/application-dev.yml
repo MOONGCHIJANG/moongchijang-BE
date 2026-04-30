@@ -23,7 +23,6 @@ spring:
     locations:
       - classpath:db/migration
 
-
 server:
   forward-headers-strategy: framework
 
@@ -49,6 +48,11 @@ oauth:
     token-uri: https://kauth.kakao.com/oauth/token
     user-info-uri: https://kapi.kakao.com/v2/user/me
     redirect-uri: ${KAKAO_REDIRECT_URI}
+
+coolsms:
+  api-key: ${COOLSMS_API_KEY}
+  api-secret: ${COOLSMS_API_SECRET}
+  sender: ${COOLSMS_SENDER}
 
 jwt:
   secret: ${JWT_SECRET}

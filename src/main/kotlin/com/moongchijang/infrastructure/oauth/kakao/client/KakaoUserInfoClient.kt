@@ -1,9 +1,9 @@
 package com.moongchijang.infrastructure.oauth.kakao.client
 
-import com.moongchijang.infrastructure.oauth.kakao.config.KakaoProperties
-import com.moongchijang.infrastructure.oauth.kakao.dto.KakaoUserInfoResponse
+import com.moongchijang.global.config.KakaoProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.infrastructure.oauth.kakao.dto.KakaoUserInfoResponse
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
