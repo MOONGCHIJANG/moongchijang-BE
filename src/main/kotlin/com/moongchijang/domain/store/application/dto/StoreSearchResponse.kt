@@ -1,6 +1,6 @@
-package com.moongchijang.application.store.dto
+package com.moongchijang.domain.store.application.dto
 
-import com.moongchijang.infrastructure.naver.dto.NaverLocalSearchItem
+import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
 
 data class StoreSearchResponse(
     val stores: List<StoreItem>

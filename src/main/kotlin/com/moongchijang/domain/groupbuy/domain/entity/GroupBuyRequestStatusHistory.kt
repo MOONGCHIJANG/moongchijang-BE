@@ -1,4 +1,4 @@
-package com.moongchijang.domain.groupbuy.entity
+package com.moongchijang.domain.groupbuy.domain.entity
 
 import jakarta.persistence.*
 import java.time.LocalDateTime

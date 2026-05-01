@@ -1,9 +1,9 @@
-package com.moongchijang.infrastructure.naver
+package com.moongchijang.domain.store.infrastructure.naver
 
+import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchResponse
 import com.moongchijang.global.config.NaverApiProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
-import com.moongchijang.infrastructure.naver.dto.NaverLocalSearchResponse
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException

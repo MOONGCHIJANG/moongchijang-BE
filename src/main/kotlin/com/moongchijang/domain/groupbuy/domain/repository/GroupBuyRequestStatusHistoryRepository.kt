@@ -1,6 +1,6 @@
-package com.moongchijang.domain.groupbuy.repository
+package com.moongchijang.domain.groupbuy.domain.repository
 
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequestStatusHistory
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface GroupBuyRequestStatusHistoryRepository : JpaRepository<GroupBuyRequestStatusHistory, Long> {

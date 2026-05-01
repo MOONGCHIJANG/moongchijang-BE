@@ -1,4 +1,4 @@
-package com.moongchijang.application.groupbuy.dto
+package com.moongchijang.domain.groupbuy.application.dto
 
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank

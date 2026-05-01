@@ -1,18 +1,19 @@
-package com.moongchijang.application.groupbuy
+package com.moongchijang.domain.groupbuy.application
 
-import com.moongchijang.application.groupbuy.dto.GroupBuyRequestCreateRequest
-import com.moongchijang.application.groupbuy.dto.GroupBuyRequestIdResponse
-import com.moongchijang.application.groupbuy.dto.GroupBuyRequestResponse
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequest
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequestStatus
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequestStatusHistory
-import com.moongchijang.domain.groupbuy.repository.GroupBuyRequestRepository
-import com.moongchijang.domain.groupbuy.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestCreateRequest
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestIdResponse
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestResponse
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Service
 @Transactional
@@ -42,7 +43,7 @@ class GroupBuyRequestService(
             GroupBuyRequestStatusHistory(
                 groupBuyRequestId = saved.id,
                 status = GroupBuyRequestStatus.SUBMITTED,
-                changedAt = saved.createdAt
+                changedAt = saved.createdAt ?: LocalDateTime.now()
             )
         )
 

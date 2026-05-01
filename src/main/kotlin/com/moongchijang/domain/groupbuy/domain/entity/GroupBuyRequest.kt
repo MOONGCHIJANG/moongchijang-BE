@@ -1,6 +1,6 @@
-package com.moongchijang.domain.groupbuy.entity
+package com.moongchijang.domain.groupbuy.domain.entity
 
-import com.moongchijang.global.BaseEntity
+import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDate
 

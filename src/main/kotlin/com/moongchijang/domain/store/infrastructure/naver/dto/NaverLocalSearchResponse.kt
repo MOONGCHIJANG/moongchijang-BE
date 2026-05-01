@@ -1,4 +1,4 @@
-package com.moongchijang.infrastructure.naver.dto
+package com.moongchijang.domain.store.infrastructure.naver.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
 

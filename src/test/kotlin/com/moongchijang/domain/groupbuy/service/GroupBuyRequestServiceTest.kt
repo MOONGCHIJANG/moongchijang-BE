@@ -1,12 +1,12 @@
 package com.moongchijang.domain.groupbuy.service
 
-import com.moongchijang.application.groupbuy.GroupBuyRequestService
-import com.moongchijang.application.groupbuy.dto.GroupBuyRequestCreateRequest
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequest
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequestStatus
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequestStatusHistory
-import com.moongchijang.domain.groupbuy.repository.GroupBuyRequestRepository
-import com.moongchijang.domain.groupbuy.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.groupbuy.application.GroupBuyRequestService
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestCreateRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.junit.jupiter.api.Assertions.*

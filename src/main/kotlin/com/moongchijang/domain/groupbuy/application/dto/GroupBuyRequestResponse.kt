@@ -1,7 +1,7 @@
-package com.moongchijang.application.groupbuy.dto
+package com.moongchijang.domain.groupbuy.application.dto
 
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequest
-import com.moongchijang.domain.groupbuy.entity.GroupBuyRequestStatusHistory
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -21,7 +21,7 @@ data class GroupBuyRequestResponse(
     val rejectionReason: String?,
     val openedGroupBuyId: Long?,
     val statusHistory: List<StatusHistoryItem>,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime?
 ) {
     data class StatusHistoryItem(
         val status: String,

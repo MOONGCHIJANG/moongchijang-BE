@@ -1,7 +1,7 @@
-package com.moongchijang.application.store
+package com.moongchijang.domain.store.application
 
-import com.moongchijang.application.store.dto.StoreSearchResponse
-import com.moongchijang.infrastructure.naver.NaverLocalSearchClient
+import com.moongchijang.domain.store.application.dto.StoreSearchResponse
+import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import org.springframework.stereotype.Service
 
 @Service

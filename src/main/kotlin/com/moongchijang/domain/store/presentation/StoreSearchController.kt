@@ -1,7 +1,7 @@
-package com.moongchijang.presentation.store
+package com.moongchijang.domain.store.presentation
 
-import com.moongchijang.application.store.StoreSearchService
-import com.moongchijang.application.store.dto.StoreSearchResponse
+import com.moongchijang.domain.store.application.StoreSearchService
+import com.moongchijang.domain.store.application.dto.StoreSearchResponse
 import com.moongchijang.global.response.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag

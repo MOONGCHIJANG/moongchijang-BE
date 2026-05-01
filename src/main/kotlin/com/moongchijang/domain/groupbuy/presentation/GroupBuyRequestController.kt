@@ -1,9 +1,9 @@
-package com.moongchijang.presentation.groupbuy
+package com.moongchijang.domain.groupbuy.presentation
 
-import com.moongchijang.application.groupbuy.GroupBuyRequestService
-import com.moongchijang.application.groupbuy.dto.GroupBuyRequestCreateRequest
-import com.moongchijang.application.groupbuy.dto.GroupBuyRequestIdResponse
-import com.moongchijang.application.groupbuy.dto.GroupBuyRequestResponse
+import com.moongchijang.domain.groupbuy.application.GroupBuyRequestService
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestCreateRequest
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestIdResponse
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestResponse
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
