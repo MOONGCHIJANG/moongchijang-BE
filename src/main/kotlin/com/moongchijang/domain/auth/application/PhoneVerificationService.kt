@@ -27,10 +27,10 @@ class PhoneVerificationService(
         validatePhoneNumber(phoneNumber)
 
         val code = generateCode()
-        val codeHash = hashCode(code)
+        val codeHash = hashCode(code, phoneNumber)
 
         phoneVerificationStore.saveCodeHash(phoneNumber, codeHash, CODE_TTL_SECONDS)
-        coolSmsSender.sendVerificationCode(phoneNumber, code)
+        coolSmsSender.sendVerificationCode(phoneNumber, code, CODE_TTL_SECONDS)
         log.info("[PhoneVerificationService] 전화번호 인증코드 발송 완료: phoneNumber={}", maskPhoneNumber(phoneNumber))
 
         return PhoneVerificationCodeSentResponse(
@@ -47,7 +47,7 @@ class PhoneVerificationService(
         val savedCodeHash = phoneVerificationStore.getCodeHash(phoneNumber)
             ?: throw CustomException(ErrorCode.PHONE_VERIFICATION_CODE_NOT_FOUND)
 
-        val inputCodeHash = hashCode(request.code)
+        val inputCodeHash = hashCode(request.code, phoneNumber)
         if (savedCodeHash != inputCodeHash) {
             log.info("[PhoneVerificationService] 전화번호 인증코드 불일치: phoneNumber={}", maskPhoneNumber(phoneNumber))
             throw CustomException(ErrorCode.PHONE_VERIFICATION_CODE_MISMATCH)
@@ -79,23 +79,19 @@ class PhoneVerificationService(
 
     private fun generateCode(): String {
         val bound = 10.0.pow(OTP_LENGTH.toDouble()).toInt()
-        val min = bound / 10
-        val number = secureRandom.nextInt(bound - min) + min
-        return number.toString()
+        val number = secureRandom.nextInt(bound)
+        return number.toString().padStart(OTP_LENGTH, '0')
     }
 
-    private fun hashCode(code: String): String {
+    private fun hashCode(code: String, phoneNumber: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        val bytes = digest.digest(code.toByteArray(Charsets.UTF_8))
+        val bytes = digest.digest("$phoneNumber:$code".toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
     private fun maskPhoneNumber(phoneNumber: String): String {
-        return if (phoneNumber.length >= 11) {
-            phoneNumber.replace(Regex("(\\d{3})\\d{4}(\\d{4})"), "$1****$2")
-        } else {
-            "***"
-        }
+        if (phoneNumber.length < 7) return "***"
+        return phoneNumber.replace(Regex("(\\d{3})\\d+(\\d{4})"), "$1****$2")
     }
 
     companion object {

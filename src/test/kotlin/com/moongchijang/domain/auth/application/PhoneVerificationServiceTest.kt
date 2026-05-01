@@ -41,7 +41,7 @@ class PhoneVerificationServiceTest {
             sentPhoneNumber.set(invocation.getArgument(0))
             sentCode.set(invocation.getArgument(1))
             null
-        }.`when`(coolSmsSender).sendVerificationCode(Mockito.anyString(), Mockito.anyString())
+        }.`when`(coolSmsSender).sendVerificationCode(Mockito.anyString(), Mockito.anyString(), Mockito.anyLong())
 
         val response = phoneVerificationService.sendVerificationCode(request)
 
@@ -49,12 +49,12 @@ class PhoneVerificationServiceTest {
         Assertions.assertEquals(0, response.resendAvailableInSeconds)
 
         Mockito.verify(phoneVerificationStore).saveCodeHash(Mockito.anyString(), Mockito.anyString(), Mockito.anyLong())
-        Mockito.verify(coolSmsSender).sendVerificationCode(Mockito.anyString(), Mockito.anyString())
+        Mockito.verify(coolSmsSender).sendVerificationCode(Mockito.anyString(), Mockito.anyString(), Mockito.eq(180L))
 
         Assertions.assertEquals("01012345678", savedPhoneNumber.get())
         Assertions.assertEquals("01012345678", sentPhoneNumber.get())
         Assertions.assertTrue(sentCode.get().matches(Regex("^[0-9]{6}$")))
-        Assertions.assertEquals(sha256(sentCode.get()), savedCodeHash.get())
+        Assertions.assertEquals(sha256("01012345678", sentCode.get()), savedCodeHash.get())
     }
 
     @Test
@@ -75,7 +75,7 @@ class PhoneVerificationServiceTest {
 
     @Test
     fun `인증코드 검증 시 코드 불일치 예외`() {
-        Mockito.`when`(phoneVerificationStore.getCodeHash("01012345678")).thenReturn(sha256("111111"))
+        Mockito.`when`(phoneVerificationStore.getCodeHash("01012345678")).thenReturn(sha256("01012345678", "111111"))
 
         val exception = assertThrows<CustomException> {
             phoneVerificationService.verifyCode(
@@ -91,7 +91,7 @@ class PhoneVerificationServiceTest {
 
     @Test
     fun `인증코드 검증 성공 시 코드 삭제 및 인증 완료 저장`() {
-        Mockito.`when`(phoneVerificationStore.getCodeHash("01012345678")).thenReturn(sha256("123456"))
+        Mockito.`when`(phoneVerificationStore.getCodeHash("01012345678")).thenReturn(sha256("01012345678", "123456"))
 
         val response = phoneVerificationService.verifyCode(
             PhoneVerificationCodeVerifyRequest(
@@ -125,9 +125,9 @@ class PhoneVerificationServiceTest {
         Mockito.verify(phoneVerificationStore).isVerified("01012345678")
     }
 
-    private fun sha256(value: String): String {
+    private fun sha256(phoneNumber: String, code: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        val bytes = digest.digest(value.toByteArray(Charsets.UTF_8))
+        val bytes = digest.digest("$phoneNumber:$code".toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
     }
 }

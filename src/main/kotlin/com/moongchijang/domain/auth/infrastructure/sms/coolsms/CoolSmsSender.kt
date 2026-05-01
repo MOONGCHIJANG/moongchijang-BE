@@ -16,10 +16,11 @@ class CoolSmsSender(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun sendVerificationCode(to: String, code: String) {
+    fun sendVerificationCode(to: String, code: String, expiresInSeconds: Long) {
         val normalizedSender = normalizePhoneNumber(coolSmsProperties.sender)
         val normalizedTo = normalizePhoneNumber(to)
-        val text = "[뭉치장] 인증번호는 [$code]입니다. 3분 내로 입력해주세요."
+        val validMinutes = (expiresInSeconds / SECONDS_PER_MINUTE).coerceAtLeast(1L)
+        val text = "[뭉치장] 인증번호는 [$code]입니다. ${validMinutes}분 내로 입력해주세요."
 
         val message = Message().apply {
             from = normalizedSender
@@ -56,5 +57,9 @@ class CoolSmsSender(
     private fun maskPhoneNumber(phoneNumber: String): String {
         if (phoneNumber.length < 7) return "***"
         return phoneNumber.replace(Regex("(\\d{3})\\d+(\\d{4})"), "$1****$2")
+    }
+
+    companion object {
+        private const val SECONDS_PER_MINUTE = 60L
     }
 }
