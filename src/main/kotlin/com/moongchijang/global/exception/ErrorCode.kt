@@ -59,5 +59,6 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     STORE_SEARCH_FAILED(502_001, "매장 검색 중 오류가 발생했습니다.", 502),
 
     // 500 Internal Server Error
-    INTERNAL_SERVER_ERROR(500_000, "서버 내부 오류입니다.", 500);
+    INTERNAL_SERVER_ERROR(500_000, "서버 내부 오류입니다.", 500),
+    SMS_SEND_FAILED(500_001, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요.", 500);
 }
