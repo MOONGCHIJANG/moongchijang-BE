@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.Valid
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController
 class PhoneVerificationController(
     private val phoneVerificationService: PhoneVerificationService
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @PostMapping
     @Operation(summary = "전화번호 인증코드 발송", description = "입력한 전화번호로 6자리 인증코드를 발송합니다.")
@@ -37,7 +39,9 @@ class PhoneVerificationController(
     fun sendVerificationCode(
         @Valid @RequestBody request: PhoneVerificationCodeSendRequest,
     ): ApiResponse<PhoneVerificationCodeSentResponse> {
-        val response = phoneVerificationService.sendVerificationCode(request);
+        log.info("[PhoneVerificationController] 전화번호 인증코드 발송 요청 수신")
+        val response = phoneVerificationService.sendVerificationCode(request)
+        log.info("[PhoneVerificationController] 전화번호 인증코드 발송 응답 완료")
         return ApiResponse.success(response)
     }
 
@@ -52,7 +56,9 @@ class PhoneVerificationController(
     fun verifyCode(
         @Valid @RequestBody request: PhoneVerificationCodeVerifyRequest,
     ): ApiResponse<PhoneVerificationVerifiedResponse> {
+        log.info("[PhoneVerificationController] 전화번호 인증코드 검증 요청 수신")
         val response = phoneVerificationService.verifyCode(request)
+        log.info("[PhoneVerificationController] 전화번호 인증코드 검증 응답 완료")
         return ApiResponse.success(response)
     }
 }
