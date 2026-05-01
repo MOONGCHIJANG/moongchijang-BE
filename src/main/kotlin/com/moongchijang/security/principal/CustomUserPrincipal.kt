@@ -1,6 +1,6 @@
 package com.moongchijang.security.principal
 
-import com.moongchijang.domain.user.entity.UserRole
+import com.moongchijang.domain.user.domain.entity.UserRole
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails

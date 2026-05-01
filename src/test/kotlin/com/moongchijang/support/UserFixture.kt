@@ -1,8 +1,8 @@
 package com.moongchijang.support
 
-import com.moongchijang.domain.user.entity.AuthProvider
-import com.moongchijang.domain.user.entity.User
-import com.moongchijang.domain.user.entity.UserRole
+import com.moongchijang.domain.user.domain.entity.AuthProvider
+import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import java.time.LocalDateTime
 
 object UserFixture {
