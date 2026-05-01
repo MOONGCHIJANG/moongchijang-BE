@@ -32,6 +32,8 @@ class SecurityConfig(
                     "/health",
                     "/api/v1/auth/kakao",
                     "/api/v1/auth/refresh",
+                    "/api/v1/auth/phone/verification-codes",
+                    "/api/v1/auth/phone/verification-codes/verify",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                 ).permitAll()
