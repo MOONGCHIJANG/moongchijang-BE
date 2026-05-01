@@ -1848,7 +1848,7 @@ components:
           required: [expiresInSeconds, resendAvailableInSeconds]
           properties:
             expiresInSeconds: { type: integer, example: 180 }
-            resendAvailableInSeconds: { type: integer, example: 60 }
+            resendAvailableInSeconds: { type: integer, example: 0 }
         error: { nullable: true, example: null }
 
     PhoneVerificationCodeVerifyRequest:

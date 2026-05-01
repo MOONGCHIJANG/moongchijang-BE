@@ -24,7 +24,7 @@ class PhoneVerificationServiceTest {
     )
 
     @Test
-    fun `인증코드 발송 시 코드 해시를 저장하고 문자 발송을 호출한다`() {
+    fun `인증코드 발송 시 코드 해시 저장 및 문자 발송 호출`() {
         val request = PhoneVerificationCodeSendRequest(phoneNumber = "010-1234-5678")
         val savedPhoneNumber = AtomicReference<String>()
         val savedCodeHash = AtomicReference<String>()
@@ -58,7 +58,7 @@ class PhoneVerificationServiceTest {
     }
 
     @Test
-    fun `인증코드 검증 시 저장된 코드가 없으면 예외를 던진다`() {
+    fun `인증코드 검증 시 저장된 코드 부재 예외`() {
         Mockito.`when`(phoneVerificationStore.getCodeHash("01012345678")).thenReturn(null)
 
         val exception = assertThrows<CustomException> {
@@ -74,7 +74,7 @@ class PhoneVerificationServiceTest {
     }
 
     @Test
-    fun `인증코드 검증 시 코드가 불일치하면 예외를 던진다`() {
+    fun `인증코드 검증 시 코드 불일치 예외`() {
         Mockito.`when`(phoneVerificationStore.getCodeHash("01012345678")).thenReturn(sha256("111111"))
 
         val exception = assertThrows<CustomException> {
@@ -90,7 +90,7 @@ class PhoneVerificationServiceTest {
     }
 
     @Test
-    fun `인증코드 검증 성공 시 코드 삭제와 인증 완료 저장을 수행한다`() {
+    fun `인증코드 검증 성공 시 코드 삭제 및 인증 완료 저장`() {
         Mockito.`when`(phoneVerificationStore.getCodeHash("01012345678")).thenReturn(sha256("123456"))
 
         val response = phoneVerificationService.verifyCode(
@@ -106,7 +106,7 @@ class PhoneVerificationServiceTest {
     }
 
     @Test
-    fun `인증 완료 여부 확인 시 미인증이면 예외를 던진다`() {
+    fun `인증 완료 여부 확인 시 미인증 예외`() {
         Mockito.`when`(phoneVerificationStore.isVerified("01012345678")).thenReturn(false)
 
         val exception = assertThrows<CustomException> {
@@ -117,7 +117,7 @@ class PhoneVerificationServiceTest {
     }
 
     @Test
-    fun `인증 완료 여부 확인 시 인증 상태면 통과한다`() {
+    fun `인증 완료 여부 확인 시 인증 상태 통과`() {
         Mockito.`when`(phoneVerificationStore.isVerified("01012345678")).thenReturn(true)
 
         phoneVerificationService.ensureVerified("010-1234-5678")

@@ -1,6 +1,7 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
@@ -21,7 +22,7 @@ class UserServiceTest {
     private val userService = UserService(userRepository, phoneVerificationService)
 
     @Test
-    fun `활성 카카오 사용자가 있으면 기존 사용자 반환`() {
+    fun `활성 카카오 사용자 존재 시 기존 사용자 반환`() {
         val existingUser = UserFixture.createKakaoUser(id = 1L, providerId = "kakao-1", nickname = "기존닉네임")
 
         Mockito.`when`(
@@ -40,7 +41,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `활성 사용자와 탈퇴 사용자가 없으면 신규 사용자 생성`() {
+    fun `활성 사용자 및 탈퇴 사용자 부재 시 신규 사용자 생성`() {
         val savedUser = UserFixture.createKakaoUser(
             id = 10L,
             providerId = "kakao-new",
@@ -68,12 +69,14 @@ class UserServiceTest {
     }
 
     @Test
-    fun `추가정보 입력 시 닉네임 형식이 잘못되면 예외`() {
+    fun `추가정보 입력 시 닉네임 형식 오류 예외`() {
         val exception = assertThrows<CustomException> {
             userService.updateAdditionalInfo(
+                request = AdditionalInfoUpsertRequest(
+                    nickname = "닉 네 임",
+                    phoneNumber = "010-1234-5678",
+                ),
                 userId = 1L,
-                nickname = "닉 네 임",
-                phoneNumber = "010-1234-5678",
             )
         }
 
@@ -81,7 +84,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `추가정보 입력 시 닉네임이 중복되면 예외`() {
+    fun `추가정보 입력 시 닉네임 중복 예외`() {
         val user = UserFixture.createKakaoUser(
             id = 1L,
             providerId = "kakao-dup",
@@ -94,9 +97,11 @@ class UserServiceTest {
 
         val exception = assertThrows<CustomException> {
             userService.updateAdditionalInfo(
+                request = AdditionalInfoUpsertRequest(
+                    nickname = "중복닉네임",
+                    phoneNumber = "010-1234-5678",
+                ),
                 userId = 1L,
-                nickname = "중복닉네임",
-                phoneNumber = "010-1234-5678",
             )
         }
 
@@ -104,7 +109,7 @@ class UserServiceTest {
     }
 
     @Test
-    fun `탈퇴일로부터 30일 미만이면 재가입 불가`() {
+    fun `탈퇴일 기준 30일 미만 재가입 불가 예외`() {
         val deletedUser = UserFixture.createKakaoUser(
             id = 20L,
             providerId = "kakao-deleted",

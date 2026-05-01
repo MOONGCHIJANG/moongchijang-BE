@@ -48,15 +48,15 @@ class AuthController(
         response: HttpServletResponse,
     ): ApiResponse<AuthLoginResponse> {
         log.info("[AuthController] 카카오 로그인 요청 수신")
-        val result = authService.loginWithKakao(request.authorizationCode)
+        val (authLoginResponse, refreshToken) = authService.loginWithKakao(request)
 
         tokenService.addRefreshTokenCookie(
             response = response,
-            refreshToken = result.refreshToken,
+            refreshToken = refreshToken,
         )
-        log.info("[AuthController] 카카오 로그인 응답 완료: userId={}", result.response.user.id)
+        log.info("[AuthController] 카카오 로그인 응답 완료: userId={}", authLoginResponse.user.id)
 
-        return ApiResponse.success(result.response)
+        return ApiResponse.success(authLoginResponse)
     }
 
     @PostMapping("/refresh")
@@ -72,15 +72,15 @@ class AuthController(
         response: HttpServletResponse,
     ): ApiResponse<AccessTokenResponse> {
         log.info("[AuthController] 액세스 토큰 재발급 요청 수신")
-        val result = authService.reissueAccessToken(request)
+        val (accessTokenResponse, refreshToken) = authService.reissueAccessToken(request)
 
         tokenService.addRefreshTokenCookie(
             response = response,
-            refreshToken = result.refreshToken,
+            refreshToken = refreshToken,
         )
         log.info("[AuthController] 액세스 토큰 재발급 응답 완료")
 
-        return ApiResponse.success(result.response)
+        return ApiResponse.success(accessTokenResponse)
     }
 
     @PostMapping("/logout")

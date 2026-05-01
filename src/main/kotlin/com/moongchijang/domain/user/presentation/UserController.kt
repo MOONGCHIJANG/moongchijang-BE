@@ -43,13 +43,8 @@ class UserController(
     fun checkNicknameAvailability(
         @RequestParam nickname: String,
     ): ApiResponse<NicknameAvailabilityResponse> {
-        val duplicated = userService.existsByNickname(nickname)
-        return ApiResponse.success(
-            NicknameAvailabilityResponse(
-                nickname = nickname,
-                available = !duplicated,
-            ),
-        )
+        val response = userService.checkNicknameAvailability(nickname)
+        return ApiResponse.success(response)
     }
 
     @PatchMapping("/me/additional-info")
@@ -67,11 +62,7 @@ class UserController(
         @Valid @RequestBody request: AdditionalInfoUpsertRequest,
     ): ApiResponse<AdditionalInfoUpdatedResponse> {
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        val updatedUser = userService.updateAdditionalInfo(
-            userId = userId,
-            nickname = request.nickname,
-            phoneNumber = request.phoneNumber,
-        )
-        return ApiResponse.success(AdditionalInfoUpdatedResponse.from(updatedUser))
+        val response = userService.updateAdditionalInfo(request, userId)
+        return ApiResponse.success(response)
     }
 }

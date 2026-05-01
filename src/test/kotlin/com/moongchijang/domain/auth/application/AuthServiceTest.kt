@@ -1,6 +1,7 @@
 package com.moongchijang.domain.auth.application
 
 import com.moongchijang.domain.auth.application.dto.KakaoAuthUser
+import com.moongchijang.domain.auth.application.dto.KakaoLoginRequest
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.exception.CustomException
@@ -29,7 +30,7 @@ class AuthServiceTest {
     )
 
     @Test
-    fun `카카오 로그인 성공 시 토큰과 사용자 정보를 반환한다`() {
+    fun `카카오 로그인 성공 시 토큰과 사용자 정보 반환`() {
         val now = LocalDateTime.of(2026, 4, 28, 12, 0)
         val user =
             UserFixture.createKakaoUser(id = 1L, providerId = "kakao-1", email = "test@example.com", nickname = "테스트유저")
@@ -44,7 +45,12 @@ class AuthServiceTest {
         Mockito.`when`(tokenService.issueRefreshToken(1L)).thenReturn("refresh-token")
         Mockito.`when`(jwtTokenProvider.getAccessTokenExpiresInSeconds()).thenReturn(3600L)
 
-        val result = authService.loginWithKakao("code-123")
+        val result = authService.loginWithKakao(
+            KakaoLoginRequest(
+                authorizationCode = "code-123",
+                redirectUri = null,
+            )
+        )
 
         Assertions.assertEquals("access-token", result.response.accessToken)
         Assertions.assertEquals("refresh-token", result.refreshToken)
@@ -54,7 +60,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `재발급 요청 시 유효한 리프레시 토큰이면 새 토큰을 반환한다`() {
+    fun `재발급 요청 시 유효한 리프레시 토큰 기반 새 토큰 반환`() {
         val request = Mockito.mock(HttpServletRequest::class.java)
 
         Mockito.`when`(tokenService.extractRefreshToken(request)).thenReturn("old-refresh")
@@ -71,7 +77,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `재발급 요청 시 리프레시 토큰이 없으면 예외를 던진다`() {
+    fun `재발급 요청 시 리프레시 토큰 누락 예외`() {
         val request = Mockito.mock(HttpServletRequest::class.java)
         Mockito.`when`(tokenService.extractRefreshToken(request)).thenReturn(null)
 
@@ -83,7 +89,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `로그아웃 시 리프레시 토큰 삭제를 호출한다`() {
+    fun `로그아웃 시 리프레시 토큰 삭제 호출`() {
         authService.logout(9L)
         Mockito.verify(tokenService).deleteByUserId(9L)
     }
