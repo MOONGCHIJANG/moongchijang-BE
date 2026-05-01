@@ -1,5 +1,6 @@
 package com.moongchijang.application.user
 
+import com.moongchijang.application.auth.PhoneVerificationService
 import com.moongchijang.domain.user.entity.AuthProvider
 import com.moongchijang.domain.user.entity.User
 import com.moongchijang.domain.user.repository.UserRepository
@@ -12,7 +13,8 @@ import java.time.LocalDateTime
 
 @Service
 class UserService(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val phoneVerificationService: PhoneVerificationService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -55,6 +57,8 @@ class UserService(
         log.info("[UserService] 추가정보 입력 처리 시작: userId={}", userId)
         validateNicknameFormat(nickname)
         validatePhoneNumberFormat(phoneNumber)
+
+        phoneVerificationService.ensureVerified(phoneNumber)
 
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)

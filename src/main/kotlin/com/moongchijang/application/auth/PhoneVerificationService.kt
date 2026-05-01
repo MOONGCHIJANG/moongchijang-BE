@@ -52,6 +52,14 @@ class PhoneVerificationService(
         return PhoneVerificationVerifiedResponse(verified = true)
     }
 
+    fun ensureVerified(rawPhoneNumber: String) {
+        val phoneNumber = normalizePhoneNumber(rawPhoneNumber)
+        validatePhoneNumber(phoneNumber)
+
+        if (!phoneVerificationStore.isVerified(phoneNumber)) {
+            throw CustomException(ErrorCode.PHONE_VERIFICATION_REQUIRED)
+        }
+    }
 
     private fun normalizePhoneNumber(raw: String): String = raw.replace(Regex("[^0-9]"), "")
 
