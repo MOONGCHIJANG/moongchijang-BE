@@ -422,6 +422,57 @@ paths:
           $ref: '#/components/responses/Forbidden'
 
   # ─────────────────────────────────────────────────────────────
+  # Region
+  # ─────────────────────────────────────────────────────────────
+  /api/v1/regions:
+    get:
+      tags: [Auth]
+      summary: 전국 시/도 지역 목록 조회 (바텀시트용)
+      description: 관심 지역 선택 바텀시트에서 표시할 전국 시/도 목록을 반환한다.
+      responses:
+        '200':
+          description: 시/도 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseRegionOptions'
+
+  /api/v1/users/me/regions:
+    get:
+      tags: [Auth]
+      summary: 내 관심 지역 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 관심 지역 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMyRegions'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [Auth]
+      summary: 관심 지역 저장/수정 (전체 교체)
+      description: 기존 관심 지역을 모두 삭제하고 요청 목록으로 새로 저장한다. 빈 배열이면 전체 해제.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRegionsRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessNoData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────────────────────────
   # GroupBuy
   # ─────────────────────────────────────────────────────────────
   /api/v1/group-buys:
@@ -1830,6 +1881,58 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    # ── Region ─────────────────────────────────────────────────
+    ApiResponseRegionOptions:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [regions]
+          properties:
+            regions:
+              type: array
+              description: "전국 시/도 목록"
+              items:
+                type: string
+              example: [서울, 경기, 인천, 부산, 대구, 광주, 대전, 울산, 세종, 강원, 충북, 충남, 전북, 전남, 경북, 경남, 제주]
+        error: { nullable: true, example: null }
+
+    ApiResponseMyRegions:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [regions, primaryRegion, additionalCount]
+          properties:
+            regions:
+              type: array
+              description: "선택한 관심 지역 목록 (등록 순, 시/도 단위)"
+              items:
+                type: string
+            primaryRegion:
+              type: string
+              nullable: true
+              description: "칩에 표시할 첫 번째 지역명. 비어있으면 null"
+            additionalCount:
+              type: integer
+              description: "primaryRegion 외 추가 지역 수. 예: 서울 외 3곳 → additionalCount=3"
+        error: { nullable: true, example: null }
+
+    UpdateRegionsRequest:
+      type: object
+      required: [regions]
+      properties:
+        regions:
+          type: array
+          maxItems: 10
+          description: "저장할 시/도 지역 목록. 빈 배열이면 전체 해제"
+          items:
+            type: string
 
     # ── GroupBuy ───────────────────────────────────────────────
     GroupBuyFeedItem:
