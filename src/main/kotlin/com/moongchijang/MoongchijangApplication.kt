@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableJpaAuditing
-@ConfigurationPropertiesScan
 class MoongchijangApplication
 
 fun main(args: Array<String>) {
