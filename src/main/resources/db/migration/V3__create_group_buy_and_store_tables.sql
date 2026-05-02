@@ -5,6 +5,8 @@ CREATE TABLE stores (
     phone_number VARCHAR(20) NULL,
     latitude DOUBLE NULL,
     longitude DOUBLE NULL,
+    region VARCHAR(30) NOT NULL,
+    district VARCHAR(80) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
