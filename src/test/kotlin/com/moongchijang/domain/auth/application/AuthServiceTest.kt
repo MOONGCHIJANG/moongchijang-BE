@@ -1,19 +1,18 @@
 package com.moongchijang.domain.auth.application
 
 import com.moongchijang.domain.auth.application.dto.KakaoAuthUser
+import com.moongchijang.domain.auth.application.dto.KakaoLoginRequest
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.security.jwt.JwtTokenProvider
-import com.moongchijang.support.UserFixture.createKakaoUser
+import com.moongchijang.support.UserFixture
 import jakarta.servlet.http.HttpServletRequest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
-import org.mockito.Mockito.verify
 import java.time.LocalDateTime
 
 class AuthServiceTest {
@@ -31,9 +30,10 @@ class AuthServiceTest {
     )
 
     @Test
-    fun `카카오 로그인 성공 시 토큰과 사용자 정보를 반환한다`() {
+    fun `카카오 로그인 성공 시 토큰과 사용자 정보 반환`() {
         val now = LocalDateTime.of(2026, 4, 28, 12, 0)
-        val user = createKakaoUser(id = 1L, providerId = "kakao-1", email = "test@example.com", nickname = "테스트유저")
+        val user =
+            UserFixture.createKakaoUser(id = 1L, providerId = "kakao-1", email = "test@example.com", nickname = "테스트유저")
         setAuditFields(user, now, now)
 
         Mockito.`when`(kakaoAuthService.getKakaoUser("code-123"))
@@ -45,17 +45,22 @@ class AuthServiceTest {
         Mockito.`when`(tokenService.issueRefreshToken(1L)).thenReturn("refresh-token")
         Mockito.`when`(jwtTokenProvider.getAccessTokenExpiresInSeconds()).thenReturn(3600L)
 
-        val result = authService.loginWithKakao("code-123")
+        val result = authService.loginWithKakao(
+            KakaoLoginRequest(
+                authorizationCode = "code-123",
+                redirectUri = null,
+            )
+        )
 
-        assertEquals("access-token", result.response.accessToken)
-        assertEquals("refresh-token", result.refreshToken)
-        assertTrue(result.response.isNewUser)
-        assertEquals(1L, result.response.user.id)
-        assertEquals("테스트유저", result.response.user.nickname)
+        Assertions.assertEquals("access-token", result.response.accessToken)
+        Assertions.assertEquals("refresh-token", result.refreshToken)
+        Assertions.assertTrue(result.response.isNewUser)
+        Assertions.assertEquals(1L, result.response.user.id)
+        Assertions.assertEquals("테스트유저", result.response.user.nickname)
     }
 
     @Test
-    fun `재발급 요청 시 유효한 리프레시 토큰이면 새 토큰을 반환한다`() {
+    fun `재발급 요청 시 유효한 리프레시 토큰 기반 새 토큰 반환`() {
         val request = Mockito.mock(HttpServletRequest::class.java)
 
         Mockito.`when`(tokenService.extractRefreshToken(request)).thenReturn("old-refresh")
@@ -66,27 +71,27 @@ class AuthServiceTest {
 
         val result = authService.reissueAccessToken(request)
 
-        assertEquals("new-refresh", result.refreshToken)
-        assertEquals("new-access", result.response.accessToken)
-        assertFalse(result.response.accessToken.isBlank())
+        Assertions.assertEquals("new-refresh", result.refreshToken)
+        Assertions.assertEquals("new-access", result.response.accessToken)
+        Assertions.assertFalse(result.response.accessToken.isBlank())
     }
 
     @Test
-    fun `재발급 요청 시 리프레시 토큰이 없으면 예외를 던진다`() {
+    fun `재발급 요청 시 리프레시 토큰 누락 예외`() {
         val request = Mockito.mock(HttpServletRequest::class.java)
         Mockito.`when`(tokenService.extractRefreshToken(request)).thenReturn(null)
 
-        val exception = org.junit.jupiter.api.assertThrows<CustomException> {
+        val exception = assertThrows<CustomException> {
             authService.reissueAccessToken(request)
         }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_NOT_FOUND, exception.errorCode)
+        Assertions.assertEquals(ErrorCode.REFRESH_TOKEN_NOT_FOUND, exception.errorCode)
     }
 
     @Test
-    fun `로그아웃 시 리프레시 토큰 삭제를 호출한다`() {
+    fun `로그아웃 시 리프레시 토큰 삭제 호출`() {
         authService.logout(9L)
-        verify(tokenService).deleteByUserId(9L)
+        Mockito.verify(tokenService).deleteByUserId(9L)
     }
 
     private fun setAuditFields(user: User, createdAt: LocalDateTime, updatedAt: LocalDateTime) {

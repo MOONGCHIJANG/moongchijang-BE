@@ -1,11 +1,12 @@
 package com.moongchijang.domain.auth.application
 
 import com.moongchijang.domain.auth.application.dto.AccessTokenReissueResult
+import com.moongchijang.domain.auth.application.dto.AccessTokenResponse
 import com.moongchijang.domain.auth.application.dto.AuthLoginResult
+import com.moongchijang.domain.auth.application.dto.AuthLoginResponse
+import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.auth.application.dto.KakaoAuthUser
-import com.moongchijang.domain.auth.application.dto.response.AccessTokenResponse
-import com.moongchijang.domain.auth.application.dto.response.AuthLoginResponse
-import com.moongchijang.domain.auth.application.dto.response.AuthUserResponse
+import com.moongchijang.domain.auth.application.dto.KakaoLoginRequest
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -25,9 +26,9 @@ class AuthService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun loginWithKakao(authorizationCode: String): AuthLoginResult {
+    fun loginWithKakao(request: KakaoLoginRequest): AuthLoginResult {
         log.info("[AuthService] 카카오 로그인 처리 시작")
-        val kakaoUser: KakaoAuthUser = kakaoAuthService.getKakaoUser(authorizationCode)
+        val kakaoUser: KakaoAuthUser = kakaoAuthService.getKakaoUser(request.authorizationCode)
 
         val (user, isNewUser) = userService.findOrCreateKakaoUser(
             providerId = kakaoUser.providerId,

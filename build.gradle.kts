@@ -49,6 +49,9 @@ dependencies {
     // Flyway
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-mysql")
+
+    // SOLAPI
+    implementation("com.solapi:sdk:1.0.3")
 }
 
 kotlin {

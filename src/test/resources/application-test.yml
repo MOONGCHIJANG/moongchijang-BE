@@ -23,3 +23,9 @@ naver:
   api:
     client-id: test-naver-client-id
     client-secret: test-naver-client-secret
+
+coolsms:
+  api-key: test-api-key
+  api-secret: test-api-secret
+  sender: 010-0000-0000
+

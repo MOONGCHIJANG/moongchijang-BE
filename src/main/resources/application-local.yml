@@ -29,6 +29,11 @@ oauth:
     user-info-uri: https://kapi.kakao.com/v2/user/me
     redirect-uri: http://localhost:8080/auth/kakao/callback
 
+coolsms:
+  api-key: ${COOLSMS_API_KEY:test-api-key}
+  api-secret: ${COOLSMS_API_SECRET:test-api-secret}
+  sender: ${COOLSMS_SENDER:010-0000-0000}
+
 jwt:
   secret: jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret
   access-token:

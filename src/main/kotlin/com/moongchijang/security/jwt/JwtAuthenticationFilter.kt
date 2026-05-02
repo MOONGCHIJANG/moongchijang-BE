@@ -23,6 +23,8 @@ class JwtAuthenticationFilter(
         "/v3/api-docs",
         "/api/v1/auth/kakao",
         "/api/v1/auth/refresh",
+        "/api/v1/auth/phone/verification-codes",
+        "/api/v1/auth/phone/verification-codes/verify",
     )
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {

@@ -1,5 +1,9 @@
 package com.moongchijang.domain.user.application
 
+import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
+import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
@@ -12,7 +16,8 @@ import java.time.LocalDateTime
 
 @Service
 class UserService(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val phoneVerificationService: PhoneVerificationService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -36,9 +41,13 @@ class UserService(
     }
 
     @Transactional(readOnly = true)
-    fun existsByNickname(nickname: String): Boolean {
+    fun checkNicknameAvailability(nickname: String): NicknameAvailabilityResponse {
         validateNicknameFormat(nickname)
-        return userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
+        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
+        return NicknameAvailabilityResponse(
+            nickname = nickname,
+            available = !duplicated,
+        )
     }
 
     @Transactional(readOnly = true)
@@ -47,27 +56,25 @@ class UserService(
     }
 
     @Transactional
-    fun updateAdditionalInfo(
-        userId: Long,
-        nickname: String,
-        phoneNumber: String,
-    ): User {
+    fun updateAdditionalInfo(request: AdditionalInfoUpsertRequest, userId: Long): AdditionalInfoUpdatedResponse {
         log.info("[UserService] 추가정보 입력 처리 시작: userId={}", userId)
-        validateNicknameFormat(nickname)
-        validatePhoneNumberFormat(phoneNumber)
+        validateNicknameFormat(request.nickname)
+        validatePhoneNumberFormat(request.phoneNumber)
+
+        phoneVerificationService.ensureVerified(request.phoneNumber)
 
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(nickname) &&
-            user.nickname != nickname
+        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(request.nickname) &&
+            user.nickname != request.nickname
         if (duplicated) {
             throw CustomException(ErrorCode.DUPLICATE_NICKNAME)
         }
 
-        user.completeSignup(nickname, phoneNumber)
+        user.completeSignup(request.nickname, request.phoneNumber)
         log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
-        return user
+        return AdditionalInfoUpdatedResponse.from(user)
     }
 
     private fun findActiveKakaoUser(providerId: String): User? {
