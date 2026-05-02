@@ -3,6 +3,8 @@ package com.moongchijang.domain.store.domain.entity
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -26,6 +28,15 @@ class Store(
 
     @Column
     var longitude: Double? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "region", nullable = false, length = 30)
+    var region: RegionType,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "district", nullable = false, length = 80)
+    var district: DistrictType,
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
