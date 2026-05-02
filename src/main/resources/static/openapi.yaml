@@ -29,8 +29,6 @@ tags:
     description: 공구 피드 · 상세 · 달성률
   - name: GroupBuyRequest
     description: 공구 개설 요청 (소비자)
-  - name: Region
-    description: 관심지역 조회 · 선택
   - name: Wishlist
     description: 찜 추가 · 해제 · 목록
   - name: Participation
@@ -466,28 +464,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-
-  # ─────────────────────────────────────────────────────────────
-  # Region
-  # ─────────────────────────────────────────────────────────────
-  /api/v1/regions/tree:
-    get:
-      tags: [Region]
-      summary: 관심지역 선택 트리 조회 (시/도 > 세부지역)
-      description: |
-        바텀시트 렌더링용 지역 트리 데이터를 반환한다.
-        - 프론트 표시는 `label`(한글), API 요청 값은 `type`(영문 enum 코드) 사용
-        - 선택 규칙:
-          - 같은 시/도 내 `*_ALL` 선택 시 해당 시/도 하위 세부지역은 동시 선택 불가
-          - 같은 시/도 하위 세부지역이 하나 이상 선택된 상태에서는 `*_ALL` 선택 불가
-          - 전체 선택 개수(지역/세부지역 통합)는 최대 10개
-      responses:
-        '200':
-          description: 지역 트리
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseRegionTree'
 
   /api/v1/users/me/regions:
     get:
@@ -1959,49 +1935,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-
-    # ── Region ─────────────────────────────────────────────────
-    ApiResponseRegionTree:
-      type: object
-      required: [success, data, error]
-      properties:
-        success: { type: boolean, example: true }
-        data:
-          type: object
-          required: [regions]
-          properties:
-            regions:
-              type: array
-              items:
-                $ref: '#/components/schemas/RegionTreeNode'
-        error: { nullable: true, example: null }
-
-    RegionTreeNode:
-      type: object
-      required: [regionType, regionLabel, allDistrict, districts]
-      properties:
-        regionType:
-          $ref: '#/components/schemas/RegionType'
-        regionLabel:
-          type: string
-          example: 서울
-        allDistrict:
-          $ref: '#/components/schemas/DistrictOption'
-        districts:
-          type: array
-          description: 해당 시/도 하위 세부지역 목록 (`*_ALL` 제외)
-          items:
-            $ref: '#/components/schemas/DistrictOption'
-
-    DistrictOption:
-      type: object
-      required: [type, label]
-      properties:
-        type:
-          $ref: '#/components/schemas/DistrictType'
-        label:
-          type: string
-          example: 강남 | 역삼 | 삼성
 
     ApiResponseMyRegions:
       type: object
