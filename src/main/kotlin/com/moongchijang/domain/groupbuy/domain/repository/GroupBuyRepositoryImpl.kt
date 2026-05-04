@@ -9,8 +9,6 @@ import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.querydsl.core.BooleanBuilder
 import com.querydsl.core.types.dsl.BooleanExpression
 import com.querydsl.jpa.impl.JPAQueryFactory
-import jakarta.persistence.EntityManager
-import jakarta.persistence.PersistenceContext
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -19,7 +17,6 @@ import java.time.LocalDateTime
 
 @Repository
 class GroupBuyRepositoryImpl(
-    @PersistenceContext private val em: EntityManager,
     private val queryFactory: JPAQueryFactory
 ) : GroupBuyRepositoryCustom {
 
