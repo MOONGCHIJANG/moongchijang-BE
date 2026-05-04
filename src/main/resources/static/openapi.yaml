@@ -548,7 +548,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseGroupBuyFeedPage'
+                $ref: '#/components/schemas/ApiResponseGroupBuyFeedPageResponse'
         '400':
           description: "잘못된 필터 요청 (예: 같은 시/도 ALL+하위 동시 선택, 선택 개수 10개 초과)"
           content:
@@ -569,7 +569,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseGroupBuyDetail'
+                $ref: '#/components/schemas/ApiResponseGroupBuyDetailResponse'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -1971,7 +1971,7 @@ components:
             type: string
 
     # ── GroupBuy ───────────────────────────────────────────────
-    GroupBuyFeedItem:
+    GroupBuyFeedItemResponse:
       type: object
       required: [id, thumbnailUrl, dDay, storeName, region, district, productName, price, achievementRate, currentQuantity, targetQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, isWishlisted, isClosed, canParticipate]
       properties:
@@ -2002,7 +2002,7 @@ components:
         isClosed: { type: boolean }
         canParticipate: { type: boolean }
 
-    ApiResponseGroupBuyFeedPage:
+    ApiResponseGroupBuyFeedPageResponse:
       type: object
       required: [success, data, error]
       properties:
@@ -2014,14 +2014,14 @@ components:
             content:
               type: array
               items:
-                $ref: '#/components/schemas/GroupBuyFeedItem'
+                $ref: '#/components/schemas/GroupBuyFeedItemResponse'
             totalElements: { type: integer }
             totalPages: { type: integer }
             number: { type: integer }
             size: { type: integer }
         error: { nullable: true, example: null }
 
-    ApiResponseGroupBuyDetail:
+    ApiResponseGroupBuyDetailResponse:
       type: object
       required: [success, data, error]
       properties:
@@ -2352,7 +2352,7 @@ components:
             content:
               type: array
               items:
-                $ref: '#/components/schemas/GroupBuyFeedItem'
+                $ref: '#/components/schemas/GroupBuyFeedItemResponse'
             totalElements: { type: integer }
             totalPages: { type: integer }
             number: { type: integer }
@@ -3081,7 +3081,7 @@ components:
               type: array
               description: case 3 또는 검색 결과가 있을 때 반환되는 공구 목록
               items:
-                $ref: '#/components/schemas/GroupBuyFeedItem'
+                $ref: '#/components/schemas/GroupBuyFeedItemResponse'
         error: { nullable: true, example: null }
 
     ApiResponseRecentSearchList:
