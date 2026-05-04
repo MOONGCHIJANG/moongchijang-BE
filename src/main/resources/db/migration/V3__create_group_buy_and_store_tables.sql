@@ -24,7 +24,7 @@ CREATE TABLE group_buys (
     current_quantity INT NOT NULL,
     max_quantity INT NOT NULL,
     status VARCHAR(20) NOT NULL,
-    deadline DATE NOT NULL,
+    deadline DATETIME NOT NULL,
     pickup_date DATE NOT NULL,
     pickup_time_start TIME NOT NULL,
     pickup_time_end TIME NOT NULL,

@@ -4,6 +4,7 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 @Entity
@@ -44,7 +45,7 @@ class GroupBuy(
     var status: GroupBuyStatus,
 
     @Column(nullable = false)
-    var deadline: LocalDate,
+    var deadline: LocalDateTime,
 
     @Column(nullable = false)
     var pickupDate: LocalDate,
