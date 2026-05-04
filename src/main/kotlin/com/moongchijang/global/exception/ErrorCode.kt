@@ -72,4 +72,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     STORE_SEARCH_FAILED(502_250, "매장 검색 중 오류가 발생했습니다.", 502),
     INVALID_REGION_TYPE_LABEL(400_251, "유효하지 않은 지역 값입니다.", 400),
     INVALID_DISTRICT_TYPE_LABEL(400_252, "유효하지 않은 세부지역 값입니다.", 400),
+
+    // GroupBuy(300~349)
+    GROUPBUY_FEED_TOO_MANY_DISTRICTS(400_300, "지역 필터는 최대 10개까지 선택할 수 있습니다.", 400),
+    GROUPBUY_FEED_INVALID_DISTRICT_COMBINATION(400_301, "같은 지역의 전체/하위 세부지역은 동시에 선택할 수 없습니다.", 400),
 }
