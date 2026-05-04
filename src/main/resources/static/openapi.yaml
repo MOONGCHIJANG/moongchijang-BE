@@ -1973,34 +1973,24 @@ components:
     # ── GroupBuy ───────────────────────────────────────────────
     GroupBuyFeedItemResponse:
       type: object
-      required: [id, thumbnailUrl, dDay, storeName, region, district, productName, price, achievementRate, currentQuantity, targetQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, isWishlisted, isClosed, canParticipate]
+      required: [id, thumbnailUrl, dDay, dDayLabel, storeName, regionType, regionLabel, districtType, districtLabel, productName, price, achievementRate, currentQuantity, targetQuantity, pickupDateLabel, deadline]
       properties:
         id: { type: integer, format: int64 }
         thumbnailUrl: { type: string, description: 대표 썸네일 이미지 URL }
         dDay: { type: integer, description: "마감 D-day (예: D-3 -> 3)" }
         dDayLabel: { type: string, description: "마감 뱃지 문자열 (예: D-3)" }
         storeName: { type: string }
-        region:
-          allOf:
-            - $ref: '#/components/schemas/RegionType'
-        district:
-          allOf:
-            - $ref: '#/components/schemas/DistrictType'
+        regionType: { $ref: '#/components/schemas/RegionType' }
+        regionLabel: { type: string, description: 시/도 한글 라벨, example: 서울 }
+        districtType: { $ref: '#/components/schemas/DistrictType' }
+        districtLabel: { type: string, description: 세부지역 한글 라벨, example: "강남 | 역삼 | 삼성" }
         productName: { type: string }
         price: { type: integer }
         achievementRate: { type: integer, description: 달성률 % (0~100) }
         currentQuantity: { type: integer }
         targetQuantity: { type: integer }
-        maxQuantity: { type: integer, nullable: true }
-        deadline: { type: string, format: date-time }
-        pickupDate: { type: string, format: date }
-        pickupTimeStart: { type: string, format: time }
-        pickupTimeEnd: { type: string, format: time }
-        pickupDateTimeLabel: { type: string, description: 픽업일시 표시용 문자열 }
-        deadlineDateTimeLabel: { type: string, description: 마감일시 표시용 문자열 }
-        isWishlisted: { type: boolean }
-        isClosed: { type: boolean }
-        canParticipate: { type: boolean }
+        pickupDateLabel: { type: string, description: 픽업 날짜 표시 문자열, example: "4/15(화)" }
+        deadline: { type: string, format: date-time, description: 마감 일시 원본 값 }
 
     ApiResponseGroupBuyFeedPageResponse:
       type: object
