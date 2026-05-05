@@ -1,0 +1,116 @@
+package com.moongchijang.domain.groupbuy.application
+
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedItemResponse
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.store.domain.entity.DistrictType
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Pageable
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+
+@Service
+class GroupBuyService(
+    private val groupBuyRepository: GroupBuyRepository,
+    private val groupBuyImageRepository: GroupBuyImageRepository,
+    private val favoriteRepository: FavoriteRepository,
+    private val participationRepository: ParticipationRepository,
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Transactional(readOnly = true)
+    fun getFeed(request: GroupBuyFeedRequest, pageable: Pageable): GroupBuyFeedPageResponse {
+        log.info(
+            "[GroupBuyService] 공구 피드 조회 시작: filter={}, districts={}, keyword={}, page={}, size={}",
+            request.filter, request.districts, request.keyword, pageable.pageNumber, pageable.pageSize
+        )
+
+        validateDistrictSelection(request.districts)
+
+        val expandedDistricts = expandAllDistricts(request.districts)
+        val keyword = request.keyword?.trim()?.takeIf { it.isNotBlank() }
+
+        val resultPage = groupBuyRepository.searchFeed(
+            filter = request.filter,
+            districtFilters = expandedDistricts,
+            keyword = keyword,
+            pageable = pageable
+        )
+
+        log.info(
+            "[GroupBuyService] 공구 피드 조회 완료: totalElements={}, totalPages={}, currentPage={}",
+            resultPage.totalElements, resultPage.totalPages, resultPage.number + 1
+        )
+
+        return GroupBuyFeedPageResponse.from(
+            resultPage.map { GroupBuyFeedItemResponse.from(it) }
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getDetail(groupBuyId: Long, userId: Long?): GroupBuyDetailResponse {
+        log.info("[GroupBuyService] 공구 상세 조회 시작: groupBuyId={}, userId={}", groupBuyId, userId)
+
+        val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+
+        val images = groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)
+
+        val isWishlisted = userId?.let {
+            favoriteRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
+        } ?: false
+
+        val isParticipated = userId?.let {
+            participationRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
+        } ?: false
+
+        val isClosed = groupBuy.status != GroupBuyStatus.IN_PROGRESS
+        val canParticipate = !isClosed && !isParticipated
+
+        log.info(
+            "[GroupBuyService] 공구 상세 조회 완료: groupBuyId={}, isWishlisted={}, isParticipated={}, canParticipate={}",
+            groupBuyId, isWishlisted, isParticipated, canParticipate
+        )
+
+        return GroupBuyDetailResponse.from(
+            groupBuy = groupBuy,
+            images = images,
+            isWishlisted = isWishlisted,
+            isParticipated = isParticipated,
+            canParticipate = canParticipate
+        )
+    }
+
+    private fun validateDistrictSelection(districts: List<DistrictType>) {
+        if (districts.size > 10) {
+            throw CustomException(ErrorCode.GROUPBUY_FEED_TOO_MANY_DISTRICTS)
+        }
+
+        districts.groupBy { it.region }.forEach { (_, values) ->
+            val hasAll = values.any { it.name.endsWith("_ALL") }
+            val hasChild = values.any { !it.name.endsWith("_ALL") }
+
+            if (hasAll && hasChild) {
+                throw CustomException(ErrorCode.GROUPBUY_FEED_INVALID_DISTRICT_COMBINATION)
+            }
+        }
+    }
+
+    private fun expandAllDistricts(districts: List<DistrictType>): Set<DistrictType> {
+        return districts.flatMap { district ->
+            if (district.name.endsWith("_ALL")) {
+                DistrictType.findLeafByRegion(district.region)
+            } else {
+                listOf(district)
+            }
+        }.toSet()
+    }
+}

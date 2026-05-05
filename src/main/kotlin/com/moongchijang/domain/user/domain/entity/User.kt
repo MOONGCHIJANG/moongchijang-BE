@@ -21,10 +21,6 @@ import java.time.LocalDateTime
 )
 class User(
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null,
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var provider: AuthProvider,
@@ -53,6 +49,10 @@ class User(
 
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null,
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    var id: Long? = null,
 ) : BaseEntity() {
     fun completeSignup(nickname: String, phoneNumber: String) {
         this.nickname = nickname
