@@ -10,7 +10,9 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 @Schema(description = "공구 상세 응답")
 data class GroupBuyDetailResponse(
@@ -142,7 +144,8 @@ data class GroupBuyDetailResponse(
                 pickupDateTimeLabel =
                     "$pickupDateLabel ${formatTimeLabel(groupBuy.pickupTimeStart)}~${formatTimeLabel(groupBuy.pickupTimeEnd)}",
                 deadlineDateTimeLabel =
-                    "${groupBuy.deadline.monthValue}/${groupBuy.deadline.dayOfMonth} ${formatTimeLabel(groupBuy.deadline.toLocalTime())}",                pickupLocation = groupBuy.pickupLocation,
+                    "${groupBuy.deadline.monthValue}/${groupBuy.deadline.dayOfMonth} ${formatTimeLabel(groupBuy.deadline.toLocalTime())}",
+                pickupLocation = groupBuy.pickupLocation,
                 pickupLatitude = groupBuy.store.latitude,
                 pickupLongitude = groupBuy.store.longitude,
                 dDay = dDay,
@@ -162,15 +165,7 @@ data class GroupBuyDetailResponse(
         }
 
         private fun formatPickupLabel(date: LocalDate): String {
-            val day = when (date.dayOfWeek.value) {
-                1 -> "월"
-                2 -> "화"
-                3 -> "수"
-                4 -> "목"
-                5 -> "금"
-                6 -> "토"
-                else -> "일"
-            }
+            val day = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN)
             return "${date.monthValue}/${date.dayOfMonth}($day)"
         }
 

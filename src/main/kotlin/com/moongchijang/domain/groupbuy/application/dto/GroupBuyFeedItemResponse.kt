@@ -6,7 +6,9 @@ import com.moongchijang.domain.store.domain.entity.RegionType
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 @Schema(description = "공구 피드 카드 응답")
 data class GroupBuyFeedItemResponse(
@@ -90,16 +92,8 @@ data class GroupBuyFeedItemResponse(
         }
 
         private fun formatPickupDateLabel(date: LocalDate): String {
-            val dayOfWeekKor = when (date.dayOfWeek.value) {
-                1 -> "월"
-                2 -> "화"
-                3 -> "수"
-                4 -> "목"
-                5 -> "금"
-                6 -> "토"
-                else -> "일"
-            }
-            return "${date.monthValue}/${date.dayOfMonth}($dayOfWeekKor)"
+            val day = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN)
+            return "${date.monthValue}/${date.dayOfMonth}($day)"
         }
     }
 }
