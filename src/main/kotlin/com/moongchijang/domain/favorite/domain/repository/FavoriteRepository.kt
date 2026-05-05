@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface FavoriteRepository : JpaRepository<Favorite, Long> {
 
-    fun existsVyUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
+    fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
 
     fun deleteByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Int
 
