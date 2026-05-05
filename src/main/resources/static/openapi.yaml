@@ -2018,19 +2018,16 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [id, storeName, region, district, productName, productDescription, imageUrls, thumbnailUrl, price, achievementRate, currentQuantity, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, dDay, isWishlisted, isClosed, isParticipated, canParticipate]
+          required: [id, storeName, regionType, regionLabel, districtType, districtLabel, productName, productDescription, imageUrls, thumbnailUrl, price, achievementRate, currentQuantity, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupDateLabel, pickupDateTimeLabel, pickupLocation, dDay, isWishlisted, isClosed, isParticipated, canParticipate]
           properties:
             id: { type: integer, format: int64 }
             storeName: { type: string }
-            region:
-              allOf:
-                - $ref: '#/components/schemas/RegionType'
-            district:
-              allOf:
-                - $ref: '#/components/schemas/DistrictType'
+            regionType: { $ref: '#/components/schemas/RegionType' }
+            regionLabel: { type: string, description: 시/도 한글 라벨, example: 서울 }
+            districtType: { $ref: '#/components/schemas/DistrictType' }
+            districtLabel: { type: string, description: 세부지역 한글 라벨, example: "강남 | 역삼 | 삼성" }
             productName: { type: string }
             productDescription: { type: string }
-            notice: { type: string, description: 유의사항 }
             thumbnailUrl: { type: string, description: 대표 썸네일 이미지 URL }
             imageUrls:
               type: array
@@ -2044,6 +2041,7 @@ components:
             pickupDate: { type: string, format: date }
             pickupTimeStart: { type: string, format: time }
             pickupTimeEnd: { type: string, format: time }
+            pickupDateLabel: { type: string, description: 픽업 날짜 표시 문자열, example: "4/15(화)" }
             pickupDateTimeLabel: { type: string, description: 픽업일시 표시용 문자열 }
             deadlineDateTimeLabel: { type: string, description: 마감일시 표시용 문자열 }
             pickupLocation: { type: string }
