@@ -1,9 +1,14 @@
 package com.moongchijang.domain.groupbuy.application
 
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedItemResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -14,12 +19,15 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class GroupBuyService(
-    private val groupBuyRepository: GroupBuyRepository
+    private val groupBuyRepository: GroupBuyRepository,
+    private val groupBuyImageRepository: GroupBuyImageRepository,
+    private val favoriteRepository: FavoriteRepository,
+    private val participationRepository: ParticipationRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional(readOnly = true)
-    fun getFeed(request: GroupBuyFeedRequest, pageable: Pageable):  GroupBuyFeedPageResponse {
+    fun getFeed(request: GroupBuyFeedRequest, pageable: Pageable): GroupBuyFeedPageResponse {
         log.info(
             "[GroupBuyService] 공구 피드 조회 시작: filter={}, districts={}, keyword={}, page={}, size={}",
             request.filter, request.districts, request.keyword, pageable.pageNumber, pageable.pageSize
@@ -44,6 +52,40 @@ class GroupBuyService(
 
         return GroupBuyFeedPageResponse.from(
             resultPage.map { GroupBuyFeedItemResponse.from(it) }
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getDetail(groupBuyId: Long, userId: Long?): GroupBuyDetailResponse {
+        log.info("[GroupBuyService] 공구 상세 조회 시작: groupBuyId={}, userId={}", groupBuyId, userId)
+
+        val groupBuy = groupBuyRepository.findById(groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+
+        val images = groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)
+
+        val isWishlisted = userId?.let {
+            favoriteRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
+        } ?: false
+
+        val isParticipated = userId?.let {
+            participationRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
+        } ?: false
+
+        val isClosed = groupBuy.status != GroupBuyStatus.IN_PROGRESS
+        val canParticipate = !isClosed && !isParticipated
+
+        log.info(
+            "[GroupBuyService] 공구 상세 조회 완료: groupBuyId={}, isWishlisted={}, isParticipated={}, canParticipate={}",
+            groupBuyId, isWishlisted, isParticipated, canParticipate
+        )
+
+        return GroupBuyDetailResponse.from(
+            groupBuy = groupBuy,
+            images = images,
+            isWishlisted = isWishlisted,
+            isParticipated = isParticipated,
+            canParticipate = canParticipate
         )
     }
 

@@ -76,4 +76,5 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     // GroupBuy(300~349)
     GROUPBUY_FEED_TOO_MANY_DISTRICTS(400_300, "지역 필터는 최대 10개까지 선택할 수 있습니다.", 400),
     GROUPBUY_FEED_INVALID_DISTRICT_COMBINATION(400_301, "같은 지역의 전체/하위 세부지역은 동시에 선택할 수 없습니다.", 400),
+    GROUPBUY_NOT_FOUND(404_302, "공구를 찾을 수 없습니다.", 404),
 }
