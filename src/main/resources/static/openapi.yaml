@@ -1976,7 +1976,7 @@ components:
       required: [id, thumbnailUrl, dDay, dDayLabel, storeName, regionType, regionLabel, districtType, districtLabel, productName, price, achievementRate, currentQuantity, targetQuantity, pickupDateLabel, deadline]
       properties:
         id: { type: integer, format: int64 }
-        thumbnailUrl: { type: string, description: 대표 썸네일 이미지 URL }
+        thumbnailUrl: { type: string, nullable: true, description: 대표 썸네일 이미지 URL }
         dDay: { type: integer, description: "마감 D-day (예: D-3 -> 3)" }
         dDayLabel: { type: string, description: "마감 뱃지 문자열 (예: D-3)" }
         storeName: { type: string }
@@ -1999,16 +1999,17 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [content, totalElements, totalPages, number, size]
+          required: [content, page, size, totalPages, totalElements, hasNext]
           properties:
             content:
               type: array
               items:
                 $ref: '#/components/schemas/GroupBuyFeedItemResponse'
+            page: { type: integer, description: 현재 페이지(1-base) }
+            size: { type: integer, description: 페이지 크기 }
+            totalPages: { type: integer, description: 전체 페이지 수 }
             totalElements: { type: integer }
-            totalPages: { type: integer }
-            number: { type: integer }
-            size: { type: integer }
+            hasNext: { type: boolean, description: 다음 페이지 존재 여부 }
         error: { nullable: true, example: null }
 
     ApiResponseGroupBuyDetailResponse:
@@ -2018,7 +2019,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [id, storeName, regionType, regionLabel, districtType, districtLabel, productName, productDescription, imageUrls, thumbnailUrl, price, achievementRate, currentQuantity, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupDateLabel, pickupDateTimeLabel, pickupLocation, dDay, isWishlisted, isClosed, isParticipated, canParticipate]
+          required: [id, storeName, regionType, regionLabel, districtType, districtLabel, productName, productDescription, imageUrls, price, achievementRate, currentQuantity, targetQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupDateLabel, pickupDateTimeLabel, deadlineDateTimeLabel, pickupLocation, dDay, dDayLabel, isWishlisted, isClosed, isParticipated, canParticipate]
           properties:
             id: { type: integer, format: int64 }
             storeName: { type: string }
@@ -2028,7 +2029,7 @@ components:
             districtLabel: { type: string, description: 세부지역 한글 라벨, example: "강남 | 역삼 | 삼성" }
             productName: { type: string }
             productDescription: { type: string }
-            thumbnailUrl: { type: string, description: 대표 썸네일 이미지 URL }
+            thumbnailUrl: { type: string, nullable: true, description: 대표 썸네일 이미지 URL }
             imageUrls:
               type: array
               items: { type: string }
