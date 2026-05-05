@@ -2,6 +2,7 @@ package com.moongchijang.domain.groupbuy.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import io.swagger.v3.oas.annotations.media.Schema
@@ -147,7 +148,9 @@ data class GroupBuyDetailResponse(
                 dDay = dDay,
                 dDayLabel = "D-$dDay",
                 isWishlisted = isWishlisted,
-                isClosed = groupBuy.status.name in setOf("FAILED", "CLOSED", "COMPLETED"),
+                isClosed = groupBuy.status in setOf(
+                    GroupBuyStatus.FAILED, GroupBuyStatus.CLOSED, GroupBuyStatus.COMPLETED
+                ),
                 isParticipated = isParticipated,
                 canParticipate = canParticipate
             )
