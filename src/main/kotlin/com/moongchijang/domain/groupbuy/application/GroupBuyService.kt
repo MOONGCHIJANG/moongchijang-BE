@@ -59,7 +59,7 @@ class GroupBuyService(
     fun getDetail(groupBuyId: Long, userId: Long?): GroupBuyDetailResponse {
         log.info("[GroupBuyService] 공구 상세 조회 시작: groupBuyId={}, userId={}", groupBuyId, userId)
 
-        val groupBuy = groupBuyRepository.findById(groupBuyId)
+        val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
         val images = groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)

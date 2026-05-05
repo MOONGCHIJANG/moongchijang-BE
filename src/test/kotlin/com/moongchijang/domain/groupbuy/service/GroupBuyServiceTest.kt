@@ -54,7 +54,7 @@ class GroupBuyServiceTest {
         val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
         val images = listOf(createImage(groupBuy, "https://image1.jpg"), createImage(groupBuy, "https://image2.jpg"))
 
-        `when`(groupBuyRepository.findById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
         `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(images)
         `when`(favoriteRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(true)
         `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(true)
@@ -73,7 +73,7 @@ class GroupBuyServiceTest {
         val groupBuyId = 11L
         val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
 
-        `when`(groupBuyRepository.findById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
         `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(emptyList())
 
         val result = service.getDetail(groupBuyId, null)
@@ -89,7 +89,7 @@ class GroupBuyServiceTest {
         val userId = 3L
         val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.CLOSED)
 
-        `when`(groupBuyRepository.findById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
         `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(emptyList())
         `when`(favoriteRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
         `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
@@ -101,7 +101,7 @@ class GroupBuyServiceTest {
 
     @Test
     fun `존재하지 않는 공구 상세 조회 시 GROUPBUY_NOT_FOUND 예외 발생`() {
-        `when`(groupBuyRepository.findById(999L)).thenReturn(Optional.empty())
+        `when`(groupBuyRepository.findWithStoreById(999L)).thenReturn(Optional.empty())
 
         val ex = assertThrows<CustomException> { service.getDetail(999L, 1L) }
 
