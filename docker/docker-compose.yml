@@ -5,8 +5,10 @@ services:
     image: mysql:8.4
     container_name: moongchijang-mysql-local
     environment:
-      MYSQL_DATABASE: moongchijang_local
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-moongchijang_local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_USER: ${MYSQL_USER:-moongchijang}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-moongchijang}
       TZ: Asia/Seoul
     ports:
       - "3306:3306"
