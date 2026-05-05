@@ -160,5 +160,8 @@ enum class DistrictType(
 
         fun findByRegion(region: RegionType): List<DistrictType> =
             entries.filter { it.region == region }
+
+        fun findLeafByRegion(region: RegionType): List<DistrictType> =
+            findByRegion(region).filterNot { it.name.endsWith("_ALL") }
     }
 }

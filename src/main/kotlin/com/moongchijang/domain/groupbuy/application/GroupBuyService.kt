@@ -107,9 +107,7 @@ class GroupBuyService(
     private fun expandAllDistricts(districts: List<DistrictType>): Set<DistrictType> {
         return districts.flatMap { district ->
             if (district.name.endsWith("_ALL")) {
-                DistrictType.entries.filter {
-                    it.region == district.region && !it.name.endsWith("_ALL")
-                }
+                DistrictType.findLeafByRegion(district.region)
             } else {
                 listOf(district)
             }
