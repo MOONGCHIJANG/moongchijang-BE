@@ -79,5 +79,19 @@ class User(
                 signupCompleted = false,
             )
         }
+
+        fun newEmailUser(
+            email: String,
+            passwordHash: String,
+        ): User {
+            return User(
+                provider = AuthProvider.EMAIL,
+                providerId = null,
+                email = email,
+                passwordHash = passwordHash,
+                role = UserRole.BUYER,
+                signupCompleted = false,
+            )
+        }
     }
 }
