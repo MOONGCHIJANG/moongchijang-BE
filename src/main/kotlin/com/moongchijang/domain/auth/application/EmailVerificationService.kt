@@ -5,6 +5,7 @@ import com.moongchijang.domain.auth.application.dto.EmailVerificationCodeSentRes
 import com.moongchijang.domain.auth.application.dto.EmailVerificationCodeVerifyRequest
 import com.moongchijang.domain.auth.application.dto.EmailVerificationVerifiedResponse
 import com.moongchijang.domain.auth.application.port.EmailSender
+import com.moongchijang.domain.auth.application.port.EmailSignupTokenStore
 import com.moongchijang.domain.auth.application.port.EmailVerificationStore
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -18,6 +19,7 @@ import kotlin.math.pow
 @Service
 class EmailVerificationService(
     private val emailVerificationStore: EmailVerificationStore,
+    private val emailSignupTokenStore: EmailSignupTokenStore,
     private val emailSender: EmailSender,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -64,11 +66,13 @@ class EmailVerificationService(
         }
 
         emailVerificationStore.deleteCode(email)
+        val signupToken = UUID.randomUUID().toString()
+        emailSignupTokenStore.save(email, signupToken, SIGNUP_TOKEN_TTL_SECONDS)
         log.info("[EmailVerificationService] 이메일 인증코드 검증 완료: email={}", maskEmail(email))
 
         return EmailVerificationVerifiedResponse(
             verified = true,
-            signupToken = UUID.randomUUID().toString(),
+            signupToken = signupToken,
         )
     }
 
@@ -84,6 +88,7 @@ class EmailVerificationService(
         private const val CODE_EXPIRES_SECONDS = 180L
         private const val RESEND_COOLDOWN_SECONDS = 60L
         private const val DAILY_LIMIT = 5L
+        private const val SIGNUP_TOKEN_TTL_SECONDS = 1800L
         private const val OTP_LENGTH = 6
         private val secureRandom = SecureRandom()
     }
