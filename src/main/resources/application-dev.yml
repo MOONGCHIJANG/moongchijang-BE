@@ -69,3 +69,8 @@ aligo:
   sender-key: ${ALIGO_SENDER_KEY}
   template-code: ${ALIGO_TEMPLATE_CODE}
   sender: ${ALIGO_SENDER}
+
+ses:
+  enabled: ${SES_ENABLED:false}
+  region: ${SES_REGION}
+  from-email: ${SES_FROM_EMAIL}
