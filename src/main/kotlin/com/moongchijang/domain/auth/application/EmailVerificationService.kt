@@ -8,6 +8,7 @@ import com.moongchijang.domain.auth.application.port.EmailSender
 import com.moongchijang.domain.auth.application.port.EmailVerificationStore
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.MaskingUtils.maskEmail
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.security.SecureRandom
@@ -77,18 +78,6 @@ class EmailVerificationService(
         val bound = 10.0.pow(OTP_LENGTH.toDouble()).toInt()
         val number = secureRandom.nextInt(bound)
         return number.toString().padStart(OTP_LENGTH, '0')
-    }
-
-    private fun maskEmail(email: String): String {
-        val parts = email.split("@")
-        if (parts.size != 2) return "***"
-        val local = parts[0]
-        val domain = parts[1]
-        val maskedLocal = when {
-            local.length <= 2 -> "${local.first()}*"
-            else -> local.take(2) + "*".repeat(local.length - 2)
-        }
-        return "$maskedLocal@$domain"
     }
 
     companion object {

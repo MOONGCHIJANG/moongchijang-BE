@@ -10,6 +10,7 @@ import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.MaskingUtils.maskEmail
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -170,18 +171,6 @@ class UserService(
     }
 
     private fun normalizeEmail(raw: String): String = raw.trim().lowercase()
-
-    private fun maskEmail(email: String): String {
-        val parts = email.split("@")
-        if (parts.size != 2) return "***"
-        val local = parts[0]
-        val domain = parts[1]
-        val maskedLocal = when {
-            local.length <= 2 -> "${local.firstOrNull() ?: '*'}*"
-            else -> local.take(2) + "*".repeat(local.length - 2)
-        }
-        return "$maskedLocal@$domain"
-    }
 
     companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
