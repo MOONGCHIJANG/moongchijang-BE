@@ -5,6 +5,8 @@ import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.auth.application.dto.KakaoLoginRequest
 import com.moongchijang.domain.auth.application.dto.AccessTokenResponse
 import com.moongchijang.domain.auth.application.dto.AuthLoginResponse
+import com.moongchijang.domain.user.application.UserService
+import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
@@ -20,9 +22,11 @@ import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -31,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(
     private val authService: AuthService,
     private val tokenService: TokenService,
+    private val userService: UserService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -103,5 +108,22 @@ class AuthController(
 
         log.info("[AuthController] 로그아웃 응답 완료: userId={}", userId)
         return ApiResponse.success()
+    }
+
+    @GetMapping("/email/availability")
+    @Operation(summary = "이메일 중복 확인", description = "이메일 회원가입 전 가입 가능 이메일인지 확인합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "이메일 사용 가능 여부 반환"),
+            SwaggerApiResponse(responseCode = "400", description = "이메일 형식 오류", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun checkEmailAvailability(
+        @RequestParam email: String,
+    ): ApiResponse<EmailAvailabilityResponse> {
+        log.info("[AuthController] 이메일 중복 확인 요청 수신")
+        val response = userService.checkEmailAvailability(email)
+        log.info("[AuthController] 이메일 중복 확인 응답 완료")
+        return ApiResponse.success(response)
     }
 }

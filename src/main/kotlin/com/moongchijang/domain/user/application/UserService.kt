@@ -3,6 +3,7 @@ package com.moongchijang.domain.user.application
 import com.moongchijang.domain.auth.application.PhoneVerificationService
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
+import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
@@ -51,8 +52,23 @@ class UserService(
     }
 
     @Transactional(readOnly = true)
-    fun existsByEmail(email: String): Boolean {
-        return userRepository.existsByEmailAndDeletedAtIsNull(email)
+    fun checkEmailAvailability(email: String): EmailAvailabilityResponse {
+        val normalizedEmail = normalizeEmail(email)
+        log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
+        validateEmailFormat(normalizedEmail)
+
+        val duplicated = userRepository.existsByEmailAndDeletedAtIsNull(normalizedEmail)
+        val response = EmailAvailabilityResponse(
+            email = normalizedEmail,
+            available = !duplicated,
+        )
+
+        log.info(
+            "[UserService] 이메일 중복 확인 완료: email={}, available={}",
+            maskEmail(normalizedEmail),
+            response.available,
+        )
+        return response
     }
 
     @Transactional
@@ -145,5 +161,29 @@ class UserService(
         if (!phoneRegex.matches(phoneNumber)) {
             throw CustomException(ErrorCode.INVALID_PHONE_NUMBER_FORMAT)
         }
+    }
+
+    private fun validateEmailFormat(email: String) {
+        if (!EMAIL_REGEX.matches(email)) {
+            throw CustomException(ErrorCode.INVALID_EMAIL_FORMAT)
+        }
+    }
+
+    private fun normalizeEmail(raw: String): String = raw.trim().lowercase()
+
+    private fun maskEmail(email: String): String {
+        val parts = email.split("@")
+        if (parts.size != 2) return "***"
+        val local = parts[0]
+        val domain = parts[1]
+        val maskedLocal = when {
+            local.length <= 2 -> "${local.firstOrNull() ?: '*'}*"
+            else -> local.take(2) + "*".repeat(local.length - 2)
+        }
+        return "$maskedLocal@$domain"
+    }
+
+    companion object {
+        private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
     }
 }
