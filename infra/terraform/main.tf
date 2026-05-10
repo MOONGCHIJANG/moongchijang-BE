@@ -102,14 +102,9 @@ resource "aws_iam_instance_profile" "ec2_profile" {
   role = aws_iam_role.ec2_role.name
 }
 
-// Amazon Linux 2023 ARM AMI 조회
-data "aws_ssm_parameter" "al2023_arm_ami" {
-  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
-}
-
 // EC2 인스턴스 생성
 resource "aws_instance" "app_server" {
-  ami                    = data.aws_ssm_parameter.al2023_arm_ami.value
+  ami                    = var.ec2_ami_id
   instance_type          = var.ec2_instance_type
   key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]

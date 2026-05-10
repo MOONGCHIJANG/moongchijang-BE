@@ -18,6 +18,11 @@ variable "ec2_instance_type" {
   type        = string
 }
 
+variable "ec2_ami_id" {
+  description = "EC2 AMI ID (pin this value to avoid unintended instance replacement)"
+  type        = string
+}
+
 variable "key_name" {
   description = "EC2 key pair name"
   type        = string
@@ -52,4 +57,10 @@ variable "db_password" {
 variable "redis_node_type" {
   description = "ElastiCache Redis node type"
   type        = string
+}
+
+variable "ses_domain" {
+  description = "SES sender domain (e.g. example.com). When empty, SES resources are skipped."
+  type        = string
+  default     = ""
 }
