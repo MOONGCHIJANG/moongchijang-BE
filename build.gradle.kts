@@ -40,6 +40,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation(platform("software.amazon.awssdk:bom:2.31.18"))
     implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:sesv2")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
 
     // JWT
