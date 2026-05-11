@@ -31,7 +31,7 @@ class GroupBuyRequest(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: GroupBuyRequestStatus = GroupBuyRequestStatus.SUBMITTED,
+    var status: GroupBuyRequestStatus = GroupBuyRequestStatus.IN_REVIEW,
 
     @Column
     var rejectionReason: String? = null,

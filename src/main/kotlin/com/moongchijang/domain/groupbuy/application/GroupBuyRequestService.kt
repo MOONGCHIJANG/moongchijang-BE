@@ -42,7 +42,7 @@ class GroupBuyRequestService(
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
                 groupBuyRequestId = saved.id,
-                status = GroupBuyRequestStatus.SUBMITTED,
+                status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = saved.createdAt ?: LocalDateTime.now()
             )
         )

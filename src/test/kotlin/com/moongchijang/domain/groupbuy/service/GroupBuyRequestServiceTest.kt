@@ -49,7 +49,7 @@ class GroupBuyRequestServiceTest {
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = 42L, status = GroupBuyRequestStatus.SUBMITTED)
+            GroupBuyRequestStatusHistory(groupBuyRequestId = 42L, status = GroupBuyRequestStatus.IN_REVIEW)
         )
 
         val result = service.create(userId, request)
@@ -85,7 +85,7 @@ class GroupBuyRequestServiceTest {
         `when`(groupBuyRequestRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(requests)
         `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdInOrderByChangedAtAsc(listOf(1L)))
             .thenReturn(listOf(
-                GroupBuyRequestStatusHistory(groupBuyRequestId = 1L, status = GroupBuyRequestStatus.SUBMITTED,
+                GroupBuyRequestStatusHistory(groupBuyRequestId = 1L, status = GroupBuyRequestStatus.IN_REVIEW,
                     changedAt = LocalDateTime.now())
             ))
 
@@ -93,7 +93,7 @@ class GroupBuyRequestServiceTest {
 
         assertEquals(1, result.size)
         assertEquals("성심당", result[0].storeName)
-        assertEquals(GroupBuyRequestStatus.SUBMITTED.name, result[0].status)
+        assertEquals(GroupBuyRequestStatus.IN_REVIEW.name, result[0].status)
         assertEquals(1, result[0].statusHistory.size)
     }
 
@@ -113,9 +113,9 @@ class GroupBuyRequestServiceTest {
         val groupBuyRequest = GroupBuyRequest(userId = userId, storeName = "뚜레쥬르", productName = "크림빵",
             desiredQuantity = 1, desiredPickupDate = LocalDate.now().plusDays(7)).apply { id = requestId }
         val history = listOf(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.SUBMITTED,
+            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = LocalDateTime.now().minusDays(2)),
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.REVIEWING,
+            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT,
                 changedAt = LocalDateTime.now().minusDays(1))
         )
 
@@ -127,8 +127,8 @@ class GroupBuyRequestServiceTest {
 
         assertEquals(requestId, result.requestId)
         assertEquals(2, result.statusHistory.size)
-        assertEquals(GroupBuyRequestStatus.SUBMITTED.name, result.statusHistory[0].status)
-        assertEquals(GroupBuyRequestStatus.REVIEWING.name, result.statusHistory[1].status)
+        assertEquals(GroupBuyRequestStatus.IN_REVIEW.name, result.statusHistory[0].status)
+        assertEquals(GroupBuyRequestStatus.IN_CONTACT.name, result.statusHistory[1].status)
     }
 
     @Test
