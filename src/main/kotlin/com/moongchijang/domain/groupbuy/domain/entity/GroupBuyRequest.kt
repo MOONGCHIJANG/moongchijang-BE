@@ -39,7 +39,7 @@ class GroupBuyRequest(
     @Column(length = 50)
     var contactInstagram: String? = null,
 
-    @Column(length = 100)
+    @Column
     var rejectionReason: String? = null,
 
     @Column
