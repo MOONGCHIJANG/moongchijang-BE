@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.QGroupBuy.groupBuy
 import com.moongchijang.domain.store.domain.entity.QStore.store
 import com.moongchijang.domain.store.domain.entity.DistrictType
+import com.moongchijang.domain.store.domain.entity.RegionType
 import com.querydsl.core.BooleanBuilder
 import com.querydsl.core.types.dsl.BooleanExpression
 import com.querydsl.jpa.impl.JPAQueryFactory
@@ -84,5 +85,43 @@ class GroupBuyRepositoryImpl(
                 groupBuy.currentQuantity.multiply(100)
                     .goe(groupBuy.targetQuantity.multiply(GroupBuyRepositoryCustom.ALMOST_ACHIEVED_RATE))
         }
+    }
+
+    override fun searchByIntent(
+        region: String?,
+        product: String?,
+        now: LocalDateTime,
+        status: GroupBuyStatus
+    ): List<GroupBuy> {
+        val regionType = region?.let { runCatching { RegionType.fromLabel(it) }.getOrNull() }
+        val builder = BooleanBuilder()
+        builder.and(groupBuy.status.eq(status))
+        builder.and(groupBuy.deadline.gt(now))
+        regionType?.let { builder.and(store.region.eq(it)) }
+        product?.let { builder.and(groupBuy.productName.eq(it)) }
+
+        return queryFactory
+            .selectFrom(groupBuy)
+            .join(groupBuy.store, store).fetchJoin()
+            .where(builder)
+            .fetch()
+    }
+
+    override fun findDistinctRegions(status: GroupBuyStatus): List<String> {
+        return queryFactory
+            .select(store.region).distinct()
+            .from(groupBuy)
+            .join(groupBuy.store, store)
+            .where(groupBuy.status.eq(status))
+            .fetch()
+            .map { it.label }
+    }
+
+    override fun findDistinctProductNames(status: GroupBuyStatus): List<String> {
+        return queryFactory
+            .select(groupBuy.productName).distinct()
+            .from(groupBuy)
+            .where(groupBuy.status.eq(status))
+            .fetch()
     }
 }
