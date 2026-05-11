@@ -25,5 +25,24 @@ object UserFixture {
             deletedAt = deletedAt,
         )
     }
-}
 
+    fun createEmailUser(
+        id: Long = 2L,
+        email: String = "email@example.com",
+        passwordHash: String = "hashed-password",
+        nickname: String? = null,
+        deletedAt: LocalDateTime? = null,
+    ): User {
+        return User(
+            id = id,
+            provider = AuthProvider.EMAIL,
+            providerId = null,
+            email = email,
+            passwordHash = passwordHash,
+            nickname = nickname,
+            role = UserRole.BUYER,
+            signupCompleted = false,
+            deletedAt = deletedAt,
+        )
+    }
+}
