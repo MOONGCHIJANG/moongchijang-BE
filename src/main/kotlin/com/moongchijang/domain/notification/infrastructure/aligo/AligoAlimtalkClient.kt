@@ -32,12 +32,17 @@ class AligoAlimtalkClient(
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(body)
                 .retrieve()
-                .body(String::class.java)
+                .body(Map::class.java)
 
-            log.info("알리고 알림톡 발송 성공: receiver={}, response={}", receiverPhone, response)
-            true
+            val isSuccess = response?.get("code")?.toString() == "0"
+            if (isSuccess) {
+                log.info("알리고 알림톡 발송 성공: receiver={}, response={}", receiverPhone, response)
+            } else {
+                log.error("알리고 알림톡 발송 실패: receiver={}, response={}", receiverPhone, response)
+            }
+            isSuccess
         } catch (e: Exception) {
-            log.error("알리고 알림톡 발송 실패: receiver={}, error={}", receiverPhone, e.message)
+            log.error("알리고 알림톡 발송 실패: receiver={}", receiverPhone, e)
             false
         }
     }
