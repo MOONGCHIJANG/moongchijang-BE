@@ -7,5 +7,5 @@ CREATE TABLE group_buy_open_requests
     notification_status VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
     created_at          DATETIME     NOT NULL,
     updated_at          DATETIME     NOT NULL,
-    INDEX idx_open_req_user_region_product (user_id, region, product_name)
+    CONSTRAINT uk_open_req_user_region_product UNIQUE (user_id, region, product_name)
 );
