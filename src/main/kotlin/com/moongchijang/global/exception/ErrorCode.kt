@@ -32,6 +32,9 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     GROUPBUY_REQUEST_FORBIDDEN(403_010, "본인의 공구 요청만 조회할 수 있습니다.", 403),
     GROUPBUY_REQUEST_INVALID_DATE(400_010, "희망 픽업 날짜는 오늘 이후여야 합니다.", 400),
 
+    // GroupBuyOpenRequest
+    DUPLICATE_OPEN_REQUEST(409_010, "이미 알림 신청한 공구입니다.", 409),
+
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(500_000, "서버 내부 오류입니다.", 500),
     
