@@ -78,6 +78,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PHONE_VERIFICATION_CODE_MISMATCH(400_202, "인증번호가 올바르지 않습니다.", 400),
     PHONE_VERIFICATION_REQUIRED(400_203, "전화번호 인증이 필요합니다.", 400),
     SMS_SEND_FAILED(500_201, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요.", 500),
+    EMAIL_SEND_FAILED(500_202, "이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.", 500),
 
     // Store(250~299)
     STORE_SEARCH_FAILED(502_250, "매장 검색 중 오류가 발생했습니다.", 502),

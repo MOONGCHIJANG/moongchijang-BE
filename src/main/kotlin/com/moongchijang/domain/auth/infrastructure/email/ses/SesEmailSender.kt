@@ -2,6 +2,10 @@ package com.moongchijang.domain.auth.infrastructure.email.ses
 
 import com.moongchijang.domain.auth.application.port.EmailSender
 import com.moongchijang.global.config.SesProperties
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.MaskingUtils.maskEmail
+import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import software.amazon.awssdk.services.sesv2.SesV2Client
@@ -18,6 +22,7 @@ class SesEmailSender(
     private val sesV2Client: SesV2Client,
     private val sesProperties: SesProperties,
 ) : EmailSender {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun sendVerificationCode(toEmail: String, code: String, expiresInSeconds: Long) {
         val expiresMinutes = expiresInSeconds / 60
@@ -55,6 +60,12 @@ class SesEmailSender(
             )
             .build()
 
-        sesV2Client.sendEmail(request)
+        try {
+            sesV2Client.sendEmail(request)
+            log.info("[SesEmailSender] 이메일 발송 완료: toEmail={}", maskEmail(toEmail))
+        } catch (e: Exception) {
+            log.error("[SesEmailSender] 이메일 발송 실패: toEmail={}", maskEmail(toEmail), e)
+            throw CustomException(ErrorCode.EMAIL_SEND_FAILED)
+        }
     }
 }
