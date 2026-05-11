@@ -36,7 +36,11 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `유효한 입력으로 요청 시 requestId 반환`() {
         val userId = 1L
-        val request = createRequest(desiredPickupDate = LocalDate.now().plusDays(3))
+        val request = createRequest(
+            desiredPickupDate = LocalDate.now().plusDays(3),
+            contactPhone = "010-1234-5678",
+            contactInstagram = "moongchi.bread"
+        )
         val saved = GroupBuyRequest(
             userId = userId,
             storeName = request.storeName,
@@ -44,18 +48,23 @@ class GroupBuyRequestServiceTest {
             productName = request.productName,
             desiredQuantity = request.desiredQuantity,
             desiredPickupDate = request.desiredPickupDate,
-            additionalNote = request.additionalNote
+            additionalNote = request.additionalNote,
+            contactPhone = request.contactPhone,
+            contactInstagram = request.contactInstagram
         ).apply { id = 42L }
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = 42L, status = GroupBuyRequestStatus.SUBMITTED)
+            GroupBuyRequestStatusHistory(groupBuyRequestId = 42L, status = GroupBuyRequestStatus.IN_REVIEW)
         )
 
         val result = service.create(userId, request)
 
         assertEquals(42L, result.requestId)
-        verify(groupBuyRequestRepository).save(any())
+        val captor = argumentCaptor<GroupBuyRequest>()
+        verify(groupBuyRequestRepository).save(captor.capture())
+        assertEquals("010-1234-5678", captor.value.contactPhone)
+        assertEquals("moongchi.bread", captor.value.contactInstagram)
         verify(groupBuyRequestStatusHistoryRepository).save(any())
     }
 
@@ -85,7 +94,7 @@ class GroupBuyRequestServiceTest {
         `when`(groupBuyRequestRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(requests)
         `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdInOrderByChangedAtAsc(listOf(1L)))
             .thenReturn(listOf(
-                GroupBuyRequestStatusHistory(groupBuyRequestId = 1L, status = GroupBuyRequestStatus.SUBMITTED,
+                GroupBuyRequestStatusHistory(groupBuyRequestId = 1L, status = GroupBuyRequestStatus.IN_REVIEW,
                     changedAt = LocalDateTime.now())
             ))
 
@@ -93,7 +102,9 @@ class GroupBuyRequestServiceTest {
 
         assertEquals(1, result.size)
         assertEquals("성심당", result[0].storeName)
-        assertEquals(GroupBuyRequestStatus.SUBMITTED.name, result[0].status)
+        assertNull(result[0].contactPhone)
+        assertNull(result[0].contactInstagram)
+        assertEquals(GroupBuyRequestStatus.IN_REVIEW.name, result[0].status)
         assertEquals(1, result[0].statusHistory.size)
     }
 
@@ -111,11 +122,12 @@ class GroupBuyRequestServiceTest {
         val userId = 1L
         val requestId = 10L
         val groupBuyRequest = GroupBuyRequest(userId = userId, storeName = "뚜레쥬르", productName = "크림빵",
-            desiredQuantity = 1, desiredPickupDate = LocalDate.now().plusDays(7)).apply { id = requestId }
+            desiredQuantity = 1, desiredPickupDate = LocalDate.now().plusDays(7),
+            contactPhone = "010-9876-5432", contactInstagram = "bakery.pickup").apply { id = requestId }
         val history = listOf(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.SUBMITTED,
+            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = LocalDateTime.now().minusDays(2)),
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.REVIEWING,
+            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT,
                 changedAt = LocalDateTime.now().minusDays(1))
         )
 
@@ -126,9 +138,11 @@ class GroupBuyRequestServiceTest {
         val result = service.getDetail(userId, requestId)
 
         assertEquals(requestId, result.requestId)
+        assertEquals("010-9876-5432", result.contactPhone)
+        assertEquals("bakery.pickup", result.contactInstagram)
         assertEquals(2, result.statusHistory.size)
-        assertEquals(GroupBuyRequestStatus.SUBMITTED.name, result.statusHistory[0].status)
-        assertEquals(GroupBuyRequestStatus.REVIEWING.name, result.statusHistory[1].status)
+        assertEquals(GroupBuyRequestStatus.IN_REVIEW.name, result.statusHistory[0].status)
+        assertEquals(GroupBuyRequestStatus.IN_CONTACT.name, result.statusHistory[1].status)
     }
 
     @Test
@@ -155,11 +169,17 @@ class GroupBuyRequestServiceTest {
         storeName: String = "성심당",
         productName: String = "튀김소보로",
         desiredQuantity: Int = 2,
-        desiredPickupDate: LocalDate = LocalDate.now().plusDays(3)
+        desiredPickupDate: LocalDate = LocalDate.now().plusDays(3),
+        contactPhone: String? = null,
+        contactInstagram: String? = null
     ) = GroupBuyRequestCreateRequest(
         storeName = storeName,
         productName = productName,
         desiredQuantity = desiredQuantity,
-        desiredPickupDate = desiredPickupDate
+        desiredPickupDate = desiredPickupDate,
+        contactPhone = contactPhone,
+        contactInstagram = contactInstagram
     )
+
+    private inline fun <reified T> argumentCaptor() = org.mockito.ArgumentCaptor.forClass(T::class.java)
 }

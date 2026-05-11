@@ -35,14 +35,16 @@ class GroupBuyRequestService(
                 productName = request.productName,
                 desiredQuantity = request.desiredQuantity,
                 desiredPickupDate = request.desiredPickupDate,
-                additionalNote = request.additionalNote
+                additionalNote = request.additionalNote,
+                contactPhone = request.contactPhone,
+                contactInstagram = request.contactInstagram
             )
         )
 
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
                 groupBuyRequestId = saved.id,
-                status = GroupBuyRequestStatus.SUBMITTED,
+                status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = saved.createdAt ?: LocalDateTime.now()
             )
         )

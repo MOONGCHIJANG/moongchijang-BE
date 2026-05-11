@@ -31,7 +31,13 @@ class GroupBuyRequest(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: GroupBuyRequestStatus = GroupBuyRequestStatus.SUBMITTED,
+    var status: GroupBuyRequestStatus = GroupBuyRequestStatus.IN_REVIEW,
+
+    @Column(length = 20)
+    var contactPhone: String? = null,
+
+    @Column(length = 50)
+    var contactInstagram: String? = null,
 
     @Column
     var rejectionReason: String? = null,
