@@ -33,7 +33,13 @@ class GroupBuyRequest(
     @Column(nullable = false)
     var status: GroupBuyRequestStatus = GroupBuyRequestStatus.IN_REVIEW,
 
-    @Column
+    @Column(length = 20)
+    var contactPhone: String? = null,
+
+    @Column(length = 50)
+    var contactInstagram: String? = null,
+
+    @Column(length = 100)
     var rejectionReason: String? = null,
 
     @Column
