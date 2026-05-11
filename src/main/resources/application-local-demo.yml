@@ -1,0 +1,106 @@
+# 외부 API 키 없이 즉시 실행 가능한 로컬 데모 예시.
+# 사용 방법: cp application-local-demo.yml application-local.yml 후 ./gradlew bootRun (실 키가 있으면 application-local.yml에 덮어쓰기)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/moongchijang_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:moongchijang}
+    password: ${DB_PASSWORD:moongchijang}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  flyway:
+    enabled: true
+    locations:
+      - classpath:db/migration
+
+app:
+  s3:
+    bucket: local-bucket
+    prefix: local
+
+oauth:
+  kakao:
+    client-id: test-client-id
+    client-secret: test-client-secret
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: http://localhost:8080/auth/kakao/callback
+
+coolsms:
+  api-key: ${COOLSMS_API_KEY:test-api-key}
+  api-secret: ${COOLSMS_API_SECRET:test-api-secret}
+  sender: ${COOLSMS_SENDER:010-0000-0000}
+
+jwt:
+  secret: jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret
+  access-token:
+    expiration-minutes: 60
+
+auth:
+  refresh:
+    expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
+
+naver:
+  api:
+    client-id: ${NAVER_CLIENT_ID:local-client-id}
+    client-secret: ${NAVER_CLIENT_SECRET:local-client-secret}
+
+ses:
+  enabled: ${SES_ENABLED:false}
+  region: ${SES_REGION:ap-northeast-2}
+  from-email: ${SES_FROM_EMAIL:no-reply@moongchijang.com}
+
+aligo:
+  api-key: ${ALIGO_API_KEY:local-aligo-api-key}
+  user-id: ${ALIGO_USER_ID:local-aligo-user-id}
+  sender-key: ${ALIGO_SENDER_KEY:local-aligo-sender-key}
+  template-code: ${ALIGO_TEMPLATE_CODE:local-template-code}
+  sender: ${ALIGO_SENDER:01000000000}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:dummy-gemini-key}
+
+qdrant:
+  enabled: ${QDRANT_ENABLED:false}
+  url: ${QDRANT_URL:http://localhost:6333}
+  api-key: ${QDRANT_API_KEY:}
+  collection-name: ${QDRANT_COLLECTION_NAME:group_buys}
+  timeout-seconds: ${QDRANT_TIMEOUT_SECONDS:2}
+  initialize-collection: ${QDRANT_INITIALIZE_COLLECTION:false}
+  vector-size: ${QDRANT_VECTOR_SIZE:768}
+  distance: ${QDRANT_DISTANCE:Cosine}
+
+search:
+  retrieval:
+    vector-candidate-limit: ${SEARCH_VECTOR_CANDIDATE_LIMIT:10}
+    vector-min-score: ${SEARCH_VECTOR_MIN_SCORE:0.5}
+    fallback-provider: ${SEARCH_FALLBACK_PROVIDER:mysql}
+  guard:
+    enabled: ${SEARCH_GUARD_ENABLED:true}
+    min-confidence: ${SEARCH_GUARD_MIN_CONFIDENCE:0.65}
+    supportive-score-threshold: ${SEARCH_GUARD_SUPPORTIVE_SCORE_THRESHOLD:0.7}
+  observability:
+    enabled: ${SEARCH_OBSERVABILITY_ENABLED:true}
+  index:
+    version-key: ${SEARCH_INDEX_VERSION_KEY:search:index:version}
+    default-version: ${SEARCH_INDEX_DEFAULT_VERSION:v1}
+
+indexing:
+  publisher: ${INDEXING_PUBLISHER:spring}
+  consumer: ${INDEXING_CONSUMER:none}
+  sqs:
+    queue-url: ${INDEXING_SQS_QUEUE_URL:}
+    message-group-id: ${INDEXING_SQS_MESSAGE_GROUP_ID:group-buy-indexing}
+    max-messages: ${INDEXING_SQS_MAX_MESSAGES:5}
+    wait-time-seconds: ${INDEXING_SQS_WAIT_TIME_SECONDS:10}
+    visibility-timeout-seconds: ${INDEXING_SQS_VISIBILITY_TIMEOUT_SECONDS:60}
+    polling-fixed-delay-millis: ${INDEXING_SQS_POLLING_FIXED_DELAY_MILLIS:5000}
