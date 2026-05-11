@@ -56,3 +56,10 @@ ses:
   enabled: ${SES_ENABLED:false}
   region: ${SES_REGION:ap-northeast-2}
   from-email: ${SES_FROM_EMAIL:no-reply@moongchijang.com}
+
+aligo:
+  api-key: ${ALIGO_API_KEY}
+  user-id: ${ALIGO_USER_ID}
+  sender-key: ${ALIGO_SENDER_KEY}
+  template-code: ${ALIGO_TEMPLATE_CODE}
+  sender: ${ALIGO_SENDER}
