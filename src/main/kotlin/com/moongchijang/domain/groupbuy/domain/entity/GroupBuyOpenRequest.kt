@@ -6,7 +6,12 @@ import jakarta.persistence.*
 @Entity
 @Table(
     name = "group_buy_open_requests",
-    indexes = [Index(name = "idx_open_req_user_region_product", columnList = "user_id,region,product_name")]
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "uk_open_req_user_region_product",
+            columnNames = ["user_id", "region", "product_name"]
+        )
+    ]
 )
 class GroupBuyOpenRequest(
     @Column(name = "user_id", nullable = false)
