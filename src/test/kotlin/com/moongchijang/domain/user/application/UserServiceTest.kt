@@ -138,7 +138,9 @@ class UserServiceTest {
 
     @Test
     fun `이메일 중복 확인 시 사용 가능하면 true`() {
-        Mockito.`when`(userRepository.existsByEmailAndDeletedAtIsNull("new@example.com")).thenReturn(false)
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "new@example.com"),
+        ).thenReturn(false)
 
         val response = userService.checkEmailAvailability("new@example.com")
 
@@ -148,7 +150,9 @@ class UserServiceTest {
 
     @Test
     fun `이메일 중복 확인 시 중복이면 false`() {
-        Mockito.`when`(userRepository.existsByEmailAndDeletedAtIsNull("dup@example.com")).thenReturn(true)
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),
+        ).thenReturn(true)
 
         val response = userService.checkEmailAvailability("dup@example.com")
 
@@ -173,7 +177,9 @@ class UserServiceTest {
             passwordHash = "hashed-password",
         )
 
-        Mockito.`when`(userRepository.existsByEmailAndDeletedAtIsNull("new@example.com")).thenReturn(false)
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "new@example.com"),
+        ).thenReturn(false)
         Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
         val user = userService.createEmailUser("new@example.com", "hashed-password")
@@ -186,7 +192,9 @@ class UserServiceTest {
 
     @Test
     fun `이메일 사용자 생성 시 중복 이메일 예외`() {
-        Mockito.`when`(userRepository.existsByEmailAndDeletedAtIsNull("dup@example.com")).thenReturn(true)
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),
+        ).thenReturn(true)
 
         val exception = assertThrows<CustomException> {
             userService.createEmailUser("dup@example.com", "hashed-password")

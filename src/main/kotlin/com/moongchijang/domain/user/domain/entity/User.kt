@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 @Table(name = "users",
     indexes = [
         Index(name = "idx_users_provider_provider_id", columnList = "provider,provider_id"),
-        Index(name = "idx_users_email", columnList = "email")
+        Index(name = "uidx_users_provider_email", columnList = "provider,email", unique = true)
     ]
 )
 class User(

@@ -12,6 +12,7 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -48,7 +49,7 @@ class UserService(
         log.info("[UserService] 이메일 사용자 생성 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        if (userRepository.existsByEmailAndDeletedAtIsNull(normalizedEmail)) {
+        if (userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail)) {
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
         }
 
@@ -56,7 +57,12 @@ class UserService(
             email = normalizedEmail,
             passwordHash = passwordHash,
         )
-        val savedUser = userRepository.save(user)
+        val savedUser = try {
+            userRepository.save(user)
+        } catch (e: DataIntegrityViolationException) {
+            // provider+email 유니크 인덱스 충돌(동시성 가입 요청) 시 도메인 예외로 변환
+            throw CustomException(ErrorCode.DUPLICATE_EMAIL)
+        }
         log.info("[UserService] 이메일 사용자 생성 완료: userId={}", savedUser.id)
 
         return savedUser
@@ -89,7 +95,7 @@ class UserService(
         log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        val duplicated = userRepository.existsByEmailAndDeletedAtIsNull(normalizedEmail)
+        val duplicated = userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail)
         val response = EmailAvailabilityResponse(
             email = normalizedEmail,
             available = !duplicated,
