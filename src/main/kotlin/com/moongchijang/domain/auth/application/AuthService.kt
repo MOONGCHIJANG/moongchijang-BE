@@ -7,6 +7,7 @@ import com.moongchijang.domain.auth.application.dto.AuthLoginResponse
 import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.auth.application.dto.KakaoAuthUser
 import com.moongchijang.domain.auth.application.dto.KakaoLoginRequest
+import com.moongchijang.domain.auth.application.port.EmailSignupTokenStore
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service
 class AuthService(
     private val kakaoAuthService: KakaoAuthService,
     private val userService: UserService,
+    private val emailSignupTokenStore: EmailSignupTokenStore,
     private val tokenService: TokenService,
     private val jwtTokenProvider: JwtTokenProvider,
 ) {
@@ -93,5 +95,12 @@ class AuthService(
         log.info("[AuthService] 로그아웃 처리 시작: userId={}", userId)
         tokenService.deleteByUserId(userId)
         log.info("[AuthService] 로그아웃 처리 완료: userId={}", userId)
+    }
+
+    fun validateSignupToken(email: String, signupToken: String) {
+        val normalizedEmail = email.trim().lowercase()
+        if (!emailSignupTokenStore.isValid(normalizedEmail, signupToken)) {
+            throw CustomException(ErrorCode.INVALID_SIGNUP_TOKEN)
+        }
     }
 }

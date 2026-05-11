@@ -46,6 +46,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     EMAIL_VERIFICATION_CODE_EXPIRED(400_105, "인증코드가 만료됐어요. 재발송해주세요.", 400),
     EMAIL_VERIFICATION_RESEND_COOLDOWN(400_106, "인증코드 재발송은 잠시 후 다시 시도해주세요.", 400),
     EMAIL_VERIFICATION_DAILY_LIMIT_EXCEEDED(429_101, "내일 다시 시도해주세요.", 429),
+    INVALID_SIGNUP_TOKEN(401_107, "회원가입 인증정보가 유효하지 않습니다. 이메일 인증을 다시 진행해주세요.", 401),
     KAKAO_TOKEN_REQUEST_INVALID(401_101, "카카오 토큰 요청 파라미터가 올바르지 않습니다.", 401),
     KAKAO_TOKEN_EXCHANGE_FAILED(401_102, "카카오 토큰 교환에 실패했습니다.", 401),
     KAKAO_TOKEN_RESPONSE_INVALID(401_103, "카카오 토큰 응답이 올바르지 않습니다.", 401),
