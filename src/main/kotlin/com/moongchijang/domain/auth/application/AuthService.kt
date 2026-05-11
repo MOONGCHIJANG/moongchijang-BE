@@ -103,9 +103,8 @@ class AuthService(
         log.info("[AuthService] 로그아웃 처리 완료: userId={}", userId)
     }
 
-    fun validateSignupToken(email: String, signupToken: String) {
-        val normalizedEmail = email.trim().lowercase()
-        if (!emailSignupTokenStore.isValid(normalizedEmail, signupToken)) {
+    private fun validateSignupTokenForNormalizedEmail(email: String, signupToken: String) {
+        if (!emailSignupTokenStore.isValid(email, signupToken)) {
             throw CustomException(ErrorCode.INVALID_SIGNUP_TOKEN)
         }
     }
@@ -115,7 +114,7 @@ class AuthService(
         val normalizedEmail = request.email.trim().lowercase()
         log.info("[AuthService] 이메일 회원가입 처리 시작: email={}", normalizedEmail)
 
-        validateSignupToken(normalizedEmail, request.signupToken)
+        validateSignupTokenForNormalizedEmail(normalizedEmail, request.signupToken)
         validatePasswordPolicy(normalizedEmail, request.password)
 
         val passwordHash = requireNotNull(passwordEncoder.encode(request.password)) {
