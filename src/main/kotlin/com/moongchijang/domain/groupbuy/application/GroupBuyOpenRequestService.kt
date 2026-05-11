@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOpenRequest
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -17,12 +18,16 @@ class GroupBuyOpenRequestService(
         if (openRequestRepository.existsByUserIdAndRegionAndProductName(userId, request.region, request.productName)) {
             throw CustomException(ErrorCode.DUPLICATE_OPEN_REQUEST)
         }
-        openRequestRepository.save(
-            GroupBuyOpenRequest(
-                userId = userId,
-                region = request.region,
-                productName = request.productName
+        try {
+            openRequestRepository.saveAndFlush(
+                GroupBuyOpenRequest(
+                    userId = userId,
+                    region = request.region,
+                    productName = request.productName
+                )
             )
-        )
+        } catch (e: DataIntegrityViolationException) {
+            throw CustomException(ErrorCode.DUPLICATE_OPEN_REQUEST)
+        }
     }
 }
