@@ -5,7 +5,7 @@ import com.moongchijang.domain.search.application.dto.SearchCase
 import dev.langchain4j.model.chat.ChatModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 
 @Service
 class GeminiKeywordExtractionService(
@@ -55,7 +55,7 @@ class GeminiKeywordExtractionService(
         validRegions: List<String>,
         validProducts: List<String>
     ): KeywordExtractionResult {
-        val cleanJson = json.trim().removePrefix("```json").removeSuffix("```").trim()
+        val cleanJson = extractJsonObject(json)
         val parsed = objectMapper.readValue(cleanJson, ExtractionResponse::class.java)
 
         // 서버 사이드 재검증: 유효 목록에 없으면 null 처리
@@ -70,5 +70,12 @@ class GeminiKeywordExtractionService(
         }
 
         return KeywordExtractionResult(neighborhood, product, searchCase)
+    }
+
+    private fun extractJsonObject(raw: String): String {
+        val start = raw.indexOf('{')
+        val end = raw.lastIndexOf('}')
+        require(start in 0 until end) { "JSON object not found in LLM response" }
+        return raw.substring(start, end + 1)
     }
 }
