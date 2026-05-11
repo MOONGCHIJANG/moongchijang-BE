@@ -4,6 +4,7 @@ import com.moongchijang.domain.auth.application.AuthService
 import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.auth.application.dto.KakaoLoginRequest
 import com.moongchijang.domain.auth.application.dto.EmailSignupRequest
+import com.moongchijang.domain.auth.application.dto.EmailLoginRequest
 import com.moongchijang.domain.auth.application.dto.AccessTokenResponse
 import com.moongchijang.domain.auth.application.dto.AuthLoginResponse
 import com.moongchijang.domain.user.application.UserService
@@ -87,6 +88,31 @@ class AuthController(
             refreshToken = refreshToken,
         )
         log.info("[AuthController] 이메일 회원가입 응답 완료: userId={}", authLoginResponse.user.id)
+
+        return ApiResponse.success(authLoginResponse)
+    }
+
+    @PostMapping("/email/login")
+    @Operation(summary = "이메일 로그인", description = "이메일과 비밀번호를 검증해 로그인 처리합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "로그인 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "요청값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "이메일 또는 비밀번호 불일치", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun loginWithEmail(
+        @Valid @RequestBody request: EmailLoginRequest,
+        response: HttpServletResponse,
+    ): ApiResponse<AuthLoginResponse> {
+        log.info("[AuthController] 이메일 로그인 요청 수신")
+        val (authLoginResponse, refreshToken) = authService.loginWithEmail(request)
+
+        tokenService.addRefreshTokenCookie(
+            response = response,
+            refreshToken = refreshToken,
+        )
+        log.info("[AuthController] 이메일 로그인 응답 완료: userId={}", authLoginResponse.user.id)
 
         return ApiResponse.success(authLoginResponse)
     }
