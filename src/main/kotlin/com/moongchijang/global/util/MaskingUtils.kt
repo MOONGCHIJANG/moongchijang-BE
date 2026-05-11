@@ -9,8 +9,8 @@ object MaskingUtils {
         val domain = parts[1]
         val maskedLocal = when {
             local.isEmpty() -> "***"
-            local.length <= 2 -> "${local.first()}*"
-            else -> local.take(2) + "*".repeat(local.length - 2)
+            local.length == 1 -> "${local.first()}*"
+            else -> "${local.first()}" + "*".repeat(local.length - 1)
         }
 
         return "$maskedLocal@$domain"
