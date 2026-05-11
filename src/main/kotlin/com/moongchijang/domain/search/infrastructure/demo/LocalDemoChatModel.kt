@@ -1,7 +1,7 @@
 package com.moongchijang.domain.search.infrastructure.demo
 
 import dev.langchain4j.model.chat.ChatModel
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 
 class LocalDemoChatModel(
     private val objectMapper: ObjectMapper

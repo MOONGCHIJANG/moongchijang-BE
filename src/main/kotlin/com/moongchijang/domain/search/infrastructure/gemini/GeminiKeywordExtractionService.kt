@@ -5,7 +5,7 @@ import com.moongchijang.domain.search.application.dto.SearchCase
 import dev.langchain4j.model.chat.ChatModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 
 @Service
 class GeminiKeywordExtractionService(
