@@ -29,3 +29,9 @@ coolsms:
   api-secret: test-api-secret
   sender: 010-0000-0000
 
+aligo:
+  api-key: test-dummy
+  user-id: test-dummy
+  sender-key: test-dummy
+  template-code: test-dummy
+  sender: 010-0000-0000
