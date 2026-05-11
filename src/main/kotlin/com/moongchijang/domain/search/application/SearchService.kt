@@ -5,7 +5,8 @@ import com.moongchijang.domain.search.infrastructure.SearchHistoryRepository
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
+import java.security.MessageDigest
 import java.time.Duration
 
 @Service
@@ -21,7 +22,12 @@ class SearchService(
         private const val CACHE_TTL_MINUTES = 10L  // keys(*) 블로킹 대신 짧은 TTL로 freshness 확보
         private const val SEARCH_VERSION = "hybrid-v1"
         private fun cacheKey(query: String, indexVersion: String) =
-            "search:result:$SEARCH_VERSION:$indexVersion:${query.hashCode()}"
+            "search:result:$SEARCH_VERSION:$indexVersion:${sha256(query)}"
+
+        private fun sha256(value: String): String =
+            MessageDigest.getInstance("SHA-256")
+                .digest(value.toByteArray())
+                .joinToString("") { "%02x".format(it) }
     }
 
     fun search(query: String, userId: Long?): SearchResponse {
