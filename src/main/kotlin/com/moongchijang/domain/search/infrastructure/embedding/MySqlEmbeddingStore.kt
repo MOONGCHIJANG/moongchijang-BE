@@ -8,7 +8,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest
 import dev.langchain4j.store.embedding.EmbeddingSearchResult
 import dev.langchain4j.store.embedding.EmbeddingStore
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
 import kotlin.math.sqrt
 

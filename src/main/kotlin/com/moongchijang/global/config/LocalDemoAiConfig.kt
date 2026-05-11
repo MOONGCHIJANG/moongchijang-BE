@@ -7,7 +7,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 
 @Configuration
 @Profile("local-demo")
