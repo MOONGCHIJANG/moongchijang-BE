@@ -7,18 +7,18 @@ import com.moongchijang.global.config.IndexingProperties
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest
 
 @Component
 @ConditionalOnProperty(prefix = "indexing", name = ["publisher"], havingValue = "sqs")
 class SqsGroupBuyIndexingEventPublisher(
+    private val sqsClient: SqsClient,
     private val objectMapper: ObjectMapper,
     private val properties: IndexingProperties
 ) : GroupBuyIndexingEventPublisher {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val sqsClient: SqsClient = SqsClient.create()
 
     override fun publishIndexRequested(groupBuyId: Long, action: GroupBuyIndexAction) {
         val queueUrl = properties.sqs.queueUrl
