@@ -74,3 +74,4 @@ secrets.json
 ### Local config ###
 local.properties
 application-local.properties
+application-local.yml
