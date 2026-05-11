@@ -135,4 +135,106 @@ class UserServiceTest {
 
         Assertions.assertEquals(ErrorCode.REJOIN_NOT_AVAILABLE_YET, exception.errorCode)
     }
+
+    @Test
+    fun `이메일 중복 확인 시 사용 가능하면 true`() {
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "new@example.com"),
+        ).thenReturn(false)
+
+        val response = userService.checkEmailAvailability("new@example.com")
+
+        Assertions.assertTrue(response.available)
+        Assertions.assertEquals("new@example.com", response.email)
+    }
+
+    @Test
+    fun `이메일 중복 확인 시 중복이면 false`() {
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),
+        ).thenReturn(true)
+
+        val response = userService.checkEmailAvailability("dup@example.com")
+
+        Assertions.assertFalse(response.available)
+        Assertions.assertEquals("dup@example.com", response.email)
+    }
+
+    @Test
+    fun `이메일 중복 확인 시 형식 오류 예외`() {
+        val exception = assertThrows<CustomException> {
+            userService.checkEmailAvailability("invalid-email")
+        }
+
+        Assertions.assertEquals(ErrorCode.INVALID_EMAIL_FORMAT, exception.errorCode)
+    }
+
+    @Test
+    fun `이메일 사용자 생성 성공`() {
+        val savedUser = UserFixture.createEmailUser(
+            id = 30L,
+            email = "new@example.com",
+            passwordHash = "hashed-password",
+        )
+
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "new@example.com"),
+        ).thenReturn(false)
+        Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
+
+        val user = userService.createEmailUser("new@example.com", "hashed-password")
+
+        Assertions.assertEquals(30L, user.id)
+        Assertions.assertEquals(AuthProvider.EMAIL, user.provider)
+        Assertions.assertEquals("new@example.com", user.email)
+        Assertions.assertEquals("hashed-password", user.passwordHash)
+    }
+
+    @Test
+    fun `이메일 사용자 생성 시 중복 이메일 예외`() {
+        Mockito.`when`(
+            userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),
+        ).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            userService.createEmailUser("dup@example.com", "hashed-password")
+        }
+
+        Assertions.assertEquals(ErrorCode.DUPLICATE_EMAIL, exception.errorCode)
+    }
+
+    @Test
+    fun `이메일 사용자 생성 시 이메일 형식 오류 예외`() {
+        val exception = assertThrows<CustomException> {
+            userService.createEmailUser("invalid-email", "hashed-password")
+        }
+
+        Assertions.assertEquals(ErrorCode.INVALID_EMAIL_FORMAT, exception.errorCode)
+    }
+
+    @Test
+    fun `이메일 사용자 조회 성공`() {
+        val user = UserFixture.createEmailUser(
+            id = 31L,
+            email = "login@example.com",
+            passwordHash = "hashed-password",
+        )
+        Mockito.`when`(
+            userRepository.findByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "login@example.com"),
+        ).thenReturn(user)
+
+        val found = userService.findActiveEmailUser("login@example.com")
+
+        Assertions.assertEquals(31L, found?.id)
+        Assertions.assertEquals("login@example.com", found?.email)
+    }
+
+    @Test
+    fun `이메일 사용자 조회 시 이메일 형식 오류 예외`() {
+        val exception = assertThrows<CustomException> {
+            userService.findActiveEmailUser("invalid-email")
+        }
+
+        Assertions.assertEquals(ErrorCode.INVALID_EMAIL_FORMAT, exception.errorCode)
+    }
 }

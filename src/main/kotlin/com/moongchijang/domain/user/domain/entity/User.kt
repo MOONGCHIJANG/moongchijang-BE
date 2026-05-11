@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 @Table(name = "users",
     indexes = [
         Index(name = "idx_users_provider_provider_id", columnList = "provider,provider_id"),
-        Index(name = "idx_users_email", columnList = "email")
+        Index(name = "uidx_users_provider_email", columnList = "provider,email", unique = true)
     ]
 )
 class User(
@@ -75,6 +75,20 @@ class User(
                 providerId = providerId,
                 email = email,
                 nickname = nickname,
+                role = UserRole.BUYER,
+                signupCompleted = false,
+            )
+        }
+
+        fun newEmailUser(
+            email: String,
+            passwordHash: String,
+        ): User {
+            return User(
+                provider = AuthProvider.EMAIL,
+                providerId = null,
+                email = email,
+                passwordHash = passwordHash,
                 role = UserRole.BUYER,
                 signupCompleted = false,
             )

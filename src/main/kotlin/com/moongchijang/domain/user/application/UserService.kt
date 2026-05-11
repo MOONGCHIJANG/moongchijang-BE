@@ -3,13 +3,16 @@ package com.moongchijang.domain.user.application
 import com.moongchijang.domain.auth.application.PhoneVerificationService
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
+import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.MaskingUtils.maskEmail
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -40,6 +43,42 @@ class UserService(
         return createNewKakaoUser(providerId, email, nickname) to true
     }
 
+    @Transactional
+    fun createEmailUser(email: String, passwordHash: String): User {
+        val normalizedEmail = normalizeEmail(email)
+        log.info("[UserService] 이메일 사용자 생성 시작: email={}", maskEmail(normalizedEmail))
+        validateEmailFormat(normalizedEmail)
+
+        if (userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail)) {
+            throw CustomException(ErrorCode.DUPLICATE_EMAIL)
+        }
+
+        val user = User.newEmailUser(
+            email = normalizedEmail,
+            passwordHash = passwordHash,
+        )
+        val savedUser = try {
+            userRepository.save(user)
+        } catch (e: DataIntegrityViolationException) {
+            // provider+email 유니크 인덱스 충돌(동시성 가입 요청) 시 도메인 예외로 변환
+            throw CustomException(ErrorCode.DUPLICATE_EMAIL)
+        }
+        log.info("[UserService] 이메일 사용자 생성 완료: userId={}", savedUser.id)
+
+        return savedUser
+    }
+
+    @Transactional(readOnly = true)
+    fun findActiveEmailUser(email: String): User? {
+        val normalizedEmail = normalizeEmail(email)
+        validateEmailFormat(normalizedEmail)
+
+        return userRepository.findByProviderAndEmailAndDeletedAtIsNull(
+            provider = AuthProvider.EMAIL,
+            email = normalizedEmail,
+        )
+    }
+
     @Transactional(readOnly = true)
     fun checkNicknameAvailability(nickname: String): NicknameAvailabilityResponse {
         validateNicknameFormat(nickname)
@@ -51,8 +90,23 @@ class UserService(
     }
 
     @Transactional(readOnly = true)
-    fun existsByEmail(email: String): Boolean {
-        return userRepository.existsByEmailAndDeletedAtIsNull(email)
+    fun checkEmailAvailability(email: String): EmailAvailabilityResponse {
+        val normalizedEmail = normalizeEmail(email)
+        log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
+        validateEmailFormat(normalizedEmail)
+
+        val duplicated = userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail)
+        val response = EmailAvailabilityResponse(
+            email = normalizedEmail,
+            available = !duplicated,
+        )
+
+        log.info(
+            "[UserService] 이메일 중복 확인 완료: email={}, available={}",
+            maskEmail(normalizedEmail),
+            response.available,
+        )
+        return response
     }
 
     @Transactional
@@ -145,5 +199,17 @@ class UserService(
         if (!phoneRegex.matches(phoneNumber)) {
             throw CustomException(ErrorCode.INVALID_PHONE_NUMBER_FORMAT)
         }
+    }
+
+    private fun validateEmailFormat(email: String) {
+        if (!EMAIL_REGEX.matches(email)) {
+            throw CustomException(ErrorCode.INVALID_EMAIL_FORMAT)
+        }
+    }
+
+    private fun normalizeEmail(raw: String): String = raw.trim().lowercase()
+
+    companion object {
+        private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
     }
 }

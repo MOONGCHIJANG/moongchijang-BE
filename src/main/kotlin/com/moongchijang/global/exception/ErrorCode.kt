@@ -41,6 +41,14 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     // Auth, User (100~149)
     INVALID_NICKNAME_FORMAT(400_101, "2~10자, 한글/영문/숫자만 입력 가능해요.", 400),
     INVALID_PHONE_NUMBER_FORMAT(400_102, "올바른 전화번호를 입력해주세요.", 400),
+    INVALID_EMAIL_FORMAT(400_103, "올바른 이메일 형식이 아니에요.", 400),
+    EMAIL_VERIFICATION_CODE_MISMATCH(400_104, "인증코드가 일치하지 않아요.", 400),
+    EMAIL_VERIFICATION_CODE_EXPIRED(400_105, "인증코드가 만료됐어요. 재발송해주세요.", 400),
+    EMAIL_VERIFICATION_RESEND_COOLDOWN(400_106, "인증코드 재발송은 잠시 후 다시 시도해주세요.", 400),
+    INVALID_PASSWORD_FORMAT(400_107, "8자 이상, 영문+숫자를 포함해주세요.", 400),
+    INVALID_PASSWORD_SAME_AS_EMAIL_ID(400_108, "이메일 아이디와 동일한 비밀번호는 사용할 수 없습니다.", 400),
+    EMAIL_VERIFICATION_DAILY_LIMIT_EXCEEDED(429_101, "내일 다시 시도해주세요.", 429),
+    INVALID_SIGNUP_TOKEN(401_107, "회원가입 인증정보가 유효하지 않습니다. 이메일 인증을 다시 진행해주세요.", 401),
     KAKAO_TOKEN_REQUEST_INVALID(401_101, "카카오 토큰 요청 파라미터가 올바르지 않습니다.", 401),
     KAKAO_TOKEN_EXCHANGE_FAILED(401_102, "카카오 토큰 교환에 실패했습니다.", 401),
     KAKAO_TOKEN_RESPONSE_INVALID(401_103, "카카오 토큰 응답이 올바르지 않습니다.", 401),
@@ -70,6 +78,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PHONE_VERIFICATION_CODE_MISMATCH(400_202, "인증번호가 올바르지 않습니다.", 400),
     PHONE_VERIFICATION_REQUIRED(400_203, "전화번호 인증이 필요합니다.", 400),
     SMS_SEND_FAILED(500_201, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요.", 500),
+    EMAIL_SEND_FAILED(500_202, "이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.", 500),
 
     // Store(250~299)
     STORE_SEARCH_FAILED(502_250, "매장 검색 중 오류가 발생했습니다.", 502),

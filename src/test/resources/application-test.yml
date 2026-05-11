@@ -35,3 +35,8 @@ aligo:
   sender-key: test-dummy
   template-code: test-dummy
   sender: 010-0000-0000
+
+ses:
+  enabled: false
+  region: ap-northeast-2
+  from-email: no-reply@test.com

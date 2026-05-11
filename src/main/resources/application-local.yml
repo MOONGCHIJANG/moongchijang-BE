@@ -1,0 +1,65 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/moongchijang_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:moongchijang}
+    password: ${DB_PASSWORD:moongchijang}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  flyway:
+    enabled: true
+    locations:
+      - classpath:db/migration
+
+app:
+  s3:
+    bucket: local-bucket
+    prefix: local
+
+oauth:
+  kakao:
+    client-id: test-client-id
+    client-secret: test-client-secret
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: http://localhost:8080/auth/kakao/callback
+
+coolsms:
+  api-key: ${COOLSMS_API_KEY:test-api-key}
+  api-secret: ${COOLSMS_API_SECRET:test-api-secret}
+  sender: ${COOLSMS_SENDER:010-0000-0000}
+
+jwt:
+  secret: jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret
+  access-token:
+    expiration-minutes: 60
+
+auth:
+  refresh:
+    expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
+
+naver:
+  api:
+    client-id: ${NAVER_CLIENT_ID:local-client-id}
+    client-secret: ${NAVER_CLIENT_SECRET:local-client-secret}
+
+ses:
+  enabled: ${SES_ENABLED:false}
+  region: ${SES_REGION:ap-northeast-2}
+  from-email: ${SES_FROM_EMAIL:no-reply@moongchijang.com}
+
+aligo:
+  api-key: ${ALIGO_API_KEY}
+  user-id: ${ALIGO_USER_ID}
+  sender-key: ${ALIGO_SENDER_KEY}
+  template-code: ${ALIGO_TEMPLATE_CODE}
+  sender: ${ALIGO_SENDER}
