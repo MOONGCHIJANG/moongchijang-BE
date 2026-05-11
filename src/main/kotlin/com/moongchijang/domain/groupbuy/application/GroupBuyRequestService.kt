@@ -35,7 +35,9 @@ class GroupBuyRequestService(
                 productName = request.productName,
                 desiredQuantity = request.desiredQuantity,
                 desiredPickupDate = request.desiredPickupDate,
-                additionalNote = request.additionalNote
+                additionalNote = request.additionalNote,
+                contactPhone = request.contactPhone,
+                contactInstagram = request.contactInstagram
             )
         )
 
