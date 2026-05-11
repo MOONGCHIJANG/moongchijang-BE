@@ -18,6 +18,11 @@ interface UserRepository : JpaRepository<User, Long> {
         providerId: String,
     ): User?
 
+    fun findByProviderAndEmailAndDeletedAtIsNull(
+        provider: AuthProvider,
+        email: String,
+    ): User?
+
     fun existsByNicknameAndDeletedAtIsNull(nickname: String): Boolean
 
     fun existsByEmailAndDeletedAtIsNull(email: String): Boolean

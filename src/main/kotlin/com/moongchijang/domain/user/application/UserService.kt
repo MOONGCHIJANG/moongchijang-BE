@@ -42,6 +42,37 @@ class UserService(
         return createNewKakaoUser(providerId, email, nickname) to true
     }
 
+    @Transactional
+    fun createEmailUser(email: String, passwordHash: String): User {
+        val normalizedEmail = normalizeEmail(email)
+        log.info("[UserService] 이메일 사용자 생성 시작: email={}", maskEmail(normalizedEmail))
+        validateEmailFormat(normalizedEmail)
+
+        if (userRepository.existsByEmailAndDeletedAtIsNull(normalizedEmail)) {
+            throw CustomException(ErrorCode.DUPLICATE_EMAIL)
+        }
+
+        val user = User.newEmailUser(
+            email = normalizedEmail,
+            passwordHash = passwordHash,
+        )
+        val savedUser = userRepository.save(user)
+        log.info("[UserService] 이메일 사용자 생성 완료: userId={}", savedUser.id)
+
+        return savedUser
+    }
+
+    @Transactional(readOnly = true)
+    fun findActiveEmailUser(email: String): User? {
+        val normalizedEmail = normalizeEmail(email)
+        validateEmailFormat(normalizedEmail)
+
+        return userRepository.findByProviderAndEmailAndDeletedAtIsNull(
+            provider = AuthProvider.EMAIL,
+            email = normalizedEmail,
+        )
+    }
+
     @Transactional(readOnly = true)
     fun checkNicknameAvailability(nickname: String): NicknameAvailabilityResponse {
         validateNicknameFormat(nickname)
