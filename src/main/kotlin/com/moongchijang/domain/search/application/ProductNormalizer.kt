@@ -18,22 +18,34 @@ class ProductNormalizer(
     }
 
     private fun fuzzyMatch(query: String, validProducts: List<String>): String? {
-        val tokens = tokenize(query).filter { it.length > MIN_FUZZY_TOKEN_LENGTH }
+        if (validProducts.size > MAX_FUZZY_PRODUCT_COUNT) return null
+
+        val tokens = tokenize(query)
+            .filter { it.length > MIN_FUZZY_TOKEN_LENGTH }
+            .filter { it.length <= MAX_FUZZY_TOKEN_LENGTH }
+            .take(MAX_FUZZY_TOKEN_COUNT)
         if (tokens.isEmpty() || validProducts.isEmpty()) return null
 
-        val ranked = validProducts
-            .map { product ->
-                product to tokens.maxOf { token -> similarity(token, product) }
+        var bestProduct: String? = null
+        var bestScore = 0.0
+        var secondScore = 0.0
+
+        for (product in validProducts) {
+            val score = tokens.maxOf { token -> similarity(token, product) }
+            when {
+                score > bestScore -> {
+                    secondScore = bestScore
+                    bestScore = score
+                    bestProduct = product
+                }
+                score > secondScore -> secondScore = score
             }
-            .sortedByDescending { it.second }
+        }
 
-        val best = ranked.firstOrNull() ?: return null
-        if (best.second < FUZZY_THRESHOLD) return null
+        if (bestScore < FUZZY_THRESHOLD) return null
+        if (bestScore - secondScore < FUZZY_MIN_MARGIN) return null
 
-        val secondScore = ranked.getOrNull(1)?.second ?: 0.0
-        if (best.second - secondScore < FUZZY_MIN_MARGIN) return null
-
-        return best.first
+        return bestProduct
     }
 
     private fun tokenize(query: String): List<String> =
@@ -63,13 +75,19 @@ class ProductNormalizer(
         if (source.isEmpty()) return target.length
         if (target.isEmpty()) return source.length
 
-        var previous = IntArray(target.length + 1) { it }
-        var current = IntArray(target.length + 1)
+        val (longer, shorter) = if (source.length > target.length) {
+            source to target
+        } else {
+            target to source
+        }
 
-        for (i in source.indices) {
+        var previous = IntArray(shorter.length + 1) { it }
+        var current = IntArray(shorter.length + 1)
+
+        for (i in longer.indices) {
             current[0] = i + 1
-            for (j in target.indices) {
-                val substitutionCost = if (source[i] == target[j]) 0 else 1
+            for (j in shorter.indices) {
+                val substitutionCost = if (longer[i] == shorter[j]) 0 else 1
                 current[j + 1] = min(
                     min(current[j] + 1, previous[j + 1] + 1),
                     previous[j] + substitutionCost
@@ -80,7 +98,7 @@ class ProductNormalizer(
             current = temp
         }
 
-        return previous[target.length]
+        return previous[shorter.length]
     }
 
     private fun jaroWinkler(source: String, target: String): Double {
@@ -156,6 +174,9 @@ class ProductNormalizer(
     companion object {
         private val TOKEN_REGEX = Regex("[\\p{L}\\p{N}]+")
         private const val MIN_FUZZY_TOKEN_LENGTH = 1
+        private const val MAX_FUZZY_TOKEN_LENGTH = 30
+        private const val MAX_FUZZY_TOKEN_COUNT = 5
+        private const val MAX_FUZZY_PRODUCT_COUNT = 2_000
         private const val FUZZY_THRESHOLD = 0.76
         private const val FUZZY_MIN_MARGIN = 0.08
         private const val JARO_WINKLER_PREFIX_SCALE = 0.1

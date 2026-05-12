@@ -53,4 +53,11 @@ class ProductNormalizerTest {
 
         assertThat(normalizer.normalize("마들렝", null, validProducts)).isNull()
     }
+
+    @Test
+    fun `validProducts가 상한을 넘으면 fuzzy match를 수행하지 않는다`() {
+        val validProducts = (1..2_000).map { "상품$it" } + "두쫀쿠"
+
+        assertThat(normalizer.normalize("두쫀크크", null, validProducts)).isNull()
+    }
 }
