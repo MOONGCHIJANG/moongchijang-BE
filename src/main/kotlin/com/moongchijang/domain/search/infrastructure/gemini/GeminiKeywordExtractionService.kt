@@ -42,6 +42,7 @@ class GeminiKeywordExtractionService(
         - 반드시 유효 목록에 있는 값만 반환하세요.
         - 목록에 없으면 null을 반환하세요.
         - 절대 목록 외 값을 생성하지 마세요.
+        - 상품 오타, 약어, 유사 발음은 유효 상품 목록 중 가장 가까운 값으로 매핑하세요.
         - JSON 형식으로만 응답하세요: {"neighborhood": "...", "product": "..."}
 
         유효 동네: ${validRegions.joinToString(", ")}

@@ -4,6 +4,7 @@ import com.moongchijang.domain.search.application.dto.SearchCase
 import dev.langchain4j.model.chat.ChatModel
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentCaptor
 import org.mockito.Mockito
 import tools.jackson.module.kotlin.jacksonObjectMapper
 
@@ -116,5 +117,18 @@ class GeminiKeywordExtractionServiceTest {
         val result = service.extract("성수 두쫀쿠", validRegions, validProducts)
 
         assertThat(result.searchCase).isEqualTo(SearchCase.NONE_DETECTED)
+    }
+
+    @Test
+    fun `프롬프트에 오타 약어 유사 발음 보정 지시를 포함한다`() {
+        Mockito.`when`(chatModel.chat(Mockito.anyString()))
+            .thenReturn("""{"neighborhood":null,"product":null}""")
+
+        service.extract("두쫀크크", validRegions, validProducts)
+
+        val promptCaptor = ArgumentCaptor.forClass(String::class.java)
+        Mockito.verify(chatModel).chat(promptCaptor.capture())
+        assertThat(promptCaptor.value).contains("상품 오타, 약어, 유사 발음")
+        assertThat(promptCaptor.value).contains("유효 상품 목록 중 가장 가까운 값")
     }
 }
