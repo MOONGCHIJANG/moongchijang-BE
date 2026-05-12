@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 class SearchOrchestrator(
     private val groupBuyRepository: GroupBuyRepository,
     private val keywordExtractor: GeminiKeywordExtractionService,
-    private val aliasDictionary: AliasDictionary,
+    private val productNormalizer: ProductNormalizer,
     private val retrievalPipeline: RetrievalPipeline,
     private val decisionEngine: SearchDecisionEngine
 ) {
@@ -23,7 +23,7 @@ class SearchOrchestrator(
         val validProducts = groupBuyRepository.findDistinctProductNames(GroupBuyStatus.IN_PROGRESS)
 
         val extraction = extract(query, validRegions, validProducts)
-        val product = extraction.product ?: aliasDictionary.resolveProduct(query, validProducts)
+        val product = productNormalizer.normalize(query, extraction.product, validProducts)
         val intent = SearchIntent(
             region = extraction.region,
             product = product,

@@ -28,6 +28,7 @@ class SearchOrchestratorIntegrationTest {
         Mockito.mock(GeminiKeywordExtractionService::class.java)
 
     private val aliasDictionary = AliasDictionary()
+    private val productNormalizer = ProductNormalizer(aliasDictionary)
     private val reranker = SearchReranker()
     private val decisionEngine = SearchDecisionEngine()
     private val properties = SearchProperties()
@@ -45,7 +46,7 @@ class SearchOrchestratorIntegrationTest {
     private val orchestrator = SearchOrchestrator(
         groupBuyRepository = groupBuyRepository,
         keywordExtractor = keywordExtractor,
-        aliasDictionary = aliasDictionary,
+        productNormalizer = productNormalizer,
         retrievalPipeline = retrievalPipeline,
         decisionEngine = decisionEngine
     )
@@ -138,6 +139,37 @@ class SearchOrchestratorIntegrationTest {
         assertThat(response.searchCase).isEqualTo(SearchCase.PRODUCT_ONLY)
         assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
         assertThat(response.totalCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `Gemini가 null을 반환해도 fuzzy fallback으로 canonical detectedProduct를 채운다`() {
+        val match = SearchTestFixtures.groupBuy(id = 1L, productName = "두쫀쿠")
+        stubVocabulary(products = listOf("두쫀쿠", "소금빵", "마들렌", "크루아상"))
+        stubExtraction(region = null, product = null)
+        stubExact(listOf(match))
+        stubVector(emptyList())
+        stubFindAllById(emptyList())
+
+        val response = orchestrator.search("두쫀크크")
+
+        assertThat(response.detectedProduct).isEqualTo("두쫀쿠")
+        assertThat(response.searchCase).isEqualTo(SearchCase.PRODUCT_ONLY)
+        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+    }
+
+    @Test
+    fun `fuzzy fallback이 먼 문자열을 엉뚱한 상품으로 매칭하지 않는다`() {
+        stubVocabulary(products = listOf("두쫀쿠", "소금빵", "마들렌", "크루아상"))
+        stubExtraction(region = null, product = null)
+        stubExact(emptyList())
+        stubVector(emptyList())
+        stubFindAllById(emptyList())
+
+        val response = orchestrator.search("강남 마카롱")
+
+        assertThat(response.detectedProduct).isNull()
+        assertThat(response.searchCase).isEqualTo(SearchCase.NONE_DETECTED)
+        assertThat(response.uiState).isEqualTo(SearchUiState.NEED_BOTH)
     }
 
     @Test
