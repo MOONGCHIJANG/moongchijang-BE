@@ -110,7 +110,9 @@
 3. 단기 복구 가능하면 그대로 둔다 (가드 + alias fallback으로 false positive는 차단됨).
 
 **격리가 필요할 때**
-- 현재 코드 경로상 Gemini 호출 자체를 끄는 별도 토글은 없다. 무한 폴백 동작을 의도적으로 강제하려면 `GEMINI_API_KEY`를 비우면 호출이 즉시 실패 → NONE_DETECTED 폴백으로 안정화된다.
+- 현재 코드 경로상 Gemini 호출 자체를 끄는 별도 토글은 없다.
+- **주의**: `GEMINI_API_KEY`를 비워서 LLM을 격리하려는 시도는 권장하지 않는다. 운영 yml(`application-prod.yml`)이 `gemini.api-key: ${GEMINI_API_KEY}`로 default 없이 필수 주입을 기대하기 때문에, 빈 값으로 기동하면 Spring 컨텍스트 로딩/`ChatModel` 빈 초기화 단계에서 실패해 **애플리케이션이 기동하지 않을 수 있다.** 운영 격리가 실제로 필요하다면 `gemini.enabled` 같은 전용 토글 도입(production 코드 변경, 본 PR 범위 밖)을 별도 작업으로 진행한다.
+- 단기 우회가 꼭 필요하면 LLM 추출 결과를 무시하고 NONE_DETECTED로 동작하는 핫픽스를 별도 PR로 배포한다.
 - 인덱스/사전 기반 검색만으로 운영하는 결정은 § release-checklist의 변경 절차를 따른다.
 
 **복구 확인**
