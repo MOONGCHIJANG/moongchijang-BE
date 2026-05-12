@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.web.client.RestClient
 import java.time.LocalDateTime
+import java.util.UUID
 
 /**
  * Qdrant CRUD 통합 테스트.
@@ -30,7 +31,7 @@ class QdrantCrudIntegrationTest {
 
     private val qdrantUrl = System.getenv("QDRANT_URL")
     private val qdrantApiKey: String? = System.getenv("QDRANT_API_KEY")
-    private val collectionName = "test_groupbuys_${System.currentTimeMillis()}"
+    private val collectionName = "test_groupbuys_${UUID.randomUUID().toString().substring(0, 8)}"
 
     private val embeddingModel = LocalDemoEmbeddingModel(vectorSize = 768)
     private val properties = QdrantProperties(
