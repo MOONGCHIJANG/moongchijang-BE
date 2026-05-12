@@ -1,0 +1,17 @@
+query,relevant_ids,note
+성수 두쫀쿠,1,both detected - exact match
+홍대 소금빵,2,both detected - exact match
+연남 마들렌,3,both detected - exact match
+망원 크루아상,4,both detected - exact match
+시오빵,2,alias soulful match -> 소금빵 (PRODUCT_ONLY)
+크로와상,4,alias -> 크루아상 (PRODUCT_ONLY)
+salt bread,2,english alias -> 소금빵 (PRODUCT_ONLY)
+두쫀쿠,1,product only
+마들렌,3,product only
+성수,1,region only
+홍대,2,region only
+망원,4|5,region only - multiple
+강남 두쫀쿠,,unknown region - no-result expected
+존재하지않는상품 성수,,unknown product - no-result expected
+asdfqwer1234,,garbage query - no-result expected
+xyz nonsense,,garbage query - no-result expected
