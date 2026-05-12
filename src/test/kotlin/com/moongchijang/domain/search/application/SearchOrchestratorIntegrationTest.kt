@@ -11,12 +11,14 @@ import com.moongchijang.domain.search.domain.SearchUiState
 import com.moongchijang.domain.search.infrastructure.gemini.GeminiKeywordExtractionService
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.global.config.SearchProperties
+import com.moongchijang.support.search.MockitoKotlinMatchers.anyGroupBuyStatus
+import com.moongchijang.support.search.MockitoKotlinMatchers.anyLocalDateTime
+import com.moongchijang.support.search.MockitoKotlinMatchers.anyLongList
 import com.moongchijang.support.search.SearchTestFixtures
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
-import java.time.LocalDateTime
 
 class SearchOrchestratorIntegrationTest {
 
@@ -47,19 +49,6 @@ class SearchOrchestratorIntegrationTest {
         retrievalPipeline = retrievalPipeline,
         decisionEngine = decisionEngine
     )
-
-    private fun anyLocalDateTime(): LocalDateTime {
-        ArgumentMatchers.any(LocalDateTime::class.java)
-        return LocalDateTime.MIN
-    }
-    private fun anyGroupBuyStatus(): GroupBuyStatus {
-        ArgumentMatchers.any(GroupBuyStatus::class.java)
-        return GroupBuyStatus.IN_PROGRESS
-    }
-    private fun anyLongList(): List<Long> {
-        ArgumentMatchers.anyList<Long>()
-        return emptyList()
-    }
 
     private fun stubVocabulary(regions: List<String> = listOf("성수", "홍대"), products: List<String> = listOf("두쫀쿠", "소금빵")) {
         Mockito.`when`(groupBuyRepository.findDistinctRegions(GroupBuyStatus.IN_PROGRESS)).thenReturn(regions)

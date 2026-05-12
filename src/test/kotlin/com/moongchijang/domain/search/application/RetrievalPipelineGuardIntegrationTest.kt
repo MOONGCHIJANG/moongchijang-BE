@@ -1,7 +1,6 @@
 package com.moongchijang.domain.search.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.search.application.dto.SearchCase
 import com.moongchijang.domain.search.application.port.VectorSearchCandidate
@@ -9,12 +8,14 @@ import com.moongchijang.domain.search.application.port.VectorSearchPort
 import com.moongchijang.domain.search.domain.SearchIntent
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.global.config.SearchProperties
+import com.moongchijang.support.search.MockitoKotlinMatchers.anyGroupBuyStatus
+import com.moongchijang.support.search.MockitoKotlinMatchers.anyLocalDateTime
+import com.moongchijang.support.search.MockitoKotlinMatchers.anyLongList
 import com.moongchijang.support.search.SearchTestFixtures
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
-import java.time.LocalDateTime
 
 class RetrievalPipelineGuardIntegrationTest {
 
@@ -22,20 +23,6 @@ class RetrievalPipelineGuardIntegrationTest {
     private val vectorSearchPort: VectorSearchPort = Mockito.mock(VectorSearchPort::class.java)
     private val aliasDictionary = AliasDictionary()
     private val reranker = SearchReranker()
-
-    // Kotlin null-safety 우회용 헬퍼: Mockito 매처를 등록한 뒤 non-null 값을 반환.
-    private fun anyLocalDateTime(): LocalDateTime {
-        ArgumentMatchers.any(LocalDateTime::class.java)
-        return LocalDateTime.MIN
-    }
-    private fun anyGroupBuyStatus(): GroupBuyStatus {
-        ArgumentMatchers.any(GroupBuyStatus::class.java)
-        return GroupBuyStatus.IN_PROGRESS
-    }
-    private fun anyLongList(): List<Long> {
-        ArgumentMatchers.anyList<Long>()
-        return emptyList()
-    }
 
     private val seoulMatch = SearchTestFixtures.groupBuy(
         id = 1L,
