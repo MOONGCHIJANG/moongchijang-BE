@@ -1,3 +1,5 @@
+# 외부 API 키 없이 즉시 실행 가능한 로컬 데모 예시.
+# 사용 방법: cp application-local-demo.yml application-local.yml 후 ./gradlew bootRun (실 키가 있으면 application-local.yml에 덮어쓰기)
 spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/moongchijang_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
@@ -58,11 +60,11 @@ ses:
   from-email: ${SES_FROM_EMAIL:no-reply@moongchijang.com}
 
 aligo:
-  api-key: ${ALIGO_API_KEY}
-  user-id: ${ALIGO_USER_ID}
-  sender-key: ${ALIGO_SENDER_KEY}
-  template-code: ${ALIGO_TEMPLATE_CODE}
-  sender: ${ALIGO_SENDER}
+  api-key: ${ALIGO_API_KEY:local-aligo-api-key}
+  user-id: ${ALIGO_USER_ID:local-aligo-user-id}
+  sender-key: ${ALIGO_SENDER_KEY:local-aligo-sender-key}
+  template-code: ${ALIGO_TEMPLATE_CODE:local-template-code}
+  sender: ${ALIGO_SENDER:01000000000}
 
 gemini:
   api-key: ${GEMINI_API_KEY:dummy-gemini-key}

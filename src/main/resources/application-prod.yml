@@ -64,3 +64,42 @@ ses:
   enabled: ${SES_ENABLED:false}
   region: ${SES_REGION}
   from-email: ${SES_FROM_EMAIL}
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+
+qdrant:
+  enabled: ${QDRANT_ENABLED:false}
+  url: ${QDRANT_URL:http://localhost:6333}
+  api-key: ${QDRANT_API_KEY:}
+  collection-name: ${QDRANT_COLLECTION_NAME:group_buys}
+  timeout-seconds: ${QDRANT_TIMEOUT_SECONDS:2}
+  initialize-collection: ${QDRANT_INITIALIZE_COLLECTION:false}
+  vector-size: ${QDRANT_VECTOR_SIZE:768}
+  distance: ${QDRANT_DISTANCE:Cosine}
+
+search:
+  retrieval:
+    vector-candidate-limit: ${SEARCH_VECTOR_CANDIDATE_LIMIT:10}
+    vector-min-score: ${SEARCH_VECTOR_MIN_SCORE:0.5}
+    fallback-provider: ${SEARCH_FALLBACK_PROVIDER:mysql}
+  guard:
+    enabled: ${SEARCH_GUARD_ENABLED:true}
+    min-confidence: ${SEARCH_GUARD_MIN_CONFIDENCE:0.65}
+    supportive-score-threshold: ${SEARCH_GUARD_SUPPORTIVE_SCORE_THRESHOLD:0.7}
+  observability:
+    enabled: ${SEARCH_OBSERVABILITY_ENABLED:true}
+  index:
+    version-key: ${SEARCH_INDEX_VERSION_KEY:search:index:version}
+    default-version: ${SEARCH_INDEX_DEFAULT_VERSION:v1}
+
+indexing:
+  publisher: ${INDEXING_PUBLISHER:spring}
+  consumer: ${INDEXING_CONSUMER:none}
+  sqs:
+    queue-url: ${INDEXING_SQS_QUEUE_URL:}
+    message-group-id: ${INDEXING_SQS_MESSAGE_GROUP_ID:group-buy-indexing}
+    max-messages: ${INDEXING_SQS_MAX_MESSAGES:5}
+    wait-time-seconds: ${INDEXING_SQS_WAIT_TIME_SECONDS:10}
+    visibility-timeout-seconds: ${INDEXING_SQS_VISIBILITY_TIMEOUT_SECONDS:60}
+    polling-fixed-delay-millis: ${INDEXING_SQS_POLLING_FIXED_DELAY_MILLIS:5000}
