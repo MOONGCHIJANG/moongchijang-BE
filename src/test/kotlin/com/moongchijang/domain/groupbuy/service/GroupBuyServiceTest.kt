@@ -22,8 +22,11 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -46,6 +49,34 @@ class GroupBuyServiceTest {
 
     @InjectMocks
     private lateinit var service: GroupBuyService
+
+    @Test
+    fun `공구 피드 조회 시 keyword 없이도 정상 조회된다`() {
+        val groupBuy = createGroupBuy(id = 21L, status = GroupBuyStatus.IN_PROGRESS)
+        val pageable = PageRequest.of(0, 20)
+        val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
+            filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
+            districts = emptyList()
+        )
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(),
+                pageable = pageable
+            )
+        ).thenReturn(PageImpl(listOf(groupBuy), pageable, 1))
+
+        val result = service.getFeed(request, pageable)
+
+        assertEquals(1, result.content.size)
+        assertEquals(21L, result.content.first().id)
+        verify(groupBuyRepository).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable
+        )
+    }
 
     @Test
     fun `로그인 사용자 상세 조회 시 찜 여부와 참여 여부 반환`() {
