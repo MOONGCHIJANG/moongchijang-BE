@@ -24,11 +24,10 @@ class GroupBuyRepositoryImpl(
     override fun searchFeed(
         filter: GroupBuyFeedFilter,
         districtFilters: Set<DistrictType>,
-        keyword: String?,
         pageable: Pageable,
     ): Page<GroupBuy> {
         val now = LocalDateTime.now()
-        val where = buildWhere(filter, districtFilters, keyword, now)
+        val where = buildWhere(filter, districtFilters, now)
 
         val content = queryFactory
             .selectFrom(groupBuy)
@@ -52,7 +51,6 @@ class GroupBuyRepositoryImpl(
     private fun buildWhere(
         filter: GroupBuyFeedFilter,
         districtFilters: Set<DistrictType>,
-        keyword: String?,
         now: LocalDateTime
     ): BooleanBuilder {
         val builder = BooleanBuilder()
@@ -60,13 +58,6 @@ class GroupBuyRepositoryImpl(
         // 마감 공구 제외하고 진행 중 공고만
         builder.and(groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS))
         builder.and(groupBuy.deadline.goe(now))
-
-        keyword?.trim()?.takeIf { it.isNotEmpty() }?.let {
-            builder.and(
-                groupBuy.productName.containsIgnoreCase(it)
-                        .or(store.name.containsIgnoreCase(it))
-            )
-        }
 
         if (districtFilters.isNotEmpty()) {
             builder.and(store.district.`in`(districtFilters))

@@ -29,19 +29,17 @@ class GroupBuyService(
     @Transactional(readOnly = true)
     fun getFeed(request: GroupBuyFeedRequest, pageable: Pageable): GroupBuyFeedPageResponse {
         log.info(
-            "[GroupBuyService] 공구 피드 조회 시작: filter={}, districts={}, keyword={}, page={}, size={}",
-            request.filter, request.districts, request.keyword, pageable.pageNumber, pageable.pageSize
+            "[GroupBuyService] 공구 피드 조회 시작: filter={}, districts={}, page={}, size={}",
+            request.filter, request.districts, pageable.pageNumber, pageable.pageSize
         )
 
         validateDistrictSelection(request.districts)
 
         val expandedDistricts = expandAllDistricts(request.districts)
-        val keyword = request.keyword?.trim()?.takeIf { it.isNotBlank() }
 
         val resultPage = groupBuyRepository.searchFeed(
             filter = request.filter,
             districtFilters = expandedDistricts,
-            keyword = keyword,
             pageable = pageable
         )
 
