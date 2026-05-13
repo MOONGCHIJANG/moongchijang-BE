@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -63,7 +64,8 @@ class GroupBuyServiceTest {
             groupBuyRepository.searchFeed(
                 filter = request.filter,
                 districtFilters = emptySet(),
-                pageable = pageable
+                pageable = pageable,
+                sortMode = FeedSortMode.REGIONAL
             )
         ).thenReturn(PageImpl(listOf(groupBuy), pageable, 1))
 
@@ -74,7 +76,8 @@ class GroupBuyServiceTest {
         verify(groupBuyRepository).searchFeed(
             filter = request.filter,
             districtFilters = emptySet(),
-            pageable = pageable
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
         )
     }
 

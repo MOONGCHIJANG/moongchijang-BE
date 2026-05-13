@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedItemResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -42,7 +43,8 @@ class GroupBuyService(
         var resultPage = groupBuyRepository.searchFeed(
             filter = request.filter,
             districtFilters = expandedDistricts,
-            pageable = pageable
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
         )
 
         if (expandedDistricts.isNotEmpty() && resultPage.totalElements == 0L) {
@@ -50,7 +52,8 @@ class GroupBuyService(
             resultPage = groupBuyRepository.searchFeed(
                 filter = request.filter,
                 districtFilters = emptySet(), // 전국 fallback
-                pageable = pageable
+                pageable = pageable,
+                sortMode = FeedSortMode.NATIONWIDE_FALLBACK
             )
         }
 

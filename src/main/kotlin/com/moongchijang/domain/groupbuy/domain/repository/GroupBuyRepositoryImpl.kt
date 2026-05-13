@@ -5,10 +5,15 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.QGroupBuy.groupBuy
 import com.moongchijang.domain.store.domain.entity.QStore.store
+import com.moongchijang.domain.favorite.domain.entity.QFavorite.favorite
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.querydsl.core.BooleanBuilder
+import com.querydsl.core.types.OrderSpecifier
+import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.core.types.dsl.BooleanExpression
+import com.querydsl.core.types.dsl.NumberExpression
+import com.querydsl.jpa.JPAExpressions
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -25,15 +30,17 @@ class GroupBuyRepositoryImpl(
         filter: GroupBuyFeedFilter,
         districtFilters: Set<DistrictType>,
         pageable: Pageable,
+        sortMode: FeedSortMode,
     ): Page<GroupBuy> {
         val now = LocalDateTime.now()
         val where = buildWhere(filter, districtFilters, now)
+        val orderSpecifiers = buildOrderSpecifiers(sortMode)
 
         val content = queryFactory
             .selectFrom(groupBuy)
             .join(groupBuy.store, store).fetchJoin()
             .where(where)
-            .orderBy(groupBuy.createdAt.desc()) // MVP: 최신순 고정, 추후 sortType 기반 동적 정렬로 확장 예정
+            .orderBy(*orderSpecifiers.toTypedArray())
             .offset(pageable.offset)
             .limit(pageable.pageSize.toLong())
             .fetch()
@@ -65,6 +72,32 @@ class GroupBuyRepositoryImpl(
 
         filterPredicate(filter, now)?.let { builder.and(it) }
         return builder
+    }
+
+    private fun buildOrderSpecifiers(sortMode: FeedSortMode): List<OrderSpecifier<*>> {
+        val achievementRate: NumberExpression<Int> = groupBuy.currentQuantity.multiply(100).divide(groupBuy.targetQuantity)
+        val favoriteCount: NumberExpression<Long> = Expressions.numberTemplate(
+            Long::class.java,
+            "coalesce(({0}), 0)", // 서브쿼리 결과가 null이면 0으로 대체
+            JPAExpressions.select(favorite.count())
+                .from(favorite)
+                .where(favorite.groupBuy.eq(groupBuy))
+        )
+
+        return when (sortMode) {
+            FeedSortMode.REGIONAL -> listOf(
+                achievementRate.desc(),  // 달성임박
+                groupBuy.deadline.asc(), // 마감임박
+                groupBuy.createdAt.desc(), // 최신
+                groupBuy.id.desc()
+            )
+            FeedSortMode.NATIONWIDE_FALLBACK -> listOf(
+                favoriteCount.desc(),    // 찜(총 찜수)
+                achievementRate.desc(),  // 달성임박
+                groupBuy.deadline.asc(), // 마감임박
+                groupBuy.id.desc()
+            )
+        }
     }
 
     private fun filterPredicate(filter: GroupBuyFeedFilter, now: LocalDateTime): BooleanExpression? {
