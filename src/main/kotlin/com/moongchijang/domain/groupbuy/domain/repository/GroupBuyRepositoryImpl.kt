@@ -75,7 +75,11 @@ class GroupBuyRepositoryImpl(
     }
 
     private fun buildOrderSpecifiers(sortMode: FeedSortMode): List<OrderSpecifier<*>> {
-        val achievementRate: NumberExpression<Int> = groupBuy.currentQuantity.multiply(100).divide(groupBuy.targetQuantity)
+        val achievementRate: NumberExpression<Int> = Expressions.cases()
+            .`when`(groupBuy.targetQuantity.eq(0))
+            .then(0)
+            .otherwise(groupBuy.currentQuantity.multiply(100).divide(groupBuy.targetQuantity))
+
         val favoriteCount: NumberExpression<Long> = Expressions.numberTemplate(
             Long::class.java,
             "coalesce(({0}), 0)", // 서브쿼리 결과가 null이면 0으로 대체
