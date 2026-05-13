@@ -37,11 +37,22 @@ class GroupBuyService(
 
         val expandedDistricts = expandAllDistricts(request.districts)
 
-        val resultPage = groupBuyRepository.searchFeed(
+        var hasRegionalResult = true
+
+        var resultPage = groupBuyRepository.searchFeed(
             filter = request.filter,
             districtFilters = expandedDistricts,
             pageable = pageable
         )
+
+        if (expandedDistricts.isNotEmpty() && resultPage.totalElements == 0L) {
+            hasRegionalResult = false
+            resultPage = groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(), // 전국 fallback
+                pageable = pageable
+            )
+        }
 
         log.info(
             "[GroupBuyService] 공구 피드 조회 완료: totalElements={}, totalPages={}, currentPage={}",
@@ -49,7 +60,8 @@ class GroupBuyService(
         )
 
         return GroupBuyFeedPageResponse.from(
-            resultPage.map { GroupBuyFeedItemResponse.from(it) }
+            resultPage.map { GroupBuyFeedItemResponse.from(it) },
+            hasRegionalResult = hasRegionalResult
         )
     }
 
