@@ -54,7 +54,7 @@ class GroupBuyServiceTest {
     private lateinit var service: GroupBuyService
 
     @Test
-    fun `공구 피드 조회 시 keyword 없이도 정상 조회된다`() {
+    fun `공구 피드 keyword 제외 조회 검증`() {
         val groupBuy = createGroupBuy(id = 21L, status = GroupBuyStatus.IN_PROGRESS)
         val pageable = PageRequest.of(0, 20)
         val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
@@ -84,7 +84,7 @@ class GroupBuyServiceTest {
     }
 
     @Test
-    fun `지역 조회 결과가 없으면 전국 fallback 재조회 후 hasRegionalResult false를 반환한다`() {
+    fun `지역 결과 없음 fallback 재조회 및 hasRegionalResult false 검증`() {
         val regionalDistrict = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG
         val pageable = PageRequest.of(0, 20)
         val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
@@ -131,7 +131,7 @@ class GroupBuyServiceTest {
     }
 
     @Test
-    fun `지역 미설정이면 결과가 비어도 fallback 재조회 없이 hasRegionalResult true를 유지한다`() {
+    fun `지역 미설정 시 fallback 미수행 및 hasRegionalResult true 유지 검증`() {
         val pageable = PageRequest.of(0, 20)
         val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
             filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
