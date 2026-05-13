@@ -49,16 +49,13 @@ class GroupBuyController(
         filter: GroupBuyFeedFilter,
         @RequestParam(required = false)
         districts: List<DistrictType>?,
-        @RequestParam(required = false)
-        keyword: String?,
         pageable: Pageable
     ): ResponseEntity<ApiResponse<GroupBuyFeedPageResponse>> {
-        log.info("[GroupBuyController] 공구 피드 조회 요청 수신: filter={}, districts={}, keyword={}", filter, districts, keyword)
+        log.info("[GroupBuyController] 공구 피드 조회 요청 수신: filter={}, districts={}", filter, districts)
 
         val request = GroupBuyFeedRequest(
             filter = filter,
             districts = districts ?: emptyList(),
-            keyword = keyword
         )
 
         val response = groupBuyService.getFeed(request, pageable)

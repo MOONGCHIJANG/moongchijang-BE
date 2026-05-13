@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -22,8 +23,13 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -46,6 +52,118 @@ class GroupBuyServiceTest {
 
     @InjectMocks
     private lateinit var service: GroupBuyService
+
+    @Test
+    fun `공구 피드 keyword 제외 조회 검증`() {
+        val groupBuy = createGroupBuy(id = 21L, status = GroupBuyStatus.IN_PROGRESS)
+        val pageable = PageRequest.of(0, 20)
+        val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
+            filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
+            districts = emptyList()
+        )
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(),
+                pageable = pageable,
+                sortMode = FeedSortMode.REGIONAL
+            )
+        ).thenReturn(PageImpl(listOf(groupBuy), pageable, 1))
+
+        val result = service.getFeed(request, pageable)
+
+        assertEquals(1, result.content.size)
+        assertEquals(21L, result.content.first().id)
+        verify(groupBuyRepository).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
+        )
+    }
+
+    @Test
+    fun `지역 결과 없음 fallback 재조회 및 hasRegionalResult false 검증`() {
+        val regionalDistrict = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG
+        val pageable = PageRequest.of(0, 20)
+        val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
+            filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
+            districts = listOf(regionalDistrict)
+        )
+        val fallbackGroupBuy = createGroupBuy(id = 31L, status = GroupBuyStatus.IN_PROGRESS)
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = setOf(regionalDistrict),
+                pageable = pageable,
+                sortMode = FeedSortMode.REGIONAL
+            )
+        ).thenReturn(PageImpl(emptyList(), pageable, 0))
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(),
+                pageable = pageable,
+                sortMode = FeedSortMode.NATIONWIDE_FALLBACK
+            )
+        ).thenReturn(PageImpl(listOf(fallbackGroupBuy), pageable, 1))
+
+        val result = service.getFeed(request, pageable)
+
+        assertFalse(result.hasRegionalResult)
+        assertEquals(1, result.content.size)
+        assertEquals(31L, result.content.first().id)
+        verify(groupBuyRepository, times(1)).searchFeed(
+            filter = request.filter,
+            districtFilters = setOf(regionalDistrict),
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
+        )
+        verify(groupBuyRepository, times(1)).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable,
+            sortMode = FeedSortMode.NATIONWIDE_FALLBACK
+        )
+    }
+
+    @Test
+    fun `지역 미설정 시 fallback 미수행 및 hasRegionalResult true 유지 검증`() {
+        val pageable = PageRequest.of(0, 20)
+        val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
+            filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
+            districts = emptyList()
+        )
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(),
+                pageable = pageable,
+                sortMode = FeedSortMode.REGIONAL
+            )
+        ).thenReturn(PageImpl(emptyList(), pageable, 0))
+
+        val result = service.getFeed(request, pageable)
+
+        assertTrue(result.hasRegionalResult)
+        assertEquals(0, result.content.size)
+        verify(groupBuyRepository, times(1)).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
+        )
+        verify(groupBuyRepository, never()).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable,
+            sortMode = FeedSortMode.NATIONWIDE_FALLBACK
+        )
+    }
 
     @Test
     fun `로그인 사용자 상세 조회 시 찜 여부와 참여 여부 반환`() {

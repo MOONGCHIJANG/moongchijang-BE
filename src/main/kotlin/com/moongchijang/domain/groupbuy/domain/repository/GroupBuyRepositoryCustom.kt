@@ -18,8 +18,8 @@ interface GroupBuyRepositoryCustom {
     fun searchFeed(
         filter: GroupBuyFeedFilter,
         districtFilters: Set<DistrictType>,
-        keyword: String?,
-        pageable: Pageable
+        pageable: Pageable,
+        sortMode: FeedSortMode,
     ): Page<GroupBuy>
 
     fun searchByIntent(

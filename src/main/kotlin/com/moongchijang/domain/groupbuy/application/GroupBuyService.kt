@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedItemResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -29,21 +30,32 @@ class GroupBuyService(
     @Transactional(readOnly = true)
     fun getFeed(request: GroupBuyFeedRequest, pageable: Pageable): GroupBuyFeedPageResponse {
         log.info(
-            "[GroupBuyService] 공구 피드 조회 시작: filter={}, districts={}, keyword={}, page={}, size={}",
-            request.filter, request.districts, request.keyword, pageable.pageNumber, pageable.pageSize
+            "[GroupBuyService] 공구 피드 조회 시작: filter={}, districts={}, page={}, size={}",
+            request.filter, request.districts, pageable.pageNumber, pageable.pageSize
         )
 
         validateDistrictSelection(request.districts)
 
         val expandedDistricts = expandAllDistricts(request.districts)
-        val keyword = request.keyword?.trim()?.takeIf { it.isNotBlank() }
 
-        val resultPage = groupBuyRepository.searchFeed(
+        var hasRegionalResult = true
+
+        var resultPage = groupBuyRepository.searchFeed(
             filter = request.filter,
             districtFilters = expandedDistricts,
-            keyword = keyword,
-            pageable = pageable
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
         )
+
+        if (expandedDistricts.isNotEmpty() && resultPage.totalElements == 0L) {
+            hasRegionalResult = false
+            resultPage = groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(), // 전국 fallback
+                pageable = pageable,
+                sortMode = FeedSortMode.NATIONWIDE_FALLBACK
+            )
+        }
 
         log.info(
             "[GroupBuyService] 공구 피드 조회 완료: totalElements={}, totalPages={}, currentPage={}",
@@ -51,7 +63,8 @@ class GroupBuyService(
         )
 
         return GroupBuyFeedPageResponse.from(
-            resultPage.map { GroupBuyFeedItemResponse.from(it) }
+            resultPage.map { GroupBuyFeedItemResponse.from(it) },
+            hasRegionalResult = hasRegionalResult
         )
     }
 

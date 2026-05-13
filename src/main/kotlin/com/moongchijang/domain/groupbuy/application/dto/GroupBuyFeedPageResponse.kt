@@ -22,17 +22,21 @@ data class GroupBuyFeedPageResponse(
     val totalElements: Long,
 
     @field:Schema(description = "다음 페이지 존재 여부", example = "true")
-    val hasNext: Boolean
+    val hasNext: Boolean,
+
+    @field:Schema(description = "지역 설정 조건에 맞는 공구 존재 여부 (없으면 false)", example = "true")
+    val hasRegionalResult: Boolean
 ) {
     companion object {
-        fun from(page: Page<GroupBuyFeedItemResponse>): GroupBuyFeedPageResponse {
+        fun from(page: Page<GroupBuyFeedItemResponse>, hasRegionalResult: Boolean = true): GroupBuyFeedPageResponse {
             return GroupBuyFeedPageResponse(
                 content = page.content,
                 page = page.number + 1,
                 size = page.size,
                 totalPages = page.totalPages,
                 totalElements = page.totalElements,
-                hasNext = page.hasNext()
+                hasNext = page.hasNext(),
+                hasRegionalResult = hasRegionalResult
             )
         }
     }

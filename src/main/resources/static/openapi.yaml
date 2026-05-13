@@ -535,11 +535,6 @@ paths:
               $ref: '#/components/schemas/DistrictType'
           style: form
           explode: true
-        - name: keyword
-          in: query
-          description: 매장명 또는 상품명 검색어
-          schema:
-            type: string
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
       responses:
@@ -1999,7 +1994,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [content, page, size, totalPages, totalElements, hasNext]
+          required: [content, page, size, totalPages, totalElements, hasNext, hasRegionalResult]
           properties:
             content:
               type: array
@@ -2010,6 +2005,7 @@ components:
             totalPages: { type: integer, description: 전체 페이지 수 }
             totalElements: { type: integer }
             hasNext: { type: boolean, description: 다음 페이지 존재 여부 }
+            hasRegionalResult: { type: boolean, description: 지역 설정 조건에 맞는 공구 존재 여부 (없으면 false) }
         error: { nullable: true, example: null }
 
     ApiResponseGroupBuyDetailResponse:

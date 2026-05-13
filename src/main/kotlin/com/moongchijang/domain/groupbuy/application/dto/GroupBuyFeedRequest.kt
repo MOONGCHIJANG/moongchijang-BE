@@ -11,7 +11,4 @@ data class GroupBuyFeedRequest(
 
     @field:Schema(description = "지역/세부지역 통합 필터 코드 목록 (최대 10개)")
     val districts: List<DistrictType> = emptyList(),
-
-    @field:Schema(description = "매장명 또는 상품명 검색어", example = "두쫀쿠")
-    val keyword: String? = null
 )
