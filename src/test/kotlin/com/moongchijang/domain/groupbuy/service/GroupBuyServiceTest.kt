@@ -23,6 +23,8 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -78,6 +80,88 @@ class GroupBuyServiceTest {
             districtFilters = emptySet(),
             pageable = pageable,
             sortMode = FeedSortMode.REGIONAL
+        )
+    }
+
+    @Test
+    fun `지역 조회 결과가 없으면 전국 fallback 재조회 후 hasRegionalResult false를 반환한다`() {
+        val regionalDistrict = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG
+        val pageable = PageRequest.of(0, 20)
+        val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
+            filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
+            districts = listOf(regionalDistrict)
+        )
+        val fallbackGroupBuy = createGroupBuy(id = 31L, status = GroupBuyStatus.IN_PROGRESS)
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = setOf(regionalDistrict),
+                pageable = pageable,
+                sortMode = FeedSortMode.REGIONAL
+            )
+        ).thenReturn(PageImpl(emptyList(), pageable, 0))
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(),
+                pageable = pageable,
+                sortMode = FeedSortMode.NATIONWIDE_FALLBACK
+            )
+        ).thenReturn(PageImpl(listOf(fallbackGroupBuy), pageable, 1))
+
+        val result = service.getFeed(request, pageable)
+
+        assertFalse(result.hasRegionalResult)
+        assertEquals(1, result.content.size)
+        assertEquals(31L, result.content.first().id)
+        verify(groupBuyRepository, times(1)).searchFeed(
+            filter = request.filter,
+            districtFilters = setOf(regionalDistrict),
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
+        )
+        verify(groupBuyRepository, times(1)).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable,
+            sortMode = FeedSortMode.NATIONWIDE_FALLBACK
+        )
+    }
+
+    @Test
+    fun `지역 미설정이면 결과가 비어도 fallback 재조회 없이 hasRegionalResult true를 유지한다`() {
+        val pageable = PageRequest.of(0, 20)
+        val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
+            filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
+            districts = emptyList()
+        )
+
+        `when`(
+            groupBuyRepository.searchFeed(
+                filter = request.filter,
+                districtFilters = emptySet(),
+                pageable = pageable,
+                sortMode = FeedSortMode.REGIONAL
+            )
+        ).thenReturn(PageImpl(emptyList(), pageable, 0))
+
+        val result = service.getFeed(request, pageable)
+
+        assertTrue(result.hasRegionalResult)
+        assertEquals(0, result.content.size)
+        verify(groupBuyRepository, times(1)).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable,
+            sortMode = FeedSortMode.REGIONAL
+        )
+        verify(groupBuyRepository, never()).searchFeed(
+            filter = request.filter,
+            districtFilters = emptySet(),
+            pageable = pageable,
+            sortMode = FeedSortMode.NATIONWIDE_FALLBACK
         )
     }
 
