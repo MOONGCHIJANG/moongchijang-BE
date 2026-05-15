@@ -10,6 +10,7 @@ import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -33,51 +34,21 @@ class ParticipationService(
         groupBuyId: Long,
         request: ParticipationCreateRequest
     ): ParticipationCreatedResponse {
-        if (participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)) {
-            throw CustomException(ErrorCode.GROUPBUY_ALREADY_PARTICIPATED)
-        }
+        validateNotParticipated(userId, groupBuyId)
 
-        val key = redisLockUtil.lockKey(groupBuyId)
-        val token = redisLockUtil.tryLockOrThrow(key, waitMs = 500, leaseMs = 3_000)
+        val (key, token) = acquireLock(groupBuyId)
 
         try {
-            val user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-
-            val groupBuy = groupBuyRepository.findById(groupBuyId)
-                .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+            val user = findUser(userId)
+            val groupBuy = findGroupBuy(groupBuyId)
 
             validateCanParticipate(groupBuy, request.quantity)
+            increaseQuantityOrThrow(groupBuyId, request.quantity)
 
-            val updatedRows = groupBuyRepository.increaseCurrentQuantityIfAvailable(groupBuyId, request.quantity)
-            if (updatedRows == 0) {
-                log.warn(
-                    "[ParticipationService] 참여 불가 - 조건부 차감 실패: groupBuyId={}, requestQuantity={}",
-                    groupBuyId, request.quantity
-                )
-                throw CustomException(ErrorCode.GROUPBUY_SOLD_OUT)
-            }
-
-            val updatedGroupBuy = groupBuyRepository.findById(groupBuyId)
-                .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+            val updatedGroupBuy = findGroupBuy(groupBuyId)
             updateStatusIfAchieved(updatedGroupBuy)
 
-            val productAmount = groupBuy.price * request.quantity
-            val feeAmount = 0
-            val totalAmount = productAmount + feeAmount
-
-            val participation = participationRepository.save(
-                Participation(
-                    user = user,
-                    groupBuy = groupBuy,
-                    quantity = request.quantity,
-                    productAmount = productAmount,
-                    feeAmount = feeAmount,
-                    totalAmount = totalAmount,
-                    status = ParticipationStatus.PENDING,
-                    pickupStatus = PickupStatus.NOT_READY,
-                )
-            )
+            val participation = createParticipation(user, groupBuy, request.quantity)
 
             // TODO(MCJ-1448): 결제 시스템 연동
             // 결제 요청 생성/승인/검증 로직 연결
@@ -87,22 +58,79 @@ class ParticipationService(
                 "[ParticipationService] 참여 생성 완료: participationId={}, groupBuyId={}, quantity={}",
                 participation.id, groupBuyId, request.quantity
             )
-
-            return ParticipationCreatedResponse(
-                participationId = participation.id,
-                orderName = "${groupBuy.productName} ${request.quantity}개",
-                totalAmount = totalAmount,
-                productAmount = productAmount,
-                feeAmount = feeAmount
-            )
+            return toCreatedResponse(participation, groupBuy)
         } finally {
-            val unlocked = redisLockUtil.unlock(key, token)
-            if (!unlocked) {
-                log.warn("[ParticipationService] 락 해제 실패: key={}", key)
-            } else {
-                log.debug("[ParticipationService] 락 해제 성공: key={}", key)
-            }
+            releaseLock(key, token)
         }
+    }
+
+    private fun validateNotParticipated(userId: Long, groupBuyId: Long) {
+        if (participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)) {
+            throw CustomException(ErrorCode.GROUPBUY_ALREADY_PARTICIPATED)
+        }
+    }
+
+    private fun acquireLock(groupBuyId: Long): Pair<String, String> {
+        val key = redisLockUtil.lockKey(groupBuyId)
+        val token = redisLockUtil.tryLockOrThrow(key, waitMs = 500, leaseMs = 3_000)
+        return key to token
+    }
+
+    private fun releaseLock(key: String, token: String) {
+        val unlocked = redisLockUtil.unlock(key, token)
+        if (!unlocked) {
+            log.warn("[ParticipationService] 락 해제 실패: key={}", key)
+        } else {
+            log.debug("[ParticipationService] 락 해제 성공: key={}", key)
+        }
+    }
+
+    private fun findUser(userId: Long) =
+        userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+    private fun findGroupBuy(groupBuyId: Long) =
+        groupBuyRepository.findById(groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+
+    private fun increaseQuantityOrThrow(groupBuyId: Long, quantity: Int) {
+        val updatedRows = groupBuyRepository.increaseCurrentQuantityIfAvailable(groupBuyId, quantity)
+        if (updatedRows == 0) {
+            log.warn(
+                "[ParticipationService] 참여 불가 - 조건부 차감 실패: groupBuyId={}, requestQuantity={}",
+                groupBuyId, quantity
+            )
+            throw CustomException(ErrorCode.GROUPBUY_SOLD_OUT)
+        }
+    }
+
+    private fun createParticipation(user: User, groupBuy: GroupBuy, quantity: Int): Participation {
+        val productAmount = groupBuy.price * quantity
+        val feeAmount = 0
+        val totalAmount = productAmount + feeAmount
+
+        return participationRepository.save(
+            Participation(
+                user = user,
+                groupBuy = groupBuy,
+                quantity = quantity,
+                productAmount = productAmount,
+                feeAmount = feeAmount,
+                totalAmount = totalAmount,
+                status = ParticipationStatus.PENDING,
+                pickupStatus = PickupStatus.NOT_READY,
+            )
+        )
+    }
+
+    private fun toCreatedResponse(participation: Participation, groupBuy: GroupBuy): ParticipationCreatedResponse {
+        return ParticipationCreatedResponse(
+            participationId = participation.id,
+            orderName = "${groupBuy.productName} ${participation.quantity}개",
+            totalAmount = participation.totalAmount,
+            productAmount = participation.productAmount,
+            feeAmount = participation.feeAmount
+        )
     }
 
     private fun validateCanParticipate(groupBuy: GroupBuy, quantity: Int) {
