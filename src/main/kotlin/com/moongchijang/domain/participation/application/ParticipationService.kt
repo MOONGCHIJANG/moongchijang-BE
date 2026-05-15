@@ -33,6 +33,10 @@ class ParticipationService(
         groupBuyId: Long,
         request: ParticipationCreateRequest
     ): ParticipationCreatedResponse {
+        if (participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)) {
+            throw CustomException(ErrorCode.GROUPBUY_ALREADY_PARTICIPATED)
+        }
+
         val key = redisLockUtil.lockKey(groupBuyId)
         val token = redisLockUtil.tryLockOrThrow(key, waitMs = 500, leaseMs = 3_000)
 
