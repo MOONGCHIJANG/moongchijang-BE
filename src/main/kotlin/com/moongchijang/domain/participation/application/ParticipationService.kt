@@ -14,9 +14,9 @@ import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
-import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
 
 @Service
@@ -25,40 +25,44 @@ class ParticipationService(
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
     private val userRepository: UserRepository,
+    private val transactionTemplate: TransactionTemplate,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Transactional
     fun createParticipation(
         userId: Long,
         groupBuyId: Long,
         request: ParticipationCreateRequest
     ): ParticipationCreatedResponse {
-        validateNotParticipated(userId, groupBuyId)
-
         val (key, token) = acquireLock(groupBuyId)
 
         try {
-            val user = findUser(userId)
-            val groupBuy = findGroupBuy(groupBuyId)
+            val response = transactionTemplate.execute {
+                validateNotParticipated(userId, groupBuyId)
 
-            validateCanParticipate(groupBuy, request.quantity)
-            increaseQuantityOrThrow(groupBuyId, request.quantity)
+                val user = findUser(userId)
+                val groupBuy = findGroupBuy(groupBuyId)
 
-            val updatedGroupBuy = findGroupBuy(groupBuyId)
-            updateStatusIfAchieved(updatedGroupBuy)
+                validateCanParticipate(groupBuy, request.quantity)
+                increaseQuantityOrThrow(groupBuyId, request.quantity)
 
-            val participation = createParticipation(user, groupBuy, request.quantity)
+                val updatedGroupBuy = findGroupBuy(groupBuyId)
+                updateStatusIfAchieved(updatedGroupBuy)
 
-            // TODO(MCJ-1448): 결제 시스템 연동
-            // 결제 요청 생성/승인/검증 로직 연결
-            // 결제 진입 직전 최종 재검증 연결
+                val participation = createParticipation(user, groupBuy, request.quantity)
 
-            log.info(
-                "[ParticipationService] 참여 생성 완료: participationId={}, groupBuyId={}, quantity={}",
-                participation.id, groupBuyId, request.quantity
-            )
-            return toCreatedResponse(participation, groupBuy)
+                // TODO(MCJ-1448): 결제 시스템 연동
+                // 결제 요청 생성/승인/검증 로직 연결
+                // 결제 진입 직전 최종 재검증 연결
+
+                log.info(
+                    "[ParticipationService] 참여 생성 완료: participationId={}, groupBuyId={}, quantity={}",
+                    participation.id, groupBuyId, request.quantity
+                )
+                toCreatedResponse(participation, groupBuy)
+            }
+
+            return response
         } finally {
             releaseLock(key, token)
         }

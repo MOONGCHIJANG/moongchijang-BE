@@ -21,10 +21,14 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.any
-import org.mockito.Mockito.never
+import org.mockito.Mockito.doAnswer
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.TransactionCallback
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
 import java.util.Optional
 
@@ -43,6 +47,9 @@ class ParticipationServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
+    @Mock
+    private lateinit var transactionTemplate: TransactionTemplate
+
     @InjectMocks
     private lateinit var service: ParticipationService
 
@@ -51,7 +58,13 @@ class ParticipationServiceTest {
         val userId = 1L
         val groupBuyId = 10L
         val request = ParticipationCreateRequest(quantity = 1)
+        val key = "groupBuy:$groupBuyId"
+        val token = "token-0"
 
+        `when`(redisLockUtil.lockKey(groupBuyId)).thenReturn(key)
+        `when`(redisLockUtil.tryLockOrThrow(key, 500, 3_000)).thenReturn(token)
+        `when`(redisLockUtil.unlock(key, token)).thenReturn(true)
+        stubTransactionExecute()
         `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(true)
 
         val ex = assertThrows<CustomException> {
@@ -59,7 +72,8 @@ class ParticipationServiceTest {
         }
 
         assertEquals(ErrorCode.GROUPBUY_ALREADY_PARTICIPATED, ex.errorCode)
-        verify(redisLockUtil, never()).lockKey(groupBuyId)
+        verify(redisLockUtil).lockKey(groupBuyId)
+        verify(redisLockUtil).unlock(key, token)
     }
 
     @Test
@@ -181,8 +195,16 @@ class ParticipationServiceTest {
         `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
         `when`(redisLockUtil.lockKey(groupBuyId)).thenReturn(key)
         `when`(redisLockUtil.tryLockOrThrow(key, 500, 3_000)).thenReturn(token)
+        stubTransactionExecute()
         `when`(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(user)
         `when`(groupBuyRepository.findById(groupBuyId)).thenReturn(Optional.of(groupBuy))
         `when`(redisLockUtil.unlock(key, token)).thenReturn(true)
+    }
+
+    private fun stubTransactionExecute() {
+        doAnswer { invocation ->
+            val callback = invocation.getArgument<TransactionCallback<Any?>>(0)
+            callback.doInTransaction(mock(TransactionStatus::class.java))
+        }.`when`(transactionTemplate).execute<Any?>(any())
     }
 }
