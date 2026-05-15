@@ -21,9 +21,9 @@ class RedisLockUtil(
 
     fun tryLockOrThrow(key: String, waitMs: Long, leaseMs: Long): String {
         val token = UUID.randomUUID().toString()
-        val deadline = System.currentTimeMillis() + waitMs
+        val deadlineNanos = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(waitMs)
 
-        while (System.currentTimeMillis() < deadline) {
+        while (System.nanoTime() < deadlineNanos) {
             val locked = redisTemplate.opsForValue()
                 .setIfAbsent(key, token, Duration.ofMillis(leaseMs))
 
