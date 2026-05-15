@@ -17,7 +17,6 @@ import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.LocalDateTime
 
 @Service
 class ParticipationService(
@@ -144,14 +143,6 @@ class ParticipationService(
                 groupBuy.id, groupBuy.status
             )
             throw CustomException(ErrorCode.GROUPBUY_NOT_RECRUITING)
-        }
-
-        if (!LocalDateTime.now().isBefore(groupBuy.deadline)) {
-            log.warn(
-                "[ParticipationService] 참여 불가 - 마감 지남: groupBuyId={}, deadline={}",
-                groupBuy.id, groupBuy.deadline
-            )
-            throw CustomException(ErrorCode.GROUPBUY_DEADLINE_PASSED)
         }
 
         if (quantity <= 0) {

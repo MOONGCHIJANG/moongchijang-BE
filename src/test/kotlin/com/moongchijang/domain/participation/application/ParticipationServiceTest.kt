@@ -97,7 +97,7 @@ class ParticipationServiceTest {
     }
 
     @Test
-    fun `마감된 공구면 GROUPBUY_DEADLINE_PASSED 예외 발생`() {
+    fun `마감된 공구는 조건부 차감 실패로 GROUPBUY_SOLD_OUT 예외 발생`() {
         val userId = 1L
         val groupBuyId = 12L
         val request = ParticipationCreateRequest(quantity = 1)
@@ -116,7 +116,7 @@ class ParticipationServiceTest {
             service.createParticipation(userId, groupBuyId, request)
         }
 
-        assertEquals(ErrorCode.GROUPBUY_DEADLINE_PASSED, ex.errorCode)
+        assertEquals(ErrorCode.GROUPBUY_SOLD_OUT, ex.errorCode)
         verify(redisLockUtil).unlock(key, token)
     }
 
