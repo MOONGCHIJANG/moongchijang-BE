@@ -45,20 +45,18 @@ class ParticipationService(
 
             validateCanParticipate(groupBuy, request.quantity)
 
-            // TODO(MCJ-1448): 조건부 차감 쿼리로 교체
-            //  - where id = :groupBuyId and (max_quantity - current_quantity) >= :quantity
-            //  - update current_quantity = current_quantity + :quantity
-            val remaining = groupBuy.maxQuantity - groupBuy.currentQuantity
-            if (remaining < request.quantity) {
+            val updatedRows = groupBuyRepository.increaseCurrentQuantityIfAvailable(groupBuyId, request.quantity)
+            if (updatedRows == 0) {
                 log.warn(
-                    "[ParticipationService] 참여 불가 - 수량 부족: groupBuyId={}, remaining={}, requestQty={}",
-                    groupBuyId, remaining, request.quantity
+                    "[ParticipationService] 참여 불가 - 조건부 차감 실패: groupBuyId={}, requestQuantity={}",
+                    groupBuyId, request.quantity
                 )
                 throw CustomException(ErrorCode.GROUPBUY_SOLD_OUT)
             }
 
-            groupBuy.currentQuantity += request.quantity
-            updateStatusIfAchieved(groupBuy)
+            val updatedGroupBuy = groupBuyRepository.findById(groupBuyId)
+                .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+            updateStatusIfAchieved(updatedGroupBuy)
 
             val productAmount = groupBuy.price * request.quantity
             val feeAmount = 0
