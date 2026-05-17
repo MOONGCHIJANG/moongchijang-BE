@@ -55,6 +55,7 @@ qdrant:
   distance: Cosine
 
 search:
+  engine: legacy
   retrieval:
     vector-candidate-limit: 10
     vector-min-score: 0.5
