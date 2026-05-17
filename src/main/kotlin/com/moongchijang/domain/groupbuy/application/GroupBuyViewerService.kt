@@ -1,7 +1,6 @@
 package com.moongchijang.domain.groupbuy.application
 
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyViewerCountRepository
 import com.moongchijang.global.exception.CustomException
@@ -57,16 +56,12 @@ class GroupBuyViewerService(
         val now = Instant.now().epochSecond
         val viewerKey = if (userId != null) "user:$userId" else "session:$viewerSessionId"
 
-        groupBuyViewerCountRepository.touch(
+        val count = groupBuyViewerCountRepository.touchAndCount(
             groupBuyId = groupBuyId,
             viewerKey = viewerKey,
             nowEpochSeconds = now,
             ttlSeconds = ACTIVE_VIEWER_TTL_SECONDS
-        )
-
-        val count = groupBuyViewerCountRepository
-            .countActive(groupBuyId, now, ACTIVE_VIEWER_TTL_SECONDS)
-            .toInt()
+        ).toInt()
 
         val response = GroupBuyViewerCountResponse(
             activeViewerCount = count,

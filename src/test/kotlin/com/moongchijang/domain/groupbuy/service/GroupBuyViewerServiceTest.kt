@@ -35,8 +35,8 @@ class GroupBuyViewerServiceTest {
 
     @Test
     fun `heartbeat 비로그인 사용자 session 키 집계 검증`() {
-        stubExistsAndCount(groupBuyId = 101L, count = 1L)
-        val capturedViewerKey = stubTouchAndCaptureViewerKey()
+        `when`(groupBuyRepository.existsById(101L)).thenReturn(true)
+        val capturedViewerKey = stubTouchAndCaptureViewerKey(returnCount = 1L)
 
         val result = service.heartbeat(
             groupBuyId = 101L,
@@ -52,8 +52,8 @@ class GroupBuyViewerServiceTest {
 
     @Test
     fun `heartbeat 로그인 사용자 user 키 집계 검증`() {
-        stubExistsAndCount(groupBuyId = 102L, count = 3L)
-        val capturedViewerKey = stubTouchAndCaptureViewerKey()
+        `when`(groupBuyRepository.existsById(102L)).thenReturn(true)
+        val capturedViewerKey = stubTouchAndCaptureViewerKey(returnCount = 3L)
 
         val result = service.heartbeat(
             groupBuyId = 102L,
@@ -98,15 +98,22 @@ class GroupBuyViewerServiceTest {
 
     private fun stubExistsAndCount(groupBuyId: Long, count: Long) {
         `when`(groupBuyRepository.existsById(groupBuyId)).thenReturn(true)
-        `when`(groupBuyViewerCountRepository.countActive(eq(groupBuyId), anyLong(), eq(90L))).thenReturn(count)
+        `when`(
+            groupBuyViewerCountRepository.touchAndCount(
+                eq(groupBuyId),
+                anyString(),
+                anyLong(),
+                eq(90L)
+            )
+        ).thenReturn(count)
     }
 
-    private fun stubTouchAndCaptureViewerKey(): AtomicReference<String?> {
+    private fun stubTouchAndCaptureViewerKey(returnCount: Long): AtomicReference<String?> {
         val capturedViewerKey = AtomicReference<String?>()
         doAnswer {
             capturedViewerKey.set(it.getArgument(1))
-            null
-        }.`when`(groupBuyViewerCountRepository).touch(anyLong(), anyString(), anyLong(), anyLong())
+            returnCount
+        }.`when`(groupBuyViewerCountRepository).touchAndCount(anyLong(), anyString(), anyLong(), anyLong())
         return capturedViewerKey
     }
 }
