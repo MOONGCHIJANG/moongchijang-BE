@@ -1,10 +1,13 @@
 package com.moongchijang.domain.groupbuy.presentation
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyService
+import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerHeartbeatRequest
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
@@ -14,12 +17,15 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -28,7 +34,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/group-buys")
 @Tag(name = "GroupBuy", description = "공구 피드/상세/달성률")
 class GroupBuyController(
-    private val groupBuyService: GroupBuyService
+    private val groupBuyService: GroupBuyService,
+    private val groupBuyViewerService: GroupBuyViewerService
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -88,6 +95,76 @@ class GroupBuyController(
         )
 
         log.info("[GroupBuyController] 공구 상세 조회 응답 완료: groupBuyId={}", groupBuyId)
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @GetMapping("/{groupBuyId}/viewers/count")
+    @Operation(summary = "공구 상세 활성 조회자 수 조회")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "활성 조회자 수 조회 성공"),
+            SwaggerApiResponse(
+                responseCode = "404",
+                description = "공구를 찾을 수 없음",
+                content = [Content(schema = Schema(implementation = ApiResponse::class))]
+            )
+        ]
+    )
+    fun getViewerCount(
+        @PathVariable groupBuyId: Long
+    ): ResponseEntity<ApiResponse<GroupBuyViewerCountResponse>> {
+        log.info("[GroupBuyController] 활성 조회자 수 조회 요청 수신: groupBuyId={}", groupBuyId)
+
+        val response = groupBuyViewerService.getActiveViewerCount(groupBuyId)
+
+        log.info(
+            "[GroupBuyController] 활성 조회자 수 조회 응답 완료: groupBuyId={}, activeViewerCount={}",
+            groupBuyId,
+            response.activeViewerCount
+        )
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @PostMapping("/{groupBuyId}/viewers/heartbeat")
+    @Operation(summary = "공구 상세 조회자 heartbeat 갱신")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회자 heartbeat 갱신 성공"),
+            SwaggerApiResponse(
+                responseCode = "400",
+                description = "잘못된 요청 (viewerSessionId 누락/형식 오류)",
+                content = [Content(schema = Schema(implementation = ApiResponse::class))]
+            ),
+            SwaggerApiResponse(
+                responseCode = "404",
+                description = "공구를 찾을 수 없음",
+                content = [Content(schema = Schema(implementation = ApiResponse::class))]
+            )
+        ]
+    )
+    fun heartbeatViewer(
+        @PathVariable groupBuyId: Long,
+        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @Valid @RequestBody request: GroupBuyViewerHeartbeatRequest
+    ): ResponseEntity<ApiResponse<GroupBuyViewerCountResponse>> {
+        log.info(
+            "[GroupBuyController] 조회자 heartbeat 요청 수신: groupBuyId={}, userId={}, viewerSessionId={}",
+            groupBuyId,
+            principal?.id,
+            request.viewerSessionId
+        )
+
+        val response = groupBuyViewerService.heartbeat(
+            groupBuyId = groupBuyId,
+            userId = principal?.id,
+            viewerSessionId = request.viewerSessionId
+        )
+
+        log.info(
+            "[GroupBuyController] 조회자 heartbeat 응답 완료: groupBuyId={}, activeViewerCount={}",
+            groupBuyId,
+            response.activeViewerCount
+        )
         return ResponseEntity.ok(ApiResponse.success(response))
     }
 }
