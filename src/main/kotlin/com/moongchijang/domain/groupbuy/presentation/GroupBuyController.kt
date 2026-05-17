@@ -98,38 +98,11 @@ class GroupBuyController(
         return ResponseEntity.ok(ApiResponse.success(response))
     }
 
-    @GetMapping("/{groupBuyId}/viewers/count")
-    @Operation(summary = "공구 상세 활성 조회자 수 조회")
-    @ApiResponses(
-        value = [
-            SwaggerApiResponse(responseCode = "200", description = "활성 조회자 수 조회 성공"),
-            SwaggerApiResponse(
-                responseCode = "404",
-                description = "공구를 찾을 수 없음",
-                content = [Content(schema = Schema(implementation = ApiResponse::class))]
-            )
-        ]
-    )
-    fun getViewerCount(
-        @PathVariable groupBuyId: Long
-    ): ResponseEntity<ApiResponse<GroupBuyViewerCountResponse>> {
-        log.info("[GroupBuyController] 활성 조회자 수 조회 요청 수신: groupBuyId={}", groupBuyId)
-
-        val response = groupBuyViewerService.getActiveViewerCount(groupBuyId)
-
-        log.info(
-            "[GroupBuyController] 활성 조회자 수 조회 응답 완료: groupBuyId={}, activeViewerCount={}",
-            groupBuyId,
-            response.activeViewerCount
-        )
-        return ResponseEntity.ok(ApiResponse.success(response))
-    }
-
     @PostMapping("/{groupBuyId}/viewers/heartbeat")
-    @Operation(summary = "공구 상세 조회자 heartbeat 갱신")
+    @Operation(summary = "공구 상세 조회자 heartbeat 조회/갱신")
     @ApiResponses(
         value = [
-            SwaggerApiResponse(responseCode = "200", description = "조회자 heartbeat 갱신 성공"),
+            SwaggerApiResponse(responseCode = "200", description = "조회자 heartbeat 조회/갱신 성공"),
             SwaggerApiResponse(
                 responseCode = "400",
                 description = "잘못된 요청 (viewerSessionId 누락/형식 오류)",
