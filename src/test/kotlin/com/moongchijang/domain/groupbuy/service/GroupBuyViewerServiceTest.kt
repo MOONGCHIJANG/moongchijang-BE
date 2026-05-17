@@ -17,8 +17,12 @@ import org.mockito.Mockito.anyLong
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.eq
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.data.redis.core.ValueOperations
 import java.util.concurrent.atomic.AtomicReference
 
 @ExtendWith(MockitoExtension::class)
@@ -30,11 +34,19 @@ class GroupBuyViewerServiceTest {
     @Mock
     private lateinit var groupBuyViewerCountRepository: GroupBuyViewerCountRepository
 
+    @Mock
+    private lateinit var redisTemplate: StringRedisTemplate
+
+    @Mock
+    private lateinit var valueOps: ValueOperations<String, String>
+
     @InjectMocks
     private lateinit var service: GroupBuyViewerService
 
     @Test
     fun `heartbeat 비로그인 사용자 session 키 집계 검증`() {
+        `when`(redisTemplate.opsForValue()).thenReturn(valueOps)
+        `when`(valueOps.get("groupBuy:exists:101")).thenReturn(null)
         `when`(groupBuyRepository.existsById(101L)).thenReturn(true)
         val capturedViewerKey = stubTouchAndCaptureViewerKey(returnCount = 1L)
 
@@ -52,6 +64,8 @@ class GroupBuyViewerServiceTest {
 
     @Test
     fun `heartbeat 로그인 사용자 user 키 집계 검증`() {
+        `when`(redisTemplate.opsForValue()).thenReturn(valueOps)
+        `when`(valueOps.get("groupBuy:exists:102")).thenReturn(null)
         `when`(groupBuyRepository.existsById(102L)).thenReturn(true)
         val capturedViewerKey = stubTouchAndCaptureViewerKey(returnCount = 3L)
 
@@ -68,6 +82,8 @@ class GroupBuyViewerServiceTest {
 
     @Test
     fun `활성 조회자 수 10명 이상 FOMO 뱃지 노출 검증`() {
+        `when`(redisTemplate.opsForValue()).thenReturn(valueOps)
+        `when`(valueOps.get("groupBuy:exists:103")).thenReturn(null)
         stubExistsAndCount(groupBuyId = 103L, count = 12L)
 
         val result = service.heartbeat(
@@ -83,6 +99,8 @@ class GroupBuyViewerServiceTest {
 
     @Test
     fun `존재하지 않는 공구 heartbeat 호출 GROUPBUY_NOT_FOUND 예외 발생 검증`() {
+        `when`(redisTemplate.opsForValue()).thenReturn(valueOps)
+        `when`(valueOps.get("groupBuy:exists:999")).thenReturn(null)
         `when`(groupBuyRepository.existsById(999L)).thenReturn(false)
 
         val ex = assertThrows<CustomException> {
@@ -94,6 +112,23 @@ class GroupBuyViewerServiceTest {
         }
 
         assertEquals(ErrorCode.GROUPBUY_NOT_FOUND, ex.errorCode)
+    }
+
+    @Test
+    fun `존재 여부 캐시 hit 시 DB 조회 우회 검증`() {
+        `when`(redisTemplate.opsForValue()).thenReturn(valueOps)
+        `when`(valueOps.get("groupBuy:exists:104")).thenReturn("1")
+        val capturedViewerKey = stubTouchAndCaptureViewerKey(returnCount = 2L)
+
+        val result = service.heartbeat(
+            groupBuyId = 104L,
+            userId = null,
+            viewerSessionId = "session-cache-hit"
+        )
+
+        assertEquals("session:session-cache-hit", capturedViewerKey.get())
+        assertEquals(2, result.activeViewerCount)
+        verify(groupBuyRepository, never()).existsById(104L)
     }
 
     private fun stubExistsAndCount(groupBuyId: Long, count: Long) {

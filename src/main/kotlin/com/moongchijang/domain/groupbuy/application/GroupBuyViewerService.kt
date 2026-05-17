@@ -6,18 +6,24 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyViewerCountRep
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.time.Duration
 
 @Service
 class GroupBuyViewerService(
     private val groupBuyRepository: GroupBuyRepository,
     private val groupBuyViewerCountRepository: GroupBuyViewerCountRepository,
+    private val redisTemplate: StringRedisTemplate,
 ) {
     companion object {
         private const val ACTIVE_VIEWER_TTL_SECONDS = 90L
         private const val FOMO_THRESHOLD = 10
+        private const val EXISTS_CACHE_TTL_SECONDS = 120L
+        private const val EXISTS_CACHE_TRUE = "1"
+        private const val EXISTS_CACHE_FALSE = "0"
     }
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -76,9 +82,27 @@ class GroupBuyViewerService(
     }
 
     private fun ensureGroupBuyExists(groupBuyId: Long) {
-        if (!groupBuyRepository.existsById(groupBuyId)) {
+        val cacheKey = existsCacheKey(groupBuyId)
+        val cached = redisTemplate.opsForValue().get(cacheKey)
+
+        if (cached == EXISTS_CACHE_TRUE) return
+        if (cached == EXISTS_CACHE_FALSE) {
+            log.warn("[GroupBuyViewerService] 공구 없음: groupBuyId={}", groupBuyId)
+            throw CustomException(ErrorCode.GROUPBUY_NOT_FOUND)
+        }
+
+        val exists = groupBuyRepository.existsById(groupBuyId)
+        redisTemplate.opsForValue().set(
+            cacheKey,
+            if (exists) EXISTS_CACHE_TRUE else EXISTS_CACHE_FALSE,
+            Duration.ofSeconds(EXISTS_CACHE_TTL_SECONDS)
+        )
+
+        if (!exists) {
             log.warn("[GroupBuyViewerService] 공구 없음: groupBuyId={}", groupBuyId)
             throw CustomException(ErrorCode.GROUPBUY_NOT_FOUND)
         }
     }
+
+    private fun existsCacheKey(groupBuyId: Long): String = "groupBuy:exists:$groupBuyId"
 }
