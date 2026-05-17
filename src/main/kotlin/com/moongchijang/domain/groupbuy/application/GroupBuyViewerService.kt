@@ -45,7 +45,6 @@ class GroupBuyViewerService(
         return response
     }
 
-    @Transactional
     fun heartbeat(groupBuyId: Long, userId: Long?, viewerSessionId: String): GroupBuyViewerCountResponse {
         log.info(
             "[GroupBuyViewerService] heartbeat 처리 시작: groupBuyId={}, userId={}, viewerSessionId={}",
