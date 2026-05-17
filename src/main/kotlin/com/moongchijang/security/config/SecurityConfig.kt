@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.http.HttpMethod
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
@@ -39,9 +40,15 @@ class SecurityConfig(
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                 ).permitAll()
+                it.requestMatchers(
+                    HttpMethod.GET,
+                    "/api/v1/group-buys",
+                    "/api/v1/group-buys/*",
+                    "/api/v1/group-buys/progress",
+                    "/api/v1/group-buys/*/progress",
+                ).permitAll()
 
-                // 개발 진행 시에는 모든 경로 허용 후 실제 배포 시 변경 필요
-                it.anyRequest().permitAll()
+                it.anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .formLogin { it.disable() }

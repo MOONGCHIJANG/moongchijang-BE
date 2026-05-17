@@ -2350,22 +2350,11 @@ components:
     # ── Participation ──────────────────────────────────────────
     ParticipationCreate:
       type: object
-      required: [quantity, agreedTerms]
+      required: [quantity]
       properties:
         quantity:
           type: integer
           minimum: 1
-        agreedTerms:
-          type: array
-          items:
-            type: string
-            enum:
-              - NO_CANCEL_AFTER_ACHIEVED
-              - FULL_REFUND_BEFORE_ACHIEVED
-              - NO_REFUND_IF_NOT_PICKED_UP
-              - NO_WITHDRAWAL_RIGHT
-          minItems: 4
-          description: 4개 항목 모두 포함 필수
 
     ApiResponseParticipationCreated:
       type: object

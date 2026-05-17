@@ -89,4 +89,10 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     GROUPBUY_FEED_TOO_MANY_DISTRICTS(400_300, "지역 필터는 최대 10개까지 선택할 수 있습니다.", 400),
     GROUPBUY_FEED_INVALID_DISTRICT_COMBINATION(400_301, "같은 지역의 전체/하위 세부지역은 동시에 선택할 수 없습니다.", 400),
     GROUPBUY_NOT_FOUND(404_302, "공구를 찾을 수 없습니다.", 404),
+    GROUPBUY_NOT_RECRUITING(400_303, "모집중인 공구만 참여할 수 있습니다.", 400),
+    GROUPBUY_DEADLINE_PASSED(400_304, "마감된 공구예요.", 400),
+    GROUPBUY_SOLD_OUT(409_305, "참여 가능한 수량이 부족합니다.", 409),
+    GROUPBUY_ALREADY_PARTICIPATED(409_306, "이미 참여한 공구예요.", 409),
+    GROUPBUY_LOCK_ACQUISITION_FAILED(409_300, "요청이 많아 잠시 처리 지연 중입니다. 잠시 후 다시 시도해주세요.", 409),
+    GROUPBUY_LOCK_INTERRUPTED(500_300, "요청 처리 중 일시적인 오류가 발생했습니다.", 500),
 }
