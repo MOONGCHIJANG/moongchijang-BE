@@ -424,7 +424,7 @@ class PaymentService(
     private fun <T> withGroupBuyLock(groupBuyId: Long, action: () -> T): T {
         val key = redisLockUtil.lockKey(groupBuyId)
         log.debug("[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}", groupBuyId, key)
-        val token = redisLockUtil.tryLockOrThrow(key, waitMs = 500, leaseMs = 3_000)
+        val token = redisLockUtil.tryLockOrThrow(key, waitMs = 500, leaseMs = 10_000)
         log.debug("[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}", groupBuyId, key)
         try {
             return action()
