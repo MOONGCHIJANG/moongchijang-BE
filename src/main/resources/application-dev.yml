@@ -36,6 +36,12 @@ naver:
     client-id: ${NAVER_CLIENT_ID}
     client-secret: ${NAVER_CLIENT_SECRET}
 
+portone:
+  store-id: ${PORTONE_STORE_ID}
+  channel-key: ${PORTONE_CHANNEL_KEY}
+  api-secret: ${PORTONE_API_SECRET}
+  payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+
 springdoc:
   swagger-ui:
     url: /dev/openapi.yaml

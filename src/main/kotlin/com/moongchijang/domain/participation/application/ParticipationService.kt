@@ -50,9 +50,8 @@ class ParticipationService(
 
                 val participation = createParticipation(user, groupBuy, request.quantity)
 
-                // TODO(MCJ-1448): 결제 시스템 연동
-                // 결제 요청 생성/승인/검증 로직 연결
-                // 결제 진입 직전 최종 재검증 연결
+                // 결제 플로우에서는 PaymentService가 결제 승인 이후 참여 생성과 수량 증가를 처리한다.
+                // 이 임시 참여 생성 경로는 결제 연동 전 호환용이며, 결제 적용 화면에서는 payment-orders API를 사용한다.
 
                 log.info(
                     "[ParticipationService] 참여 생성 완료: participationId={}, groupBuyId={}, quantity={}",

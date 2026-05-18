@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
+
+    fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Participation?
 }

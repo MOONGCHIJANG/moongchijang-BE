@@ -25,6 +25,9 @@ class JwtAuthenticationFilter(
         "/api/v1/auth/refresh",
         "/api/v1/auth/phone/verification-codes",
         "/api/v1/auth/phone/verification-codes/verify",
+        "/api/v1/payments/portone/webhook",
+        "/openapi.yaml",
+        "/dev/openapi.yaml",
     )
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {

@@ -37,6 +37,9 @@ class SecurityConfig(
                     "/api/v1/auth/refresh",
                     "/api/v1/auth/phone/verification-codes",
                     "/api/v1/auth/phone/verification-codes/verify",
+                    "/api/v1/payments/portone/webhook",
+                    "/openapi.yaml",
+                    "/dev/openapi.yaml",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                 ).permitAll()
@@ -64,7 +67,9 @@ class SecurityConfig(
         configuration.allowedOrigins = listOf(
             "http://localhost:3000",
             "http://localhost:5173",
-            "http://43.203.191.30"
+            "http://43.203.191.30",
+            "https://www.moongchijang.com",
+            "https://api.moongchijang.com"
         )
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
