@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -33,7 +34,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -72,6 +76,9 @@ class PaymentServiceTest {
     @Mock
     private lateinit var transactionStatus: TransactionStatus
 
+    @Mock
+    private lateinit var redisLockUtil: RedisLockUtil
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
@@ -88,6 +95,7 @@ class PaymentServiceTest {
             portOnePaymentPort = portOnePaymentPort,
             portOneProperties = portOneProperties,
             transactionManager = transactionManager,
+            redisLockUtil = redisLockUtil,
         )
     }
 
@@ -312,6 +320,9 @@ class PaymentServiceTest {
 
     private fun stubTransaction() {
         `when`(transactionManager.getTransaction(any(TransactionDefinition::class.java))).thenReturn(transactionStatus)
+        lenient().`when`(redisLockUtil.lockKey(anyLong())).thenAnswer { "groupBuy:${it.arguments[0]}" }
+        lenient().`when`(redisLockUtil.tryLockOrThrow(anyString(), anyLong(), anyLong())).thenReturn("lock-token")
+        lenient().`when`(redisLockUtil.unlock(anyString(), anyString())).thenReturn(true)
     }
 
     private fun createOrderRequest(
