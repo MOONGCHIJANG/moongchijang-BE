@@ -37,6 +37,9 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.TransactionDefinition
+import org.springframework.transaction.TransactionStatus
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -63,6 +66,12 @@ class PaymentServiceTest {
     @Mock
     private lateinit var portOnePaymentPort: PortOnePaymentPort
 
+    @Mock
+    private lateinit var transactionManager: PlatformTransactionManager
+
+    @Mock
+    private lateinit var transactionStatus: TransactionStatus
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
@@ -78,6 +87,7 @@ class PaymentServiceTest {
             paymentRepository = paymentRepository,
             portOnePaymentPort = portOnePaymentPort,
             portOneProperties = portOneProperties,
+            transactionManager = transactionManager,
         )
     }
 
@@ -130,6 +140,8 @@ class PaymentServiceTest {
         val groupBuy = createGroupBuy(currentQuantity = 36)
         val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2)
         val approvedAt = LocalDateTime.of(2026, 5, 17, 12, 0)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
         `when`(groupBuyRepository.increaseCurrentQuantityIfAvailable(10L, 2)).thenAnswer {
             groupBuy.currentQuantity += 2
@@ -142,6 +154,7 @@ class PaymentServiceTest {
         `when`(participationRepository.save(any(Participation::class.java))).thenAnswer {
             (it.arguments[0] as Participation).apply { id = 99L }
         }
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
 
         val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000))
 
@@ -153,10 +166,39 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `결제 완료로 목표 수량에 도달하면 참여 확정 상태로 생성`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(currentQuantity = 49)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(groupBuyRepository.increaseCurrentQuantityIfAvailable(10L, 1)).thenAnswer {
+            groupBuy.currentQuantity += 1
+            1
+        }
+        `when`(groupBuyRepository.findById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(false)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 6000, "CARD", LocalDateTime.now()))
+        `when`(participationRepository.save(any(Participation::class.java))).thenAnswer {
+            (it.arguments[0] as Participation).apply { id = 100L }
+        }
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000))
+
+        assertEquals(ParticipationStatus.CONFIRMED, result.participationStatus)
+        assertEquals(GroupBuyStatus.ACHIEVED, groupBuy.status)
+    }
+
+    @Test
     fun `승인 시점에 최대 수량을 초과하면 실패`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy(currentQuantity = 99, maxQuantity = 100)
         val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
         `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
             .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 12000, "CARD", LocalDateTime.now()))
@@ -175,6 +217,8 @@ class PaymentServiceTest {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy(currentQuantity = 36)
         val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
         `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
             .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 6000, "CARD", LocalDateTime.now()))
@@ -187,6 +231,7 @@ class PaymentServiceTest {
         `when`(participationRepository.save(any(Participation::class.java))).thenAnswer {
             (it.arguments[0] as Participation).apply { id = 100L }
         }
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
 
         service.handlePortOneWebhook(
             PortOneWebhookRequest(type = "Transaction.Paid", storeId = "store-test", paymentId = "MCJ-10-test")
@@ -202,6 +247,8 @@ class PaymentServiceTest {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy()
         val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
         `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
             .thenReturn(PortOnePaymentResult("MCJ-10-test", "FAILED", 6000, "CARD", null))
@@ -236,6 +283,8 @@ class PaymentServiceTest {
             status = ParticipationStatus.PAID_WAITING_GOAL,
         )
         val cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 0)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
         `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
             .thenReturn(
@@ -259,6 +308,10 @@ class PaymentServiceTest {
         assertEquals(ParticipationStatus.REFUNDED, participation.status)
         assertEquals(cancelledAt, participation.refundedAt)
         assertEquals(35, groupBuy.currentQuantity)
+    }
+
+    private fun stubTransaction() {
+        `when`(transactionManager.getTransaction(any(TransactionDefinition::class.java))).thenReturn(transactionStatus)
     }
 
     private fun createOrderRequest(
