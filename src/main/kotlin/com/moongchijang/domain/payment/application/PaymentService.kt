@@ -3,6 +3,7 @@ package com.moongchijang.domain.payment.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -23,6 +24,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
@@ -41,7 +43,9 @@ class PaymentService(
     private val portOnePaymentPort: PortOnePaymentPort,
     private val portOneProperties: PortOneProperties,
     private val transactionManager: PlatformTransactionManager,
+    private val redisLockUtil: RedisLockUtil,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional(readOnly = true)
     fun getCheckoutInfo(groupBuyId: Long, quantity: Int): CheckoutInfoResponse {
@@ -141,11 +145,13 @@ class PaymentService(
             throw CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
         }
 
-        return when (
-            val result = transactionTemplate().execute {
+        val result = withGroupBuyLock(order.groupBuy.id) {
+            transactionTemplate().execute {
                 approvePayment(request.paymentId, request.amount, paymentResult)
             } ?: PaymentApprovalResult.Failure(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
-        ) {
+        }
+
+        return when (result) {
             is PaymentApprovalResult.Success -> result.response
             is PaymentApprovalResult.Failure -> throw CustomException(result.errorCode)
         }
@@ -166,14 +172,21 @@ class PaymentService(
         } ?: return
         val paymentResult = getPortOnePaymentOrFailOrder(order.orderId)
 
-        transactionTemplate().execute {
-            val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
-            when (paymentResult.status) {
-                PORTONE_STATUS_PAID -> {
+        if (paymentResult.status == PORTONE_STATUS_PAID) {
+            withGroupBuyLock(order.groupBuy.id) {
+                transactionTemplate().execute {
+                    val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
                     if (lockedOrder.status != PaymentOrderStatus.APPROVED) {
                         approvePayment(paymentId, lockedOrder.totalAmount, paymentResult)
                     }
                 }
+            }
+            return
+        }
+
+        transactionTemplate().execute {
+            val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+            when (paymentResult.status) {
                 PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
                 PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
                 PORTONE_STATUS_FAILED -> {
@@ -219,6 +232,10 @@ class PaymentService(
 
         val updatedRows = groupBuyRepository.increaseCurrentQuantityIfAvailable(order.groupBuy.id, order.quantity)
         if (updatedRows == 0) {
+            log.warn(
+                "[PaymentService] 조건부 수량 증가 실패: groupBuyId={}, quantity={}, orderId={}",
+                order.groupBuy.id, order.quantity, order.orderId
+            )
             order.fail(LocalDateTime.now())
             paymentOrderRepository.save(order)
             return PaymentApprovalResult.Failure(ErrorCode.PAYMENT_QUANTITY_EXCEEDED)
@@ -404,6 +421,23 @@ class PaymentService(
     private fun transactionTemplate(): TransactionTemplate =
         TransactionTemplate(transactionManager)
 
+    private fun <T> withGroupBuyLock(groupBuyId: Long, action: () -> T): T {
+        val key = redisLockUtil.lockKey(groupBuyId)
+        log.debug("[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}", groupBuyId, key)
+        val token = redisLockUtil.tryLockOrThrow(key, waitMs = LOCK_WAIT_MS, leaseMs = LOCK_LEASE_MS)
+        log.debug("[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}", groupBuyId, key)
+        try {
+            return action()
+        } finally {
+            val unlocked = redisLockUtil.unlock(key, token)
+            if (!unlocked) {
+                log.warn("[PaymentService] 공구 락 해제 실패: groupBuyId={}, key={}", groupBuyId, key)
+            } else {
+                log.debug("[PaymentService] 공구 락 해제 성공: groupBuyId={}, key={}", groupBuyId, key)
+            }
+        }
+    }
+
     private fun requiresNewTransactionTemplate(): TransactionTemplate =
         TransactionTemplate(transactionManager).apply {
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRES_NEW
@@ -421,6 +455,8 @@ class PaymentService(
     )
 
     companion object {
+        private const val LOCK_WAIT_MS = 500L
+        private const val LOCK_LEASE_MS = 10_000L
         private const val PORTONE_STATUS_PAID = "PAID"
         private const val PORTONE_STATUS_FAILED = "FAILED"
         private const val PORTONE_STATUS_CANCELLED = "CANCELLED"

@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -33,7 +34,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -72,6 +76,9 @@ class PaymentServiceTest {
     @Mock
     private lateinit var transactionStatus: TransactionStatus
 
+    @Mock
+    private lateinit var redisLockUtil: RedisLockUtil
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
@@ -88,6 +95,7 @@ class PaymentServiceTest {
             portOnePaymentPort = portOnePaymentPort,
             portOneProperties = portOneProperties,
             transactionManager = transactionManager,
+            redisLockUtil = redisLockUtil,
         )
     }
 
@@ -162,7 +170,31 @@ class PaymentServiceTest {
         assertEquals(ParticipationStatus.PAID_WAITING_GOAL, result.participationStatus)
         assertEquals(38, groupBuy.currentQuantity)
         assertEquals(PaymentOrderStatus.APPROVED, order.status)
+        verify(redisLockUtil).lockKey(10L)
+        verify(redisLockUtil).tryLockOrThrow("groupBuy:10", LOCK_WAIT_MS, LOCK_LEASE_MS)
+        verify(redisLockUtil).unlock("groupBuy:10", "lock-token")
         verify(paymentRepository).save(any())
+    }
+
+    @Test
+    fun `락 획득 실패 시 GROUPBUY_LOCK_ACQUISITION_FAILED 예외를 전파한다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(currentQuantity = 36)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 12000, "CARD", LocalDateTime.now()))
+        `when`(redisLockUtil.lockKey(10L)).thenReturn("groupBuy:10")
+        `when`(redisLockUtil.tryLockOrThrow("groupBuy:10", LOCK_WAIT_MS, LOCK_LEASE_MS))
+            .thenThrow(CustomException(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED))
+
+        val ex = assertThrows<CustomException> {
+            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000))
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED, ex.errorCode)
+        verify(redisLockUtil).lockKey(10L)
     }
 
     @Test
@@ -312,6 +344,9 @@ class PaymentServiceTest {
 
     private fun stubTransaction() {
         `when`(transactionManager.getTransaction(any(TransactionDefinition::class.java))).thenReturn(transactionStatus)
+        lenient().`when`(redisLockUtil.lockKey(anyLong())).thenAnswer { "groupBuy:${it.arguments[0]}" }
+        lenient().`when`(redisLockUtil.tryLockOrThrow(anyString(), anyLong(), anyLong())).thenReturn("lock-token")
+        lenient().`when`(redisLockUtil.unlock(anyString(), anyString())).thenReturn(true)
     }
 
     private fun createOrderRequest(
@@ -389,4 +424,9 @@ class PaymentServiceTest {
             desiredQuantity = 50,
             desiredPickupDate = LocalDate.now().plusDays(5)
         ).apply { id = 20L }
+
+    companion object {
+        private const val LOCK_WAIT_MS = 500L
+        private const val LOCK_LEASE_MS = 10_000L
+    }
 }
