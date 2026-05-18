@@ -54,6 +54,12 @@ naver:
     client-id: ${NAVER_CLIENT_ID:local-client-id}
     client-secret: ${NAVER_CLIENT_SECRET:local-client-secret}
 
+portone:
+  store-id: ${PORTONE_STORE_ID:store-dummy}
+  channel-key: ${PORTONE_CHANNEL_KEY:channel-dummy}
+  api-secret: ${PORTONE_API_SECRET:portone-api-secret-dummy}
+  payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+
 ses:
   enabled: ${SES_ENABLED:false}
   region: ${SES_REGION:ap-northeast-2}

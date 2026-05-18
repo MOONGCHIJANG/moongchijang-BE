@@ -19,6 +19,8 @@ spring:
     enabled: true
     locations:
       - classpath:db/migration
+    ignore-migration-patterns:
+      - "*:missing"
 
 app:
   s3:
@@ -51,6 +53,12 @@ naver:
   api:
     client-id: ${NAVER_CLIENT_ID:local-client-id}
     client-secret: ${NAVER_CLIENT_SECRET:local-client-secret}
+
+portone:
+  store-id: ${PORTONE_STORE_ID:store-dummy}
+  channel-key: ${PORTONE_CHANNEL_KEY:channel-dummy}
+  api-secret: ${PORTONE_API_SECRET:portone-api-secret-dummy}
+  payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
 
 ses:
   enabled: ${SES_ENABLED:false}
