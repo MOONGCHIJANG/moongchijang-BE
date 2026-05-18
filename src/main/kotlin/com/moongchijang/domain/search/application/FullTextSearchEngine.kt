@@ -31,19 +31,26 @@ class FullTextSearchEngine(
             return emptyResponse()
         }
 
-        val matches = groupBuyRepository.searchByFullText(
+        val ids = groupBuyRepository.searchIdsByFullText(
             query = booleanQuery,
             status = GroupBuyStatus.IN_PROGRESS.name,
             now = LocalDateTime.now(),
             limit = DEFAULT_LIMIT,
         )
+        if (ids.isEmpty()) {
+            return emptyResponse()
+        }
+
+        // store fetch join + 1차 쿼리의 deadline ASC 순서 보존
+        val byId = groupBuyRepository.findAllWithStoreByIdIn(ids).associateBy { it.id }
+        val matches = ids.mapNotNull { byId[it] }
 
         return SearchResponse(
             searchCase = SearchCase.NONE_DETECTED,
             detectedRegion = null,
             detectedProduct = null,
             confidence = 0.0,
-            uiState = if (matches.isEmpty()) SearchUiState.EMPTY_CAN_REQUEST else SearchUiState.RESULTS,
+            uiState = SearchUiState.RESULTS,
             totalCount = matches.size,
             results = matches.map { GroupBuyCardDto.from(it) },
         )

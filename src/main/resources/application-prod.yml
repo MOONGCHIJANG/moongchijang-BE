@@ -31,6 +31,12 @@ app:
     bucket: ${S3_BUCKET}
     prefix: ${S3_PREFIX}
 
+portone:
+  store-id: ${PORTONE_STORE_ID}
+  channel-key: ${PORTONE_CHANNEL_KEY}
+  api-secret: ${PORTONE_API_SECRET}
+  payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+
 oauth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID}

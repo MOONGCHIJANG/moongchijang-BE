@@ -1,8 +1,12 @@
 package com.moongchijang.domain.groupbuy.domain.repository
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
@@ -13,11 +17,31 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
     @EntityGraph(attributePaths = ["store"])
     fun findWithStoreById(id: Long): Optional<GroupBuy>
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        UPDATE GroupBuy gb
+        SET gb.currentQuantity = gb.currentQuantity + :quantity
+        WHERE gb.id = :groupBuyId
+        AND gb.status = :status
+        AND gb.deadline > CURRENT_TIMESTAMP
+        AND (gb.maxQuantity - gb.currentQuantity) >= :quantity
+        """
+    )
+    fun increaseCurrentQuantityIfAvailable(
+        @Param("groupBuyId") groupBuyId: Long,
+        @Param("quantity") quantity: Int,
+        @Param("status") status: GroupBuyStatus = GroupBuyStatus.IN_PROGRESS
+    ): Int
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    fun findWithLockById(id: Long): Optional<GroupBuy>
+
     /**
-     * ngram FULLTEXT 인덱스를 사용한 공구 검색.
+     * ngram FULLTEXT 인덱스로 매칭되는 공구 id 만 반환한다.
      *
-     * group_buys.product_name 매칭과 stores.name/address 매칭을 UNION 으로 합쳐
-     * 중복 제거한 뒤, status/deadline 으로 노출 가능한 공구만 반환한다.
+     * status/deadline 필터를 각 UNION 분기 안에 둬서 매칭 후 집계되는 임시 테이블 크기를 줄인다.
+     * store fetch 는 [findAllWithStoreByIdIn] 으로 별도 수행해 native + lazy 조합의 N+1 을 회피한다.
      *
      * @param query   FullTextQueryBuilder.toBooleanQuery 로 변환된 BOOLEAN MODE 쿼리. 빈 문자열이면 빈 결과.
      * @param status  노출 허용 상태 (보통 IN_PROGRESS)
@@ -26,24 +50,34 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
      */
     @Query(
         value = """
-            SELECT * FROM (
-                SELECT gb.* FROM group_buys gb
+            SELECT id FROM (
+                SELECT gb.id, gb.deadline FROM group_buys gb
                 WHERE MATCH(gb.product_name) AGAINST(:query IN BOOLEAN MODE)
+                  AND gb.status = :status
+                  AND gb.deadline > :now
                 UNION
-                SELECT gb.* FROM group_buys gb
+                SELECT gb.id, gb.deadline FROM group_buys gb
                 JOIN stores s ON gb.store_id = s.id
                 WHERE MATCH(s.name, s.address) AGAINST(:query IN BOOLEAN MODE)
+                  AND gb.status = :status
+                  AND gb.deadline > :now
             ) AS merged
-            WHERE merged.status = :status
-              AND merged.deadline > :now
+            ORDER BY merged.deadline ASC
             LIMIT :limit
         """,
         nativeQuery = true
     )
-    fun searchByFullText(
+    fun searchIdsByFullText(
         @Param("query") query: String,
         @Param("status") status: String,
         @Param("now") now: LocalDateTime,
         @Param("limit") limit: Int,
-    ): List<GroupBuy>
+    ): List<Long>
+
+    /**
+     * 주어진 id 목록의 GroupBuy 를 store 와 함께 한 번에 로드한다.
+     * [searchIdsByFullText] 후속 호출 용도. 빈 id 목록은 호출자가 가드한다.
+     */
+    @Query("SELECT gb FROM GroupBuy gb JOIN FETCH gb.store WHERE gb.id IN :ids")
+    fun findAllWithStoreByIdIn(@Param("ids") ids: Collection<Long>): List<GroupBuy>
 }

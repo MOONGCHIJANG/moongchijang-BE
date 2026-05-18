@@ -24,6 +24,12 @@ naver:
     client-id: test-naver-client-id
     client-secret: test-naver-client-secret
 
+portone:
+  store-id: store-test
+  channel-key: channel-test
+  api-secret: portone-api-secret-test
+  payment-api-base-url: https://api.portone.io
+
 coolsms:
   api-key: test-api-key
   api-secret: test-api-secret

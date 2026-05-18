@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.http.HttpMethod
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
@@ -36,12 +37,21 @@ class SecurityConfig(
                     "/api/v1/auth/refresh",
                     "/api/v1/auth/phone/verification-codes",
                     "/api/v1/auth/phone/verification-codes/verify",
+                    "/api/v1/payments/portone/webhook",
+                    "/openapi.yaml",
+                    "/dev/openapi.yaml",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                 ).permitAll()
+                it.requestMatchers(
+                    HttpMethod.GET,
+                    "/api/v1/group-buys",
+                    "/api/v1/group-buys/*",
+                    "/api/v1/group-buys/progress",
+                    "/api/v1/group-buys/*/progress",
+                ).permitAll()
 
-                // 개발 진행 시에는 모든 경로 허용 후 실제 배포 시 변경 필요
-                it.anyRequest().permitAll()
+                it.anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .formLogin { it.disable() }
@@ -57,7 +67,9 @@ class SecurityConfig(
         configuration.allowedOrigins = listOf(
             "http://localhost:3000",
             "http://localhost:5173",
-            "http://43.203.191.30"
+            "http://43.203.191.30",
+            "https://www.moongchijang.com",
+            "https://api.moongchijang.com"
         )
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept")

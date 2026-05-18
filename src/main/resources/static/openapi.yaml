@@ -582,6 +582,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseGroupBuyProgress'
 
+  /api/v1/group-buys/{groupBuyId}/viewers/heartbeat:
+    post:
+      tags: [GroupBuy]
+      summary: 활성 조회자 heartbeat 조회/갱신
+      description: |
+        공구 상세 화면 진입 시 및 체류 중 일정 주기(예: 20~30초)로 호출한다.
+        서버는 세션 TTL을 연장하고 최신 활성 조회자 수를 반환한다.
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupBuyViewerHeartbeatRequest'
+      responses:
+        '200':
+          description: 활성 조회자 수 조회/갱신 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGroupBuyViewerCount'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/group-buys/progress:
     get:
       tags: [GroupBuy]
@@ -864,10 +891,37 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
-  /api/v1/group-buys/{groupBuyId}/participations:
+  /api/v1/group-buys/{groupBuyId}/checkout:
+    get:
+      tags: [Participation]
+      summary: 참여하기 화면 결제 정보 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 참여 수량
+      responses:
+        '200':
+          description: 상품 요약 및 결제 금액 정보
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCheckoutInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/payment-orders:
     post:
       tags: [Participation]
-      summary: 공구 참여 (결제 요청 생성)
+      summary: PortOne 결제 주문 생성
       security:
         - bearerAuth: []
       parameters:
@@ -877,14 +931,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ParticipationCreate'
+              $ref: '#/components/schemas/PaymentOrderCreate'
       responses:
-        '201':
-          description: 참여 생성 및 결제 정보 반환
+        '200':
+          description: PortOne SDK 요청에 필요한 결제 주문 정보 반환
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseParticipationCreated'
+                $ref: '#/components/schemas/ApiResponsePaymentOrderCreated'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -892,12 +946,10 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
-  /api/v1/payments/confirm:
+  /api/v1/payments/portone/complete:
     post:
       tags: [Participation]
-      summary: PG 결제 성공 콜백 처리
-      security:
-        - bearerAuth: []
+      summary: PortOne 결제 완료 서버 검증
       requestBody:
         required: true
         content:
@@ -906,23 +958,34 @@ paths:
               $ref: '#/components/schemas/PaymentConfirm'
       responses:
         '200':
-          $ref: '#/components/responses/SuccessNoData'
+          description: 결제 검증 및 참여 확정 처리 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePaymentConfirmed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
-  /api/v1/payments/fail:
+  /api/v1/payments/portone/webhook:
     post:
       tags: [Participation]
-      summary: PG 결제 실패 콜백 처리
-      security:
-        - bearerAuth: []
+      summary: PortOne 결제 웹훅 수신
+      description: 웹훅 본문만 신뢰하지 않고 서버에서 PortOne 결제 단건 조회 후 상태를 동기화한다.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentFail'
+              $ref: '#/components/schemas/PortOneWebhook'
       responses:
         '200':
-          $ref: '#/components/responses/SuccessNoData'
+          description: 웹훅 수신 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePortOneWebhook'
 
   /api/v1/participations/{participationId}/cancel:
     post:
@@ -2052,6 +2115,40 @@ components:
             canParticipate: { type: boolean }
         error: { nullable: true, example: null }
 
+    GroupBuyViewerHeartbeatRequest:
+      type: object
+      required: [viewerSessionId]
+      properties:
+        viewerSessionId:
+          type: string
+          description: 클라이언트가 생성/보관하는 조회 세션 식별자(UUID 권장)
+          minLength: 8
+          maxLength: 128
+          example: c89f364e-ef03-40f8-905f-f9a4de2d6d5e
+
+    ApiResponseGroupBuyViewerCount:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [activeViewerCount, showFomoBadge, threshold]
+          properties:
+            activeViewerCount:
+              type: integer
+              minimum: 0
+              example: 12
+            showFomoBadge:
+              type: boolean
+              description: FOMO 문구/뱃지 노출 여부 (activeViewerCount >= threshold)
+              example: true
+            threshold:
+              type: integer
+              description: 노출 기준 인원 수
+              example: 10
+        error: { nullable: true, example: null }
+
     RegionType:
       type: string
       enum: [NATIONWIDE, SEOUL, GYEONGGI, INCHEON, GANGWON, DAEJEON, SEJONG, CHUNGNAM, CHUNGBUK, BUSAN, ULSAN, GYEONGNAM, GYEONGBUK, DAEGU, GWANGJU, JEONNAM, JEONBUK, JEJU]
@@ -2350,22 +2447,11 @@ components:
     # ── Participation ──────────────────────────────────────────
     ParticipationCreate:
       type: object
-      required: [quantity, agreedTerms]
+      required: [quantity]
       properties:
         quantity:
           type: integer
           minimum: 1
-        agreedTerms:
-          type: array
-          items:
-            type: string
-            enum:
-              - NO_CANCEL_AFTER_ACHIEVED
-              - FULL_REFUND_BEFORE_ACHIEVED
-              - NO_REFUND_IF_NOT_PICKED_UP
-              - NO_WITHDRAWAL_RIGHT
-          minItems: 4
-          description: 4개 항목 모두 포함 필수
 
     ApiResponseParticipationCreated:
       type: object
@@ -2385,7 +2471,7 @@ components:
 
     PaymentConfirm:
       type: object
-      required: [paymentId, participationId, amount]
+      required: [paymentId, amount]
       description: |
         포트원 v2 + 토스페이먼츠 결제 성공 후 서버 검증 요청.
         클라이언트가 PortOne.requestPayment() 완료 시 반환된 paymentId를 전달한다.
@@ -2393,23 +2479,98 @@ components:
       properties:
         paymentId:
           type: string
-          format: uuid
-          description: 포트원 결제 ID (클라이언트가 UUID로 생성하여 SDK 호출 시 사용한 값)
-        participationId: { type: integer, format: int64 }
+          description: 서버가 결제 주문 생성 시 반환한 PortOne paymentId
         amount: { type: integer, description: 결제 요청 금액 — 서버 저장값과 불일치 시 위변조로 처리 }
 
-    PaymentFail:
+    PaymentOrderCreate:
       type: object
-      required: [paymentId, participationId, errorCode, message]
-      description: 포트원 v2 결제 실패/취소 콜백 처리
+      required: [quantity, agreedNoCancelAfterGoal, agreedRefundBeforeGoal, agreedNoRefundAfterNoShow, agreedNoWithdrawal]
       properties:
-        paymentId:
-          type: string
-          format: uuid
-          description: 포트원 결제 ID
-        participationId: { type: integer, format: int64 }
-        errorCode: { type: string, description: 포트원/토스페이먼츠 오류 코드 }
-        message: { type: string, nullable: true, description: 오류 메시지 }
+        quantity: { type: integer, minimum: 1 }
+        agreedNoCancelAfterGoal: { type: boolean, description: 달성 후 취소 불가 동의 }
+        agreedRefundBeforeGoal: { type: boolean, description: 달성 전 이탈 시 전액 환불 동의 }
+        agreedNoRefundAfterNoShow: { type: boolean, description: 미수령 환불 불가 동의 }
+        agreedNoWithdrawal: { type: boolean, description: 청약철회 불가 동의 }
+
+    ApiResponseCheckoutInfo:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [groupBuyId, storeName, productName, thumbnailUrl, pickupDate, pickupTimeStart, pickupTimeEnd, unitPrice, quantity, productAmount, feeAmount, totalAmount, remainingQuantity]
+          properties:
+            groupBuyId: { type: integer, format: int64 }
+            storeName: { type: string }
+            productName: { type: string }
+            thumbnailUrl: { type: string, nullable: true }
+            pickupDate: { type: string, format: date }
+            pickupTimeStart: { type: string, example: "14:00:00" }
+            pickupTimeEnd: { type: string, example: "18:00:00" }
+            unitPrice: { type: integer }
+            quantity: { type: integer }
+            productAmount: { type: integer }
+            feeAmount: { type: integer, example: 0 }
+            totalAmount: { type: integer }
+            remainingQuantity: { type: integer }
+        error: { nullable: true, example: null }
+
+    ApiResponsePaymentOrderCreated:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [paymentId, storeId, channelKey, orderName, amount, customerName]
+          properties:
+            paymentId: { type: string, description: PortOne SDK requestPayment에 전달할 paymentId }
+            storeId: { type: string }
+            channelKey: { type: string }
+            orderName: { type: string }
+            amount: { type: integer }
+            customerName: { type: string, nullable: true }
+        error: { nullable: true, example: null }
+
+    ApiResponsePaymentConfirmed:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [paymentId, participationId, participationStatus, displayStatus, amount, approvedAt]
+          properties:
+            paymentId: { type: string }
+            participationId: { type: integer, format: int64 }
+            participationStatus:
+              type: string
+              enum: [PAID_WAITING_GOAL, CONFIRMED]
+            displayStatus: { type: string, example: "참여중 / 달성 전" }
+            amount: { type: integer }
+            method: { type: string, nullable: true, example: CARD }
+            approvedAt: { type: string, format: date-time }
+        error: { nullable: true, example: null }
+
+    PortOneWebhook:
+      type: object
+      properties:
+        type: { type: string, nullable: true, example: Transaction.Paid }
+        storeId: { type: string, nullable: true }
+        paymentId: { type: string, nullable: true }
+
+    ApiResponsePortOneWebhook:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [received]
+          properties:
+            received: { type: boolean, example: true }
+        error: { nullable: true, example: null }
 
     ApiResponseRefundList:
       type: object
