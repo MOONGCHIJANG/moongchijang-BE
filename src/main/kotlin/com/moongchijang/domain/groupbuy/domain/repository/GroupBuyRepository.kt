@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.LocalDateTime
 import java.util.Optional
 
 interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepositoryCustom {
@@ -23,7 +24,7 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         SET gb.currentQuantity = gb.currentQuantity + :quantity
         WHERE gb.id = :groupBuyId
         AND gb.status = :status
-        AND gb.deadline > CURRENT_TIMESTAMP 
+        AND gb.deadline > CURRENT_TIMESTAMP
         AND (gb.maxQuantity - gb.currentQuantity) >= :quantity
         """
     )
@@ -35,4 +36,48 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     fun findWithLockById(id: Long): Optional<GroupBuy>
+
+    /**
+     * ngram FULLTEXT 인덱스로 매칭되는 공구 id 만 반환한다.
+     *
+     * status/deadline 필터를 각 UNION 분기 안에 둬서 매칭 후 집계되는 임시 테이블 크기를 줄인다.
+     * store fetch 는 [findAllWithStoreByIdIn] 으로 별도 수행해 native + lazy 조합의 N+1 을 회피한다.
+     *
+     * @param query   FullTextQueryBuilder.toBooleanQuery 로 변환된 BOOLEAN MODE 쿼리. 빈 문자열이면 빈 결과.
+     * @param status  노출 허용 상태 (보통 IN_PROGRESS)
+     * @param now     마감 비교 기준 시각 (deadline > now 인 공구만 반환)
+     * @param limit   반환할 최대 결과 수
+     */
+    @Query(
+        value = """
+            SELECT id FROM (
+                SELECT gb.id, gb.deadline FROM group_buys gb
+                WHERE MATCH(gb.product_name) AGAINST(:query IN BOOLEAN MODE)
+                  AND gb.status = :status
+                  AND gb.deadline > :now
+                UNION
+                SELECT gb.id, gb.deadline FROM group_buys gb
+                JOIN stores s ON gb.store_id = s.id
+                WHERE MATCH(s.name, s.address) AGAINST(:query IN BOOLEAN MODE)
+                  AND gb.status = :status
+                  AND gb.deadline > :now
+            ) AS merged
+            ORDER BY merged.deadline ASC
+            LIMIT :limit
+        """,
+        nativeQuery = true
+    )
+    fun searchIdsByFullText(
+        @Param("query") query: String,
+        @Param("status") status: String,
+        @Param("now") now: LocalDateTime,
+        @Param("limit") limit: Int,
+    ): List<Long>
+
+    /**
+     * 주어진 id 목록의 GroupBuy 를 store 와 함께 한 번에 로드한다.
+     * [searchIdsByFullText] 후속 호출 용도. 빈 id 목록은 호출자가 가드한다.
+     */
+    @Query("SELECT gb FROM GroupBuy gb JOIN FETCH gb.store WHERE gb.id IN :ids")
+    fun findAllWithStoreByIdIn(@Param("ids") ids: Collection<Long>): List<GroupBuy>
 }
