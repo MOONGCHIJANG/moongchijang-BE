@@ -171,7 +171,7 @@ class PaymentServiceTest {
         assertEquals(38, groupBuy.currentQuantity)
         assertEquals(PaymentOrderStatus.APPROVED, order.status)
         verify(redisLockUtil).lockKey(10L)
-        verify(redisLockUtil).tryLockOrThrow("groupBuy:10", 500, 3_000)
+        verify(redisLockUtil).tryLockOrThrow("groupBuy:10", LOCK_WAIT_MS, LOCK_LEASE_MS)
         verify(redisLockUtil).unlock("groupBuy:10", "lock-token")
         verify(paymentRepository).save(any())
     }
@@ -186,7 +186,7 @@ class PaymentServiceTest {
         `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
             .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 12000, "CARD", LocalDateTime.now()))
         `when`(redisLockUtil.lockKey(10L)).thenReturn("groupBuy:10")
-        `when`(redisLockUtil.tryLockOrThrow("groupBuy:10", 500, 3_000))
+        `when`(redisLockUtil.tryLockOrThrow("groupBuy:10", LOCK_WAIT_MS, LOCK_LEASE_MS))
             .thenThrow(CustomException(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED))
 
         val ex = assertThrows<CustomException> {
@@ -424,4 +424,9 @@ class PaymentServiceTest {
             desiredQuantity = 50,
             desiredPickupDate = LocalDate.now().plusDays(5)
         ).apply { id = 20L }
+
+    companion object {
+        private const val LOCK_WAIT_MS = 500L
+        private const val LOCK_LEASE_MS = 10_000L
+    }
 }

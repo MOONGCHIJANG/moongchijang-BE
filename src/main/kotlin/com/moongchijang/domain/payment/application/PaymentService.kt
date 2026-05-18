@@ -424,7 +424,7 @@ class PaymentService(
     private fun <T> withGroupBuyLock(groupBuyId: Long, action: () -> T): T {
         val key = redisLockUtil.lockKey(groupBuyId)
         log.debug("[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}", groupBuyId, key)
-        val token = redisLockUtil.tryLockOrThrow(key, waitMs = 500, leaseMs = 10_000)
+        val token = redisLockUtil.tryLockOrThrow(key, waitMs = LOCK_WAIT_MS, leaseMs = LOCK_LEASE_MS)
         log.debug("[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}", groupBuyId, key)
         try {
             return action()
@@ -455,6 +455,8 @@ class PaymentService(
     )
 
     companion object {
+        private const val LOCK_WAIT_MS = 500L
+        private const val LOCK_LEASE_MS = 10_000L
         private const val PORTONE_STATUS_PAID = "PAID"
         private const val PORTONE_STATUS_FAILED = "FAILED"
         private const val PORTONE_STATUS_CANCELLED = "CANCELLED"
