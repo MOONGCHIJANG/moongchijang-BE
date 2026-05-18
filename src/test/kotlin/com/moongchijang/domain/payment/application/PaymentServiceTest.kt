@@ -170,7 +170,31 @@ class PaymentServiceTest {
         assertEquals(ParticipationStatus.PAID_WAITING_GOAL, result.participationStatus)
         assertEquals(38, groupBuy.currentQuantity)
         assertEquals(PaymentOrderStatus.APPROVED, order.status)
+        verify(redisLockUtil).lockKey(10L)
+        verify(redisLockUtil).tryLockOrThrow("groupBuy:10", 500, 3_000)
+        verify(redisLockUtil).unlock("groupBuy:10", "lock-token")
         verify(paymentRepository).save(any())
+    }
+
+    @Test
+    fun `락 획득 실패 시 GROUPBUY_LOCK_ACQUISITION_FAILED 예외를 전파한다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(currentQuantity = 36)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 12000, "CARD", LocalDateTime.now()))
+        `when`(redisLockUtil.lockKey(10L)).thenReturn("groupBuy:10")
+        `when`(redisLockUtil.tryLockOrThrow("groupBuy:10", 500, 3_000))
+            .thenThrow(CustomException(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED))
+
+        val ex = assertThrows<CustomException> {
+            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000))
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED, ex.errorCode)
+        verify(redisLockUtil).lockKey(10L)
     }
 
     @Test
