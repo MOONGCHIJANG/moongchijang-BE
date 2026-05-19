@@ -9,5 +9,6 @@ data class SearchResponse(
     val confidence: Double = 0.0,
     val uiState: SearchUiState = SearchUiState.NEED_BOTH,
     val totalCount: Int,
-    val results: List<GroupBuyCardDto>
+    val results: List<GroupBuyCardDto>,
+    val recommendedStores: List<RecommendedStoreDto>? = null,
 )
