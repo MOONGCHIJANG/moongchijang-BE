@@ -10,6 +10,7 @@ import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 
 @Component
 class PortOnePaymentClient(
@@ -30,14 +31,20 @@ class PortOnePaymentClient(
             throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
         }
 
-        return PortOnePaymentResult(
-            paymentId = response["id"] as? String ?: paymentId,
-            status = response["status"] as? String ?: "",
-            totalAmount = extractTotalAmount(response),
-            method = extractPaymentMethod(response),
-            paidAt = parseDateTime(response["paidAt"] as? String ?: response["approvedAt"] as? String),
-            cancelledAt = parseDateTime(response["cancelledAt"] as? String ?: response["canceledAt"] as? String),
-        )
+        return try {
+            PortOnePaymentResult(
+                paymentId = response["id"] as? String ?: paymentId,
+                status = response["status"] as? String ?: "",
+                totalAmount = extractTotalAmount(response),
+                method = extractPaymentMethod(response),
+                paidAt = parseDateTime(response["paidAt"] as? String ?: response["approvedAt"] as? String),
+                cancelledAt = parseDateTime(response["cancelledAt"] as? String ?: response["canceledAt"] as? String),
+            )
+        } catch (e: CustomException) {
+            throw e
+        } catch (e: RuntimeException) {
+            throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -58,6 +65,12 @@ class PortOnePaymentClient(
     }
 
     private fun parseDateTime(value: String?): LocalDateTime? {
-        return value?.let { OffsetDateTime.parse(it).toLocalDateTime() }
+        return value?.let {
+            try {
+                OffsetDateTime.parse(it).toLocalDateTime()
+            } catch (e: DateTimeParseException) {
+                LocalDateTime.parse(it)
+            }
+        }
     }
 }
