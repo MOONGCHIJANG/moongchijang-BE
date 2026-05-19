@@ -40,6 +40,8 @@ class PortOnePaymentClient(
                 paidAt = parseDateTime(response["paidAt"] as? String ?: response["approvedAt"] as? String),
                 cancelledAt = parseDateTime(response["cancelledAt"] as? String ?: response["canceledAt"] as? String),
             )
+        } catch (e: CustomException) {
+            throw e
         } catch (e: RuntimeException) {
             throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
         }
