@@ -1,5 +1,6 @@
 package com.moongchijang.domain.search.application
 
+import com.moongchijang.domain.search.application.dto.RecommendedStoreDto
 import com.moongchijang.domain.search.application.dto.SearchResponse
 import com.moongchijang.domain.search.domain.SearchUiState
 import com.moongchijang.domain.search.infrastructure.SearchHistoryRepository
@@ -66,7 +67,7 @@ class SearchService(
     private fun enrichWithRecommendation(query: String, response: SearchResponse): SearchResponse {
         if (response.uiState != SearchUiState.EMPTY_CAN_REQUEST) return response
         val stores = try {
-            storeSearchService.search(query).stores
+            storeSearchService.search(query).stores.map(RecommendedStoreDto::from)
         } catch (e: Exception) {
             log.warn("Naver Local 매장 추천 실패, 빈 추천으로 대체 query=$query", e)
             emptyList()
