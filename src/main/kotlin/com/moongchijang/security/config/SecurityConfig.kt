@@ -35,6 +35,7 @@ class SecurityConfig(
                     "/health",
                     "/api/v1/auth/kakao",
                     "/api/v1/auth/refresh",
+                    "/api/v1/auth/email/**",
                     "/api/v1/auth/phone/verification-codes",
                     "/api/v1/auth/phone/verification-codes/verify",
                     "/api/v1/payments/portone/webhook",
