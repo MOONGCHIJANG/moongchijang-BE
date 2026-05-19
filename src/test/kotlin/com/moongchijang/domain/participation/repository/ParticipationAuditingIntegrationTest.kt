@@ -11,20 +11,24 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.global.config.QuerydslConfig
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
+import org.springframework.context.annotation.Import
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Transactional
+@DataJpaTest(
+    properties = [
+        "spring.flyway.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+    ]
+)
+@Import(QuerydslConfig::class)
 class ParticipationAuditingIntegrationTest {
 
     @Autowired
@@ -33,7 +37,7 @@ class ParticipationAuditingIntegrationTest {
     @Test
     fun `참여 저장 시 감사 시간이 채워진다`() {
         val user = persistUser()
-        val groupBuy = persistGroupBuy()
+        val groupBuy = persistGroupBuy(user.id!!)
         val participation = Participation(
             user = user,
             groupBuy = groupBuy,
@@ -64,7 +68,7 @@ class ParticipationAuditingIntegrationTest {
         return user
     }
 
-    private fun persistGroupBuy(): GroupBuy {
+    private fun persistGroupBuy(userId: Long): GroupBuy {
         val store = Store(
             name = "테스트 매장",
             address = "서울 성동구",
@@ -74,7 +78,7 @@ class ParticipationAuditingIntegrationTest {
         em.persist(store)
 
         val request = GroupBuyRequest(
-            userId = 1L,
+            userId = userId,
             storeName = "테스트 매장",
             storeAddress = "서울 성동구",
             productName = "테스트 상품",
