@@ -79,8 +79,8 @@ jobs:
           git push origin "$BRANCH_NAME"
 
       - name: Update issue title
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: "update-issue"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue edit "${{ github.event.issue.number }}" \
+            --title "[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}"
