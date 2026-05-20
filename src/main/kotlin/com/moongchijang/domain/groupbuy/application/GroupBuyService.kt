@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class GroupBuyService(
@@ -85,7 +86,7 @@ class GroupBuyService(
             participationRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
         } ?: false
 
-        val isClosed = groupBuy.status != GroupBuyStatus.IN_PROGRESS
+        val isClosed = groupBuy.status != GroupBuyStatus.IN_PROGRESS || groupBuy.deadline.isBefore(LocalDateTime.now())
         val canParticipate = !isClosed && !isParticipated
 
         log.info(
