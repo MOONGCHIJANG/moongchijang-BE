@@ -328,11 +328,11 @@ class PaymentService(
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
 
-        updateOrderAndPaymentCancellationState(order, payment, cancelledAt, partial)
-
         if (!partial) {
             applyParticipationRefundConsistency(order, cancelledAt)
         }
+
+        updateOrderAndPaymentCancellationState(order, payment, cancelledAt, partial)
     }
 
     private fun updateOrderAndPaymentCancellationState(
@@ -364,6 +364,7 @@ class PaymentService(
 
         // 취소 반영 시점의 최신 공구 상태를 락으로 재확인해서 수량 차감 정합성을 맞춘다.
         val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id).orElse(participation.groupBuy)
+        validateRefundEligibility(groupBuy, order)
         val beforeQuantity = groupBuy.currentQuantity
         groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
         participation.status = ParticipationStatus.REFUNDED
@@ -387,6 +388,16 @@ class PaymentService(
                 "[PaymentService] 환불로 공구 상태 조정: groupBuyId={}, ACHIEVED->IN_PROGRESS, currentQuantity={}, targetQuantity={}",
                 groupBuy.id, groupBuy.currentQuantity, groupBuy.targetQuantity
             )
+        }
+    }
+
+    private fun validateRefundEligibility(groupBuy: GroupBuy, order: PaymentOrder) {
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
+            log.info(
+                "[PaymentService] 환불 거절(달성 완료): orderId={}, groupBuyId={}, status={}",
+                order.orderId, groupBuy.id, groupBuy.status
+            )
+            throw CustomException(ErrorCode.PAYMENT_REFUND_NOT_ALLOWED_AFTER_ACHIEVED)
         }
     }
 

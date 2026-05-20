@@ -107,4 +107,5 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PAYMENT_APPROVAL_FAILED(502_350, "결제 승인에 실패했습니다.", 502),
     PAYMENT_DUPLICATE_PARTICIPATION(409_352, "이미 참여한 공구입니다.", 409),
     PAYMENT_WEBHOOK_INVALID(400_354, "결제 웹훅 요청이 올바르지 않습니다.", 400),
+    PAYMENT_REFUND_NOT_ALLOWED_AFTER_ACHIEVED(409_355, "달성 완료된 공구는 환불할 수 없습니다.", 409),
 }

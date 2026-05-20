@@ -392,6 +392,59 @@ class PaymentServiceTest {
         assertEquals(refundedAt, participation.refundedAt)
     }
 
+    @Test
+    fun `웹훅 취소 시 달성 완료 공구는 환불 거절`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(currentQuantity = 50, status = GroupBuyStatus.ACHIEVED)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val payment = Payment(
+            paymentOrder = order,
+            pgPaymentId = order.orderId,
+            orderId = order.orderId,
+            amount = order.totalAmount,
+            method = "CARD",
+            approvedAt = order.approvedAt!!,
+        )
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 1,
+            productAmount = 6000,
+            feeAmount = 0,
+            totalAmount = 6000,
+            status = ParticipationStatus.CONFIRMED,
+        )
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "MCJ-10-test",
+                    status = "CANCELLED",
+                    totalAmount = 6000,
+                    method = "CARD",
+                    paidAt = order.approvedAt,
+                    cancelledAt = LocalDateTime.of(2026, 5, 19, 10, 0),
+                )
+            )
+        `when`(paymentRepository.findByPaymentOrderOrderId("MCJ-10-test")).thenReturn(payment)
+        `when`(participationRepository.findByUserIdAndGroupBuyId(1L, 10L)).thenReturn(participation)
+        `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
+
+        val ex = assertThrows<CustomException> {
+            service.handlePortOneWebhook(PortOneWebhookRequest(storeId = "store-test", paymentId = "MCJ-10-test"))
+        }
+
+        assertEquals(ErrorCode.PAYMENT_REFUND_NOT_ALLOWED_AFTER_ACHIEVED, ex.errorCode)
+        assertEquals(PaymentOrderStatus.APPROVED, order.status)
+        assertEquals(PaymentStatus.APPROVED, payment.status)
+        assertEquals(ParticipationStatus.CONFIRMED, participation.status)
+        assertEquals(50, groupBuy.currentQuantity)
+    }
+
     private fun stubTransaction() {
         `when`(transactionManager.getTransaction(any(TransactionDefinition::class.java))).thenReturn(transactionStatus)
         lenient().`when`(redisLockUtil.lockKey(anyLong())).thenAnswer { "groupBuy:${it.arguments[0]}" }
