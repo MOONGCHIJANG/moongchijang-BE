@@ -115,11 +115,13 @@ class PaymentService(
         )
     }
 
-    fun completePortOnePayment(request: CompletePortOnePaymentRequest): ConfirmPaymentResponse {
+    fun completePortOnePayment(request: CompletePortOnePaymentRequest, userId: Long): ConfirmPaymentResponse {
         val order = transactionTemplate().execute {
-            paymentOrderRepository.findByOrderId(request.paymentId)
-        }
-            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+            val foundOrder = paymentOrderRepository.findByOrderId(request.paymentId)
+                ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+            validatePaymentOrderOwner(foundOrder, userId)
+            foundOrder
+        } ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
         if (order.status == PaymentOrderStatus.APPROVED) {
             return transactionTemplate().execute {
@@ -154,6 +156,12 @@ class PaymentService(
         return when (result) {
             is PaymentApprovalResult.Success -> result.response
             is PaymentApprovalResult.Failure -> throw CustomException(result.errorCode)
+        }
+    }
+
+    private fun validatePaymentOrderOwner(order: PaymentOrder, userId: Long) {
+        if (order.user.id != userId) {
+            throw CustomException(ErrorCode.PAYMENT_ORDER_FORBIDDEN)
         }
     }
 

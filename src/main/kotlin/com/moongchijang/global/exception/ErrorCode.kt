@@ -102,6 +102,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PAYMENT_QUANTITY_EXCEEDED(409_350, "참여 가능 수량을 초과했습니다.", 409),
     PAYMENT_AGREEMENT_REQUIRED(400_352, "필수 동의가 필요합니다.", 400),
     PAYMENT_ORDER_NOT_FOUND(404_350, "결제 주문을 찾을 수 없습니다.", 404),
+    PAYMENT_ORDER_FORBIDDEN(403_350, "본인의 결제 주문만 처리할 수 있습니다.", 403),
     PAYMENT_ORDER_ALREADY_PROCESSED(409_351, "이미 처리된 결제 주문입니다.", 409),
     PAYMENT_AMOUNT_MISMATCH(400_353, "결제 금액이 일치하지 않습니다.", 400),
     PAYMENT_APPROVAL_FAILED(400_355, "결제 승인에 실패했습니다.", 400),

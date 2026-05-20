@@ -49,9 +49,11 @@ class PaymentController(
 
     @PostMapping("/payments/portone/complete")
     fun completePortOnePayment(
+        @AuthenticationPrincipal principal: CustomUserPrincipal?,
         @Valid @RequestBody request: CompletePortOnePaymentRequest,
     ): ResponseEntity<ApiResponse<ConfirmPaymentResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(paymentService.completePortOnePayment(request)))
+        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
+        return ResponseEntity.ok(ApiResponse.success(paymentService.completePortOnePayment(request, userId)))
     }
 
     @PostMapping("/payments/portone/webhook")
