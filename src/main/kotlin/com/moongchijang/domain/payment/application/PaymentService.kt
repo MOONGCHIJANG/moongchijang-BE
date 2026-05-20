@@ -184,17 +184,24 @@ class PaymentService(
             return
         }
 
-        transactionTemplate().execute {
-            val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
-            when (paymentResult.status) {
-                PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
-                PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
-                PORTONE_STATUS_FAILED -> {
-                    if (lockedOrder.status == PaymentOrderStatus.READY) {
-                        lockedOrder.fail(LocalDateTime.now())
-                        paymentOrderRepository.save(lockedOrder)
+        if (paymentResult.status == PORTONE_STATUS_CANCELLED || paymentResult.status == PORTONE_STATUS_PARTIAL_CANCELLED) {
+            withGroupBuyLock(order.groupBuy.id) {
+                transactionTemplate().execute {
+                    val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                    when (paymentResult.status) {
+                        PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
+                        PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
                     }
                 }
+            }
+            return
+        }
+
+        transactionTemplate().execute {
+            val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+            if (paymentResult.status == PORTONE_STATUS_FAILED && lockedOrder.status == PaymentOrderStatus.READY) {
+                lockedOrder.fail(LocalDateTime.now())
+                paymentOrderRepository.save(lockedOrder)
             }
         }
     }
