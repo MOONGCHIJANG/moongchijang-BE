@@ -63,7 +63,7 @@ data class GroupBuyFeedItemResponse(
 ) {
     companion object {
         fun from(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): GroupBuyFeedItemResponse {
-            val dDay = ChronoUnit.DAYS.between(now, groupBuy.deadline).toInt()
+            val dDay = ChronoUnit.DAYS.between(now.toLocalDate(), groupBuy.deadline.toLocalDate()).toInt()
             val rate = calculateAchievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
 
             return GroupBuyFeedItemResponse(
