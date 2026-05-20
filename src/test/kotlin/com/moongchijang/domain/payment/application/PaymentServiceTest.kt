@@ -294,17 +294,7 @@ class PaymentServiceTest {
     fun `웹훅 취소 상태는 결제와 참여를 환불 처리`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy()
-        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1).apply {
-            approve(LocalDateTime.now().minusMinutes(5))
-        }
-        val payment = Payment(
-            paymentOrder = order,
-            pgPaymentId = order.orderId,
-            orderId = order.orderId,
-            amount = order.totalAmount,
-            method = "CARD",
-            approvedAt = order.approvedAt!!,
-        )
+        val (order, payment) = createApprovedOrderAndPayment(user, groupBuy)
         val participation = Participation(
             user = user,
             groupBuy = groupBuy,
@@ -316,19 +306,7 @@ class PaymentServiceTest {
         )
         val cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 0)
         stubTransaction()
-        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
-        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
-        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
-            .thenReturn(
-                PortOnePaymentResult(
-                    paymentId = "MCJ-10-test",
-                    status = "CANCELLED",
-                    totalAmount = 6000,
-                    method = "CARD",
-                    paidAt = order.approvedAt,
-                    cancelledAt = cancelledAt,
-                )
-            )
+        stubCancelledWebhook(order, cancelledAt)
         `when`(paymentRepository.findByPaymentOrderOrderId("MCJ-10-test")).thenReturn(payment)
         `when`(participationRepository.findByUserIdAndGroupBuyId(1L, 10L)).thenReturn(participation)
         `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
@@ -346,17 +324,7 @@ class PaymentServiceTest {
     fun `웹훅 취소 재요청 시 이미 환불된 참여는 멱등 처리`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy(currentQuantity = 35)
-        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1).apply {
-            approve(LocalDateTime.now().minusMinutes(5))
-        }
-        val payment = Payment(
-            paymentOrder = order,
-            pgPaymentId = order.orderId,
-            orderId = order.orderId,
-            amount = order.totalAmount,
-            method = "CARD",
-            approvedAt = order.approvedAt!!,
-        )
+        val (order, payment) = createApprovedOrderAndPayment(user, groupBuy)
         val refundedAt = LocalDateTime.of(2026, 5, 18, 10, 0)
         val participation = Participation(
             user = user,
@@ -369,19 +337,7 @@ class PaymentServiceTest {
             refundedAt = refundedAt,
         )
         stubTransaction()
-        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
-        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
-        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
-            .thenReturn(
-                PortOnePaymentResult(
-                    paymentId = "MCJ-10-test",
-                    status = "CANCELLED",
-                    totalAmount = 6000,
-                    method = "CARD",
-                    paidAt = order.approvedAt,
-                    cancelledAt = LocalDateTime.of(2026, 5, 19, 10, 0),
-                )
-            )
+        stubCancelledWebhook(order, LocalDateTime.of(2026, 5, 19, 10, 0))
         `when`(paymentRepository.findByPaymentOrderOrderId("MCJ-10-test")).thenReturn(payment)
         `when`(participationRepository.findByUserIdAndGroupBuyId(1L, 10L)).thenReturn(participation)
 
@@ -396,17 +352,7 @@ class PaymentServiceTest {
     fun `웹훅 취소 시 달성 완료 공구는 환불 거절`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy(currentQuantity = 50, status = GroupBuyStatus.ACHIEVED)
-        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1).apply {
-            approve(LocalDateTime.now().minusMinutes(5))
-        }
-        val payment = Payment(
-            paymentOrder = order,
-            pgPaymentId = order.orderId,
-            orderId = order.orderId,
-            amount = order.totalAmount,
-            method = "CARD",
-            approvedAt = order.approvedAt!!,
-        )
+        val (order, payment) = createApprovedOrderAndPayment(user, groupBuy)
         val participation = Participation(
             user = user,
             groupBuy = groupBuy,
@@ -417,19 +363,7 @@ class PaymentServiceTest {
             status = ParticipationStatus.CONFIRMED,
         )
         stubTransaction()
-        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
-        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
-        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
-            .thenReturn(
-                PortOnePaymentResult(
-                    paymentId = "MCJ-10-test",
-                    status = "CANCELLED",
-                    totalAmount = 6000,
-                    method = "CARD",
-                    paidAt = order.approvedAt,
-                    cancelledAt = LocalDateTime.of(2026, 5, 19, 10, 0),
-                )
-            )
+        stubCancelledWebhook(order, LocalDateTime.of(2026, 5, 19, 10, 0))
         `when`(paymentRepository.findByPaymentOrderOrderId("MCJ-10-test")).thenReturn(payment)
         `when`(participationRepository.findByUserIdAndGroupBuyId(1L, 10L)).thenReturn(participation)
         `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
@@ -483,6 +417,37 @@ class PaymentServiceTest {
         agreedNoRefundAfterNoShow = true,
         agreedNoWithdrawal = true,
     )
+
+    private fun createApprovedOrderAndPayment(user: User, groupBuy: GroupBuy): Pair<PaymentOrder, Payment> {
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val payment = Payment(
+            paymentOrder = order,
+            pgPaymentId = order.orderId,
+            orderId = order.orderId,
+            amount = order.totalAmount,
+            method = "CARD",
+            approvedAt = order.approvedAt!!,
+        )
+        return order to payment
+    }
+
+    private fun stubCancelledWebhook(order: PaymentOrder, cancelledAt: LocalDateTime) {
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "MCJ-10-test",
+                    status = "CANCELLED",
+                    totalAmount = 6000,
+                    method = "CARD",
+                    paidAt = order.approvedAt,
+                    cancelledAt = cancelledAt,
+                )
+            )
+    }
 
     private fun createGroupBuy(
         id: Long = 10L,
