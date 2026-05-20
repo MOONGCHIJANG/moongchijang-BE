@@ -7,7 +7,6 @@ import com.moongchijang.domain.search.domain.SearchUiState
 import com.moongchijang.domain.search.infrastructure.SearchHistoryRepository
 import com.moongchijang.domain.store.application.StoreSearchService
 import com.moongchijang.domain.store.application.dto.StoreSearchResponse
-import com.moongchijang.global.config.SearchProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.assertj.core.api.Assertions.assertThat
@@ -23,10 +22,8 @@ import java.time.Duration
 
 class SearchServiceTest {
 
-    private val searchOrchestrator: SearchOrchestrator = Mockito.mock(SearchOrchestrator::class.java)
     private val fullTextSearchEngine: FullTextSearchEngine = Mockito.mock(FullTextSearchEngine::class.java)
     private val searchHistoryRepository: SearchHistoryRepository = Mockito.mock(SearchHistoryRepository::class.java)
-    private val searchIndexVersionService: SearchIndexVersionService = Mockito.mock(SearchIndexVersionService::class.java)
     private val storeSearchService: StoreSearchService = Mockito.mock(StoreSearchService::class.java)
     private val redisTemplate: StringRedisTemplate = Mockito.mock(StringRedisTemplate::class.java)
 
@@ -37,12 +34,9 @@ class SearchServiceTest {
     private val objectMapper = ObjectMapper()
 
     private val service = SearchService(
-        searchOrchestrator = searchOrchestrator,
         fullTextSearchEngine = fullTextSearchEngine,
         searchHistoryRepository = searchHistoryRepository,
-        searchIndexVersionService = searchIndexVersionService,
         storeSearchService = storeSearchService,
-        searchProperties = SearchProperties(engine = "fulltext"),
         redisTemplate = redisTemplate,
         objectMapper = objectMapper
     )
@@ -51,7 +45,6 @@ class SearchServiceTest {
     fun setUp() {
         Mockito.`when`(redisTemplate.opsForValue()).thenReturn(valueOperations)
         Mockito.`when`(valueOperations.get(anyString())).thenReturn(null)
-        Mockito.`when`(searchIndexVersionService.currentVersion()).thenReturn("v1")
     }
 
     private fun emptyResponse() = SearchResponse(
