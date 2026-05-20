@@ -363,7 +363,8 @@ class PaymentService(
         }
 
         // 취소 반영 시점의 최신 공구 상태를 락으로 재확인해서 수량 차감 정합성을 맞춘다.
-        val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id).orElse(participation.groupBuy)
+        val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
         validateRefundEligibility(groupBuy, order)
         val beforeQuantity = groupBuy.currentQuantity
         groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
