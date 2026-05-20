@@ -164,7 +164,7 @@ class PaymentServiceTest {
         }
         `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
 
-        val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000))
+        val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000), 1L)
 
         assertEquals(99L, result.participationId)
         assertEquals(ParticipationStatus.PAID_WAITING_GOAL, result.participationStatus)
@@ -190,11 +190,26 @@ class PaymentServiceTest {
             .thenThrow(CustomException(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED))
 
         val ex = assertThrows<CustomException> {
-            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000))
+            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000), 1L)
         }
 
         assertEquals(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED, ex.errorCode)
         verify(redisLockUtil).lockKey(10L)
+    }
+
+    @Test
+    fun `결제 완료 검증은 주문 소유자만 처리할 수 있다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy()
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+
+        val ex = assertThrows<CustomException> {
+            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000), 2L)
+        }
+
+        assertEquals(ErrorCode.PAYMENT_ORDER_FORBIDDEN, ex.errorCode)
     }
 
     @Test
@@ -218,7 +233,7 @@ class PaymentServiceTest {
         }
         `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
 
-        val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000))
+        val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000), 1L)
 
         assertEquals(ParticipationStatus.CONFIRMED, result.participationStatus)
         assertEquals(GroupBuyStatus.ACHIEVED, groupBuy.status)
@@ -238,7 +253,7 @@ class PaymentServiceTest {
         `when`(groupBuyRepository.increaseCurrentQuantityIfAvailable(10L, 2)).thenReturn(0)
 
         val ex = assertThrows<CustomException> {
-            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000))
+            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 12000), 1L)
         }
 
         assertEquals(ErrorCode.PAYMENT_QUANTITY_EXCEEDED, ex.errorCode)
