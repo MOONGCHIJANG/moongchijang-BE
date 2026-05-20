@@ -5,7 +5,6 @@ import com.moongchijang.domain.search.application.dto.SearchResponse
 import com.moongchijang.domain.search.domain.SearchUiState
 import com.moongchijang.domain.search.infrastructure.SearchHistoryRepository
 import com.moongchijang.domain.store.application.StoreSearchService
-import com.moongchijang.global.config.SearchProperties
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
@@ -17,12 +16,9 @@ import java.time.Duration
 @Service
 @Transactional(readOnly = true)
 class SearchService(
-    private val searchOrchestrator: SearchOrchestrator,
     private val fullTextSearchEngine: FullTextSearchEngine,
     private val searchHistoryRepository: SearchHistoryRepository,
-    private val searchIndexVersionService: SearchIndexVersionService,
     private val storeSearchService: StoreSearchService,
-    private val searchProperties: SearchProperties,
     private val redisTemplate: StringRedisTemplate,
     private val objectMapper: ObjectMapper
 ) {
@@ -30,9 +26,7 @@ class SearchService(
 
     companion object {
         private const val CACHE_TTL_MINUTES = 10L  // keys(*) 블로킹 대신 짧은 TTL로 freshness 확보
-        private const val ENGINE_FULLTEXT = "fulltext"
-        private fun cacheKey(query: String, engine: String, indexVersion: String) =
-            "search:result:$engine:$indexVersion:${sha256(query)}"
+        private fun cacheKey(query: String) = "search:result:${sha256(query)}"
 
         private fun sha256(value: String): String =
             MessageDigest.getInstance("SHA-256")
@@ -41,19 +35,13 @@ class SearchService(
     }
 
     fun search(query: String, userId: Long?): SearchResponse {
-        val engine = searchProperties.engine
-        val indexVersion = searchIndexVersionService.currentVersion()
-        val cacheKey = cacheKey(query, engine, indexVersion)
+        userId?.let { searchHistoryRepository.save(it, query) }
+
+        val cacheKey = cacheKey(query)
         val cached = redisTemplate.opsForValue().get(cacheKey)
         if (cached != null) return objectMapper.readValue(cached, SearchResponse::class.java)
 
-        userId?.let { searchHistoryRepository.save(it, query) }
-
-        val raw = when (engine) {
-            ENGINE_FULLTEXT -> fullTextSearchEngine.search(query)
-            else -> searchOrchestrator.search(query)
-        }
-        val response = enrichWithRecommendation(query, raw)
+        val response = enrichWithRecommendation(query, fullTextSearchEngine.search(query))
 
         redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), Duration.ofMinutes(CACHE_TTL_MINUTES))
         return response

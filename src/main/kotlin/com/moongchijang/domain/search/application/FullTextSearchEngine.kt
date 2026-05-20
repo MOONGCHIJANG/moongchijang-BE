@@ -11,11 +11,8 @@ import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
 /**
- * ngram FULLTEXT 인덱스만 사용하는 단순 검색 엔진.
- *
- * 기존 SearchOrchestrator (Gemini 키워드 추출 + Qdrant 벡터 + reranker) 와 달리
- * 외부 호출 없이 BOOLEAN MODE 쿼리만으로 결과를 반환한다.
- * 검색어가 BOOLEAN MODE 로 변환했을 때 토큰이 하나도 없으면 검색을 스킵한다.
+ * ngram FULLTEXT 인덱스 기반 검색 엔진.
+ * BOOLEAN MODE 쿼리로 변환한 토큰이 하나도 없으면 검색을 스킵한다.
  */
 @Component
 class FullTextSearchEngine(

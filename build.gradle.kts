@@ -41,7 +41,6 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.31.18"))
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:sesv2")
-    implementation("software.amazon.awssdk:sqs")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
 
     // JWT
@@ -52,10 +51,6 @@ dependencies {
     // Flyway
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-mysql")
-
-    // LangChain4j (검색 MVP)
-    implementation("dev.langchain4j:langchain4j:1.14.0")
-    implementation("dev.langchain4j:langchain4j-google-ai-gemini:1.14.0")
 
     // SOLAPI
     implementation("com.solapi:sdk:1.0.3")
