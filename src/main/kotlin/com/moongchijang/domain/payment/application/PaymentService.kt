@@ -328,26 +328,39 @@ class PaymentService(
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
 
+        updateOrderAndPaymentCancellationState(order, payment, cancelledAt, partial)
+
+        if (!partial) {
+            applyParticipationRefundConsistency(order, cancelledAt)
+        }
+    }
+
+    private fun updateOrderAndPaymentCancellationState(
+        order: PaymentOrder,
+        payment: Payment,
+        cancelledAt: LocalDateTime,
+        partial: Boolean
+    ) {
         if (partial) {
             order.partialCancel(cancelledAt)
-        } else {
-            order.cancel(cancelledAt)
+            payment.partialCancel(cancelledAt)
+            return
         }
 
-        if (partial) {
-            payment.partialCancel(cancelledAt)
-        } else {
-            payment.cancel(cancelledAt)
-            val userId = order.user.id ?: return
-            participationRepository.findByUserIdAndGroupBuyId(userId, order.groupBuy.id)?.let { participation ->
-                if (participation.status != ParticipationStatus.REFUNDED) {
-                    val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id).orElse(participation.groupBuy)
-                    groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
-                    participation.status = ParticipationStatus.REFUNDED
-                    participation.refundedAt = cancelledAt
-                }
-            }
-        }
+        order.cancel(cancelledAt)
+        payment.cancel(cancelledAt)
+    }
+
+    private fun applyParticipationRefundConsistency(order: PaymentOrder, cancelledAt: LocalDateTime) {
+        val userId = order.user.id ?: return
+        val participation = participationRepository.findByUserIdAndGroupBuyId(userId, order.groupBuy.id) ?: return
+        if (participation.status == ParticipationStatus.REFUNDED) return
+
+        // 취소 반영 시점의 최신 공구 상태를 락으로 재확인해서 수량 차감 정합성을 맞춘다.
+        val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id).orElse(participation.groupBuy)
+        groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
+        participation.status = ParticipationStatus.REFUNDED
+        participation.refundedAt = cancelledAt
     }
 
     private fun buildAlreadyApprovedResponse(order: PaymentOrder): ConfirmPaymentResponse {
