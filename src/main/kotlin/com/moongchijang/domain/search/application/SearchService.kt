@@ -35,11 +35,11 @@ class SearchService(
     }
 
     fun search(query: String, userId: Long?): SearchResponse {
+        userId?.let { searchHistoryRepository.save(it, query) }
+
         val cacheKey = cacheKey(query)
         val cached = redisTemplate.opsForValue().get(cacheKey)
         if (cached != null) return objectMapper.readValue(cached, SearchResponse::class.java)
-
-        userId?.let { searchHistoryRepository.save(it, query) }
 
         val response = enrichWithRecommendation(query, fullTextSearchEngine.search(query))
 

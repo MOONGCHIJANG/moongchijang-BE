@@ -130,4 +130,16 @@ class SearchServiceTest {
             Mockito.eq(Duration.ofMinutes(10L))
         )
     }
+
+    @Test
+    @DisplayName("캐시 히트 시에도 사용자 검색 이력은 기록된다")
+    fun `history is recorded even on cache hit`() {
+        val cached = objectMapper.writeValueAsString(resultsResponse())
+        Mockito.`when`(valueOperations.get(anyString())).thenReturn(cached)
+
+        service.search("소금빵", userId = 42L)
+
+        Mockito.verify(searchHistoryRepository).save(42L, "소금빵")
+        Mockito.verifyNoInteractions(fullTextSearchEngine)
+    }
 }
