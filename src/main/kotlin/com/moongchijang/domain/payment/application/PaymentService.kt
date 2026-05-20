@@ -369,7 +369,6 @@ class PaymentService(
         groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
         participation.status = ParticipationStatus.REFUNDED
         participation.refundedAt = cancelledAt
-        reconcileGroupBuyStatusAfterRefund(groupBuy)
         log.info(
             "[PaymentService] 환불 정합성 반영 완료: orderId={}, groupBuyId={}, participationId={}, quantity={}=>{}, refundedAt={}",
             order.orderId,
@@ -379,16 +378,6 @@ class PaymentService(
             groupBuy.currentQuantity,
             cancelledAt
         )
-    }
-
-    private fun reconcileGroupBuyStatusAfterRefund(groupBuy: GroupBuy) {
-        if (groupBuy.status == GroupBuyStatus.ACHIEVED && groupBuy.currentQuantity < groupBuy.targetQuantity) {
-            groupBuy.status = GroupBuyStatus.IN_PROGRESS
-            log.info(
-                "[PaymentService] 환불로 공구 상태 조정: groupBuyId={}, ACHIEVED->IN_PROGRESS, currentQuantity={}, targetQuantity={}",
-                groupBuy.id, groupBuy.currentQuantity, groupBuy.targetQuantity
-            )
-        }
     }
 
     private fun validateRefundEligibility(groupBuy: GroupBuy, order: PaymentOrder) {
