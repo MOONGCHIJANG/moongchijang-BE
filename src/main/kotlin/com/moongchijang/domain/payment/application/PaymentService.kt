@@ -184,17 +184,24 @@ class PaymentService(
             return
         }
 
-        transactionTemplate().execute {
-            val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
-            when (paymentResult.status) {
-                PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
-                PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
-                PORTONE_STATUS_FAILED -> {
-                    if (lockedOrder.status == PaymentOrderStatus.READY) {
-                        lockedOrder.fail(LocalDateTime.now())
-                        paymentOrderRepository.save(lockedOrder)
+        if (paymentResult.status == PORTONE_STATUS_CANCELLED || paymentResult.status == PORTONE_STATUS_PARTIAL_CANCELLED) {
+            withGroupBuyLock(order.groupBuy.id) {
+                transactionTemplate().execute {
+                    val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                    when (paymentResult.status) {
+                        PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
+                        PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
                     }
                 }
+            }
+            return
+        }
+
+        transactionTemplate().execute {
+            val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+            if (paymentResult.status == PORTONE_STATUS_FAILED && lockedOrder.status == PaymentOrderStatus.READY) {
+                lockedOrder.fail(LocalDateTime.now())
+                paymentOrderRepository.save(lockedOrder)
             }
         }
     }
@@ -328,25 +335,66 @@ class PaymentService(
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
 
-        if (partial) {
-            order.partialCancel(cancelledAt)
-        } else {
-            order.cancel(cancelledAt)
+        if (!partial) {
+            applyParticipationRefundConsistency(order, cancelledAt)
         }
 
+        updateOrderAndPaymentCancellationState(order, payment, cancelledAt, partial)
+    }
+
+    private fun updateOrderAndPaymentCancellationState(
+        order: PaymentOrder,
+        payment: Payment,
+        cancelledAt: LocalDateTime,
+        partial: Boolean
+    ) {
         if (partial) {
+            order.partialCancel(cancelledAt)
             payment.partialCancel(cancelledAt)
-        } else {
-            payment.cancel(cancelledAt)
-            val userId = order.user.id ?: return
-            participationRepository.findByUserIdAndGroupBuyId(userId, order.groupBuy.id)?.let { participation ->
-                if (participation.status != ParticipationStatus.REFUNDED) {
-                    val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id).orElse(participation.groupBuy)
-                    groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
-                    participation.status = ParticipationStatus.REFUNDED
-                    participation.refundedAt = cancelledAt
-                }
-            }
+            return
+        }
+
+        order.cancel(cancelledAt)
+        payment.cancel(cancelledAt)
+    }
+
+    private fun applyParticipationRefundConsistency(order: PaymentOrder, cancelledAt: LocalDateTime) {
+        val userId = order.user.id ?: return
+        val participation = participationRepository.findByUserIdAndGroupBuyId(userId, order.groupBuy.id) ?: return
+        if (participation.status == ParticipationStatus.REFUNDED) {
+            log.info(
+                "[PaymentService] 환불 멱등 처리: orderId={}, userId={}, groupBuyId={}, participationId={}",
+                order.orderId, userId, order.groupBuy.id, participation.id
+            )
+            return
+        }
+
+        // 취소 반영 시점의 최신 공구 상태를 락으로 재확인해서 수량 차감 정합성을 맞춘다.
+        val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+        validateRefundEligibility(groupBuy, order)
+        val beforeQuantity = groupBuy.currentQuantity
+        groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
+        participation.status = ParticipationStatus.REFUNDED
+        participation.refundedAt = cancelledAt
+        log.info(
+            "[PaymentService] 환불 정합성 반영 완료: orderId={}, groupBuyId={}, participationId={}, quantity={}=>{}, refundedAt={}",
+            order.orderId,
+            groupBuy.id,
+            participation.id,
+            beforeQuantity,
+            groupBuy.currentQuantity,
+            cancelledAt
+        )
+    }
+
+    private fun validateRefundEligibility(groupBuy: GroupBuy, order: PaymentOrder) {
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
+            log.info(
+                "[PaymentService] 환불 거절(달성 완료): orderId={}, groupBuyId={}, status={}",
+                order.orderId, groupBuy.id, groupBuy.status
+            )
+            throw CustomException(ErrorCode.PAYMENT_REFUND_NOT_ALLOWED_AFTER_ACHIEVED)
         }
     }
 
