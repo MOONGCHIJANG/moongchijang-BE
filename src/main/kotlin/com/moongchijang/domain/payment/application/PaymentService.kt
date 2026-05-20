@@ -354,13 +354,40 @@ class PaymentService(
     private fun applyParticipationRefundConsistency(order: PaymentOrder, cancelledAt: LocalDateTime) {
         val userId = order.user.id ?: return
         val participation = participationRepository.findByUserIdAndGroupBuyId(userId, order.groupBuy.id) ?: return
-        if (participation.status == ParticipationStatus.REFUNDED) return
+        if (participation.status == ParticipationStatus.REFUNDED) {
+            log.info(
+                "[PaymentService] 환불 멱등 처리: orderId={}, userId={}, groupBuyId={}, participationId={}",
+                order.orderId, userId, order.groupBuy.id, participation.id
+            )
+            return
+        }
 
         // 취소 반영 시점의 최신 공구 상태를 락으로 재확인해서 수량 차감 정합성을 맞춘다.
         val groupBuy = groupBuyRepository.findWithLockById(order.groupBuy.id).orElse(participation.groupBuy)
+        val beforeQuantity = groupBuy.currentQuantity
         groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
         participation.status = ParticipationStatus.REFUNDED
         participation.refundedAt = cancelledAt
+        reconcileGroupBuyStatusAfterRefund(groupBuy)
+        log.info(
+            "[PaymentService] 환불 정합성 반영 완료: orderId={}, groupBuyId={}, participationId={}, quantity={}=>{}, refundedAt={}",
+            order.orderId,
+            groupBuy.id,
+            participation.id,
+            beforeQuantity,
+            groupBuy.currentQuantity,
+            cancelledAt
+        )
+    }
+
+    private fun reconcileGroupBuyStatusAfterRefund(groupBuy: GroupBuy) {
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED && groupBuy.currentQuantity < groupBuy.targetQuantity) {
+            groupBuy.status = GroupBuyStatus.IN_PROGRESS
+            log.info(
+                "[PaymentService] 환불로 공구 상태 조정: groupBuyId={}, ACHIEVED->IN_PROGRESS, currentQuantity={}, targetQuantity={}",
+                groupBuy.id, groupBuy.currentQuantity, groupBuy.targetQuantity
+            )
+        }
     }
 
     private fun buildAlreadyApprovedResponse(order: PaymentOrder): ConfirmPaymentResponse {

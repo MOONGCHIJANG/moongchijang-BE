@@ -342,6 +342,56 @@ class PaymentServiceTest {
         assertEquals(35, groupBuy.currentQuantity)
     }
 
+    @Test
+    fun `웹훅 취소 재요청 시 이미 환불된 참여는 멱등 처리`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(currentQuantity = 35)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val payment = Payment(
+            paymentOrder = order,
+            pgPaymentId = order.orderId,
+            orderId = order.orderId,
+            amount = order.totalAmount,
+            method = "CARD",
+            approvedAt = order.approvedAt!!,
+        )
+        val refundedAt = LocalDateTime.of(2026, 5, 18, 10, 0)
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 1,
+            productAmount = 6000,
+            feeAmount = 0,
+            totalAmount = 6000,
+            status = ParticipationStatus.REFUNDED,
+            refundedAt = refundedAt,
+        )
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "MCJ-10-test",
+                    status = "CANCELLED",
+                    totalAmount = 6000,
+                    method = "CARD",
+                    paidAt = order.approvedAt,
+                    cancelledAt = LocalDateTime.of(2026, 5, 19, 10, 0),
+                )
+            )
+        `when`(paymentRepository.findByPaymentOrderOrderId("MCJ-10-test")).thenReturn(payment)
+        `when`(participationRepository.findByUserIdAndGroupBuyId(1L, 10L)).thenReturn(participation)
+
+        service.handlePortOneWebhook(PortOneWebhookRequest(storeId = "store-test", paymentId = "MCJ-10-test"))
+
+        assertEquals(35, groupBuy.currentQuantity)
+        assertEquals(ParticipationStatus.REFUNDED, participation.status)
+        assertEquals(refundedAt, participation.refundedAt)
+    }
+
     private fun stubTransaction() {
         `when`(transactionManager.getTransaction(any(TransactionDefinition::class.java))).thenReturn(transactionStatus)
         lenient().`when`(redisLockUtil.lockKey(anyLong())).thenAnswer { "groupBuy:${it.arguments[0]}" }
