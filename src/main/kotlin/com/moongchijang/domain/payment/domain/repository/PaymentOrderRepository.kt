@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param
 interface PaymentOrderRepository : JpaRepository<PaymentOrder, Long> {
     fun findByOrderId(orderId: String): PaymentOrder?
 
+    fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): PaymentOrder?
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select po from PaymentOrder po where po.orderId = :orderId")
     fun findByOrderIdForUpdate(@Param("orderId") orderId: String): PaymentOrder?

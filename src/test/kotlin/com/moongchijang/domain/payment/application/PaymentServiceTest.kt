@@ -6,8 +6,10 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.payment.application.dto.CompletePortOnePaymentRequest
 import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderRequest
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookRequest
@@ -392,6 +394,116 @@ class PaymentServiceTest {
         assertEquals(PaymentStatus.APPROVED, payment.status)
         assertEquals(ParticipationStatus.CONFIRMED, participation.status)
         assertEquals(50, groupBuy.currentQuantity)
+    }
+
+    @Test
+    fun `달성 전 참여는 취소 사유 저장 후 환불 처리`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy()
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val payment = Payment(
+            paymentOrder = order,
+            pgPaymentId = "portone-payment-id",
+            orderId = order.orderId,
+            amount = order.totalAmount,
+            method = "CARD",
+            approvedAt = order.approvedAt!!,
+        )
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 2,
+            productAmount = 12000,
+            feeAmount = 0,
+            totalAmount = 12000,
+            status = ParticipationStatus.PAID_WAITING_GOAL,
+        ).apply { id = 77L }
+        val cancelledAt = LocalDateTime.of(2026, 5, 18, 11, 0)
+        stubTransaction()
+        `when`(participationRepository.findById(77L)).thenReturn(Optional.of(participation))
+        `when`(participationRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(participation))
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyId(1L, 10L)).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(paymentRepository.findByPaymentOrderOrderId("MCJ-10-test")).thenReturn(payment)
+        `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "OTHER: 시간이 맞지 않습니다"))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "portone-payment-id",
+                    status = "CANCELLED",
+                    totalAmount = 12000,
+                    method = "CARD",
+                    paidAt = order.approvedAt,
+                    cancelledAt = cancelledAt,
+                )
+            )
+
+        val result = service.cancelParticipation(
+            participationId = 77L,
+            userId = 1L,
+            request = CancelParticipationRequest(
+                reason = ParticipationCancelReason.OTHER,
+                reasonDetail = " 시간이 맞지 않습니다 ",
+            )
+        )
+
+        assertEquals(77L, result.participationId)
+        assertEquals(ParticipationStatus.REFUNDED, result.status)
+        assertEquals(PaymentOrderStatus.CANCELLED, order.status)
+        assertEquals(PaymentStatus.CANCELLED, payment.status)
+        assertEquals(ParticipationStatus.REFUNDED, participation.status)
+        assertEquals(ParticipationCancelReason.OTHER, participation.cancelReason)
+        assertEquals("시간이 맞지 않습니다", participation.cancelReasonDetail)
+        assertEquals(cancelledAt, participation.cancelledAt)
+        assertEquals(cancelledAt, participation.refundedAt)
+        assertEquals(cancelledAt, result.cancelledAt)
+        assertEquals(34, groupBuy.currentQuantity)
+    }
+
+    @Test
+    fun `확정된 참여는 취소할 수 없다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy()
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 1,
+            productAmount = 6000,
+            feeAmount = 0,
+            totalAmount = 6000,
+            status = ParticipationStatus.CONFIRMED,
+        ).apply { id = 78L }
+        stubTransaction()
+        `when`(participationRepository.findById(78L)).thenReturn(Optional.of(participation))
+        `when`(participationRepository.findByIdForUpdate(78L)).thenReturn(Optional.of(participation))
+
+        val ex = assertThrows<CustomException> {
+            service.cancelParticipation(
+                participationId = 78L,
+                userId = 1L,
+                request = CancelParticipationRequest(reason = ParticipationCancelReason.TIME_UNAVAILABLE),
+            )
+        }
+
+        assertEquals(ErrorCode.PARTICIPATION_CANCEL_NOT_ALLOWED, ex.errorCode)
+    }
+
+    @Test
+    fun `기타 취소 사유는 상세 내용이 필요하다`() {
+        val ex = assertThrows<CustomException> {
+            service.cancelParticipation(
+                participationId = 77L,
+                userId = 1L,
+                request = CancelParticipationRequest(
+                    reason = ParticipationCancelReason.OTHER,
+                    reasonDetail = " ",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED, ex.errorCode)
     }
 
     private fun stubTransaction() {

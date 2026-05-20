@@ -72,6 +72,13 @@ class Participation(
     @Column(name = "picked_up_at")
     var pickedUpAt: LocalDateTime? = null,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancel_reason", length = 50)
+    var cancelReason: ParticipationCancelReason? = null,
+
+    @Column(name = "cancel_reason_detail", length = 500)
+    var cancelReasonDetail: String? = null,
+
     @Column(name = "cancelled_at")
     var cancelledAt: LocalDateTime? = null,
 

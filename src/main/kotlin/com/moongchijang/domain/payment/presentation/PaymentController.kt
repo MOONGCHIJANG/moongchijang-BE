@@ -1,6 +1,8 @@
 package com.moongchijang.domain.payment.presentation
 
 import com.moongchijang.domain.payment.application.PaymentService
+import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
+import com.moongchijang.domain.payment.application.dto.CancelParticipationResponse
 import com.moongchijang.domain.payment.application.dto.CheckoutInfoResponse
 import com.moongchijang.domain.payment.application.dto.CompletePortOnePaymentRequest
 import com.moongchijang.domain.payment.application.dto.ConfirmPaymentResponse
@@ -62,5 +64,15 @@ class PaymentController(
     ): ResponseEntity<ApiResponse<PortOneWebhookResponse>> {
         paymentService.handlePortOneWebhook(request)
         return ResponseEntity.ok(ApiResponse.success(PortOneWebhookResponse()))
+    }
+
+    @PostMapping("/participations/{participationId}/cancel")
+    fun cancelParticipation(
+        @PathVariable participationId: Long,
+        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @Valid @RequestBody request: CancelParticipationRequest,
+    ): ResponseEntity<ApiResponse<CancelParticipationResponse>> {
+        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
+        return ResponseEntity.ok(ApiResponse.success(paymentService.cancelParticipation(participationId, userId, request)))
     }
 }

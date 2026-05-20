@@ -996,9 +996,19 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/ParticipationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelParticipationRequest'
       responses:
         '200':
-          $ref: '#/components/responses/SuccessNoData'
+          description: 참여 취소 및 환불 처리 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCancelParticipation'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
@@ -2492,6 +2502,20 @@ components:
         agreedNoRefundAfterNoShow: { type: boolean, description: 미수령 환불 불가 동의 }
         agreedNoWithdrawal: { type: boolean, description: 청약철회 불가 동의 }
 
+    CancelParticipationRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          enum: [TIME_UNAVAILABLE, NO_LONGER_WANTED, PREFER_DIRECT_VISIT, BOUGHT_ELSEWHERE, OTHER]
+          description: 취소 사유. OTHER 선택 시 reasonDetail 필수.
+        reasonDetail:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: 기타 상세 사유
+
     ApiResponseCheckoutInfo:
       type: object
       required: [success, data, error]
@@ -2551,6 +2575,23 @@ components:
             amount: { type: integer }
             method: { type: string, nullable: true, example: CARD }
             approvedAt: { type: string, format: date-time }
+        error: { nullable: true, example: null }
+
+    ApiResponseCancelParticipation:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [participationId, status, cancelledAt, refundedAt]
+          properties:
+            participationId: { type: integer, format: int64 }
+            status:
+              type: string
+              enum: [REFUNDED]
+            cancelledAt: { type: string, format: date-time }
+            refundedAt: { type: string, format: date-time }
         error: { nullable: true, example: null }
 
     PortOneWebhook:
