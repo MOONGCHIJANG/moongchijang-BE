@@ -65,7 +65,125 @@ class GroupBuyRequestServiceTest {
         verify(groupBuyRequestRepository).save(captor.capture())
         assertEquals("010-1234-5678", captor.value.contactPhone)
         assertEquals("moongchi.bread", captor.value.contactInstagram)
+        assertNull(captor.value.placeId)
+        assertNull(captor.value.latitude)
+        assertNull(captor.value.longitude)
         verify(groupBuyRequestStatusHistoryRepository).save(any())
+    }
+
+    @Test
+    fun `네이버 장소 선택 정보가 있으면 요청에 함께 저장한다`() {
+        val userId = 1L
+        val request = createRequest(
+            storeAddress = "서울 성동구 성수동1가 1",
+            placeId = "naver-place-1",
+            roadAddress = "서울 성동구 성수이로 1",
+            lotAddress = "서울 성동구 성수동1가 1",
+            latitude = 37.5,
+            longitude = 127.0
+        )
+        val saved = GroupBuyRequest(
+            userId = userId,
+            storeName = request.storeName,
+            storeAddress = request.roadAddress,
+            placeId = request.placeId,
+            roadAddress = request.roadAddress,
+            lotAddress = request.lotAddress,
+            latitude = request.latitude,
+            longitude = request.longitude,
+            productName = request.productName,
+            desiredQuantity = request.desiredQuantity,
+            desiredPickupDate = request.desiredPickupDate,
+            additionalNote = request.additionalNote,
+            contactPhone = request.contactPhone,
+            contactInstagram = request.contactInstagram
+        ).apply { id = 43L }
+
+        `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
+        `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
+            GroupBuyRequestStatusHistory(groupBuyRequestId = 43L, status = GroupBuyRequestStatus.IN_REVIEW)
+        )
+
+        val result = service.create(userId, request)
+
+        assertEquals(43L, result.requestId)
+        val captor = argumentCaptor<GroupBuyRequest>()
+        verify(groupBuyRequestRepository).save(captor.capture())
+        assertEquals("서울 성동구 성수이로 1", captor.value.storeAddress)
+        assertEquals("naver-place-1", captor.value.placeId)
+        assertEquals("서울 성동구 성수이로 1", captor.value.roadAddress)
+        assertEquals("서울 성동구 성수동1가 1", captor.value.lotAddress)
+        assertEquals(37.5, captor.value.latitude)
+        assertEquals(127.0, captor.value.longitude)
+    }
+
+    @Test
+    fun `도로명 주소가 빈 값이면 기존 매장 주소를 저장한다`() {
+        val userId = 1L
+        val request = createRequest(
+            storeAddress = "서울 성동구 성수동1가 1",
+            placeId = " ",
+            roadAddress = " ",
+            lotAddress = " ",
+            latitude = 37.5,
+            longitude = 127.0
+        )
+        val saved = GroupBuyRequest(
+            userId = userId,
+            storeName = request.storeName,
+            storeAddress = request.storeAddress,
+            productName = request.productName,
+            desiredQuantity = request.desiredQuantity,
+            desiredPickupDate = request.desiredPickupDate
+        ).apply { id = 44L }
+
+        `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
+        `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
+            GroupBuyRequestStatusHistory(groupBuyRequestId = 44L, status = GroupBuyRequestStatus.IN_REVIEW)
+        )
+
+        service.create(userId, request)
+
+        val captor = argumentCaptor<GroupBuyRequest>()
+        verify(groupBuyRequestRepository).save(captor.capture())
+        assertEquals("서울 성동구 성수동1가 1", captor.value.storeAddress)
+        assertNull(captor.value.placeId)
+        assertNull(captor.value.roadAddress)
+        assertNull(captor.value.lotAddress)
+        assertNull(captor.value.latitude)
+        assertNull(captor.value.longitude)
+    }
+
+    @Test
+    fun `도로명 주소가 빈 값이면 지번 주소를 매장 주소로 저장한다`() {
+        val userId = 1L
+        val request = createRequest(
+            storeAddress = "서울 성동구 기존 주소",
+            placeId = "naver-place-2",
+            roadAddress = " ",
+            lotAddress = "서울 성동구 성수동1가 1",
+            latitude = 37.5,
+            longitude = 127.0
+        )
+        val saved = GroupBuyRequest(
+            userId = userId,
+            storeName = request.storeName,
+            storeAddress = request.lotAddress,
+            productName = request.productName,
+            desiredQuantity = request.desiredQuantity,
+            desiredPickupDate = request.desiredPickupDate
+        ).apply { id = 45L }
+
+        `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
+        `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
+            GroupBuyRequestStatusHistory(groupBuyRequestId = 45L, status = GroupBuyRequestStatus.IN_REVIEW)
+        )
+
+        service.create(userId, request)
+
+        val captor = argumentCaptor<GroupBuyRequest>()
+        verify(groupBuyRequestRepository).save(captor.capture())
+        assertEquals("서울 성동구 성수동1가 1", captor.value.storeAddress)
     }
 
     @Test
@@ -123,7 +241,9 @@ class GroupBuyRequestServiceTest {
         val requestId = 10L
         val groupBuyRequest = GroupBuyRequest(userId = userId, storeName = "뚜레쥬르", productName = "크림빵",
             desiredQuantity = 1, desiredPickupDate = LocalDate.now().plusDays(7),
-            contactPhone = "010-9876-5432", contactInstagram = "bakery.pickup").apply { id = requestId }
+            contactPhone = "010-9876-5432", contactInstagram = "bakery.pickup",
+            placeId = "naver-place-2", roadAddress = "서울 강남구 도산대로 1",
+            lotAddress = "서울 강남구 신사동 1", latitude = 37.1, longitude = 127.1).apply { id = requestId }
         val history = listOf(
             GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = LocalDateTime.now().minusDays(2)),
@@ -140,6 +260,11 @@ class GroupBuyRequestServiceTest {
         assertEquals(requestId, result.requestId)
         assertEquals("010-9876-5432", result.contactPhone)
         assertEquals("bakery.pickup", result.contactInstagram)
+        assertEquals("naver-place-2", result.placeId)
+        assertEquals("서울 강남구 도산대로 1", result.roadAddress)
+        assertEquals("서울 강남구 신사동 1", result.lotAddress)
+        assertEquals(37.1, result.latitude)
+        assertEquals(127.1, result.longitude)
         assertEquals(2, result.statusHistory.size)
         assertEquals(GroupBuyRequestStatus.IN_REVIEW.name, result.statusHistory[0].status)
         assertEquals(GroupBuyRequestStatus.IN_CONTACT.name, result.statusHistory[1].status)
@@ -167,6 +292,12 @@ class GroupBuyRequestServiceTest {
 
     private fun createRequest(
         storeName: String = "성심당",
+        storeAddress: String? = null,
+        placeId: String? = null,
+        roadAddress: String? = null,
+        lotAddress: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
         productName: String = "튀김소보로",
         desiredQuantity: Int = 2,
         desiredPickupDate: LocalDate = LocalDate.now().plusDays(3),
@@ -174,6 +305,12 @@ class GroupBuyRequestServiceTest {
         contactInstagram: String? = null
     ) = GroupBuyRequestCreateRequest(
         storeName = storeName,
+        storeAddress = storeAddress,
+        placeId = placeId,
+        roadAddress = roadAddress,
+        lotAddress = lotAddress,
+        latitude = latitude,
+        longitude = longitude,
         productName = productName,
         desiredQuantity = desiredQuantity,
         desiredPickupDate = desiredPickupDate,

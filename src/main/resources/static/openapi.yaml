@@ -2376,15 +2376,32 @@ components:
           type: string
           maxLength: 200
           nullable: true
-          description: 외부 지도 API로 선택한 매장 도로명 주소
-        storeLatitude:
+          description: 매장 주소. roadAddress가 함께 전달되면 서버는 roadAddress를 우선 저장한다.
+        placeId:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: 네이버 장소 고유 ID
+        roadAddress:
+          type: string
+          maxLength: 200
+          nullable: true
+          description: 네이버 장소 도로명 주소
+        lotAddress:
+          type: string
+          maxLength: 200
+          nullable: true
+          description: 네이버 장소 지번 주소
+        latitude:
           type: number
           format: double
           nullable: true
-        storeLongitude:
+          description: 네이버 장소 위도
+        longitude:
           type: number
           format: double
           nullable: true
+          description: 네이버 장소 경도
         productName:
           type: string
           maxLength: 100
@@ -2418,6 +2435,12 @@ components:
       properties:
         requestId: { type: integer, format: int64 }
         storeName: { type: string }
+        storeAddress: { type: string, nullable: true }
+        placeId: { type: string, nullable: true }
+        roadAddress: { type: string, nullable: true }
+        lotAddress: { type: string, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
         productName: { type: string }
         desiredQuantity: { type: integer }
         desiredPickupDate: { type: string, format: date }

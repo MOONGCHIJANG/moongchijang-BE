@@ -17,6 +17,21 @@ class GroupBuyRequest(
     @Column(length = 200)
     val storeAddress: String? = null,
 
+    @Column(name = "place_id", length = 100)
+    val placeId: String? = null,
+
+    @Column(name = "road_address", length = 200)
+    val roadAddress: String? = null,
+
+    @Column(name = "lot_address", length = 200)
+    val lotAddress: String? = null,
+
+    @Column
+    val latitude: Double? = null,
+
+    @Column
+    val longitude: Double? = null,
+
     @Column(nullable = false, length = 100)
     val productName: String,
 
