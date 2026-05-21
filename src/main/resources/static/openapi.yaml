@@ -103,6 +103,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SuccessNoData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/users/me:
     get:
@@ -981,6 +983,8 @@ paths:
     post:
       tags: [Participation]
       summary: PortOne 결제 완료 서버 검증
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -996,6 +1000,8 @@ paths:
                 $ref: '#/components/schemas/ApiResponsePaymentConfirmed'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Conflict'
 
@@ -1040,6 +1046,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseCancelParticipation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
@@ -1235,6 +1243,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseInProgressParticipationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/users/me/group-buy-requests:
     get:

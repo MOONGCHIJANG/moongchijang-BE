@@ -2,8 +2,6 @@ package com.moongchijang.domain.mypage.presentation
 
 import com.moongchijang.domain.mypage.application.MyPageParticipationQueryService
 import com.moongchijang.domain.participation.application.dto.InProgressParticipationPageResponse
-import com.moongchijang.global.exception.CustomException
-import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -15,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -29,6 +28,7 @@ class MyPageParticipationController(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @GetMapping("/in-progress")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "진행 중 탭 참여 공구 목록 조회")
     @ApiResponses(
         value = [
@@ -37,10 +37,10 @@ class MyPageParticipationController(
         ]
     )
     fun getInProgressParticipations(
-        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
         pageable: Pageable
     ): ResponseEntity<ApiResponse<InProgressParticipationPageResponse>> {
-        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
+        val userId = principal.id
         log.info(
             "[MyPageParticipationController] 진행 중 참여 내역 조회 요청 수신: userId={}, page={}, size={}",
             userId,
