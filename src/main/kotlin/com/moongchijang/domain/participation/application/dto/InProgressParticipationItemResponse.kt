@@ -10,7 +10,7 @@ data class InProgressParticipationItemResponse(
     val participationId: Long,
 
     @field:Schema(description = "공구 ID", example = "101")
-    val groupbuyId: Long,
+    val groupBuyId: Long,
 
     @field:Schema(description = "상품명", example = "두쭌쿠 오리지널 1개")
     val productName: String,

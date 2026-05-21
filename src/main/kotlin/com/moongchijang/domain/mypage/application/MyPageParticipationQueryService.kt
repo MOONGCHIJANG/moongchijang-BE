@@ -55,7 +55,7 @@ class MyPageParticipationQueryService(
 
         return InProgressParticipationItemResponse(
             participationId = participation.id,
-            groupbuyId = groupBuy.id,
+            groupBuyId = groupBuy.id,
             productName = groupBuy.productName,
             storeName = groupBuy.store.name,
             pickupAt = LocalDateTime.of(groupBuy.pickupDate, groupBuy.pickupTimeStart),

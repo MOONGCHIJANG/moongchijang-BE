@@ -113,7 +113,7 @@ class MyPageParticipationQueryServiceTest {
         val item = result.content.first()
 
         assertEquals(202L, item.participationId)
-        assertEquals(777L, item.groupbuyId)
+        assertEquals(777L, item.groupBuyId)
         assertEquals("두쫀쿠 오리지널 1개", item.productName)
         assertEquals("사이드템포", item.storeName)
         assertEquals(LocalDateTime.of(pickupDate, pickupTimeStart), item.pickupAt)

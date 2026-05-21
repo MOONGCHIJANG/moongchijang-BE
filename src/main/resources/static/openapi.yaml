@@ -2927,10 +2927,10 @@ components:
               type: array
               items:
                 type: object
-                required: [participationId, groupbuyId, productName, storeName, pickupAt, paidAmount, quantity, achievementRate, dDay, participatedAt]
+                required: [participationId, groupBuyId, productName, storeName, pickupAt, paidAmount, quantity, achievementRate, dDay, participatedAt]
                 properties:
                   participationId: { type: integer, format: int64 }
-                  groupbuyId: { type: integer, format: int64 }
+                  groupBuyId: { type: integer, format: int64 }
                   productName: { type: string }
                   storeName: { type: string }
                   pickupAt: { type: string, format: date-time, nullable: true }
