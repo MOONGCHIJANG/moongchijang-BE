@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service
 class StoreSearchService(
     private val naverLocalSearchClient: NaverLocalSearchClient
 ) {
-    fun search(keyword: String): StoreSearchResponse {
-        val response = naverLocalSearchClient.search(keyword)
+    fun search(keyword: String, display: Int = 5): StoreSearchResponse {
+        val response = naverLocalSearchClient.search(keyword, display)
         return StoreSearchResponse.from(response.items)
     }
 }

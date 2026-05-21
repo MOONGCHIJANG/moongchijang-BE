@@ -2,6 +2,8 @@ package com.moongchijang.domain.groupbuy.presentation
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyOpenRequestService
 import com.moongchijang.domain.groupbuy.application.dto.CreateGroupBuyOpenRequestRequest
+import com.moongchijang.domain.groupbuy.application.dto.StoreRecommendationRequest
+import com.moongchijang.domain.groupbuy.application.dto.StoreRecommendationResponse
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -29,5 +31,13 @@ class GroupBuyOpenRequestController(
     ): ResponseEntity<ApiResponse<Nothing>> {
         openRequestService.create(principal.id, request)
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success())
+    }
+
+    @PostMapping("/store-recommendations")
+    @Operation(summary = "공구 개설 요청 매장 추천")
+    fun recommendStores(
+        @Valid @RequestBody request: StoreRecommendationRequest
+    ): ResponseEntity<ApiResponse<StoreRecommendationResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(openRequestService.recommendStores(request)))
     }
 }

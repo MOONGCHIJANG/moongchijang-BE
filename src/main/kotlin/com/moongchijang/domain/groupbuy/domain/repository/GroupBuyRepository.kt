@@ -80,4 +80,7 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
      */
     @Query("SELECT gb FROM GroupBuy gb JOIN FETCH gb.store WHERE gb.id IN :ids")
     fun findAllWithStoreByIdIn(@Param("ids") ids: Collection<Long>): List<GroupBuy>
+
+    @Query("SELECT DISTINCT gb.store.id FROM GroupBuy gb WHERE gb.store.id IN :storeIds")
+    fun findStoreIdsWithGroupBuyHistory(@Param("storeIds") storeIds: Collection<Long>): List<Long>
 }
