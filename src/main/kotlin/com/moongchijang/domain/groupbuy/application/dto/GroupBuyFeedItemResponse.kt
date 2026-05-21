@@ -64,7 +64,7 @@ data class GroupBuyFeedItemResponse(
     companion object {
         fun from(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): GroupBuyFeedItemResponse {
             val dDay = ChronoUnit.DAYS.between(now.toLocalDate(), groupBuy.deadline.toLocalDate()).toInt()
-            val rate = calculateAchievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
+            val rate = GroupBuyProgressCalculator.achievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
 
             return GroupBuyFeedItemResponse(
                 id = groupBuy.id,
@@ -84,11 +84,6 @@ data class GroupBuyFeedItemResponse(
                 currentQuantity = groupBuy.currentQuantity,
                 targetQuantity = groupBuy.targetQuantity
             )
-        }
-
-        private fun calculateAchievementRate(currentQuantity: Int, targetQuantity: Int): Int {
-            if (targetQuantity <= 0) return 0
-            return ((currentQuantity * 100.0) / targetQuantity).toInt()
         }
 
         private fun formatPickupDateLabel(date: LocalDate): String {

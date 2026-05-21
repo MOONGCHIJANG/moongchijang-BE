@@ -5,6 +5,8 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedItemResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressItem
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressResponse
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
@@ -101,6 +103,48 @@ class GroupBuyService(
             isParticipated = isParticipated,
             canParticipate = canParticipate
         )
+    }
+
+    @Transactional(readOnly = true, timeout = 3)
+    fun getProgress(groupBuyId: Long): GroupBuyProgressResponse {
+        log.debug("[GroupBuyService] 공구 progress 단건 조회 시작: groupBuyId={}", groupBuyId)
+
+        val groupBuy = groupBuyRepository.findById(groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+
+        val response = GroupBuyProgressResponse.from(groupBuy)
+        log.debug(
+            "[GroupBuyService] 공구 progress 단건 조회 완료: groupBuyId={}, currentQuantity={}, targetQuantity={}, achievementRate={}, isClosed={}",
+            response.groupBuyId,
+            response.currentQuantity,
+            response.targetQuantity,
+            response.achievementRate,
+            response.isClosed
+        )
+        return response
+    }
+
+    @Transactional(readOnly = true, timeout = 3)
+    fun getProgresses(groupBuyIds: List<Long>): List<GroupBuyProgressItem> {
+        log.debug("[GroupBuyService] 공구 progress 다건 조회 시작: requestedSize={}", groupBuyIds.size)
+
+        if (groupBuyIds.isEmpty()) {
+            log.debug("[GroupBuyService] 공구 progress 다건 조회 완료: requestedSize=0, returnedSize=0")
+            return emptyList()
+        }
+
+        val now = LocalDateTime.now()
+        val groupBuysById = groupBuyRepository.findAllById(groupBuyIds).associateBy { it.id }
+
+        val response = groupBuyIds.mapNotNull { id ->
+            groupBuysById[id]?.let { GroupBuyProgressItem.from(it, now) }
+        }
+        log.debug(
+            "[GroupBuyService] 공구 progress 다건 조회 완료: requestedSize={}, returnedSize={}",
+            groupBuyIds.size,
+            response.size
+        )
+        return response
     }
 
     private fun validateDistrictSelection(districts: List<DistrictType>) {

@@ -6,9 +6,13 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressItem
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerHeartbeatRequest
 import com.moongchijang.domain.store.domain.entity.DistrictType
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -98,6 +102,63 @@ class GroupBuyController(
         return ResponseEntity.ok(ApiResponse.success(response))
     }
 
+    @GetMapping("/{groupBuyId}/progress")
+    @Operation(summary = "단일 공구 달성률 조회 (폴링용)")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "단일 공구 달성률 조회 성공"),
+            SwaggerApiResponse(
+                responseCode = "404",
+                description = "공구를 찾을 수 없음",
+                content = [Content(schema = Schema(implementation = ApiResponse::class))]
+            )
+        ]
+    )
+    fun getProgress(
+        @PathVariable groupBuyId: Long
+    ): ResponseEntity<ApiResponse<GroupBuyProgressResponse>> {
+        log.debug("[GroupBuyController] 공구 progress 단건 조회 요청 수신: groupBuyId={}", groupBuyId)
+
+        val response = groupBuyService.getProgress(groupBuyId)
+
+        log.debug("[GroupBuyController] 공구 progress 단건 조회 응답 완료: groupBuyId={}", groupBuyId)
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @GetMapping("/progress")
+    @Operation(summary = "다건 공구 달성률 조회 (피드 갱신용)")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "다건 공구 달성률 조회 성공"),
+            SwaggerApiResponse(
+                responseCode = "400",
+                description = "잘못된 요청 (ids 누락/빈 목록/최대 20개 초과)",
+                content = [Content(schema = Schema(implementation = ApiResponse::class))]
+            )
+        ]
+    )
+    fun getProgresses(
+        @RequestParam ids: List<Long>
+    ): ResponseEntity<ApiResponse<List<GroupBuyProgressItem>>> {
+        validateProgressIds(ids)
+        val distinctIds = ids.distinct()
+
+        log.debug(
+            "[GroupBuyController] 공구 progress 다건 조회 요청 수신: requestedSize={}, distinctSize={}",
+            ids.size,
+            distinctIds.size
+        )
+
+        val response = groupBuyService.getProgresses(distinctIds)
+
+        log.debug(
+            "[GroupBuyController] 공구 progress 다건 조회 응답 완료: requestedSize={}, returnedSize={}",
+            distinctIds.size,
+            response.size
+        )
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
     @PostMapping("/{groupBuyId}/viewers/heartbeat")
     @Operation(summary = "공구 상세 조회자 heartbeat 조회/갱신")
     @ApiResponses(
@@ -139,5 +200,15 @@ class GroupBuyController(
             response.activeViewerCount
         )
         return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    private fun validateProgressIds(ids: List<Long>) {
+        if (ids.isEmpty() || ids.size > MAX_PROGRESS_IDS || ids.any { it <= 0L }) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+    }
+
+    companion object {
+        private const val MAX_PROGRESS_IDS = 20
     }
 }

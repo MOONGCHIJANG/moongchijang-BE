@@ -2,7 +2,6 @@ package com.moongchijang.domain.groupbuy.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import io.swagger.v3.oas.annotations.media.Schema
@@ -118,7 +117,7 @@ data class GroupBuyDetailResponse(
         ): GroupBuyDetailResponse {
             val dDay = ChronoUnit.DAYS.between(now.toLocalDate(), groupBuy.deadline.toLocalDate()).toInt()
             val pickupDateLabel = formatPickupLabel(groupBuy.pickupDate)
-            val rate = calculateAchievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
+            val rate = GroupBuyProgressCalculator.achievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
 
             return GroupBuyDetailResponse(
                 id = groupBuy.id,
@@ -151,17 +150,10 @@ data class GroupBuyDetailResponse(
                 dDay = dDay,
                 dDayLabel = "D-$dDay",
                 isWishlisted = isWishlisted,
-                isClosed = groupBuy.status in setOf(
-                    GroupBuyStatus.FAILED, GroupBuyStatus.CLOSED, GroupBuyStatus.COMPLETED
-                ),
+                isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now),
                 isParticipated = isParticipated,
                 canParticipate = canParticipate
             )
-        }
-
-        private fun calculateAchievementRate(current: Int, target: Int): Int {
-            if (target <= 0) return 0
-            return ((current * 100.0) / target).toInt()
         }
 
         private fun formatPickupLabel(date: LocalDate): String {
