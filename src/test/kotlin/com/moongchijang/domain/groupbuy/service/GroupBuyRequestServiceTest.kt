@@ -9,6 +9,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestReposit
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.support.GroupBuyRequestFixture
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -36,7 +37,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `유효한 입력으로 요청 시 requestId 반환`() {
         val userId = 1L
-        val request = createRequest(
+        val request = GroupBuyRequestFixture.createRequest(
             desiredPickupDate = LocalDate.now().plusDays(3),
             contactPhone = "010-1234-5678",
             contactInstagram = "moongchi.bread"
@@ -74,7 +75,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `네이버 장소 선택 정보가 있으면 요청에 함께 저장한다`() {
         val userId = 1L
-        val request = createRequest(
+        val request = GroupBuyRequestFixture.createRequest(
             storeAddress = "서울 성동구 성수동1가 1",
             placeId = "naver-place-1",
             roadAddress = "서울 성동구 성수이로 1",
@@ -120,7 +121,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `도로명 주소가 빈 값이면 기존 매장 주소를 저장한다`() {
         val userId = 1L
-        val request = createRequest(
+        val request = GroupBuyRequestFixture.createRequest(
             storeAddress = "서울 성동구 성수동1가 1",
             placeId = " ",
             roadAddress = " ",
@@ -157,7 +158,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `도로명 주소가 빈 값이면 지번 주소를 매장 주소로 저장한다`() {
         val userId = 1L
-        val request = createRequest(
+        val request = GroupBuyRequestFixture.createRequest(
             storeAddress = "서울 성동구 기존 주소",
             placeId = "naver-place-2",
             roadAddress = " ",
@@ -188,7 +189,7 @@ class GroupBuyRequestServiceTest {
 
     @Test
     fun `오늘 날짜로 요청 시 GROUPBUY_REQUEST_INVALID_DATE 예외`() {
-        val request = createRequest(desiredPickupDate = LocalDate.now())
+        val request = GroupBuyRequestFixture.createRequest(desiredPickupDate = LocalDate.now())
 
         val ex = assertThrows<CustomException> { service.create(1L, request) }
         assertEquals(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE, ex.errorCode)
@@ -196,7 +197,7 @@ class GroupBuyRequestServiceTest {
 
     @Test
     fun `과거 날짜로 요청 시 GROUPBUY_REQUEST_INVALID_DATE 예외`() {
-        val request = createRequest(desiredPickupDate = LocalDate.now().minusDays(1))
+        val request = GroupBuyRequestFixture.createRequest(desiredPickupDate = LocalDate.now().minusDays(1))
 
         val ex = assertThrows<CustomException> { service.create(1L, request) }
         assertEquals(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE, ex.errorCode)
@@ -289,34 +290,6 @@ class GroupBuyRequestServiceTest {
         val ex = assertThrows<CustomException> { service.getDetail(1L, requestId) }
         assertEquals(ErrorCode.GROUPBUY_REQUEST_FORBIDDEN, ex.errorCode)
     }
-
-    private fun createRequest(
-        storeName: String = "성심당",
-        storeAddress: String? = null,
-        placeId: String? = null,
-        roadAddress: String? = null,
-        lotAddress: String? = null,
-        latitude: Double? = null,
-        longitude: Double? = null,
-        productName: String = "튀김소보로",
-        desiredQuantity: Int = 2,
-        desiredPickupDate: LocalDate = LocalDate.now().plusDays(3),
-        contactPhone: String? = null,
-        contactInstagram: String? = null
-    ) = GroupBuyRequestCreateRequest(
-        storeName = storeName,
-        storeAddress = storeAddress,
-        placeId = placeId,
-        roadAddress = roadAddress,
-        lotAddress = lotAddress,
-        latitude = latitude,
-        longitude = longitude,
-        productName = productName,
-        desiredQuantity = desiredQuantity,
-        desiredPickupDate = desiredPickupDate,
-        contactPhone = contactPhone,
-        contactInstagram = contactInstagram
-    )
 
     private inline fun <reified T> argumentCaptor() = org.mockito.ArgumentCaptor.forClass(T::class.java)
 }
