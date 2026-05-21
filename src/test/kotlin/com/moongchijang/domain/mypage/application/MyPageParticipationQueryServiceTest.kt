@@ -1,16 +1,10 @@
 package com.moongchijang.domain.mypage.application
 
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
-import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
-import com.moongchijang.domain.store.domain.entity.DistrictType
-import com.moongchijang.domain.store.domain.entity.RegionType
-import com.moongchijang.domain.store.domain.entity.Store
-import com.moongchijang.support.UserFixture
+import com.moongchijang.support.ParticipationFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -40,7 +34,7 @@ class MyPageParticipationQueryServiceTest {
         val userId = 1L
         val pageable = PageRequest.of(0, 20)
         val now = LocalDateTime.now()
-        val participation = createParticipation(
+        val participation = ParticipationFixture.createParticipation(
             participationId = 101L,
             groupBuyId = 501L,
             quantity = 2,
@@ -88,7 +82,7 @@ class MyPageParticipationQueryServiceTest {
         val pickupTimeStart = LocalTime.of(14, 0)
         val deadline = LocalDateTime.now().plusDays(2)
 
-        val participation = createParticipation(
+        val participation = ParticipationFixture.createParticipation(
             participationId = 202L,
             groupBuyId = 777L,
             quantity = 2,
@@ -129,7 +123,7 @@ class MyPageParticipationQueryServiceTest {
         val userId = 3L
         val pageable = PageRequest.of(0, 20)
         val now = LocalDateTime.now()
-        val participation = createParticipation(
+        val participation = ParticipationFixture.createParticipation(
             participationId = 301L,
             groupBuyId = 901L,
             quantity = 1,
@@ -178,7 +172,7 @@ class MyPageParticipationQueryServiceTest {
         val pickupTimeStart = LocalTime.of(14, 0)
         val deadline = LocalDateTime.now().plusDays(2)
 
-        val participation = createParticipation(
+        val participation = ParticipationFixture.createParticipation(
             participationId = 402L,
             groupBuyId = 977L,
             quantity = 1,
@@ -216,94 +210,5 @@ class MyPageParticipationQueryServiceTest {
         assertEquals(1, item.quantity)
         assertEquals(true, item.isClosed)
         assertEquals(createdAt, item.participatedAt)
-    }
-
-    private fun createParticipation(
-        participationId: Long,
-        groupBuyId: Long,
-        quantity: Int,
-        totalAmount: Int,
-        currentQuantity: Int,
-        targetQuantity: Int,
-        deadline: LocalDateTime,
-        pickupDate: LocalDate,
-        pickupTimeStart: LocalTime,
-        createdAt: LocalDateTime,
-        participationStatus: ParticipationStatus = ParticipationStatus.PAID_WAITING_GOAL,
-        pickupStatus: PickupStatus = PickupStatus.NOT_READY,
-        groupBuyStatus: GroupBuyStatus = GroupBuyStatus.IN_PROGRESS
-    ): Participation {
-        val user = UserFixture.createKakaoUser(id = 1L, nickname = "테스터")
-        val groupBuy = createGroupBuy(
-            groupBuyId = groupBuyId,
-            currentQuantity = currentQuantity,
-            targetQuantity = targetQuantity,
-            deadline = deadline,
-            pickupDate = pickupDate,
-            pickupTimeStart = pickupTimeStart,
-            groupBuyStatus = groupBuyStatus
-        )
-
-        return Participation(
-            user = user,
-            groupBuy = groupBuy,
-            quantity = quantity,
-            productAmount = totalAmount,
-            feeAmount = 0,
-            totalAmount = totalAmount,
-            status = participationStatus,
-            pickupStatus = pickupStatus
-        ).apply {
-            id = participationId
-            setCreatedAt(this, createdAt)
-        }
-    }
-
-    private fun createGroupBuy(
-        groupBuyId: Long,
-        currentQuantity: Int,
-        targetQuantity: Int,
-        deadline: LocalDateTime,
-        pickupDate: LocalDate,
-        pickupTimeStart: LocalTime,
-        groupBuyStatus: GroupBuyStatus
-    ): GroupBuy {
-        val store = Store(
-            name = "사이드템포",
-            address = "서울 강남구 OO길 1",
-            region = RegionType.SEOUL,
-            district = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG
-        )
-        val request = GroupBuyRequest(
-            userId = 1L,
-            storeName = "사이드템포",
-            productName = "두쫀쿠 오리지널 1개",
-            desiredQuantity = 50,
-            desiredPickupDate = pickupDate
-        )
-        return GroupBuy(
-            store = store,
-            groupBuyRequest = request,
-            productName = "두쫀쿠 오리지널 1개",
-            productDescription = "테스트 상품 설명",
-            price = 18000,
-            targetQuantity = targetQuantity,
-            currentQuantity = currentQuantity,
-            maxQuantity = 100,
-            status = groupBuyStatus,
-            deadline = deadline,
-            pickupDate = pickupDate,
-            pickupTimeStart = pickupTimeStart,
-            pickupTimeEnd = pickupTimeStart.plusHours(4),
-            pickupLocation = "매장 앞"
-        ).apply {
-            id = groupBuyId
-        }
-    }
-
-    private fun setCreatedAt(participation: Participation, createdAt: LocalDateTime) {
-        val field = participation.javaClass.superclass.getDeclaredField("createdAt")
-        field.isAccessible = true
-        field.set(participation, createdAt)
     }
 }
