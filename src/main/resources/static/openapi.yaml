@@ -3483,15 +3483,201 @@ components:
                     description: 경도
         error: { nullable: true, example: null }
 
+    StoreRecommendationRegionType:
+      type: string
+      description: 매장 추천 API 전용 단일 지역 코드. 전체/기타 지역 코드는 포함하지 않는다.
+      enum:
+        - SEOUL_GANGNAM
+        - SEOUL_YEOKSAM
+        - SEOUL_SAMSEONG
+        - SEOUL_SINSA
+        - SEOUL_APGUJEONG
+        - SEOUL_CHEONGDAM
+        - SEOUL_SEOCHO
+        - SEOUL_BANGBAE
+        - SEOUL_GYODAE
+        - SEOUL_JAMSIL
+        - SEOUL_SINCHEON
+        - SEOUL_SONGPA
+        - SEOUL_JONGNO
+        - SEOUL_JUNGGU
+        - SEOUL_EULJIRO
+        - SEOUL_MYEONGDONG
+        - SEOUL_HONGDAE
+        - SEOUL_HAPJEONG
+        - SEOUL_SANGSU
+        - SEOUL_MAPO
+        - SEOUL_SEONGSU
+        - SEOUL_GEONDAE
+        - SEOUL_GWANGJIN
+        - SEOUL_ITAEWON
+        - SEOUL_HANNAM
+        - SEOUL_YONGSAN
+        - SEOUL_YEONGDEUNGPO
+        - SEOUL_YEOUIDO
+        - SEOUL_NOWON
+        - SEOUL_DOBONG
+        - SEOUL_GANGBUK
+        - GYEONGGI_SUWON
+        - GYEONGGI_YEONGTONG
+        - GYEONGGI_PALDAL
+        - GYEONGGI_SEONGNAM
+        - GYEONGGI_BUNDANG
+        - GYEONGGI_PANGYO
+        - GYEONGGI_GOYANG
+        - GYEONGGI_ILSAN
+        - GYEONGGI_YONGIN
+        - GYEONGGI_SUJI
+        - GYEONGGI_GIHEUNG
+        - GYEONGGI_BUCHEON
+        - GYEONGGI_JUNGDONG
+        - GYEONGGI_SANGDONG
+        - GYEONGGI_ANSAN
+        - GYEONGGI_DANWON
+        - GYEONGGI_SANGROK
+        - GYEONGGI_NAMYANGJU
+        - GYEONGGI_DASAN
+        - GYEONGGI_BYEOLNAE
+        - GYEONGGI_ANYANG
+        - GYEONGGI_PYEONGCHON
+        - GYEONGGI_BEOMGYE
+        - GYEONGGI_HWASEONG
+        - GYEONGGI_DONGTAN
+        - GYEONGGI_PAJU
+        - GYEONGGI_UNJEONG
+        - INCHEON_SONGDO
+        - INCHEON_YEONSU
+        - INCHEON_GUWOL
+        - INCHEON_NAMDONG
+        - INCHEON_BUPYEONG
+        - INCHEON_GYEYANG
+        - INCHEON_CHEONGNA
+        - INCHEON_SEOGU
+        - INCHEON_JUAN
+        - INCHEON_MICHUHOL
+        - INCHEON_YEONGJONGDO
+        - INCHEON_JUNGGU
+        - GANGWON_CHUNCHEON
+        - GANGWON_WONJU
+        - GANGWON_GANGNEUNG
+        - GANGWON_SOKCHO
+        - GANGWON_YANGYANG
+        - GANGWON_DONGHAE
+        - GANGWON_SAMCHEOK
+        - DAEJEON_DUNSAN
+        - DAEJEON_SEOGU
+        - DAEJEON_EUNHAENG
+        - DAEJEON_DAEHEUNG
+        - DAEJEON_JUNGGU
+        - DAEJEON_YUSEONG
+        - DAEJEON_DOAN
+        - DAEJEON_DONGGU
+        - DAEJEON_DAEDEOK
+        - SEJONG_SEJONG
+        - CHUNGNAM_CHEONAN
+        - CHUNGNAM_SINBU
+        - CHUNGNAM_DUJEONG
+        - CHUNGNAM_ASAN
+        - CHUNGNAM_TANGJEONG
+        - CHUNGNAM_DANGJIN
+        - CHUNGNAM_SEOSAN
+        - CHUNGNAM_GYERYONG
+        - CHUNGNAM_NONSAN
+        - CHUNGBUK_CHEONGJU
+        - CHUNGBUK_SANGDANG
+        - CHUNGBUK_HEUNGDEOK
+        - CHUNGBUK_CHUNGJU
+        - CHUNGBUK_JECHEON
+        - CHUNGBUK_EUMSEONG
+        - CHUNGBUK_JINCHEON
+        - BUSAN_SEOMYEON
+        - BUSAN_JEONPO
+        - BUSAN_JINGU
+        - BUSAN_HAEUNDAE
+        - BUSAN_CENTUM
+        - BUSAN_MARINE_CITY
+        - BUSAN_GWANGALLI
+        - BUSAN_SUYEONG
+        - BUSAN_NAMCHEON
+        - BUSAN_NAMPO
+        - BUSAN_JUNGGU
+        - BUSAN_YEONGDO
+        - BUSAN_DONGRAE
+        - BUSAN_YEONSAN
+        - BUSAN_BUSANDAE
+        - BUSAN_SAHA
+        - BUSAN_HADAN
+        - ULSAN_SAMSAN
+        - ULSAN_DALDONG
+        - ULSAN_NAMGU
+        - ULSAN_SEONGNAM
+        - ULSAN_JUNGGU
+        - ULSAN_DONGGU
+        - ULSAN_BUKGU
+        - ULSAN_ULJU
+        - GYEONGNAM_CHANGWON
+        - GYEONGNAM_SANGNAM
+        - GYEONGNAM_UICHANG
+        - GYEONGNAM_GIMHAE
+        - GYEONGNAM_YANGSAN
+        - GYEONGNAM_JINJU
+        - GYEONGNAM_GEOJE
+        - GYEONGNAM_TONGYEONG
+        - GYEONGBUK_POHANG
+        - GYEONGBUK_GYEONGJU
+        - GYEONGBUK_HWANGRIDAN_GIL
+        - GYEONGBUK_GUMI
+        - GYEONGBUK_GYEONGSAN
+        - GYEONGBUK_ANDONG
+        - DAEGU_DONGSEONGNO
+        - DAEGU_JUNGGU
+        - DAEGU_SUSEONGGU
+        - DAEGU_BEOMEO
+        - DAEGU_SANGIN
+        - DAEGU_DALSEO
+        - DAEGU_CHILGOK
+        - DAEGU_BUKGU
+        - DAEGU_DONGGU
+        - GWANGJU_SANGMU_JIGU
+        - GWANGJU_CHIPYEONG
+        - GWANGJU_SEOGU
+        - GWANGJU_DONGMYEONGDONG
+        - GWANGJU_CHUNGJANGRO
+        - GWANGJU_DONGGU
+        - GWANGJU_SUWAN
+        - GWANGJU_CHEOMDAN
+        - GWANGJU_GWANGSANGU
+        - GWANGJU_BONGSEON
+        - GWANGJU_NAMGU
+        - GWANGJU_BUKGU
+        - JEONNAM_YEOSU
+        - JEONNAM_SUNCHEON
+        - JEONNAM_MOKPO
+        - JEONNAM_NAMAK
+        - JEONNAM_NAJU
+        - JEONBUK_JEONJU
+        - JEONBUK_GAEKRIDANGIL
+        - JEONBUK_WANSAN
+        - JEONBUK_IKSAN
+        - JEONBUK_GUNSAN
+        - JEJU_JEJU_SI
+        - JEJU_AEWOL
+        - JEJU_HALLIM
+        - JEJU_JOCHEON
+        - JEJU_GUJWA
+        - JEJU_SEOGWIPO_SI
+        - JEJU_JUNGMUN
+        - JEJU_ANDEOK
+        - JEJU_SEONGSAN
+        - JEJU_PYOSEON
+      example: SEOUL_SEONGSU
+
     StoreRecommendationRequest:
       type: object
       required: [region, productName]
       properties:
         region:
-          type: string
-          maxLength: 50
-          description: 확정된 동네/지역 조건
-          example: 성수
+          $ref: '#/components/schemas/StoreRecommendationRegionType'
         productName:
           type: string
           maxLength: 100
@@ -3508,6 +3694,7 @@ components:
           properties:
             region:
               type: string
+              description: 추천 검색에 사용된 단일 지역 라벨
               example: 성수
             productName:
               type: string

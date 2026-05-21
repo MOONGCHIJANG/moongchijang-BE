@@ -30,4 +30,12 @@ class GroupBuyOpenRequest(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
-) : BaseEntity()
+) : BaseEntity() {
+    fun markSent() {
+        notificationStatus = NotificationStatus.SENT
+    }
+
+    fun markFailed() {
+        notificationStatus = NotificationStatus.FAILED
+    }
+}

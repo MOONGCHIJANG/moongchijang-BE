@@ -3,18 +3,25 @@ package com.moongchijang.domain.groupbuy.application
 import com.moongchijang.domain.groupbuy.application.dto.CreateGroupBuyOpenRequestRequest
 import com.moongchijang.domain.groupbuy.application.dto.StoreRecommendationRequest
 import com.moongchijang.domain.groupbuy.application.dto.StoreRecommendationResponse
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOpenRequest
+import com.moongchijang.domain.groupbuy.domain.entity.NotificationStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.store.domain.entity.DistrictType
+import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import kotlin.math.roundToLong
 
@@ -24,7 +31,9 @@ class GroupBuyOpenRequestService(
     private val openRequestRepository: GroupBuyOpenRequestRepository,
     private val naverLocalSearchClient: NaverLocalSearchClient,
     private val storeRepository: StoreRepository,
-    private val groupBuyRepository: GroupBuyRepository
+    private val groupBuyRepository: GroupBuyRepository,
+    private val userRepository: UserRepository,
+    private val aligoAlimtalkClient: AligoAlimtalkClient,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -60,18 +69,99 @@ class GroupBuyOpenRequestService(
         }
     }
 
+    fun notifyOpened(groupBuy: GroupBuy): GroupBuyOpenNotificationResult {
+        return notifyOpened(
+            regions = notificationRegionCodes(groupBuy.store),
+            productName = groupBuy.productName,
+        )
+    }
+
+    fun notifyOpened(region: String, productName: String): GroupBuyOpenNotificationResult {
+        return notifyOpened(regions = listOf(region), productName = productName)
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun notifyOpened(regions: Collection<String>, productName: String): GroupBuyOpenNotificationResult {
+        val normalizedRegions = regions.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        if (normalizedRegions.isEmpty()) {
+            return GroupBuyOpenNotificationResult(targetCount = 0, sentCount = 0, failedCount = 0)
+        }
+
+        val pendingRequests = openRequestRepository.findAllByRegionInAndProductNameAndNotificationStatus(
+            regions = normalizedRegions,
+            productName = productName,
+            notificationStatus = NotificationStatus.PENDING,
+        )
+
+        val requestsByUserId = pendingRequests.groupBy { it.userId }
+        val usersById = userRepository.findByIdInAndDeletedAtIsNull(requestsByUserId.keys)
+            .associateBy { it.id }
+
+        var sentCount = 0
+        var failedCount = 0
+
+        requestsByUserId.forEach { (userId, userRequests) ->
+            val receiverPhone = usersById[userId]?.phoneNumber
+            val message = buildOpenNotificationMessage(userRequests.first().region, productName)
+
+            val sent = if (receiverPhone.isNullOrBlank()) {
+                false
+            } else {
+                aligoAlimtalkClient.send(receiverPhone, message)
+            }
+
+            if (sent) {
+                userRequests.forEach { it.markSent() }
+                sentCount += 1
+            } else {
+                userRequests.forEach { it.markFailed() }
+                failedCount += 1
+            }
+        }
+
+        return GroupBuyOpenNotificationResult(
+            targetCount = requestsByUserId.size,
+            sentCount = sentCount,
+            failedCount = failedCount,
+        )
+    }
+
+    private fun buildOpenNotificationMessage(region: String, productName: String): String {
+        return "[뭉치장] 요청하신 ${displayRegion(region)} $productName 공구가 열렸어요."
+    }
+
+    private fun notificationRegionCodes(store: Store): List<String> {
+        if (store.region == RegionType.NATIONWIDE || store.district == DistrictType.NATIONWIDE) {
+            return listOf(DistrictType.NATIONWIDE.name)
+        }
+
+        return listOf(
+            DistrictType.NATIONWIDE.name,
+            "${store.region.name}_ALL",
+            store.district.name,
+        ).distinct()
+    }
+
+    private fun displayRegion(region: String): String {
+        val code = region.trim()
+        return DistrictType.entries.firstOrNull { it.name == code }?.label
+            ?: RegionType.entries.firstOrNull { it.name == code }?.label
+            ?: code
+    }
+
     @Transactional(readOnly = true)
     fun recommendStores(request: StoreRecommendationRequest): StoreRecommendationResponse {
         val startedAt = System.nanoTime()
+        val regionLabel = request.region.label
         val items = runCatching {
             naverLocalSearchClient.search(
-                keyword = "${request.region} ${request.productName}",
+                keyword = "$regionLabel ${request.productName}",
                 display = NAVER_DISPLAY_COUNT
             ).items
         }.onFailure { e ->
             log.warn(
                 "store_recommendation fallback=true reason=naver_failure regionLength={} productLength={} latencyMs={}",
-                request.region.length,
+                regionLabel.length,
                 request.productName.length,
                 elapsedMillis(startedAt),
                 e
@@ -126,7 +216,7 @@ class GroupBuyOpenRequestService(
         )
 
         return StoreRecommendationResponse(
-            region = request.region,
+            region = regionLabel,
             productName = request.productName,
             stores = stores
         )
@@ -143,7 +233,7 @@ class GroupBuyOpenRequestService(
             elapsedMillis(startedAt)
         )
         return StoreRecommendationResponse(
-            region = request.region,
+            region = request.region.label,
             productName = request.productName,
             stores = emptyList()
         )
@@ -157,8 +247,8 @@ class GroupBuyOpenRequestService(
             val storeName = storeName()
             val roadAddress = roadAddress.trim()
             val lotAddress = address.trim().ifBlank { null }
-            val addressMatched = containsNormalized(roadAddress, request.region) ||
-                containsNormalized(lotAddress.orEmpty(), request.region)
+            val addressMatched = containsNormalized(roadAddress, request.region.label) ||
+                containsNormalized(lotAddress.orEmpty(), request.region.label)
             val categoryMatched = isCategoryMatched(category, request.productName)
 
             StoreRecommendationCandidate(
@@ -282,3 +372,9 @@ class GroupBuyOpenRequestService(
         val score: Int
     )
 }
+
+data class GroupBuyOpenNotificationResult(
+    val targetCount: Int,
+    val sentCount: Int,
+    val failedCount: Int,
+)
