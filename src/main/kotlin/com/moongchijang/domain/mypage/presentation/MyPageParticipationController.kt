@@ -2,6 +2,7 @@ package com.moongchijang.domain.mypage.presentation
 
 import com.moongchijang.domain.mypage.application.MyPageParticipationQueryService
 import com.moongchijang.domain.participation.application.dto.InProgressParticipationPageResponse
+import com.moongchijang.domain.participation.application.dto.PickupWaitingParticipationPageResponse
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -52,6 +53,37 @@ class MyPageParticipationController(
 
         log.info(
             "[MyPageParticipationController] 진행 중 참여 내역 조회 응답 완료: userId={}, totalElements={}",
+            userId,
+            response.totalElements
+        )
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @GetMapping("/pickup-waiting")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "픽업 대기 탭 참여 완료 공구 이력 조회")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))])
+        ]
+    )
+    fun getPickupWaitingParticipations(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        pageable: Pageable
+    ): ResponseEntity<ApiResponse<PickupWaitingParticipationPageResponse>> {
+        val userId = principal.id
+        log.info(
+            "[MyPageParticipationController] 픽업 대기 참여 내역 조회 요청 수신: userId={}, page={}, size={}",
+            userId,
+            pageable.pageNumber,
+            pageable.pageSize
+        )
+
+        val response = myPageParticipationQueryService.getPickupWaitingParticipations(userId, pageable)
+
+        log.info(
+            "[MyPageParticipationController] 픽업 대기 참여 내역 조회 응답 완료: userId={}, totalElements={}",
             userId,
             response.totalElements
         )

@@ -6,15 +6,13 @@ import com.moongchijang.domain.groupbuy.application.dto.StoreRecommendationReque
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOpenRequest
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
-import com.moongchijang.domain.store.domain.entity.DistrictType
-import com.moongchijang.domain.store.domain.entity.RegionType
-import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
-import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchResponse
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.support.GroupBuyFixture
+import com.moongchijang.support.NaverFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -91,7 +89,7 @@ class GroupBuyOpenRequestServiceTest {
     @Test
     fun `매장 추천 시 네이버 결과를 중복 제거하고 추천 점수 순으로 반환한다`() {
         val request = StoreRecommendationRequest(region = "성수", productName = "소금빵")
-        val loaf = naverItem(
+        val loaf = NaverFixture.naverItem(
             title = "<b>LOAF</b>",
             link = "https://map.naver.com/p/entry/place/100",
             category = "음식점>카페,디저트",
@@ -99,18 +97,16 @@ class GroupBuyOpenRequestServiceTest {
             roadAddress = "서울 성동구 성수이로 1"
         )
         val duplicateLoaf = loaf.copy(description = "duplicate")
-        val other = naverItem(
+        val other = NaverFixture.naverItem(
             title = "다른 가게",
             link = "https://map.naver.com/p/entry/place/200",
             category = "생활,편의",
             address = "서울 마포구 망원동 1",
             roadAddress = "서울 마포구 월드컵로 1"
         )
-        val registeredStore = Store(
+        val registeredStore = GroupBuyFixture.createStore(
             name = "LOAF",
-            address = "서울 성동구 성수이로 1",
-            region = RegionType.SEOUL,
-            district = DistrictType.SEOUL_SEONGSU_GEONDAE_GWANGJIN
+            address = "서울 성동구 성수이로 1"
         ).apply { id = 10L }
 
         `when`(naverLocalSearchClient.search("성수 소금빵", 20)).thenReturn(
@@ -175,22 +171,4 @@ class GroupBuyOpenRequestServiceTest {
         assertTrue(response.stores.isEmpty())
         verifyNoInteractions(storeRepository, groupBuyRepository)
     }
-
-    private fun naverItem(
-        title: String,
-        link: String,
-        category: String,
-        address: String,
-        roadAddress: String
-    ) = NaverLocalSearchItem(
-        title = title,
-        link = link,
-        category = category,
-        description = "",
-        telephone = "",
-        address = address,
-        roadAddress = roadAddress,
-        mapx = "1270000000",
-        mapy = "375000000"
-    )
 }

@@ -1246,6 +1246,26 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/v1/users/me/participations/pickup-waiting:
+    get:
+      tags: [MyPage]
+      summary: 픽업 대기 탭 참여 완료 공구 이력 조회
+      description: 페이지네이션 기반으로 픽업 대기 탭 카드를 조회한다. 정렬 기준은 참여일시(participatedAt) 내림차순이다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 픽업 대기 참여 공구 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePickupWaitingParticipationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/v1/users/me/group-buy-requests:
     get:
       tags: [MyPage]
@@ -2943,11 +2963,39 @@ components:
                   groupBuyId: { type: integer, format: int64 }
                   productName: { type: string }
                   storeName: { type: string }
-                  pickupAt: { type: string, format: date-time, nullable: true }
+                  pickupAt: { type: string, format: date-time }
                   paidAmount: { type: integer }
                   quantity: { type: integer }
                   achievementRate: { type: integer, description: 0~100 정수 퍼센트 }
                   dDay: { type: integer, description: 마감일까지 남은 일수 }
+                  participatedAt: { type: string, format: date-time }
+            totalElements: { type: integer }
+            totalPages: { type: integer }
+        error: { nullable: true, example: null }
+
+    ApiResponsePickupWaitingParticipationPage:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [content, totalElements, totalPages]
+          properties:
+            content:
+              type: array
+              items:
+                type: object
+                required: [participationId, groupBuyId, productName, storeName, pickupAt, paidAmount, quantity, isClosed, participatedAt]
+                properties:
+                  participationId: { type: integer, format: int64 }
+                  groupBuyId: { type: integer, format: int64 }
+                  productName: { type: string }
+                  storeName: { type: string }
+                  pickupAt: { type: string, format: date-time }
+                  paidAmount: { type: integer }
+                  quantity: { type: integer }
+                  isClosed: { type: boolean, description: 마감 공구 여부 }
                   participatedAt: { type: string, format: date-time }
             totalElements: { type: integer }
             totalPages: { type: integer }

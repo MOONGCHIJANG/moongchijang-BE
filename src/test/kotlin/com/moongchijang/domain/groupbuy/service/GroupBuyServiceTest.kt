@@ -2,19 +2,15 @@ package com.moongchijang.domain.groupbuy.service
 
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.groupbuy.application.GroupBuyService
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.entity.DistrictType
-import com.moongchijang.domain.store.domain.entity.RegionType
-import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -55,7 +51,7 @@ class GroupBuyServiceTest {
 
     @Test
     fun `공구 피드 keyword 제외 조회 검증`() {
-        val groupBuy = createGroupBuy(id = 21L, status = GroupBuyStatus.IN_PROGRESS)
+        val groupBuy = GroupBuyFixture.createGroupBuy(id = 21L, status = GroupBuyStatus.IN_PROGRESS)
         val pageable = PageRequest.of(0, 20)
         val request = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest(
             filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
@@ -91,7 +87,7 @@ class GroupBuyServiceTest {
             filter = com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter.ALL,
             districts = listOf(regionalDistrict)
         )
-        val fallbackGroupBuy = createGroupBuy(id = 31L, status = GroupBuyStatus.IN_PROGRESS)
+        val fallbackGroupBuy = GroupBuyFixture.createGroupBuy(id = 31L, status = GroupBuyStatus.IN_PROGRESS)
 
         `when`(
             groupBuyRepository.searchFeed(
@@ -169,8 +165,8 @@ class GroupBuyServiceTest {
     fun `로그인 사용자 상세 조회 시 찜 여부와 참여 여부 반환`() {
         val groupBuyId = 10L
         val userId = 1L
-        val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
-        val images = listOf(createImage(groupBuy, "https://image1.jpg"), createImage(groupBuy, "https://image2.jpg"))
+        val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
+        val images = listOf(GroupBuyFixture.createImage(groupBuy, "https://image1.jpg"), GroupBuyFixture.createImage(groupBuy, "https://image2.jpg"))
 
         `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
         `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(images)
@@ -189,7 +185,7 @@ class GroupBuyServiceTest {
     @Test
     fun `비로그인 사용자 상세 조회 시 찜 여부와 참여 여부 false 반환`() {
         val groupBuyId = 11L
-        val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
+        val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
 
         `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
         `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(emptyList())
@@ -205,7 +201,7 @@ class GroupBuyServiceTest {
     fun `마감된 공구 상세 조회 시 참여 가능 여부 false 반환`() {
         val groupBuyId = 12L
         val userId = 3L
-        val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.CLOSED)
+        val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.CLOSED)
 
         `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
         `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(emptyList())
@@ -221,7 +217,7 @@ class GroupBuyServiceTest {
     fun `마감 시간이 지난 공구 상세 조회 시 참여 가능 여부 false 반환`() {
         val groupBuyId = 13L
         val userId = 4L
-        val groupBuy = createGroupBuy(
+        val groupBuy = GroupBuyFixture.createGroupBuy(
             id = groupBuyId,
             status = GroupBuyStatus.IN_PROGRESS,
             deadline = LocalDateTime.now().minusMinutes(1)
@@ -241,7 +237,7 @@ class GroupBuyServiceTest {
     fun `달성 완료 공구 상세 조회 시 최대 수량 전이면 참여 가능 여부 true 반환`() {
         val groupBuyId = 14L
         val userId = 5L
-        val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.ACHIEVED).apply {
+        val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.ACHIEVED).apply {
             currentQuantity = 50
             maxQuantity = 100
         }
@@ -261,7 +257,7 @@ class GroupBuyServiceTest {
     fun `달성 완료 공구 상세 조회 시 최대 수량 도달이면 참여 가능 여부 false 반환`() {
         val groupBuyId = 15L
         val userId = 6L
-        val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.ACHIEVED).apply {
+        val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.ACHIEVED).apply {
             currentQuantity = 100
             maxQuantity = 100
         }
@@ -281,7 +277,7 @@ class GroupBuyServiceTest {
     fun `달성 완료 공구라도 마감 시간이 지나면 참여 가능 여부 false 반환`() {
         val groupBuyId = 16L
         val userId = 7L
-        val groupBuy = createGroupBuy(
+        val groupBuy = GroupBuyFixture.createGroupBuy(
             id = groupBuyId,
             status = GroupBuyStatus.ACHIEVED,
             deadline = LocalDateTime.now().minusMinutes(1)
@@ -313,7 +309,7 @@ class GroupBuyServiceTest {
     @Test
     fun `단건 progress 조회 성공`() {
         val groupBuyId = 21L
-        val groupBuy = createGroupBuy(
+        val groupBuy = GroupBuyFixture.createGroupBuy(
             id = groupBuyId,
             status = GroupBuyStatus.IN_PROGRESS
         ).apply {
@@ -334,7 +330,7 @@ class GroupBuyServiceTest {
     @Test
     fun `달성 완료 공구 progress 조회 시 마감 여부 false 반환`() {
         val groupBuyId = 22L
-        val groupBuy = createGroupBuy(
+        val groupBuy = GroupBuyFixture.createGroupBuy(
             id = groupBuyId,
             status = GroupBuyStatus.ACHIEVED
         ).apply {
@@ -360,11 +356,11 @@ class GroupBuyServiceTest {
 
     @Test
     fun `다건 progress 조회 시 요청 순서를 유지하고 존재하지 않는 id 는 제외한다`() {
-        val first = createGroupBuy(id = 101L, status = GroupBuyStatus.IN_PROGRESS).apply {
+        val first = GroupBuyFixture.createGroupBuy(id = 101L, status = GroupBuyStatus.IN_PROGRESS).apply {
             currentQuantity = 20
             targetQuantity = 50
         }
-        val second = createGroupBuy(id = 202L, status = GroupBuyStatus.IN_PROGRESS).apply {
+        val second = GroupBuyFixture.createGroupBuy(id = 202L, status = GroupBuyStatus.IN_PROGRESS).apply {
             currentQuantity = 45
             targetQuantity = 50
         }
@@ -388,58 +384,4 @@ class GroupBuyServiceTest {
         assertTrue(result.isEmpty())
     }
 
-    private fun createGroupBuy(
-        id: Long,
-        status: GroupBuyStatus,
-        deadline: LocalDateTime = LocalDateTime.now().plusDays(3)
-    ): GroupBuy {
-        val store = createStore()
-        val request = createGroupBuyRequest()
-        return GroupBuy(
-            store = store,
-            groupBuyRequest = request,
-            thumbnailUrl = "https://example.jpg",
-            productName = "두쫀쿠 1개",
-            productDescription = "설명",
-            price = 6000,
-            targetQuantity = 50,
-            currentQuantity = 36,
-            maxQuantity = 100,
-            status = status,
-            deadline = deadline,
-            pickupDate = LocalDate.now().plusDays(5),
-            pickupTimeStart = LocalTime.of(14, 0),
-            pickupTimeEnd = LocalTime.of(18, 0),
-            pickupLocation = "서울 성동구 성수동",
-            shareCount = 0
-        ).apply { this.id = id }
-    }
-
-    private fun createStore(): Store =
-        Store(
-            name = "뭉치장 베이커리",
-            address = "서울 성동구",
-            region = RegionType.SEOUL,
-            district = DistrictType.SEOUL_SEONGSU_GEONDAE_GWANGJIN
-        ).apply {
-            id = 1L
-            latitude = 37.544
-            longitude = 127.055
-        }
-
-    private fun createGroupBuyRequest(): GroupBuyRequest =
-        GroupBuyRequest(
-            userId = 1L,
-            storeName = "뭉치장 베이커리",
-            storeAddress = "서울 성동구",
-            productName = "두쫀쿠 1개",
-            desiredQuantity = 50,
-            desiredPickupDate = LocalDate.now().plusDays(5)
-        ).apply { id = 20L }
-
-    private fun createImage(groupBuy: GroupBuy, imageUrl: String): GroupBuyImage =
-        GroupBuyImage(
-            groupBuy = groupBuy,
-            imageUrl = imageUrl
-        )
 }
