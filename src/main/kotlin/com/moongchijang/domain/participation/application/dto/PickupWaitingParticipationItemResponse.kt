@@ -20,8 +20,8 @@ data class PickupWaitingParticipationItemResponse(
     @field:Schema(description = "매장명", example = "모모왕국")
     val storeName: String,
 
-    @field:Schema(description = "픽업 일시", example = "2026-04-15T14:00:00", nullable = true)
-    val pickupAt: LocalDateTime?,
+    @field:Schema(description = "픽업 일시", example = "2026-04-15T14:00:00")
+    val pickupAt: LocalDateTime,
 
     @field:Schema(description = "결제 금액", example = "18000")
     val paidAmount: Int,

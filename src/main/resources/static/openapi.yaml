@@ -2963,7 +2963,7 @@ components:
                   groupBuyId: { type: integer, format: int64 }
                   productName: { type: string }
                   storeName: { type: string }
-                  pickupAt: { type: string, format: date-time, nullable: true }
+                  pickupAt: { type: string, format: date-time }
                   paidAmount: { type: integer }
                   quantity: { type: integer }
                   achievementRate: { type: integer, description: 0~100 정수 퍼센트 }
@@ -2992,7 +2992,7 @@ components:
                   groupBuyId: { type: integer, format: int64 }
                   productName: { type: string }
                   storeName: { type: string }
-                  pickupAt: { type: string, format: date-time, nullable: true }
+                  pickupAt: { type: string, format: date-time }
                   paidAmount: { type: integer }
                   quantity: { type: integer }
                   isClosed: { type: boolean, description: 마감 공구 여부 }
