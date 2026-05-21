@@ -278,6 +278,30 @@ class GroupBuyServiceTest {
     }
 
     @Test
+    fun `달성 완료 공구라도 마감 시간이 지나면 참여 가능 여부 false 반환`() {
+        val groupBuyId = 16L
+        val userId = 7L
+        val groupBuy = createGroupBuy(
+            id = groupBuyId,
+            status = GroupBuyStatus.ACHIEVED,
+            deadline = LocalDateTime.now().minusMinutes(1)
+        ).apply {
+            currentQuantity = 50
+            maxQuantity = 100
+        }
+
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+        `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(emptyList())
+        `when`(favoriteRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+
+        val result = service.getDetail(groupBuyId, userId)
+
+        assertTrue(result.isClosed)
+        assertFalse(result.canParticipate)
+    }
+
+    @Test
     fun `존재하지 않는 공구 상세 조회 시 GROUPBUY_NOT_FOUND 예외 발생`() {
         `when`(groupBuyRepository.findWithStoreById(999L)).thenReturn(Optional.empty())
 

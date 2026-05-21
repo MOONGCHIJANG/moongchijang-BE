@@ -173,6 +173,40 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `마감 시간이 지난 ACHIEVED 상태 공구는 체크아웃 정보 조회 불가`() {
+        val groupBuy = createGroupBuy(
+            status = GroupBuyStatus.ACHIEVED,
+            currentQuantity = 50,
+            maxQuantity = 100,
+        ).apply {
+            deadline = LocalDateTime.now().minusMinutes(1)
+        }
+        `when`(groupBuyRepository.findWithStoreById(10L)).thenReturn(Optional.of(groupBuy))
+
+        val ex = assertThrows<CustomException> {
+            service.getCheckoutInfo(10L, 1)
+        }
+
+        assertEquals(ErrorCode.PAYMENT_GROUPBUY_NOT_AVAILABLE, ex.errorCode)
+    }
+
+    @Test
+    fun `마감 시간이 지난 ACHIEVED 상태 공구는 결제 주문 생성 불가`() {
+        val user = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.ACHIEVED, currentQuantity = 50, maxQuantity = 100).apply {
+            deadline = LocalDateTime.now().minusMinutes(1)
+        }
+        `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+        `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
+
+        val ex = assertThrows<CustomException> {
+            service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 1))
+        }
+
+        assertEquals(ErrorCode.PAYMENT_GROUPBUY_NOT_AVAILABLE, ex.errorCode)
+    }
+
+    @Test
     fun `포트원 결제 완료 시 참여 생성 및 현재 수량 증가`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy(currentQuantity = 36)
