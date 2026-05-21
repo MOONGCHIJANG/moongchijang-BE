@@ -1,5 +1,7 @@
 package com.moongchijang.domain.participation.application.dto
 
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.participation.domain.entity.Participation
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 
@@ -32,4 +34,24 @@ data class PickupWaitingParticipationItemResponse(
 
     @field:Schema(description = "참여 일시", example = "2026-04-12T10:30:00")
     val participatedAt: LocalDateTime
-)
+) {
+    companion object {
+        fun from(participation: Participation): PickupWaitingParticipationItemResponse {
+            val groupBuy = participation.groupBuy
+
+            return PickupWaitingParticipationItemResponse(
+                participationId = participation.id,
+                groupBuyId = groupBuy.id,
+                productName = groupBuy.productName,
+                storeName = groupBuy.store.name,
+                pickupAt = LocalDateTime.of(groupBuy.pickupDate, groupBuy.pickupTimeStart),
+                paidAmount = participation.totalAmount,
+                quantity = participation.quantity,
+                isClosed = groupBuy.status == GroupBuyStatus.CLOSED,
+                participatedAt = requireNotNull(participation.createdAt) {
+                    "[PickupWaitingParticipationItemResponse] 참여 생성일시 누락: participationId=${participation.id}"
+                }
+            )
+        }
+    }
+}

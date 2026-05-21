@@ -1,12 +1,9 @@
 package com.moongchijang.domain.mypage.application
 
-import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.participation.application.dto.InProgressParticipationItemResponse
 import com.moongchijang.domain.participation.application.dto.InProgressParticipationPageResponse
 import com.moongchijang.domain.participation.application.dto.PickupWaitingParticipationItemResponse
 import com.moongchijang.domain.participation.application.dto.PickupWaitingParticipationPageResponse
-import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -14,8 +11,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 
 @Service
 class MyPageParticipationQueryService(
@@ -46,7 +41,7 @@ class MyPageParticipationQueryService(
             page.totalPages
         )
 
-        val mapped = page.map { participation -> toInProgressItem(participation) }
+        val mapped = page.map { participation -> InProgressParticipationItemResponse.from(participation) }
         return InProgressParticipationPageResponse.from(mapped)
     }
 
@@ -74,52 +69,8 @@ class MyPageParticipationQueryService(
             page.totalPages
         )
 
-        val mapped = page.map { participation -> toPickupWaitingItem(participation) }
+        val mapped = page.map { participation -> PickupWaitingParticipationItemResponse.from(participation) }
         return PickupWaitingParticipationPageResponse.from(mapped)
-    }
-
-    private fun toInProgressItem(participation: Participation): InProgressParticipationItemResponse {
-        val groupBuy = participation.groupBuy
-        val dDay = ChronoUnit.DAYS.between(
-            LocalDateTime.now().toLocalDate(),
-            groupBuy.deadline.toLocalDate()
-        ).toInt()
-
-        return InProgressParticipationItemResponse(
-            participationId = participation.id,
-            groupBuyId = groupBuy.id,
-            productName = groupBuy.productName,
-            storeName = groupBuy.store.name,
-            pickupAt = LocalDateTime.of(groupBuy.pickupDate, groupBuy.pickupTimeStart),
-            paidAmount = participation.totalAmount,
-            quantity = participation.quantity,
-            achievementRate = GroupBuyProgressCalculator.achievementRate(
-                currentQuantity = groupBuy.currentQuantity,
-                targetQuantity = groupBuy.targetQuantity
-            ),
-            dDay = dDay,
-            participatedAt = requireNotNull(participation.createdAt) {
-                "[MyPageParticipationQueryService] 참여 생성일시 누락: participationId=${participation.id}"
-            }
-        )
-    }
-
-    private fun toPickupWaitingItem(participation: Participation): PickupWaitingParticipationItemResponse {
-        val groupBuy = participation.groupBuy
-
-        return PickupWaitingParticipationItemResponse(
-            participationId = participation.id,
-            groupBuyId = groupBuy.id,
-            productName = groupBuy.productName,
-            storeName = groupBuy.store.name,
-            pickupAt = LocalDateTime.of(groupBuy.pickupDate, groupBuy.pickupTimeStart),
-            paidAmount = participation.totalAmount,
-            quantity = participation.quantity,
-            isClosed = groupBuy.status == GroupBuyStatus.CLOSED,
-            participatedAt = requireNotNull(participation.createdAt) {
-                "[MyPageParticipationQueryService] 참여 생성일시 누락: participationId=${participation.id}"
-            }
-        )
     }
 
     companion object {
