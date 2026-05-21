@@ -133,10 +133,11 @@ class GroupBuyService(
             return emptyList()
         }
 
+        val now = LocalDateTime.now()
         val groupBuysById = groupBuyRepository.findAllById(groupBuyIds).associateBy { it.id }
 
         val response = groupBuyIds.mapNotNull { id ->
-            groupBuysById[id]?.let { GroupBuyProgressItem.from(it) }
+            groupBuysById[id]?.let { GroupBuyProgressItem.from(it, now) }
         }
         log.debug(
             "[GroupBuyService] 공구 progress 다건 조회 완료: requestedSize={}, returnedSize={}",
