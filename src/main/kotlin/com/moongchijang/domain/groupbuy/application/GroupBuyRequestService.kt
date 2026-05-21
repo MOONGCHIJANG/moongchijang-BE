@@ -27,11 +27,23 @@ class GroupBuyRequestService(
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE)
         }
 
+        val placeId = request.placeId?.ifBlank { null }
+        val roadAddress = request.roadAddress?.ifBlank { null }
+        val lotAddress = request.lotAddress?.ifBlank { null }
+        val storeAddress = roadAddress ?: lotAddress ?: request.storeAddress?.ifBlank { null }
+        val latitude = if (placeId != null) request.latitude else null
+        val longitude = if (placeId != null) request.longitude else null
+
         val saved = groupBuyRequestRepository.save(
             GroupBuyRequest(
                 userId = userId,
                 storeName = request.storeName,
-                storeAddress = request.storeAddress,
+                storeAddress = storeAddress,
+                placeId = placeId,
+                roadAddress = roadAddress,
+                lotAddress = lotAddress,
+                latitude = latitude,
+                longitude = longitude,
                 productName = request.productName,
                 desiredQuantity = request.desiredQuantity,
                 desiredPickupDate = request.desiredPickupDate,
