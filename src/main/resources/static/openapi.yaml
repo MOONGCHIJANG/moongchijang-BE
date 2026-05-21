@@ -617,12 +617,13 @@ paths:
         - name: ids
           in: query
           required: true
-          description: 조회할 공구 ID 목록 (최대 20개)
+          description: 조회할 공구 ID 목록 (양수 ID만 허용, 최대 20개)
           schema:
             type: array
             items:
               type: integer
               format: int64
+              minimum: 1
             maxItems: 20
       responses:
         '200':
