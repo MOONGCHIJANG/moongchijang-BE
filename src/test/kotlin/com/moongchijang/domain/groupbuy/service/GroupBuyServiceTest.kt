@@ -246,6 +246,66 @@ class GroupBuyServiceTest {
         assertEquals(ErrorCode.GROUPBUY_NOT_FOUND, ex.errorCode)
     }
 
+    @Test
+    fun `단건 progress 조회 성공`() {
+        val groupBuyId = 21L
+        val groupBuy = createGroupBuy(
+            id = groupBuyId,
+            status = GroupBuyStatus.IN_PROGRESS
+        ).apply {
+            currentQuantity = 36
+            targetQuantity = 50
+        }
+        `when`(groupBuyRepository.findById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+
+        val result = service.getProgress(groupBuyId)
+
+        assertEquals(groupBuyId, result.groupBuyId)
+        assertEquals(72, result.achievementRate)
+        assertEquals(36, result.currentQuantity)
+        assertEquals(50, result.targetQuantity)
+        assertFalse(result.isClosed)
+    }
+
+    @Test
+    fun `존재하지 않는 공구 progress 단건 조회 시 GROUPBUY_NOT_FOUND 예외 발생`() {
+        `when`(groupBuyRepository.findById(999L)).thenReturn(Optional.empty())
+
+        val ex = assertThrows<CustomException> { service.getProgress(999L) }
+
+        assertEquals(ErrorCode.GROUPBUY_NOT_FOUND, ex.errorCode)
+    }
+
+    @Test
+    fun `다건 progress 조회 시 요청 순서를 유지하고 존재하지 않는 id 는 제외한다`() {
+        val first = createGroupBuy(id = 101L, status = GroupBuyStatus.IN_PROGRESS).apply {
+            currentQuantity = 20
+            targetQuantity = 50
+        }
+        val second = createGroupBuy(id = 202L, status = GroupBuyStatus.IN_PROGRESS).apply {
+            currentQuantity = 45
+            targetQuantity = 50
+        }
+        val requestIds = listOf(202L, 999L, 101L)
+
+        `when`(groupBuyRepository.findAllById(requestIds)).thenReturn(listOf(first, second))
+
+        val result = service.getProgresses(requestIds)
+
+        assertEquals(2, result.size)
+        assertEquals(202L, result[0].groupBuyId)
+        assertEquals(90, result[0].achievementRate)
+        assertEquals(101L, result[1].groupBuyId)
+        assertEquals(40, result[1].achievementRate)
+    }
+
+    @Test
+    fun `다건 progress 조회 시 빈 id 목록이면 빈 결과를 반환한다`() {
+        val result = service.getProgresses(emptyList())
+
+        assertTrue(result.isEmpty())
+    }
+
     private fun createGroupBuy(
         id: Long,
         status: GroupBuyStatus,
