@@ -203,7 +203,7 @@ class GroupBuyController(
     }
 
     private fun validateProgressIds(ids: List<Long>) {
-        if (ids.isEmpty() || ids.size > MAX_PROGRESS_IDS) {
+        if (ids.isEmpty() || ids.size > MAX_PROGRESS_IDS || ids.any { it <= 0L }) {
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
     }

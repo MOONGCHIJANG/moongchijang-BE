@@ -105,7 +105,7 @@ class GroupBuyService(
         )
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, timeout = 3)
     fun getProgress(groupBuyId: Long): GroupBuyProgressResponse {
         log.info("[GroupBuyService] 공구 progress 단건 조회 시작: groupBuyId={}", groupBuyId)
 
@@ -124,7 +124,7 @@ class GroupBuyService(
         return response
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, timeout = 3)
     fun getProgresses(groupBuyIds: List<Long>): List<GroupBuyProgressItem> {
         log.info("[GroupBuyService] 공구 progress 다건 조회 시작: requestedSize={}", groupBuyIds.size)
 
