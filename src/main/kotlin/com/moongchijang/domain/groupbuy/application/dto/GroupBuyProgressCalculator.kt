@@ -20,7 +20,7 @@ object GroupBuyProgressCalculator {
         return groupBuy.status in CLOSED_STATUSES || groupBuy.deadline.isBefore(now)
     }
 
-    fun canParticipateStatus(groupBuy: GroupBuy): Boolean {
+    fun isParticipationOpenStatus(groupBuy: GroupBuy): Boolean {
         return groupBuy.status == GroupBuyStatus.IN_PROGRESS || groupBuy.status == GroupBuyStatus.ACHIEVED
     }
 }

@@ -549,7 +549,9 @@ class PaymentService(
     }
 
     private fun validateGroupBuyAvailable(groupBuy: GroupBuy) {
-        if (groupBuy.status != GroupBuyStatus.IN_PROGRESS || groupBuy.deadline.isBefore(LocalDateTime.now())) {
+        val isParticipationOpenStatus =
+            groupBuy.status == GroupBuyStatus.IN_PROGRESS || groupBuy.status == GroupBuyStatus.ACHIEVED
+        if (!isParticipationOpenStatus || groupBuy.deadline.isBefore(LocalDateTime.now())) {
             throw CustomException(ErrorCode.PAYMENT_GROUPBUY_NOT_AVAILABLE)
         }
     }

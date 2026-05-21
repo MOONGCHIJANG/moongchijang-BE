@@ -91,7 +91,7 @@ class GroupBuyService(
         val now = LocalDateTime.now()
         val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now)
         val canParticipate = !isParticipated &&
-            GroupBuyProgressCalculator.canParticipateStatus(groupBuy) &&
+            GroupBuyProgressCalculator.isParticipationOpenStatus(groupBuy) &&
             !groupBuy.deadline.isBefore(now) &&
             groupBuy.currentQuantity < groupBuy.maxQuantity
 

@@ -115,6 +115,18 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `ACHIEVED 상태 공구도 체크아웃 정보 조회 가능`() {
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.ACHIEVED, currentQuantity = 50, maxQuantity = 100)
+        `when`(groupBuyRepository.findWithStoreById(10L)).thenReturn(Optional.of(groupBuy))
+
+        val result = service.getCheckoutInfo(10L, 2)
+
+        assertEquals(10L, result.groupBuyId)
+        assertEquals(50, groupBuy.currentQuantity)
+        assertEquals(50, result.remainingQuantity)
+    }
+
+    @Test
     fun `필수 동의가 없으면 결제 주문 생성 실패`() {
         val request = createOrderRequest(agreedNoWithdrawal = false)
 
@@ -142,6 +154,22 @@ class PaymentServiceTest {
         assertEquals("두쫀쿠 3개", result.orderName)
         assertEquals(18000, result.amount)
         assertEquals("은서", result.customerName)
+    }
+
+    @Test
+    fun `ACHIEVED 상태 공구도 결제 주문 생성 가능`() {
+        val user = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.ACHIEVED, currentQuantity = 50, maxQuantity = 100)
+        `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+        `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(false)
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        val result = service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 2))
+
+        assertTrue(result.paymentId.startsWith("MCJ-10-"))
+        assertEquals("두쫀쿠 2개", result.orderName)
+        assertEquals(12000, result.amount)
     }
 
     @Test
