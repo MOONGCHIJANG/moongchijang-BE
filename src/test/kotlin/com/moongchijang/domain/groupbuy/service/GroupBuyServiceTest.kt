@@ -238,6 +238,46 @@ class GroupBuyServiceTest {
     }
 
     @Test
+    fun `달성 완료 공구 상세 조회 시 최대 수량 전이면 참여 가능 여부 true 반환`() {
+        val groupBuyId = 14L
+        val userId = 5L
+        val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.ACHIEVED).apply {
+            currentQuantity = 50
+            maxQuantity = 100
+        }
+
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+        `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(emptyList())
+        `when`(favoriteRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+
+        val result = service.getDetail(groupBuyId, userId)
+
+        assertFalse(result.isClosed)
+        assertTrue(result.canParticipate)
+    }
+
+    @Test
+    fun `달성 완료 공구 상세 조회 시 최대 수량 도달이면 참여 가능 여부 false 반환`() {
+        val groupBuyId = 15L
+        val userId = 6L
+        val groupBuy = createGroupBuy(id = groupBuyId, status = GroupBuyStatus.ACHIEVED).apply {
+            currentQuantity = 100
+            maxQuantity = 100
+        }
+
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+        `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(emptyList())
+        `when`(favoriteRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+
+        val result = service.getDetail(groupBuyId, userId)
+
+        assertFalse(result.isClosed)
+        assertFalse(result.canParticipate)
+    }
+
+    @Test
     fun `존재하지 않는 공구 상세 조회 시 GROUPBUY_NOT_FOUND 예외 발생`() {
         `when`(groupBuyRepository.findWithStoreById(999L)).thenReturn(Optional.empty())
 
@@ -264,6 +304,24 @@ class GroupBuyServiceTest {
         assertEquals(72, result.achievementRate)
         assertEquals(36, result.currentQuantity)
         assertEquals(50, result.targetQuantity)
+        assertFalse(result.isClosed)
+    }
+
+    @Test
+    fun `달성 완료 공구 progress 조회 시 마감 여부 false 반환`() {
+        val groupBuyId = 22L
+        val groupBuy = createGroupBuy(
+            id = groupBuyId,
+            status = GroupBuyStatus.ACHIEVED
+        ).apply {
+            currentQuantity = 50
+            targetQuantity = 50
+        }
+        `when`(groupBuyRepository.findById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+
+        val result = service.getProgress(groupBuyId)
+
+        assertEquals(groupBuyId, result.groupBuyId)
         assertFalse(result.isClosed)
     }
 
