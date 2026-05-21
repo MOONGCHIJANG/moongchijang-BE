@@ -2927,7 +2927,7 @@ components:
               type: array
               items:
                 type: object
-                required: [participationId, groupbuyId, productName, storeName, pickupAt, paidAmount, quantity, achievementRate, dday, participatedAt]
+                required: [participationId, groupbuyId, productName, storeName, pickupAt, paidAmount, quantity, achievementRate, dDay, participatedAt]
                 properties:
                   participationId: { type: integer, format: int64 }
                   groupbuyId: { type: integer, format: int64 }
@@ -2937,7 +2937,7 @@ components:
                   paidAmount: { type: integer }
                   quantity: { type: integer }
                   achievementRate: { type: integer, description: 0~100 정수 퍼센트 }
-                  dday: { type: integer, description: 마감일까지 남은 일수 }
+                  dDay: { type: integer, description: 마감일까지 남은 일수 }
                   participatedAt: { type: string, format: date-time }
             totalElements: { type: integer }
             totalPages: { type: integer }

@@ -31,7 +31,7 @@ data class InProgressParticipationItemResponse(
     val achievementRate: Int,
 
     @field:Schema(description = "마감 D-day 숫자", example = "2")
-    val dday: Int,
+    val dDay: Int,
 
     @field:Schema(description = "참여 일시", example = "2026-04-12T10:30:00")
     val participatedAt: LocalDateTime
