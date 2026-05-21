@@ -70,6 +70,8 @@ Thumbs.db
 *.key
 credentials.json
 secrets.json
+docker/certbot/conf/
+docker/certbot/www/
 
 ### Local config ###
 local.properties
