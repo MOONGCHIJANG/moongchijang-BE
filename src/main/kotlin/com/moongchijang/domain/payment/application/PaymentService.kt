@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -549,9 +550,7 @@ class PaymentService(
     }
 
     private fun validateGroupBuyAvailable(groupBuy: GroupBuy) {
-        val isParticipationOpenStatus =
-            groupBuy.status == GroupBuyStatus.IN_PROGRESS || groupBuy.status == GroupBuyStatus.ACHIEVED
-        if (!isParticipationOpenStatus || groupBuy.deadline.isBefore(LocalDateTime.now())) {
+        if (GroupBuyProgressCalculator.isClosed(groupBuy)) {
             throw CustomException(ErrorCode.PAYMENT_GROUPBUY_NOT_AVAILABLE)
         }
     }
