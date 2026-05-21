@@ -6,8 +6,8 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedItemResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressItem
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressResponse
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
@@ -88,8 +88,9 @@ class GroupBuyService(
             participationRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
         } ?: false
 
-        val isClosed = groupBuy.status != GroupBuyStatus.IN_PROGRESS || groupBuy.deadline.isBefore(LocalDateTime.now())
-        val canParticipate = !isClosed && !isParticipated
+        val now = LocalDateTime.now()
+        val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now)
+        val canParticipate = !isParticipated && !isClosed && groupBuy.currentQuantity < groupBuy.maxQuantity
 
         log.info(
             "[GroupBuyService] 공구 상세 조회 완료: groupBuyId={}, isWishlisted={}, isParticipated={}, canParticipate={}",

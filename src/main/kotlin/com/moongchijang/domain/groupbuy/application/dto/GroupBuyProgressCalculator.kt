@@ -19,4 +19,8 @@ object GroupBuyProgressCalculator {
     fun isClosed(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): Boolean {
         return groupBuy.status in CLOSED_STATUSES || groupBuy.deadline.isBefore(now)
     }
+
+    fun isParticipationOpenStatus(groupBuy: GroupBuy): Boolean {
+        return groupBuy.status == GroupBuyStatus.IN_PROGRESS || groupBuy.status == GroupBuyStatus.ACHIEVED
+    }
 }
