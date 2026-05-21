@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -142,6 +143,7 @@ class AuthController(
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "로그아웃", description = "리프레시 토큰을 폐기하고 쿠키를 제거합니다.")
     @ApiResponses(
         value = [
@@ -150,10 +152,10 @@ class AuthController(
         ],
     )
     fun logout(
-        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
         response: HttpServletResponse,
     ): ApiResponse<Nothing> {
-        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
+        val userId = principal.id
         log.info("[AuthController] 로그아웃 요청 수신: userId={}", userId)
 
         authService.logout(userId)

@@ -4,8 +4,6 @@ import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
-import com.moongchijang.global.exception.CustomException
-import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -15,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
@@ -48,6 +47,7 @@ class UserController(
     }
 
     @PatchMapping("/me/additional-info")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "추가정보 입력", description = "신규 가입자의 닉네임/전화번호를 저장하고 가입 완료 상태를 갱신합니다.")
     @ApiResponses(
         value = [
@@ -58,11 +58,10 @@ class UserController(
         ],
     )
     fun updateAdditionalInfo(
-        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: AdditionalInfoUpsertRequest,
     ): ApiResponse<AdditionalInfoUpdatedResponse> {
-        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        val response = userService.updateAdditionalInfo(request, userId)
+        val response = userService.updateAdditionalInfo(request, principal.id)
         return ApiResponse.success(response)
     }
 }

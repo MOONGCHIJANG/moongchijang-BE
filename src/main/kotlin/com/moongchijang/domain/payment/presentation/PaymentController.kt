@@ -10,13 +10,12 @@ import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderRequest
 import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderResponse
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookRequest
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookResponse
-import com.moongchijang.global.exception.CustomException
-import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -40,22 +39,22 @@ class PaymentController(
     }
 
     @PostMapping("/group-buys/{groupBuyId}/payment-orders")
+    @PreAuthorize("isAuthenticated()")
     fun createPaymentOrder(
         @PathVariable groupBuyId: Long,
-        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: CreatePaymentOrderRequest,
     ): ResponseEntity<ApiResponse<CreatePaymentOrderResponse>> {
-        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(paymentService.createPaymentOrder(groupBuyId, userId, request)))
+        return ResponseEntity.ok(ApiResponse.success(paymentService.createPaymentOrder(groupBuyId, principal.id, request)))
     }
 
     @PostMapping("/payments/portone/complete")
+    @PreAuthorize("isAuthenticated()")
     fun completePortOnePayment(
-        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: CompletePortOnePaymentRequest,
     ): ResponseEntity<ApiResponse<ConfirmPaymentResponse>> {
-        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(paymentService.completePortOnePayment(request, userId)))
+        return ResponseEntity.ok(ApiResponse.success(paymentService.completePortOnePayment(request, principal.id)))
     }
 
     @PostMapping("/payments/portone/webhook")
@@ -67,12 +66,12 @@ class PaymentController(
     }
 
     @PostMapping("/participations/{participationId}/cancel")
+    @PreAuthorize("isAuthenticated()")
     fun cancelParticipation(
         @PathVariable participationId: Long,
-        @AuthenticationPrincipal principal: CustomUserPrincipal?,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: CancelParticipationRequest,
     ): ResponseEntity<ApiResponse<CancelParticipationResponse>> {
-        val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(paymentService.cancelParticipation(participationId, userId, request)))
+        return ResponseEntity.ok(ApiResponse.success(paymentService.cancelParticipation(participationId, principal.id, request)))
     }
 }
