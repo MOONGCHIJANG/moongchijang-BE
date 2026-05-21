@@ -117,11 +117,11 @@ class GroupBuyController(
     fun getProgress(
         @PathVariable groupBuyId: Long
     ): ResponseEntity<ApiResponse<GroupBuyProgressResponse>> {
-        log.info("[GroupBuyController] 공구 progress 단건 조회 요청 수신: groupBuyId={}", groupBuyId)
+        log.debug("[GroupBuyController] 공구 progress 단건 조회 요청 수신: groupBuyId={}", groupBuyId)
 
         val response = groupBuyService.getProgress(groupBuyId)
 
-        log.info("[GroupBuyController] 공구 progress 단건 조회 응답 완료: groupBuyId={}", groupBuyId)
+        log.debug("[GroupBuyController] 공구 progress 단건 조회 응답 완료: groupBuyId={}", groupBuyId)
         return ResponseEntity.ok(ApiResponse.success(response))
     }
 
@@ -143,7 +143,7 @@ class GroupBuyController(
         validateProgressIds(ids)
         val distinctIds = ids.distinct()
 
-        log.info(
+        log.debug(
             "[GroupBuyController] 공구 progress 다건 조회 요청 수신: requestedSize={}, distinctSize={}",
             ids.size,
             distinctIds.size
@@ -151,7 +151,7 @@ class GroupBuyController(
 
         val response = groupBuyService.getProgresses(distinctIds)
 
-        log.info(
+        log.debug(
             "[GroupBuyController] 공구 progress 다건 조회 응답 완료: requestedSize={}, returnedSize={}",
             distinctIds.size,
             response.size

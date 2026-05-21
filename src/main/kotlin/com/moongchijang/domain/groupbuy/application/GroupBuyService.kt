@@ -107,13 +107,13 @@ class GroupBuyService(
 
     @Transactional(readOnly = true, timeout = 3)
     fun getProgress(groupBuyId: Long): GroupBuyProgressResponse {
-        log.info("[GroupBuyService] 공구 progress 단건 조회 시작: groupBuyId={}", groupBuyId)
+        log.debug("[GroupBuyService] 공구 progress 단건 조회 시작: groupBuyId={}", groupBuyId)
 
         val groupBuy = groupBuyRepository.findById(groupBuyId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
         val response = GroupBuyProgressResponse.from(groupBuy)
-        log.info(
+        log.debug(
             "[GroupBuyService] 공구 progress 단건 조회 완료: groupBuyId={}, currentQuantity={}, targetQuantity={}, achievementRate={}, isClosed={}",
             response.groupBuyId,
             response.currentQuantity,
@@ -126,10 +126,10 @@ class GroupBuyService(
 
     @Transactional(readOnly = true, timeout = 3)
     fun getProgresses(groupBuyIds: List<Long>): List<GroupBuyProgressItem> {
-        log.info("[GroupBuyService] 공구 progress 다건 조회 시작: requestedSize={}", groupBuyIds.size)
+        log.debug("[GroupBuyService] 공구 progress 다건 조회 시작: requestedSize={}", groupBuyIds.size)
 
         if (groupBuyIds.isEmpty()) {
-            log.info("[GroupBuyService] 공구 progress 다건 조회 완료: requestedSize=0, returnedSize=0")
+            log.debug("[GroupBuyService] 공구 progress 다건 조회 완료: requestedSize=0, returnedSize=0")
             return emptyList()
         }
 
@@ -138,7 +138,7 @@ class GroupBuyService(
         val response = groupBuyIds.mapNotNull { id ->
             groupBuysById[id]?.let { GroupBuyProgressItem.from(it) }
         }
-        log.info(
+        log.debug(
             "[GroupBuyService] 공구 progress 다건 조회 완료: requestedSize={}, returnedSize={}",
             groupBuyIds.size,
             response.size
