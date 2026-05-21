@@ -1,4 +1,4 @@
-package com.moongchijang.domain.participation.application
+package com.moongchijang.domain.mypage.application
 
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.participation.application.dto.InProgressParticipationItemResponse
@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
 @Service
-class ParticipationQueryService(
+class MyPageParticipationQueryService(
     private val participationRepository: ParticipationRepository
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -22,7 +22,7 @@ class ParticipationQueryService(
     @Transactional(readOnly = true)
     fun getInProgressParticipations(userId: Long, pageable: Pageable): InProgressParticipationPageResponse {
         log.info(
-            "[ParticipationQueryService] 진행 중 참여 내역 조회 시작: userId={}, page={}, size={}",
+            "[MyPageParticipationQueryService] 진행 중 참여 내역 조회 시작: userId={}, page={}, size={}",
             userId,
             pageable.pageNumber,
             pageable.pageSize
@@ -35,7 +35,7 @@ class ParticipationQueryService(
         )
 
         log.info(
-            "[ParticipationQueryService] 진행 중 참여 내역 조회 완료: userId={}, contentSize={}, totalElements={}, totalPages={}",
+            "[MyPageParticipationQueryService] 진행 중 참여 내역 조회 완료: userId={}, contentSize={}, totalElements={}, totalPages={}",
             userId,
             page.content.size,
             page.totalElements,
