@@ -812,6 +812,36 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/group-buy-open-requests/store-recommendations:
+    post:
+      tags: [GroupBuyRequest]
+      summary: AI 매장 추천 바텀시트용 매장 후보 조회
+      description: |
+        동네와 상품 조건이 확정된 뒤 네이버 Local Search API와 자사 공구 이력을 기반으로
+        최대 10개의 매장 후보를 추천한다.
+
+        네이버 결과가 0건이거나 네이버 API 호출 실패/timeout이 발생하면 `stores=[]`를 반환하며,
+        프론트는 기존 공구 개설 요청 플로우로 fallback한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreRecommendationRequest'
+      responses:
+        '200':
+          description: 추천 매장 후보 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseStoreRecommendation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ─────────────────────────────────────────────────────────────
   # Wishlist
   # ─────────────────────────────────────────────────────────────
@@ -3281,4 +3311,95 @@ components:
                     type: number
                     format: double
                     description: 경도
+        error: { nullable: true, example: null }
+
+    StoreRecommendationRequest:
+      type: object
+      required: [region, productName]
+      properties:
+        region:
+          type: string
+          maxLength: 50
+          description: 확정된 동네/지역 조건
+          example: 성수
+        productName:
+          type: string
+          maxLength: 100
+          description: 확정된 상품 조건
+          example: 소금빵
+
+    ApiResponseStoreRecommendation:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [region, productName, stores]
+          properties:
+            region:
+              type: string
+              example: 성수
+            productName:
+              type: string
+              example: 소금빵
+            stores:
+              type: array
+              description: 추천 매장 후보 목록. 최대 10개이며 fallback 시 빈 배열.
+              items:
+                type: object
+                required:
+                  - placeId
+                  - storeName
+                  - roadAddress
+                  - latitude
+                  - longitude
+                  - category
+                  - addressMatched
+                  - categoryMatched
+                  - registeredStore
+                  - previousGroupBuyStore
+                properties:
+                  placeId:
+                    type: string
+                    description: 네이버 장소 고유 ID
+                    example: "1234567890"
+                  storeName:
+                    type: string
+                    description: HTML 태그가 제거된 매장명
+                    example: LOAF
+                  roadAddress:
+                    type: string
+                    description: 도로명 주소
+                    example: 서울 성동구 성수이로 1
+                  lotAddress:
+                    type: string
+                    nullable: true
+                    description: 지번 주소
+                    example: 서울 성동구 성수동1가 1
+                  latitude:
+                    type: number
+                    format: double
+                    description: 위도
+                    example: 37.5
+                  longitude:
+                    type: number
+                    format: double
+                    description: 경도
+                    example: 127.0
+                  category:
+                    type: string
+                    description: 네이버 Local Search 카테고리
+                    example: 음식점>카페,디저트
+                  addressMatched:
+                    type: boolean
+                    description: 주소가 요청 region을 포함하는지 여부
+                  categoryMatched:
+                    type: boolean
+                    description: 카테고리가 상품 조건과 관련 있는지 여부
+                  registeredStore:
+                    type: boolean
+                    description: 자사 DB 등록 매장 여부
+                  previousGroupBuyStore:
+                    type: boolean
+                    description: 과거 공구 이력이 있는 매장 여부
         error: { nullable: true, example: null }
