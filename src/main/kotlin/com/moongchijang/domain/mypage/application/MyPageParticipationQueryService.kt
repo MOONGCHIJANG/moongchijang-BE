@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class MyPageParticipationQueryService(
@@ -41,7 +42,8 @@ class MyPageParticipationQueryService(
             page.totalPages
         )
 
-        val mapped = page.map { participation -> InProgressParticipationItemResponse.from(participation) }
+        val now = LocalDateTime.now()
+        val mapped = page.map { participation -> InProgressParticipationItemResponse.from(participation, now) }
         return InProgressParticipationPageResponse.from(mapped)
     }
 
