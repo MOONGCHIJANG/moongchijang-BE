@@ -32,19 +32,45 @@ class PortOnePaymentClient(
         }
 
         return try {
-            PortOnePaymentResult(
-                paymentId = response["id"] as? String ?: paymentId,
-                status = response["status"] as? String ?: "",
-                totalAmount = extractTotalAmount(response),
-                method = extractPaymentMethod(response),
-                paidAt = parseDateTime(response["paidAt"] as? String ?: response["approvedAt"] as? String),
-                cancelledAt = parseDateTime(response["cancelledAt"] as? String ?: response["canceledAt"] as? String),
-            )
+            toPaymentResult(paymentId, response)
         } catch (e: CustomException) {
             throw e
         } catch (e: RuntimeException) {
             throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
         }
+    }
+
+    override fun cancelPayment(paymentId: String, reason: String): PortOnePaymentResult {
+        val response = try {
+            restClient.post()
+                .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}/cancel", paymentId)
+                .header("Authorization", "PortOne ${portOneProperties.apiSecret}")
+                .body(mapOf("reason" to reason))
+                .retrieve()
+                .body(Map::class.java)
+                ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        } catch (e: RestClientException) {
+            throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        }
+
+        return try {
+            toPaymentResult(paymentId, response)
+        } catch (e: CustomException) {
+            throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        } catch (e: RuntimeException) {
+            throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        }
+    }
+
+    private fun toPaymentResult(paymentId: String, response: Map<*, *>): PortOnePaymentResult {
+        return PortOnePaymentResult(
+            paymentId = response["id"] as? String ?: paymentId,
+            status = response["status"] as? String ?: "",
+            totalAmount = extractTotalAmount(response),
+            method = extractPaymentMethod(response),
+            paidAt = parseDateTime(response["paidAt"] as? String ?: response["approvedAt"] as? String),
+            cancelledAt = parseDateTime(response["cancelledAt"] as? String ?: response["canceledAt"] as? String),
+        )
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -5,8 +5,11 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
+import com.moongchijang.domain.payment.application.dto.CancelParticipationResponse
 import com.moongchijang.domain.payment.application.dto.CheckoutInfoResponse
 import com.moongchijang.domain.payment.application.dto.CompletePortOnePaymentRequest
 import com.moongchijang.domain.payment.application.dto.ConfirmPaymentResponse
@@ -214,6 +217,40 @@ class PaymentService(
         }
     }
 
+    fun cancelParticipation(
+        participationId: Long,
+        userId: Long,
+        request: CancelParticipationRequest,
+    ): CancelParticipationResponse {
+        validateCancelReason(request)
+
+        val groupBuyId = transactionTemplate().execute {
+            val participation = participationRepository.findById(participationId)
+                .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+            validateParticipationOwner(participation, userId)
+            participation.groupBuy.id
+        } ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
+
+        return withGroupBuyLock(groupBuyId) {
+            val target = transactionTemplate().execute {
+                findCancellationTarget(participationId, userId)
+            } ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
+
+            val paymentResult = portOnePaymentPort.cancelPayment(target.pgPaymentId, cancelReasonMessage(request))
+            if (paymentResult.status != PORTONE_STATUS_CANCELLED) {
+                throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+            }
+
+            transactionTemplate().execute {
+                applyParticipationCancellation(
+                    target = target,
+                    request = request,
+                    cancelledAt = paymentResult.cancelledAt ?: LocalDateTime.now(),
+                )
+            } ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        }
+    }
+
     private fun approvePayment(
         paymentId: String,
         expectedAmount: Int,
@@ -406,6 +443,81 @@ class PaymentService(
         }
     }
 
+    private fun findCancellationTarget(participationId: Long, userId: Long): CancellationTarget {
+        val participation = participationRepository.findByIdForUpdate(participationId)
+            .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+        validateParticipationOwner(participation, userId)
+        validateParticipationCancelable(participation)
+
+        val order = paymentOrderRepository.findByUserIdAndGroupBuyId(userId, participation.groupBuy.id)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+        validateApprovedPaymentOrder(order)
+        val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+
+        return CancellationTarget(
+            participationId = participation.id,
+            groupBuyId = participation.groupBuy.id,
+            userId = userId,
+            orderId = order.orderId,
+            pgPaymentId = payment.pgPaymentId,
+        )
+    }
+
+    private fun applyParticipationCancellation(
+        target: CancellationTarget,
+        request: CancelParticipationRequest,
+        cancelledAt: LocalDateTime,
+    ): CancelParticipationResponse {
+        val participation = participationRepository.findByIdForUpdate(target.participationId)
+            .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+        validateParticipationOwner(participation, target.userId)
+        validateParticipationCancelable(participation)
+
+        val order = paymentOrderRepository.findByOrderIdForUpdate(target.orderId)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+        validateApprovedPaymentOrder(order)
+        val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+        val groupBuy = groupBuyRepository.findWithLockById(target.groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+        validateRefundEligibility(groupBuy, order)
+
+        groupBuy.currentQuantity = (groupBuy.currentQuantity - participation.quantity).coerceAtLeast(0)
+        order.cancel(cancelledAt)
+        payment.cancel(cancelledAt)
+        participation.status = ParticipationStatus.REFUNDED
+        participation.cancelReason = request.reason
+        participation.cancelReasonDetail = normalizedReasonDetail(request)
+        participation.cancelledAt = cancelledAt
+        participation.refundedAt = cancelledAt
+
+        return CancelParticipationResponse(
+            participationId = participation.id,
+            status = participation.status,
+            cancelledAt = cancelledAt,
+            refundedAt = cancelledAt,
+        )
+    }
+
+    private fun validateParticipationOwner(participation: Participation, userId: Long) {
+        if (participation.user.id != userId) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+    }
+
+    private fun validateParticipationCancelable(participation: Participation) {
+        if (participation.status != ParticipationStatus.PAID_WAITING_GOAL) {
+            throw CustomException(ErrorCode.PARTICIPATION_CANCEL_NOT_ALLOWED)
+        }
+    }
+
+    private fun validateApprovedPaymentOrder(order: PaymentOrder) {
+        if (order.status != PaymentOrderStatus.APPROVED) {
+            throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
+        }
+    }
+
     private fun buildAlreadyApprovedResponse(order: PaymentOrder): ConfirmPaymentResponse {
         val userId = order.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
         val participation = participationRepository.findByUserIdAndGroupBuyId(userId, order.groupBuy.id)
@@ -453,6 +565,20 @@ class PaymentService(
             throw CustomException(ErrorCode.PAYMENT_DUPLICATE_PARTICIPATION)
         }
     }
+
+    private fun validateCancelReason(request: CancelParticipationRequest) {
+        if (request.reason == ParticipationCancelReason.OTHER && request.reasonDetail.isNullOrBlank()) {
+            throw CustomException(ErrorCode.PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED)
+        }
+    }
+
+    private fun cancelReasonMessage(request: CancelParticipationRequest): String {
+        val detail = normalizedReasonDetail(request)
+        return listOfNotNull(request.reason.name, detail).joinToString(": ")
+    }
+
+    private fun normalizedReasonDetail(request: CancelParticipationRequest): String? =
+        request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
 
     private fun calculateAmounts(unitPrice: Int, quantity: Int): PaymentAmounts {
         val productAmount = unitPrice * quantity
@@ -508,6 +634,14 @@ class PaymentService(
         val productAmount: Int,
         val feeAmount: Int,
         val totalAmount: Int,
+    )
+
+    private data class CancellationTarget(
+        val participationId: Long,
+        val groupBuyId: Long,
+        val userId: Long,
+        val orderId: String,
+        val pgPaymentId: String,
     )
 
     companion object {

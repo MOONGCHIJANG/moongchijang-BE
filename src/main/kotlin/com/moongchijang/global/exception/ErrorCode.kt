@@ -109,4 +109,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PAYMENT_DUPLICATE_PARTICIPATION(409_352, "이미 참여한 공구입니다.", 409),
     PAYMENT_WEBHOOK_INVALID(400_354, "결제 웹훅 요청이 올바르지 않습니다.", 400),
     PAYMENT_REFUND_NOT_ALLOWED_AFTER_ACHIEVED(409_355, "달성 완료된 공구는 환불할 수 없습니다.", 409),
+    PAYMENT_CANCEL_FAILED(502_355, "결제 취소에 실패했습니다.", 502),
+    PARTICIPATION_NOT_FOUND(404_356, "참여 정보를 찾을 수 없습니다.", 404),
+    PARTICIPATION_CANCEL_NOT_ALLOWED(409_357, "취소할 수 없는 참여 상태입니다.", 409),
+    PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED(400_358, "기타 취소 사유를 입력해주세요.", 400),
 }
