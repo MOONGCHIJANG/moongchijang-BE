@@ -66,7 +66,9 @@ class MyPageParticipationQueryService(
                 targetQuantity = groupBuy.targetQuantity
             ),
             dDay = dDay,
-            participatedAt = participation.createdAt!!
+            participatedAt = requireNotNull(participation.createdAt) {
+                "[MyPageParticipationQueryService] 참여 생성일시 누락: participationId=${participation.id}"
+            }
         )
     }
 
