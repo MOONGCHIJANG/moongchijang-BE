@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestCreateReq
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestIdResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestStatusUpdateRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
@@ -22,7 +23,8 @@ import java.time.LocalDateTime
 class GroupBuyRequestService(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val groupBuyRequestStatusHistoryRepository: GroupBuyRequestStatusHistoryRepository,
-    private val groupBuyRepository: GroupBuyRepository
+    private val groupBuyRepository: GroupBuyRepository,
+    private val groupBuyOpenRequestService: GroupBuyOpenRequestService,
 ) {
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
@@ -102,6 +104,7 @@ class GroupBuyRequestService(
 
         val rejectionReason = request.rejectionReason?.trim()
         val openedGroupBuyId = request.openedGroupBuyId
+        var openedGroupBuyForNotification: GroupBuy? = null
 
         when (request.targetStatus) {
             GroupBuyRequestStatus.REJECTED -> {
@@ -112,8 +115,9 @@ class GroupBuyRequestService(
                 groupBuyRequest.openedGroupBuyId = null
             }
             GroupBuyRequestStatus.OPENED -> {
-                if (openedGroupBuyId != null && !groupBuyRepository.existsById(openedGroupBuyId)) {
-                    throw CustomException(ErrorCode.GROUPBUY_NOT_FOUND)
+                openedGroupBuyForNotification = openedGroupBuyId?.let {
+                    groupBuyRepository.findWithStoreById(it)
+                        .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
                 }
                 groupBuyRequest.rejectionReason = null
                 groupBuyRequest.openedGroupBuyId = openedGroupBuyId
@@ -134,6 +138,7 @@ class GroupBuyRequestService(
                 status = request.targetStatus
             )
         )
+        openedGroupBuyForNotification?.let { groupBuyOpenRequestService.notifyOpened(it) }
 
         val history = groupBuyRequestStatusHistoryRepository
             .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)

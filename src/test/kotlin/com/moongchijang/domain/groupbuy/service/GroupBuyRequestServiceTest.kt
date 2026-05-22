@@ -1,8 +1,10 @@
 package com.moongchijang.domain.groupbuy.service
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyRequestService
+import com.moongchijang.domain.groupbuy.application.GroupBuyOpenRequestService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestStatusUpdateRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
@@ -10,6 +12,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestReposit
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.GroupBuyRequestFixture
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -34,6 +37,9 @@ class GroupBuyRequestServiceTest {
 
     @Mock
     private lateinit var groupBuyRepository: GroupBuyRepository
+
+    @Mock
+    private lateinit var groupBuyOpenRequestService: GroupBuyOpenRequestService
 
     @InjectMocks
     private lateinit var service: GroupBuyRequestService
@@ -393,9 +399,14 @@ class GroupBuyRequestServiceTest {
             id = requestId
             rejectionReason = "이전 사유"
         }
+        val openedGroupBuy = GroupBuyFixture.createGroupBuy(
+            id = openedGroupBuyId,
+            status = GroupBuyStatus.IN_PROGRESS,
+            productName = "튀김소보로"
+        )
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
-        `when`(groupBuyRepository.existsById(openedGroupBuyId)).thenReturn(true)
+        `when`(groupBuyRepository.findWithStoreById(openedGroupBuyId)).thenReturn(Optional.of(openedGroupBuy))
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
             GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.OPENED)
         )
@@ -418,7 +429,8 @@ class GroupBuyRequestServiceTest {
         assertNull(groupBuyRequest.rejectionReason)
         assertEquals(openedGroupBuyId, groupBuyRequest.openedGroupBuyId)
         assertEquals(openedGroupBuyId, result.openedGroupBuyId)
-        verify(groupBuyRepository).existsById(openedGroupBuyId)
+        verify(groupBuyRepository).findWithStoreById(openedGroupBuyId)
+        verify(groupBuyOpenRequestService).notifyOpened(openedGroupBuy)
     }
 
     @Test
@@ -430,7 +442,7 @@ class GroupBuyRequestServiceTest {
             status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
-        `when`(groupBuyRepository.existsById(openedGroupBuyId)).thenReturn(false)
+        `when`(groupBuyRepository.findWithStoreById(openedGroupBuyId)).thenReturn(Optional.empty())
 
         val ex = assertThrows<CustomException> {
             service.updateStatus(
@@ -444,6 +456,7 @@ class GroupBuyRequestServiceTest {
 
         assertEquals(ErrorCode.GROUPBUY_NOT_FOUND, ex.errorCode)
         verify(groupBuyRequestStatusHistoryRepository, never()).save(any())
+        verifyNoInteractions(groupBuyOpenRequestService)
     }
 
     @Test
