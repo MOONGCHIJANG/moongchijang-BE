@@ -63,8 +63,8 @@ class FavoriteRepositoryImpl(
         val builder = BooleanBuilder()
             .and(favorite.user.id.eq(userId))
 
-        if (excludeClosed) {
-            builder.and(groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS).and(groupBuy.deadline.gt(now)))
+        if (excludeClosed && filter == WishFilterType.ALL) {
+            builder.and(isOpen(now))
         }
 
         filterPredicate(filter, now)?.let { builder.and(it) }
@@ -87,10 +87,13 @@ class FavoriteRepositoryImpl(
     private fun filterPredicate(filter: WishFilterType, now: LocalDateTime): BooleanExpression? {
         return when (filter) {
             WishFilterType.ALL -> null
-            WishFilterType.CLOSING_SOON -> groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS)
-                .and(groupBuy.deadline.gt(now))
+            WishFilterType.CLOSING_SOON -> isOpen(now)
                 .and(groupBuy.deadline.loe(now.plusDays(FavoriteRepositoryCustom.CLOSING_SOON_DAYS)))
-            WishFilterType.OPEN -> groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS).and(groupBuy.deadline.gt(now))
+            WishFilterType.OPEN -> isOpen(now)
         }
     }
+
+    private fun isOpen(now: LocalDateTime): BooleanExpression =
+        groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS)
+            .and(groupBuy.deadline.gt(now))
 }
