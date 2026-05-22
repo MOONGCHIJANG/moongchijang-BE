@@ -27,6 +27,19 @@ class GroupBuyFeedItemResponseTest {
         assertEquals("D-1", response.dDayLabel)
     }
 
+    @Test
+    fun `피드 D-day가 0일 때 라벨은 D-day 반환`() {
+        val now = LocalDateTime.of(2026, 5, 20, 10, 0)
+        val groupBuy = createGroupBuy(
+            deadline = LocalDateTime.of(2026, 5, 20, 23, 59, 59)
+        )
+
+        val response = GroupBuyFeedItemResponse.from(groupBuy, now)
+
+        assertEquals(0, response.dDay)
+        assertEquals("D-day", response.dDayLabel)
+    }
+
     private fun createGroupBuy(deadline: LocalDateTime): GroupBuy {
         val store = Store(
             name = "청담 버터룸",

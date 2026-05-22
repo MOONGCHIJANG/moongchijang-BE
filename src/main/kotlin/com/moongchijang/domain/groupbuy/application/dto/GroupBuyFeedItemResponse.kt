@@ -70,7 +70,7 @@ data class GroupBuyFeedItemResponse(
                 id = groupBuy.id,
                 thumbnailUrl = groupBuy.thumbnailUrl,
                 dDay = dDay,
-                dDayLabel = "D-$dDay",
+                dDayLabel = if (dDay == 0) "D-day" else "D-$dDay",
                 storeName = groupBuy.store.name,
                 regionType = groupBuy.store.region,
                 regionLabel = groupBuy.store.region.label,
