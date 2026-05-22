@@ -885,9 +885,15 @@ paths:
           in: query
           schema:
             type: string
-            enum: [ALL, CLOSING_SOON, OPEN, CLOSED]
+            enum: [ALL, CLOSING_SOON, OPEN]
             default: ALL
-          description: ALL=전체 / CLOSING_SOON=마감임박(D-3) / OPEN=모집중 / CLOSED=마감공구
+          description: ALL=전체 / CLOSING_SOON=마감임박(D-3) / OPEN=모집중
+        - name: excludeClosed
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: true면 마감 공고 제외, false면 마감 포함
         - name: sort
           in: query
           schema:

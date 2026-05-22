@@ -20,16 +20,17 @@ class WishlistQueryService(
     fun getWishlist(
         userId: Long,
         filter: WishFilterType,
+        excludeClosed: Boolean,
         sort: WishSortType,
         pageable: Pageable,
         now: LocalDateTime = LocalDateTime.now(),
     ): WishlistPageResponse {
         log.info(
-            "[WishlistQueryService] 찜 목록 조회 시작: userId={}, filter={}, sort={}, page={}, size={}",
-            userId, filter, sort, pageable.pageNumber, pageable.pageSize
+            "[WishlistQueryService] 찜 목록 조회 시작: userId={}, filter={}, excludeClosed={}, sort={}, page={}, size={}",
+            userId, filter, excludeClosed, sort, pageable.pageNumber, pageable.pageSize
         )
 
-        val page = favoriteRepository.findWishlistGroupBuys(userId, filter, sort, pageable, now)
+        val page = favoriteRepository.findWishlistGroupBuys(userId, filter, excludeClosed, sort, pageable, now)
         val urgentCount = favoriteRepository.countUrgentByUserId(
             userId = userId,
             now = now,

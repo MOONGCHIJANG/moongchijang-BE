@@ -4,5 +4,4 @@ enum class WishFilterType {
     ALL,
     CLOSING_SOON,
     OPEN,
-    CLOSED,
 }

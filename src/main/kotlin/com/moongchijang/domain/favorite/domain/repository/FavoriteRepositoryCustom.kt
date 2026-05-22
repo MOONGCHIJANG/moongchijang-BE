@@ -16,6 +16,7 @@ interface FavoriteRepositoryCustom {
     fun findWishlistGroupBuys(
         userId: Long,
         filter: WishFilterType,
+        excludeClosed: Boolean,
         sort: WishSortType,
         pageable: Pageable,
         now: LocalDateTime,
