@@ -2,7 +2,7 @@ CREATE TABLE notification_dispatch_histories (
     id BIGINT NOT NULL AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     trigger_type VARCHAR(60) NOT NULL,
-    target_id BIGINT NULL,
+    target_id BIGINT NOT NULL,
     schedule_key VARCHAR(100) NOT NULL,
     status VARCHAR(20) NOT NULL,
     retry_count INT NOT NULL DEFAULT 0,

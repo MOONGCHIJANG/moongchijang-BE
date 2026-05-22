@@ -12,7 +12,7 @@ interface NotificationDispatchHistoryRepository : JpaRepository<NotificationDisp
     fun findByUserIdAndTriggerTypeAndTargetIdAndScheduleKey(
         userId: Long,
         triggerType: NotificationTriggerType,
-        targetId: Long?,
+        targetId: Long,
         scheduleKey: String
     ): Optional<NotificationDispatchHistory>
 

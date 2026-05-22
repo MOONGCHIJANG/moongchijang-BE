@@ -42,8 +42,8 @@ class NotificationDispatchHistory(
     @Column(name = "trigger_type", nullable = false, length = 60)
     var triggerType: NotificationTriggerType,
 
-    @Column(name = "target_id")
-    var targetId: Long? = null,
+    @Column(name = "target_id", nullable = false)
+    var targetId: Long,
 
     @Column(name = "schedule_key", nullable = false, length = 100)
     var scheduleKey: String,

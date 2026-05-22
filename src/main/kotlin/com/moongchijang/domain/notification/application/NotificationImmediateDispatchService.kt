@@ -72,11 +72,10 @@ class NotificationImmediateDispatchService(
         }
 
         targets.forEach { history ->
-            val targetId = history.targetId ?: return@forEach
             dispatchSingle(
                 event = NotificationImmediateTriggerEvent(
                     triggerType = history.triggerType,
-                    targetId = targetId,
+                    targetId = history.targetId,
                     userIds = listOf(history.userId),
                     scheduleKey = history.scheduleKey,
                     occurredAt = now
