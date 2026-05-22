@@ -885,9 +885,9 @@ paths:
           in: query
           schema:
             type: string
-            enum: [ALL, CLOSING_SOON, OPEN, CLOSED]
+            enum: [ALL, CLOSING_SOON, ACHIEVEMENT_SOON, OPEN, CLOSED]
             default: ALL
-          description: ALL=전체 / CLOSING_SOON=마감임박(D-3) / OPEN=모집중 / CLOSED=마감공구
+          description: ALL=전체 / CLOSING_SOON=마감임박(D-3) / ACHIEVEMENT_SOON=달성임박(달성률 80% 이상) / OPEN=모집중 / CLOSED=마감공구
         - name: sort
           in: query
           schema:
@@ -2120,7 +2120,7 @@ components:
     # ── GroupBuy ───────────────────────────────────────────────
     GroupBuyFeedItemResponse:
       type: object
-      required: [id, thumbnailUrl, dDay, dDayLabel, storeName, regionType, regionLabel, districtType, districtLabel, productName, price, achievementRate, currentQuantity, targetQuantity, pickupDateLabel, deadline]
+      required: [id, thumbnailUrl, dDay, dDayLabel, storeName, regionType, regionLabel, districtType, districtLabel, productName, price, achievementRate, currentQuantity, targetQuantity, pickupDate, pickupDateLabel, deadline, deadlineLabel, isAchievementImminent]
       properties:
         id: { type: integer, format: int64 }
         thumbnailUrl: { type: string, nullable: true, description: 대표 썸네일 이미지 URL }
@@ -2136,8 +2136,11 @@ components:
         achievementRate: { type: integer, description: 달성률 % (0~100) }
         currentQuantity: { type: integer }
         targetQuantity: { type: integer }
+        pickupDate: { type: string, format: date, description: 픽업 날짜 원본 값 }
         pickupDateLabel: { type: string, description: 픽업 날짜 표시 문자열, example: "4/15(화)" }
         deadline: { type: string, format: date-time, description: 마감 일시 원본 값 }
+        deadlineLabel: { type: string, description: 마감 날짜 표시 문자열, example: "4/12(토) 21:00" }
+        isAchievementImminent: { type: boolean, description: 달성임박 여부(달성률 80% 이상) }
 
     ApiResponseGroupBuyFeedPageResponse:
       type: object
