@@ -2139,6 +2139,27 @@ components:
         pickupDateLabel: { type: string, description: 픽업 날짜 표시 문자열, example: "4/15(화)" }
         deadline: { type: string, format: date-time, description: 마감 일시 원본 값 }
 
+    WishlistItemResponse:
+      type: object
+      required: [groupBuyId, thumbnailUrl, dDay, dDayLabel, storeName, regionLabel, productName, pickupDate, pickupDateLabel, deadline, deadlineLabel, achievementRate, price, currentParticipantCount, targetParticipantCount, isWishlisted]
+      properties:
+        groupBuyId: { type: integer, format: int64 }
+        thumbnailUrl: { type: string, nullable: true, description: 대표 썸네일 URL }
+        dDay: { type: integer, description: "마감 D-day (예: D-3 -> 3)" }
+        dDayLabel: { type: string, description: "마감 뱃지 문자열 (예: D-3)" }
+        storeName: { type: string }
+        regionLabel: { type: string, description: 시/도 한글 라벨, example: 서울 }
+        productName: { type: string }
+        pickupDate: { type: string, format: date, description: 픽업 날짜 원본 값 }
+        pickupDateLabel: { type: string, description: 픽업 날짜 표시 문자열, example: "4/15(화)" }
+        deadline: { type: string, format: date-time, description: 마감 일시 원본 값 }
+        deadlineLabel: { type: string, description: 마감 날짜 표시 문자열, example: "4/12(토) 21:00" }
+        achievementRate: { type: integer, description: 달성률 % (0~100) }
+        price: { type: integer }
+        currentParticipantCount: { type: integer, description: 현재 참여 인원 수 }
+        targetParticipantCount: { type: integer, description: 목표 참여 인원 수 }
+        isWishlisted: { type: boolean, description: 찜 여부 }
+
     ApiResponseGroupBuyFeedPageResponse:
       type: object
       required: [success, data, error]
@@ -2546,7 +2567,7 @@ components:
             content:
               type: array
               items:
-                $ref: '#/components/schemas/GroupBuyFeedItemResponse'
+                $ref: '#/components/schemas/WishlistItemResponse'
             totalElements: { type: integer }
             totalPages: { type: integer }
             number: { type: integer }
