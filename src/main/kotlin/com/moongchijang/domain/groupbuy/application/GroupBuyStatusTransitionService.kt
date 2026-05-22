@@ -1,8 +1,12 @@
 package com.moongchijang.domain.groupbuy.application
 
+import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.slf4j.LoggerFactory
@@ -15,6 +19,8 @@ import java.time.LocalDateTime
 @Service
 class GroupBuyStatusTransitionService(
     private val groupBuyRepository: GroupBuyRepository,
+    private val participationRepository: ParticipationRepository,
+    private val applicationEventPublisher: ApplicationEventPublisher,
     private val transactionManager: PlatformTransactionManager,
     @Value("\${groupbuy.status-transition.batch-size:500}")
     private val batchSize: Int
@@ -75,6 +81,7 @@ class GroupBuyStatusTransitionService(
             when (groupBuy.status) {
                 GroupBuyStatus.IN_PROGRESS -> {
                     groupBuy.transitionToFailedByDeadline(now)
+                    publishApplyGroupBuyFailedEvent(groupBuy.id, now)
                     inProgressToFailed++
                 }
                 GroupBuyStatus.ACHIEVED -> {
@@ -96,6 +103,21 @@ class GroupBuyStatusTransitionService(
         TransactionTemplate(transactionManager).apply {
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRES_NEW
         }
+
+    private fun publishApplyGroupBuyFailedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
+        val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
+        if (participantUserIds.isEmpty()) return
+
+        applicationEventPublisher.publishEvent(
+            NotificationImmediateTriggerEvent(
+                triggerType = NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE,
+                targetId = groupBuyId,
+                userIds = participantUserIds,
+                scheduleKey = "groupbuy-failed:$groupBuyId",
+                occurredAt = occurredAt
+            )
+        )
+    }
 
     private data class BatchTransitionResult(
         val total: Int,

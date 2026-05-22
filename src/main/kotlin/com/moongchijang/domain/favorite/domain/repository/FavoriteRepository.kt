@@ -28,4 +28,21 @@ interface FavoriteRepository : JpaRepository<Favorite, Long>, FavoriteRepository
         @Param("now") now: LocalDateTime,
         @Param("deadlineTo") deadlineTo: LocalDateTime,
     ): Long
+
+    @Query(
+        """
+        SELECT DISTINCT f.user.id
+        FROM Favorite f
+        WHERE f.groupBuy.id = :groupBuyId
+          AND NOT EXISTS (
+              SELECT p.id
+              FROM Participation p
+              WHERE p.user.id = f.user.id
+                AND p.groupBuy.id = :groupBuyId
+          )
+        """
+    )
+    fun findUserIdsByGroupBuyIdExcludingParticipants(
+        @Param("groupBuyId") groupBuyId: Long
+    ): List<Long>
 }

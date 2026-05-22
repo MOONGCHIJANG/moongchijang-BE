@@ -19,6 +19,15 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Participation?
 
     @Query(
+        """
+        SELECT DISTINCT p.user.id
+        FROM Participation p
+        WHERE p.groupBuy.id = :groupBuyId
+        """
+    )
+    fun findDistinctUserIdsByGroupBuyId(@Param("groupBuyId") groupBuyId: Long): List<Long>
+
+    @Query(
         value = """
             select p
             from Participation p
