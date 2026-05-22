@@ -5,13 +5,15 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
@@ -20,8 +22,12 @@ class GroupBuyStatusTransitionServiceTest {
     @Mock
     private lateinit var groupBuyRepository: GroupBuyRepository
 
-    @InjectMocks
     private lateinit var service: GroupBuyStatusTransitionService
+
+    @BeforeEach
+    fun setUp() {
+        service = GroupBuyStatusTransitionService(groupBuyRepository, 500)
+    }
 
     @Test
     fun `deadline 경과 대상 조회 시 상태 자동 전이`() {
@@ -36,11 +42,13 @@ class GroupBuyStatusTransitionServiceTest {
             status = GroupBuyStatus.ACHIEVED,
             deadline = now.minusMinutes(1)
         )
+        val pageable = PageRequest.of(0, 500, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
 
         `when`(
-            groupBuyRepository.findAllByStatusInAndDeadlineLessThanEqual(
+            groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
                 listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
-                now
+                now,
+                pageable
             )
         ).thenReturn(listOf(inProgress, achieved))
 
@@ -53,18 +61,21 @@ class GroupBuyStatusTransitionServiceTest {
     @Test
     fun `자동 전이 실행 시 IN_PROGRESS 및 ACHIEVED 상태 조회`() {
         val now = LocalDateTime.now()
+        val pageable = PageRequest.of(0, 500, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
         `when`(
-            groupBuyRepository.findAllByStatusInAndDeadlineLessThanEqual(
+            groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
                 listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
-                now
+                now,
+                pageable
             )
         ).thenReturn(emptyList())
 
         service.transitionExpiredGroupBuysAt(now)
 
-        verify(groupBuyRepository).findAllByStatusInAndDeadlineLessThanEqual(
+        verify(groupBuyRepository).findByStatusInAndDeadlineLessThanEqual(
             listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
-            now
+            now,
+            pageable
         )
     }
 
@@ -86,11 +97,13 @@ class GroupBuyStatusTransitionServiceTest {
             status = GroupBuyStatus.CLOSED,
             deadline = now.minusMinutes(1)
         )
+        val pageable = PageRequest.of(0, 500, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
 
         `when`(
-            groupBuyRepository.findAllByStatusInAndDeadlineLessThanEqual(
+            groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
                 listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
-                now
+                now,
+                pageable
             )
         ).thenReturn(listOf(completed, failed, closed))
 
@@ -99,5 +112,29 @@ class GroupBuyStatusTransitionServiceTest {
         assertEquals(GroupBuyStatus.COMPLETED, completed.status)
         assertEquals(GroupBuyStatus.FAILED, failed.status)
         assertEquals(GroupBuyStatus.CLOSED, closed.status)
+    }
+
+    @Test
+    fun `자동 전이 실행 시 batch size 기준 반복 처리`() {
+        val now = LocalDateTime.now()
+        val batchService = GroupBuyStatusTransitionService(groupBuyRepository, 2)
+        val pageable = PageRequest.of(0, 2, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
+        val first = GroupBuyFixture.createGroupBuy(id = 11L, status = GroupBuyStatus.IN_PROGRESS, deadline = now.minusMinutes(1))
+        val second = GroupBuyFixture.createGroupBuy(id = 12L, status = GroupBuyStatus.ACHIEVED, deadline = now.minusMinutes(1))
+        val third = GroupBuyFixture.createGroupBuy(id = 13L, status = GroupBuyStatus.IN_PROGRESS, deadline = now.minusMinutes(1))
+
+        `when`(
+            groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
+                listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+                now,
+                pageable
+            )
+        ).thenReturn(listOf(first, second), listOf(third), emptyList())
+
+        batchService.transitionExpiredGroupBuysAt(now)
+
+        assertEquals(GroupBuyStatus.FAILED, first.status)
+        assertEquals(GroupBuyStatus.COMPLETED, second.status)
+        assertEquals(GroupBuyStatus.FAILED, third.status)
     }
 }
