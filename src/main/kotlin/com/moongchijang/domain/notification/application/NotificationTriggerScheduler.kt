@@ -29,7 +29,10 @@ class NotificationTriggerScheduler(
 
     @Scheduled(cron = "0 0 7 * * *", zone = KST_ZONE_ID)
     fun triggerPickupMorningNotifications() {
-        val now = nowKst()
+        triggerPickupMorningNotificationsAt(nowKst())
+    }
+
+    fun triggerPickupMorningNotificationsAt(now: LocalDateTime) {
         val today = now.toLocalDate()
         val tomorrow = today.plusDays(1)
 
@@ -49,14 +52,20 @@ class NotificationTriggerScheduler(
 
     @Scheduled(cron = "0 */10 * * * *", zone = KST_ZONE_ID)
     fun triggerWishlistDeadlineNotifications() {
-        val now = nowKst()
+        triggerWishlistDeadlineNotificationsAt(nowKst())
+    }
+
+    fun triggerWishlistDeadlineNotificationsAt(now: LocalDateTime) {
         dispatchWishlistDeadlineReminder(now, ReminderOffset.DAYS_3)
         dispatchWishlistDeadlineReminder(now, ReminderOffset.DAYS_1)
     }
 
     @Scheduled(cron = "0 0 7 * * *", zone = KST_ZONE_ID)
     fun triggerRequestDeadlineMinus3DaysNotification() {
-        val now = nowKst()
+        triggerRequestDeadlineMinus3DaysNotificationAt(nowKst())
+    }
+
+    fun triggerRequestDeadlineMinus3DaysNotificationAt(now: LocalDateTime) {
         val targetDate = now.toLocalDate().plusDays(3)
         val requests = groupBuyRequestRepository.findByStatusInAndDesiredPickupDate(
             statuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT),
@@ -80,7 +89,10 @@ class NotificationTriggerScheduler(
 
     @Scheduled(cron = "0 */10 * * * *", zone = KST_ZONE_ID)
     fun triggerPickupIncompleteAfterCutoffNotification() {
-        val now = nowKst()
+        triggerPickupIncompleteAfterCutoffNotificationAt(nowKst())
+    }
+
+    fun triggerPickupIncompleteAfterCutoffNotificationAt(now: LocalDateTime) {
         val candidates = participationRepository.findForPickupCutoffCheck(
             pickupDateFrom = now.toLocalDate().minusDays(1),
             pickupDateTo = now.toLocalDate(),
