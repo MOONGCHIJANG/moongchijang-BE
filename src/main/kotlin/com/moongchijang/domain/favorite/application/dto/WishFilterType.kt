@@ -1,0 +1,9 @@
+package com.moongchijang.domain.favorite.application.dto
+
+enum class WishFilterType {
+    ALL,
+    CLOSING_SOON,
+    ACHIEVEMENT_SOON,
+    OPEN,
+    CLOSED,
+}
