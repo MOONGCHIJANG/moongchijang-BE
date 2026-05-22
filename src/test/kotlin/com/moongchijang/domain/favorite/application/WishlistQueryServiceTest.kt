@@ -45,6 +45,7 @@ class WishlistQueryServiceTest {
                 filter = WishFilterType.ALL,
                 sort = WishSortType.LATEST,
                 pageable = pageable,
+                now = now,
             )
         ).thenReturn(PageImpl(listOf(item), pageable, 1))
         `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(2L)
@@ -57,7 +58,7 @@ class WishlistQueryServiceTest {
             now = now,
         )
 
-        verify(favoriteRepository).findWishlistGroupBuys(userId, WishFilterType.ALL, WishSortType.LATEST, pageable)
+        verify(favoriteRepository).findWishlistGroupBuys(userId, WishFilterType.ALL, WishSortType.LATEST, pageable, now)
         verify(favoriteRepository).countUrgentByUserId(userId, now, now.plusHours(24))
         assertEquals(1, result.content.size)
         assertEquals(2, result.urgentCount)
@@ -85,6 +86,7 @@ class WishlistQueryServiceTest {
                 filter = WishFilterType.CLOSING_SOON,
                 sort = WishSortType.DEADLINE,
                 pageable = pageable,
+                now = now,
             )
         ).thenReturn(PageImpl(listOf(item), pageable, 1))
         `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(0L)

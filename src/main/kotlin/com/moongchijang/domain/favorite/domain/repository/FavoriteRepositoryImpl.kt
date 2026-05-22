@@ -27,8 +27,8 @@ class FavoriteRepositoryImpl(
         filter: WishFilterType,
         sort: WishSortType,
         pageable: Pageable,
+        now: LocalDateTime,
     ): Page<GroupBuy> {
-        val now = LocalDateTime.now()
         val where = buildWhere(userId, filter, now)
         val orderSpecifiers = buildOrderSpecifiers(sort)
 

@@ -5,6 +5,7 @@ import com.moongchijang.domain.favorite.application.dto.WishSortType
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.time.LocalDateTime
 
 interface FavoriteRepositoryCustom {
 
@@ -17,5 +18,6 @@ interface FavoriteRepositoryCustom {
         filter: WishFilterType,
         sort: WishSortType,
         pageable: Pageable,
+        now: LocalDateTime,
     ): Page<GroupBuy>
 }

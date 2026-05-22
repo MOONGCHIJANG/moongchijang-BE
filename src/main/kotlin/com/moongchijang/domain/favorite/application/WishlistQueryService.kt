@@ -29,7 +29,7 @@ class WishlistQueryService(
             userId, filter, sort, pageable.pageNumber, pageable.pageSize
         )
 
-        val page = favoriteRepository.findWishlistGroupBuys(userId, filter, sort, pageable)
+        val page = favoriteRepository.findWishlistGroupBuys(userId, filter, sort, pageable, now)
         val urgentCount = favoriteRepository.countUrgentByUserId(
             userId = userId,
             now = now,
