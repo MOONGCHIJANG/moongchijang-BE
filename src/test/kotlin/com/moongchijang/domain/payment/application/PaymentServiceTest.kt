@@ -312,6 +312,37 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `결제 완료 시 max 수량 도달하면 COMPLETED 상태 전이`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(
+            status = GroupBuyStatus.ACHIEVED,
+            currentQuantity = 99,
+            maxQuantity = 100
+        )
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(groupBuyRepository.increaseCurrentQuantityIfAvailable(10L, 1)).thenAnswer {
+            groupBuy.currentQuantity += 1
+            1
+        }
+        `when`(groupBuyRepository.findById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(false)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 6000, "CARD", LocalDateTime.now()))
+        `when`(participationRepository.save(any(Participation::class.java))).thenAnswer {
+            (it.arguments[0] as Participation).apply { id = 101L }
+        }
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000), 1L)
+
+        assertEquals(ParticipationStatus.CONFIRMED, result.participationStatus)
+        assertEquals(GroupBuyStatus.COMPLETED, groupBuy.status)
+    }
+
+    @Test
     fun `승인 시점에 최대 수량을 초과하면 실패`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy(currentQuantity = 99, maxQuantity = 100)

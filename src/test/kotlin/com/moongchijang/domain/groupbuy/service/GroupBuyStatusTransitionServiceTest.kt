@@ -67,4 +67,37 @@ class GroupBuyStatusTransitionServiceTest {
             now
         )
     }
+
+    @Test
+    fun `자동 전이 대상에 종료 상태 포함 시 상태 유지`() {
+        val now = LocalDateTime.now()
+        val completed = GroupBuyFixture.createGroupBuy(
+            id = 3L,
+            status = GroupBuyStatus.COMPLETED,
+            deadline = now.minusMinutes(1)
+        )
+        val failed = GroupBuyFixture.createGroupBuy(
+            id = 4L,
+            status = GroupBuyStatus.FAILED,
+            deadline = now.minusMinutes(1)
+        )
+        val closed = GroupBuyFixture.createGroupBuy(
+            id = 5L,
+            status = GroupBuyStatus.CLOSED,
+            deadline = now.minusMinutes(1)
+        )
+
+        `when`(
+            groupBuyRepository.findAllByStatusInAndDeadlineLessThanEqual(
+                listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+                now
+            )
+        ).thenReturn(listOf(completed, failed, closed))
+
+        service.transitionExpiredGroupBuysAt(now)
+
+        assertEquals(GroupBuyStatus.COMPLETED, completed.status)
+        assertEquals(GroupBuyStatus.FAILED, failed.status)
+        assertEquals(GroupBuyStatus.CLOSED, closed.status)
+    }
 }
