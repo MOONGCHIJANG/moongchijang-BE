@@ -88,57 +88,45 @@ class NotificationImmediateDispatchService(
     }
 
     private fun toNotificationMeta(triggerType: NotificationTriggerType): NotificationMeta {
+        val notificationType = toNotificationType(triggerType)
+        return NotificationMeta(
+            type = notificationType,
+            // TODO: 상세 템플릿/문구는 정해진 이후 수정 예정
+            title = "알림",
+            body = "새 알림이 도착했습니다.",
+            deeplinkType = defaultDeeplinkType(notificationType)
+        )
+    }
+
+    private fun toNotificationType(triggerType: NotificationTriggerType): NotificationType {
         return when (triggerType) {
-            NotificationTriggerType.WISH_TARGET_ACHIEVED_IMMEDIATE -> NotificationMeta(
-                type = NotificationType.WISH,
-                title = "찜한 공구가 달성됐어요",
-                body = "공구가 목표 인원을 달성했습니다.",
-                deeplinkType = NotificationDeeplinkType.GROUPBUY_DETAIL
-            )
-            NotificationTriggerType.APPLY_PAYMENT_SUCCESS_IMMEDIATE -> NotificationMeta(
-                type = NotificationType.APPLY,
-                title = "공구 참여가 완료됐어요",
-                body = "결제가 성공적으로 완료되었습니다.",
-                deeplinkType = NotificationDeeplinkType.MY_APPLYING
-            )
-            NotificationTriggerType.APPLY_GROUPBUY_ACHIEVED_IMMEDIATE -> NotificationMeta(
-                type = NotificationType.APPLY,
-                title = "참여한 공구가 달성됐어요",
-                body = "공구가 성공적으로 달성되었습니다.",
-                deeplinkType = NotificationDeeplinkType.MY_APPLYING
-            )
-            NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE -> NotificationMeta(
-                type = NotificationType.APPLY,
-                title = "참여한 공구가 미달성 마감됐어요",
-                body = "미달성으로 마감되어 환불이 진행될 예정입니다.",
-                deeplinkType = NotificationDeeplinkType.MY_APPLYING
-            )
             NotificationTriggerType.PICKUP_COMPLETED_IMMEDIATE,
             NotificationTriggerType.PICKUP_SAME_DAY_MORNING,
             NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING,
-            NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF -> NotificationMeta(
-                type = NotificationType.PICKUP,
-                title = "픽업 알림",
-                body = "픽업 상태를 확인해주세요.",
-                deeplinkType = NotificationDeeplinkType.PICKUP_GUIDE
-            )
+            NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF -> NotificationType.PICKUP
+
             NotificationTriggerType.WISH_DEADLINE_MINUS_3_DAYS,
-            NotificationTriggerType.WISH_DEADLINE_MINUS_1_DAY -> NotificationMeta(
-                type = NotificationType.WISH,
-                title = "찜한 공구 알림",
-                body = "찜한 공구의 마감일이 다가오고 있어요.",
-                deeplinkType = NotificationDeeplinkType.GROUPBUY_DETAIL
-            )
+            NotificationTriggerType.WISH_DEADLINE_MINUS_1_DAY,
+            NotificationTriggerType.WISH_TARGET_ACHIEVED_IMMEDIATE -> NotificationType.WISH
+
+            NotificationTriggerType.APPLY_PAYMENT_SUCCESS_IMMEDIATE,
+            NotificationTriggerType.APPLY_GROUPBUY_ACHIEVED_IMMEDIATE,
+            NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE -> NotificationType.APPLY
+
             NotificationTriggerType.REQUEST_OPENED_IMMEDIATE,
             NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
             NotificationTriggerType.REQUEST_NEW_PARTICIPANT_IMMEDIATE,
             NotificationTriggerType.REQUEST_TARGET_ACHIEVED_IMMEDIATE,
-            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> NotificationMeta(
-                type = NotificationType.REQUEST,
-                title = "요청 공구 알림",
-                body = "요청 공구 상태를 확인해주세요.",
-                deeplinkType = NotificationDeeplinkType.REQUEST_STATUS
-            )
+            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> NotificationType.REQUEST
+        }
+    }
+
+    private fun defaultDeeplinkType(notificationType: NotificationType): NotificationDeeplinkType {
+        return when (notificationType) {
+            NotificationType.PICKUP -> NotificationDeeplinkType.PICKUP_GUIDE
+            NotificationType.WISH -> NotificationDeeplinkType.GROUPBUY_DETAIL
+            NotificationType.APPLY -> NotificationDeeplinkType.MY_APPLYING
+            NotificationType.REQUEST -> NotificationDeeplinkType.REQUEST_STATUS
         }
     }
 
