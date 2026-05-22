@@ -31,6 +31,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     GROUPBUY_REQUEST_NOT_FOUND(404_010, "공구 요청을 찾을 수 없습니다.", 404),
     GROUPBUY_REQUEST_FORBIDDEN(403_010, "본인의 공구 요청만 조회할 수 있습니다.", 403),
     GROUPBUY_REQUEST_INVALID_DATE(400_010, "희망 픽업 날짜는 오늘 이후여야 합니다.", 400),
+    GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION(400_011, "허용되지 않는 공구 요청 상태 전이입니다.", 400),
+    GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED(400_012, "거절 상태로 변경할 때는 거절 사유가 필요합니다.", 400),
 
     // GroupBuyOpenRequest
     DUPLICATE_OPEN_REQUEST(409_010, "이미 알림 신청한 공구입니다.", 409),
