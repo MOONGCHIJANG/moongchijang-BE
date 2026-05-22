@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Service
 class NotificationImmediateDispatchService(
@@ -22,6 +23,7 @@ class NotificationImmediateDispatchService(
     private val userRepository: UserRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+    private val zoneId: ZoneId = ZoneId.of("Asia/Seoul")
 
     @Transactional
     fun dispatch(event: NotificationImmediateTriggerEvent) {
@@ -136,7 +138,7 @@ class NotificationImmediateDispatchService(
     )
 
     private fun calculateNextRetryAt(retryCount: Int): LocalDateTime? {
-        val now = LocalDateTime.now()
+        val now = LocalDateTime.now(zoneId)
         return when {
             retryCount <= 1 -> now.plusMinutes(1)
             retryCount == 2 -> now.plusMinutes(5)
