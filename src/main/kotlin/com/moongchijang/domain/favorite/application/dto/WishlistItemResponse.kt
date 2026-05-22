@@ -73,7 +73,7 @@ data class WishlistItemResponse(
                 groupBuyId = groupBuy.id,
                 thumbnailUrl = groupBuy.thumbnailUrl,
                 dDay = dDay,
-                dDayLabel = "D-$dDay",
+                dDayLabel = if (groupBuy.deadline <= now) "마감" else "D-$dDay",
                 storeName = groupBuy.store.name,
                 regionLabel = groupBuy.store.region.label,
                 productName = groupBuy.productName,
