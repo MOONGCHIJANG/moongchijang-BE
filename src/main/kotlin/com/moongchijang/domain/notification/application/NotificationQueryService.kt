@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.ZoneId
 
 @Service
 class NotificationQueryService(
@@ -45,7 +46,7 @@ class NotificationQueryService(
 
         val hasNext = notifications.size > safeLimit
         val content = if (hasNext) notifications.dropLast(1) else notifications
-        val today = LocalDate.now()
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
         val items = content.map { NotificationItemResponse.from(it, today) }
         val nextCursor = content.lastOrNull()?.let { NotificationCursor(it.occurredAt, it.id).encode() }
         log.info(
