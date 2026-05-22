@@ -94,34 +94,30 @@ class NotificationTriggerScheduler(
     }
 
     fun triggerPickupIncompleteAfterCutoffNotificationAt(now: LocalDateTime) {
+        val pickupCutoffBaseAt = now.minusMinutes(30)
         val candidates = participationRepository.findForPickupCutoffCheck(
-            pickupDateFrom = now.toLocalDate().minusDays(1),
-            pickupDateTo = now.toLocalDate(),
+            pickupCutoffBaseAt = pickupCutoffBaseAt,
             participationStatuses = listOf(ParticipationStatus.CONFIRMED),
             pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
         )
 
-        var triggered = 0
         candidates.forEach { participation ->
             val cutoffAt = LocalDateTime.of(
                 participation.groupBuy.pickupDate,
                 participation.groupBuy.pickupTimeEnd
             ).plusMinutes(30)
-            if (now >= cutoffAt) {
-                notificationEventPublisher.publishScheduledTrigger(
-                    triggerType = NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF,
-                    targetId = participation.groupBuy.id,
-                    userIds = listOf(participation.user.id!!),
-                    scheduleKey = "pickup-cutoff:${participation.id}:${cutoffAt}",
-                    occurredAt = now
-                )
-                triggered += 1
-            }
+            notificationEventPublisher.publishScheduledTrigger(
+                triggerType = NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF,
+                targetId = participation.groupBuy.id,
+                userIds = listOf(participation.user.id!!),
+                scheduleKey = "pickup-cutoff:${participation.id}:${cutoffAt}",
+                occurredAt = now
+            )
         }
 
         log.info(
             "[NotificationTriggerScheduler] 픽업 미완료 컷오프 알림 트리거 완료: candidateCount={}, triggered={}",
-            candidates.size, triggered
+            candidates.size, candidates.size
         )
     }
 

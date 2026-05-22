@@ -229,8 +229,7 @@ class NotificationTriggerSchedulerTest {
 
         `when`(
             participationRepository.findForPickupCutoffCheck(
-                now.toLocalDate().minusDays(1),
-                now.toLocalDate(),
+                now.minusMinutes(30),
                 listOf(ParticipationStatus.CONFIRMED),
                 listOf(PickupStatus.NOT_READY, PickupStatus.READY)
             )

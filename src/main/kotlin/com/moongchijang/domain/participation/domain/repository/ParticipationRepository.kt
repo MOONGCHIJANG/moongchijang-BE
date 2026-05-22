@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.Optional
 
 interface ParticipationRepository : JpaRepository<Participation, Long> {
@@ -49,14 +50,13 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         SELECT p
         FROM Participation p
         JOIN FETCH p.groupBuy gb
-        WHERE gb.pickupDate BETWEEN :pickupDateFrom AND :pickupDateTo
+        WHERE function('timestamp', gb.pickupDate, gb.pickupTimeEnd) <= :pickupCutoffBaseAt
           AND p.status IN :participationStatuses
           AND p.pickupStatus IN :pickupStatuses
         """
     )
     fun findForPickupCutoffCheck(
-        @Param("pickupDateFrom") pickupDateFrom: LocalDate,
-        @Param("pickupDateTo") pickupDateTo: LocalDate,
+        @Param("pickupCutoffBaseAt") pickupCutoffBaseAt: LocalDateTime,
         @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
         @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
     ): List<Participation>
