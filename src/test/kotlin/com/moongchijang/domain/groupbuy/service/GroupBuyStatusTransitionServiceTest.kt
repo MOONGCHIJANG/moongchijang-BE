@@ -8,12 +8,15 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.TransactionStatus
 import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
@@ -22,11 +25,18 @@ class GroupBuyStatusTransitionServiceTest {
     @Mock
     private lateinit var groupBuyRepository: GroupBuyRepository
 
+    @Mock
+    private lateinit var transactionManager: PlatformTransactionManager
+
+    @Mock
+    private lateinit var transactionStatus: TransactionStatus
+
     private lateinit var service: GroupBuyStatusTransitionService
 
     @BeforeEach
     fun setUp() {
-        service = GroupBuyStatusTransitionService(groupBuyRepository, 500)
+        `when`(transactionManager.getTransaction(any())).thenReturn(transactionStatus)
+        service = GroupBuyStatusTransitionService(groupBuyRepository, transactionManager, 500)
     }
 
     @Test
@@ -117,7 +127,7 @@ class GroupBuyStatusTransitionServiceTest {
     @Test
     fun `자동 전이 실행 시 batch size 기준 반복 처리`() {
         val now = LocalDateTime.now()
-        val batchService = GroupBuyStatusTransitionService(groupBuyRepository, 2)
+        val batchService = GroupBuyStatusTransitionService(groupBuyRepository, transactionManager, 2)
         val pageable = PageRequest.of(0, 2, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
         val first = GroupBuyFixture.createGroupBuy(id = 11L, status = GroupBuyStatus.IN_PROGRESS, deadline = now.minusMinutes(1))
         val second = GroupBuyFixture.createGroupBuy(id = 12L, status = GroupBuyStatus.ACHIEVED, deadline = now.minusMinutes(1))
