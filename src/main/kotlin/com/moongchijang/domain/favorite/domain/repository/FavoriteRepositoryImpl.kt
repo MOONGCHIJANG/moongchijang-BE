@@ -25,11 +25,12 @@ class FavoriteRepositoryImpl(
     override fun findWishlistGroupBuys(
         userId: Long,
         filter: WishFilterType,
+        excludeClosed: Boolean,
         sort: WishSortType,
         pageable: Pageable,
         now: LocalDateTime,
     ): Page<GroupBuy> {
-        val where = buildWhere(userId, filter, now)
+        val where = buildWhere(userId, filter, excludeClosed, now)
         val orderSpecifiers = buildOrderSpecifiers(sort)
 
         val content = queryFactory
@@ -56,10 +57,15 @@ class FavoriteRepositoryImpl(
     private fun buildWhere(
         userId: Long,
         filter: WishFilterType,
+        excludeClosed: Boolean,
         now: LocalDateTime,
     ): BooleanBuilder {
         val builder = BooleanBuilder()
             .and(favorite.user.id.eq(userId))
+
+        if (excludeClosed) {
+            builder.and(groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS).and(groupBuy.deadline.gt(now)))
+        }
 
         filterPredicate(filter, now)?.let { builder.and(it) }
         return builder
@@ -85,7 +91,6 @@ class FavoriteRepositoryImpl(
                 .and(groupBuy.deadline.gt(now))
                 .and(groupBuy.deadline.loe(now.plusDays(FavoriteRepositoryCustom.CLOSING_SOON_DAYS)))
             WishFilterType.OPEN -> groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS).and(groupBuy.deadline.gt(now))
-            WishFilterType.CLOSED -> groupBuy.status.eq(GroupBuyStatus.CLOSED).or(groupBuy.deadline.loe(now))
         }
     }
 }
