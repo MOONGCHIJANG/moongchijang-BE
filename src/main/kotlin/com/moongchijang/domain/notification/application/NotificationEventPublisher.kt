@@ -111,6 +111,35 @@ class NotificationEventPublisher(
         )
     }
 
+    fun publishPickupCompleted(
+        groupBuyId: Long,
+        userId: Long,
+        participationId: Long,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.PICKUP_COMPLETED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = listOf(userId),
+            scheduleKey = "pickup-completed:$groupBuyId:$participationId",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishRequestRejected(
+        requestId: Long,
+        requesterUserId: Long,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
+            targetId = requestId,
+            userIds = listOf(requesterUserId),
+            scheduleKey = "request-rejected:$requestId",
+            occurredAt = occurredAt
+        )
+    }
+
     fun publishScheduledTrigger(
         triggerType: NotificationTriggerType,
         targetId: Long,

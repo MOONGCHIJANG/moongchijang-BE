@@ -63,4 +63,9 @@ class GroupBuyRequest(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
 
-) : BaseEntity()
+) : BaseEntity() {
+    fun markRejected(reason: String?) {
+        status = GroupBuyRequestStatus.REJECTED
+        rejectionReason = reason?.ifBlank { null }
+    }
+}
