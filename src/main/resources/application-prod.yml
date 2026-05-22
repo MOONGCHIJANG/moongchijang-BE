@@ -71,3 +71,10 @@ ses:
   region: ${SES_REGION}
   from-email: ${SES_FROM_EMAIL}
 
+groupbuy:
+  status-transition:
+    fixed-delay-ms: ${GROUPBUY_STATUS_TRANSITION_FIXED_DELAY_MS:60000}
+    batch-size: ${GROUPBUY_STATUS_TRANSITION_BATCH_SIZE:500}
+    lock:
+      wait-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_WAIT_MS:100}
+      lease-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_LEASE_MS:55000}

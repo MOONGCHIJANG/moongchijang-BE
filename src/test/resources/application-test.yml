@@ -86,3 +86,11 @@ indexing:
     wait-time-seconds: 10
     visibility-timeout-seconds: 60
     polling-fixed-delay-millis: 5000
+
+groupbuy:
+  status-transition:
+    fixed-delay-ms: 60000
+    batch-size: 500
+    lock:
+      wait-ms: 100
+      lease-ms: 55000

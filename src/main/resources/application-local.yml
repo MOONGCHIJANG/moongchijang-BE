@@ -72,3 +72,10 @@ aligo:
   template-code: ${ALIGO_TEMPLATE_CODE}
   sender: ${ALIGO_SENDER}
 
+groupbuy:
+  status-transition:
+    fixed-delay-ms: ${GROUPBUY_STATUS_TRANSITION_FIXED_DELAY_MS:60000}
+    batch-size: ${GROUPBUY_STATUS_TRANSITION_BATCH_SIZE:500}
+    lock:
+      wait-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_WAIT_MS:100}
+      lease-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_LEASE_MS:55000}
