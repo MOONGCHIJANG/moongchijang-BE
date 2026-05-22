@@ -124,6 +124,35 @@ class NotificationImmediateDispatchServiceTest {
         verify(notificationRepository).save(any())
     }
 
+    @Test
+    fun `실패 이력 재시도 시 대상 건 재발송 처리`() {
+        val now = LocalDateTime.of(2026, 5, 23, 9, 0)
+        val failedHistory = NotificationDispatchHistory(
+            userId = 9L,
+            triggerType = NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE,
+            targetId = 901L,
+            scheduleKey = "groupbuy-failed:901",
+            status = NotificationDispatchStatus.FAILED,
+            retryCount = 1,
+            nextRetryAt = now.minusMinutes(1)
+        )
+        val user = UserFixture.createEmailUser(id = 9L)
+
+        `when`(
+            notificationDispatchHistoryRepository.findByStatusInAndNextRetryAtLessThanEqual(
+                statuses = listOf(NotificationDispatchStatus.FAILED),
+                nextRetryAt = now
+            )
+        ).thenReturn(listOf(failedHistory))
+        `when`(userRepository.findByIdAndDeletedAtIsNull(9L)).thenReturn(user)
+        `when`(notificationRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        service.retryFailedDispatches(now)
+
+        assertEquals(NotificationDispatchStatus.SUCCESS, failedHistory.status)
+        verify(notificationRepository).save(any())
+    }
+
     private fun mockHistory(userId: Long, scheduleKey: String): NotificationDispatchHistory {
         return NotificationDispatchHistory(
             userId = userId,

@@ -20,6 +20,7 @@ import java.time.ZoneId
 @Component
 class NotificationTriggerScheduler(
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val notificationImmediateDispatchService: NotificationImmediateDispatchService,
     private val participationRepository: ParticipationRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val favoriteRepository: FavoriteRepository,
@@ -122,6 +123,13 @@ class NotificationTriggerScheduler(
             "[NotificationTriggerScheduler] 픽업 미완료 컷오프 알림 트리거 완료: candidateCount={}, triggered={}",
             candidates.size, triggered
         )
+    }
+
+    @Scheduled(cron = "0 */5 * * * *", zone = KST_ZONE_ID)
+    fun retryFailedImmediateDispatches() {
+        val now = nowKst()
+        notificationImmediateDispatchService.retryFailedDispatches(now)
+        log.info("[NotificationTriggerScheduler] 즉시 발송 실패 재처리 실행: now={}", now)
     }
 
     private fun dispatchPickupReminder(

@@ -29,6 +29,9 @@ class NotificationTriggerSchedulerTest {
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
     @Mock
+    private lateinit var notificationImmediateDispatchService: NotificationImmediateDispatchService
+
+    @Mock
     private lateinit var participationRepository: ParticipationRepository
 
     @Mock
@@ -43,6 +46,7 @@ class NotificationTriggerSchedulerTest {
     private val scheduler by lazy {
         NotificationTriggerScheduler(
             notificationEventPublisher = notificationEventPublisher,
+            notificationImmediateDispatchService = notificationImmediateDispatchService,
             participationRepository = participationRepository,
             groupBuyRepository = groupBuyRepository,
             favoriteRepository = favoriteRepository,

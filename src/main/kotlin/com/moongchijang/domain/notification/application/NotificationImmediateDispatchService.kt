@@ -13,6 +13,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class NotificationImmediateDispatchService(
@@ -30,16 +31,16 @@ class NotificationImmediateDispatchService(
         }
 
         dedupedUserIds.forEach { userId ->
-            val exists = notificationDispatchHistoryRepository.findByUserIdAndTriggerTypeAndTargetIdAndScheduleKey(
+            val existingHistory = notificationDispatchHistoryRepository.findByUserIdAndTriggerTypeAndTargetIdAndScheduleKey(
                 userId = userId,
                 triggerType = event.triggerType,
                 targetId = event.targetId,
                 scheduleKey = event.scheduleKey
-            ).isPresent
-            if (exists) {
+            ).orElse(null)
+            if (existingHistory != null) {
                 log.info(
-                    "[NotificationImmediateDispatchService] 즉시 발송 중복 스킵: userId={}, triggerType={}, targetId={}, scheduleKey={}",
-                    userId, event.triggerType, event.targetId, event.scheduleKey
+                    "[NotificationImmediateDispatchService] 즉시 발송 중복 스킵: userId={}, triggerType={}, targetId={}, scheduleKey={}, retryCount={}",
+                    userId, event.triggerType, event.targetId, event.scheduleKey, existingHistory.retryCount
                 )
                 return@forEach
             }
@@ -54,36 +55,33 @@ class NotificationImmediateDispatchService(
                 )
             )
 
-            try {
-                val user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                if (user == null) {
-                    history.markFailed(errorMessage = "USER_NOT_FOUND", nextRetryAt = null)
-                    return@forEach
-                }
+            dispatchSingle(event, userId, history)
+        }
+    }
 
-                val meta = toNotificationMeta(event.triggerType)
-                notificationRepository.save(
-                    Notification(
-                        user = user,
-                        type = meta.type,
-                        title = meta.title,
-                        body = meta.body,
-                        occurredAt = event.occurredAt,
-                        targetId = event.targetId,
-                        deeplinkType = meta.deeplinkType
-                    )
-                )
-                history.markSuccess(event.occurredAt)
-            } catch (e: Exception) {
-                history.markFailed(
-                    errorMessage = e.message ?: "UNKNOWN_ERROR",
-                    nextRetryAt = null
-                )
-                log.error(
-                    "[NotificationImmediateDispatchService] 즉시 발송 실패: userId={}, triggerType={}, targetId={}, scheduleKey={}",
-                    userId, event.triggerType, event.targetId, event.scheduleKey, e
-                )
-            }
+    @Transactional
+    fun retryFailedDispatches(now: LocalDateTime) {
+        val targets = notificationDispatchHistoryRepository.findByStatusInAndNextRetryAtLessThanEqual(
+            statuses = listOf(NotificationDispatchStatus.FAILED),
+            nextRetryAt = now
+        )
+        if (targets.isEmpty()) {
+            return
+        }
+
+        targets.forEach { history ->
+            val targetId = history.targetId ?: return@forEach
+            dispatchSingle(
+                event = NotificationImmediateTriggerEvent(
+                    triggerType = history.triggerType,
+                    targetId = targetId,
+                    userIds = listOf(history.userId),
+                    scheduleKey = history.scheduleKey,
+                    occurredAt = now
+                ),
+                userId = history.userId,
+                history = history
+            )
         }
     }
 
@@ -136,4 +134,62 @@ class NotificationImmediateDispatchService(
         val body: String,
         val deeplinkType: NotificationDeeplinkType,
     )
+
+    private fun calculateNextRetryAt(retryCount: Int): LocalDateTime? {
+        val now = LocalDateTime.now()
+        return when {
+            retryCount <= 1 -> now.plusMinutes(1)
+            retryCount == 2 -> now.plusMinutes(5)
+            retryCount == 3 -> now.plusMinutes(30)
+            else -> null
+        }
+    }
+
+    private fun dispatchSingle(
+        event: NotificationImmediateTriggerEvent,
+        userId: Long,
+        history: NotificationDispatchHistory
+    ) {
+        try {
+            val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            if (user == null) {
+                history.markFailed(
+                    errorMessage = "USER_NOT_FOUND",
+                    nextRetryAt = calculateNextRetryAt(history.retryCount)
+                )
+                log.warn(
+                    "[NotificationImmediateDispatchService] 즉시 발송 실패(USER_NOT_FOUND): userId={}, triggerType={}, targetId={}, scheduleKey={}, retryCount={}, nextRetryAt={}",
+                    userId, event.triggerType, event.targetId, event.scheduleKey, history.retryCount, history.nextRetryAt
+                )
+                return
+            }
+
+            val meta = toNotificationMeta(event.triggerType)
+            notificationRepository.save(
+                Notification(
+                    user = user,
+                    type = meta.type,
+                    title = meta.title,
+                    body = meta.body,
+                    occurredAt = event.occurredAt,
+                    targetId = event.targetId,
+                    deeplinkType = meta.deeplinkType
+                )
+            )
+            history.markSuccess(event.occurredAt)
+            log.info(
+                "[NotificationImmediateDispatchService] 즉시 발송 성공: userId={}, triggerType={}, targetId={}, scheduleKey={}, retryCount={}",
+                userId, event.triggerType, event.targetId, event.scheduleKey, history.retryCount
+            )
+        } catch (e: Exception) {
+            history.markFailed(
+                errorMessage = e.message ?: "UNKNOWN_ERROR",
+                nextRetryAt = calculateNextRetryAt(history.retryCount)
+            )
+            log.error(
+                "[NotificationImmediateDispatchService] 즉시 발송 실패: userId={}, triggerType={}, targetId={}, scheduleKey={}, retryCount={}, nextRetryAt={}",
+                userId, event.triggerType, event.targetId, event.scheduleKey, history.retryCount, history.nextRetryAt, e
+            )
+        }
+    }
 }
