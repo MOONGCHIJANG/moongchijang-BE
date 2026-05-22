@@ -30,7 +30,12 @@ class WishlistQueryService(
 
         val now = LocalDateTime.now()
         val page = favoriteRepository.findWishlistGroupBuys(userId, filter, sort, pageable)
-        val response = WishlistPageResponse.from(page, now)
+        val urgentCount = favoriteRepository.countUrgentByUserId(
+            userId = userId,
+            now = now,
+            deadlineTo = now.plusHours(24),
+        ).toInt()
+        val response = WishlistPageResponse.from(page, now, urgentCount)
 
         log.info(
             "[WishlistQueryService] 찜 목록 조회 완료: userId={}, totalElements={}, totalPages={}, page={}, size={}, urgentCount={}",

@@ -27,14 +27,18 @@ data class WishlistPageResponse(
     val urgentCount: Int,
 ) {
     companion object {
-        fun from(page: Page<GroupBuy>, now: LocalDateTime = LocalDateTime.now()): WishlistPageResponse {
+        fun from(
+            page: Page<GroupBuy>,
+            now: LocalDateTime = LocalDateTime.now(),
+            urgentCount: Int,
+        ): WishlistPageResponse {
             return WishlistPageResponse(
                 content = page.content.map { WishlistItemResponse.from(it, now) },
                 totalElements = page.totalElements,
                 totalPages = page.totalPages,
                 number = page.number,
                 size = page.size,
-                urgentCount = page.content.count { it.deadline <= now.plusHours(24) },
+                urgentCount = urgentCount,
             )
         }
     }
