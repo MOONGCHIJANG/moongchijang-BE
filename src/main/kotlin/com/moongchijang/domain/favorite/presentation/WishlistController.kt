@@ -48,18 +48,20 @@ class WishlistController(
     fun getWishlists(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @RequestParam(required = false, defaultValue = "ALL") filter: WishFilterType,
+        @RequestParam(required = false, defaultValue = "false") excludeClosed: Boolean,
         @RequestParam(required = false, defaultValue = "LATEST") sort: WishSortType,
         pageable: Pageable,
     ): ResponseEntity<ApiResponse<WishlistPageResponse>> {
         val userId = principal.id
         log.info(
-            "[WishlistController] 찜 목록 조회 요청 수신: userId={}, filter={}, sort={}, page={}, size={}",
-            userId, filter, sort, pageable.pageNumber, pageable.pageSize
+            "[WishlistController] 찜 목록 조회 요청 수신: userId={}, filter={}, excludeClosed={}, sort={}, page={}, size={}",
+            userId, filter, excludeClosed, sort, pageable.pageNumber, pageable.pageSize
         )
 
         val response = wishlistQueryService.getWishlist(
             userId = userId,
             filter = filter,
+            excludeClosed = excludeClosed,
             sort = sort,
             pageable = pageable,
         )
