@@ -43,6 +43,7 @@ class WishlistQueryServiceTest {
             favoriteRepository.findWishlistGroupBuys(
                 userId = userId,
                 filter = WishFilterType.ALL,
+                excludeClosed = false,
                 sort = WishSortType.LATEST,
                 pageable = pageable,
                 now = now,
@@ -53,12 +54,13 @@ class WishlistQueryServiceTest {
         val result = service.getWishlist(
             userId = userId,
             filter = WishFilterType.ALL,
+            excludeClosed = false,
             sort = WishSortType.LATEST,
             pageable = pageable,
             now = now,
         )
 
-        verify(favoriteRepository).findWishlistGroupBuys(userId, WishFilterType.ALL, WishSortType.LATEST, pageable, now)
+        verify(favoriteRepository).findWishlistGroupBuys(userId, WishFilterType.ALL, false, WishSortType.LATEST, pageable, now)
         verify(favoriteRepository).countUrgentByUserId(userId, now, now.plusHours(24))
         assertEquals(1, result.content.size)
         assertEquals(2, result.urgentCount)
@@ -84,6 +86,7 @@ class WishlistQueryServiceTest {
             favoriteRepository.findWishlistGroupBuys(
                 userId = userId,
                 filter = WishFilterType.CLOSING_SOON,
+                excludeClosed = false,
                 sort = WishSortType.DEADLINE,
                 pageable = pageable,
                 now = now,
@@ -91,7 +94,7 @@ class WishlistQueryServiceTest {
         ).thenReturn(PageImpl(listOf(item), pageable, 1))
         `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(0L)
 
-        val result = service.getWishlist(userId, WishFilterType.CLOSING_SOON, WishSortType.DEADLINE, pageable, now)
+        val result = service.getWishlist(userId, WishFilterType.CLOSING_SOON, false, WishSortType.DEADLINE, pageable, now)
         val card = result.content.first()
 
         assertEquals(202L, card.groupBuyId)
@@ -121,6 +124,7 @@ class WishlistQueryServiceTest {
             favoriteRepository.findWishlistGroupBuys(
                 userId = userId,
                 filter = WishFilterType.ALL,
+                excludeClosed = false,
                 sort = WishSortType.LATEST,
                 pageable = pageable,
                 now = now,
@@ -128,7 +132,7 @@ class WishlistQueryServiceTest {
         ).thenReturn(PageImpl(listOf(item), pageable, 1))
         `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(1L)
 
-        val result = service.getWishlist(userId, WishFilterType.ALL, WishSortType.LATEST, pageable, now)
+        val result = service.getWishlist(userId, WishFilterType.ALL, false, WishSortType.LATEST, pageable, now)
         val card = result.content.first()
 
         assertEquals(0, card.dDay)
