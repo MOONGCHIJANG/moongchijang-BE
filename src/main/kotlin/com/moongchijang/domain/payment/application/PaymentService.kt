@@ -344,7 +344,10 @@ class PaymentService(
         if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
             publishApplyGroupBuyAchievedEvent(groupBuy.id, approvedAt)
             publishWishTargetAchievedEvent(groupBuy.id, approvedAt)
+            publishRequestTargetAchievedEvent(groupBuy, approvedAt)
         }
+
+        publishRequestNewParticipantEvent(groupBuy, participation, approvedAt)
 
         return PaymentApprovalResult.Success(
             ConfirmPaymentResponse(
@@ -387,6 +390,32 @@ class PaymentService(
         notificationEventPublisher.publishWishTargetAchieved(
             groupBuyId = groupBuyId,
             userIds = favoriteUserIds,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishRequestNewParticipantEvent(
+        groupBuy: GroupBuy,
+        participation: Participation,
+        occurredAt: LocalDateTime
+    ) {
+        val requesterUserId = groupBuy.groupBuyRequest.userId
+        val participantUserId = participation.user.id ?: return
+        if (requesterUserId == participantUserId) return
+
+        notificationEventPublisher.publishRequestNewParticipant(
+            targetGroupBuyId = groupBuy.id,
+            requesterUserId = requesterUserId,
+            participationId = participation.id,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishRequestTargetAchievedEvent(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
+        val requesterUserId = groupBuy.groupBuyRequest.userId
+        notificationEventPublisher.publishRequestTargetAchieved(
+            targetGroupBuyId = groupBuy.id,
+            requesterUserId = requesterUserId,
             occurredAt = occurredAt
         )
     }

@@ -8,6 +8,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOpenRequest
 import com.moongchijang.domain.groupbuy.domain.entity.NotificationStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
@@ -34,6 +35,7 @@ class GroupBuyOpenRequestService(
     private val groupBuyRepository: GroupBuyRepository,
     private val userRepository: UserRepository,
     private val aligoAlimtalkClient: AligoAlimtalkClient,
+    private val notificationEventPublisher: NotificationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -70,10 +72,18 @@ class GroupBuyOpenRequestService(
     }
 
     fun notifyOpened(groupBuy: GroupBuy): GroupBuyOpenNotificationResult {
-        return notifyOpened(
+        val result = notifyOpened(
             regions = notificationRegionCodes(groupBuy.store),
             productName = groupBuy.productName,
         )
+        if (result.targetUserIds.isNotEmpty()) {
+            notificationEventPublisher.publishRequestOpened(
+                targetGroupBuyId = groupBuy.id,
+                requesterUserIds = result.targetUserIds,
+                occurredAt = java.time.LocalDateTime.now()
+            )
+        }
+        return result
     }
 
     fun notifyOpened(region: String, productName: String): GroupBuyOpenNotificationResult {
@@ -97,6 +107,7 @@ class GroupBuyOpenRequestService(
         val usersById = userRepository.findByIdInAndDeletedAtIsNull(requestsByUserId.keys)
             .associateBy { it.id }
 
+        val targetUserIds = requestsByUserId.keys.toList()
         var sentCount = 0
         var failedCount = 0
 
@@ -123,6 +134,7 @@ class GroupBuyOpenRequestService(
             targetCount = requestsByUserId.size,
             sentCount = sentCount,
             failedCount = failedCount,
+            targetUserIds = targetUserIds
         )
     }
 
@@ -377,4 +389,5 @@ data class GroupBuyOpenNotificationResult(
     val targetCount: Int,
     val sentCount: Int,
     val failedCount: Int,
+    val targetUserIds: List<Long> = emptyList(),
 )
