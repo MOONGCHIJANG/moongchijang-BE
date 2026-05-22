@@ -7,7 +7,6 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -104,33 +103,8 @@ class WishlistQueryServiceTest {
         assertEquals(deadline, card.deadline)
         assertEquals("5/24(일) 21:00", card.deadlineLabel)
         assertEquals(72, card.achievementRate)
-        assertFalse(card.isAchievementImminent)
         assertEquals(18000, card.price)
         assertTrue(card.isWishlisted)
-    }
-
-    @Test
-    fun `찜 목록 조회 요청 시 달성임박 경계값 판별`() {
-        val userId = 3L
-        val pageable = PageRequest.of(0, 10)
-        val now = LocalDateTime.of(2026, 5, 22, 10, 0)
-        val imminent = createGroupBuy(id = 301L, currentQuantity = 40, targetQuantity = 50)
-        val normal = createGroupBuy(id = 302L, currentQuantity = 39, targetQuantity = 50)
-
-        `when`(
-            favoriteRepository.findWishlistGroupBuys(
-                userId = userId,
-                filter = WishFilterType.ACHIEVEMENT_SOON,
-                sort = WishSortType.LATEST,
-                pageable = pageable,
-            )
-        ).thenReturn(PageImpl(listOf(imminent, normal), pageable, 2))
-        `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(0L)
-
-        val result = service.getWishlist(userId, WishFilterType.ACHIEVEMENT_SOON, WishSortType.LATEST, pageable, now)
-
-        assertTrue(result.content[0].isAchievementImminent)
-        assertFalse(result.content[1].isAchievementImminent)
     }
 
     private fun createGroupBuy(

@@ -81,9 +81,9 @@ class FavoriteRepositoryImpl(
     private fun filterPredicate(filter: WishFilterType, now: LocalDateTime): BooleanExpression? {
         return when (filter) {
             WishFilterType.ALL -> null
-            WishFilterType.CLOSING_SOON -> groupBuy.deadline.loe(now.plusDays(FavoriteRepositoryCustom.CLOSING_SOON_DAYS))
-            WishFilterType.ACHIEVEMENT_SOON -> groupBuy.currentQuantity.multiply(100)
-                .goe(groupBuy.targetQuantity.multiply(FavoriteRepositoryCustom.ALMOST_ACHIEVED_RATE))
+            WishFilterType.CLOSING_SOON -> groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS)
+                .and(groupBuy.deadline.gt(now))
+                .and(groupBuy.deadline.loe(now.plusDays(FavoriteRepositoryCustom.CLOSING_SOON_DAYS)))
             WishFilterType.OPEN -> groupBuy.status.eq(GroupBuyStatus.IN_PROGRESS).and(groupBuy.deadline.gt(now))
             WishFilterType.CLOSED -> groupBuy.status.eq(GroupBuyStatus.CLOSED).or(groupBuy.deadline.loe(now))
         }

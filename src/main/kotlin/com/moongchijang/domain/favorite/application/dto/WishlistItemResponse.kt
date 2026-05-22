@@ -49,9 +49,6 @@ data class WishlistItemResponse(
     @field:Schema(description = "달성률(%)", example = "72")
     val achievementRate: Int,
 
-    @field:Schema(description = "달성임박 여부(80% 이상)", example = "false")
-    val isAchievementImminent: Boolean,
-
     @field:Schema(description = "가격", example = "18000")
     val price: Int,
 
@@ -85,7 +82,6 @@ data class WishlistItemResponse(
                 deadline = groupBuy.deadline,
                 deadlineLabel = formatDeadlineLabel(groupBuy.deadline),
                 achievementRate = achievementRate,
-                isAchievementImminent = achievementRate >= 80,
                 price = groupBuy.price,
                 currentParticipantCount = groupBuy.currentQuantity,
                 targetParticipantCount = groupBuy.targetQuantity,

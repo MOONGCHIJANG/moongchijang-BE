@@ -9,7 +9,6 @@ import org.springframework.data.domain.Pageable
 interface FavoriteRepositoryCustom {
 
     companion object {
-        const val ALMOST_ACHIEVED_RATE = 80
         const val CLOSING_SOON_DAYS = 3L
     }
 
