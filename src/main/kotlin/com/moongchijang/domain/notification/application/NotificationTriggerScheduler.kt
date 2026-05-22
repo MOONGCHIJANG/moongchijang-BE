@@ -171,8 +171,20 @@ class NotificationTriggerScheduler(
             deadlineTo = windowTo
         )
 
+        val groupBuyIds = groupBuys.map { it.id }
+        if (groupBuyIds.isEmpty()) {
+            log.info(
+                "[NotificationTriggerScheduler] 찜 마감 리마인드 알림 트리거 완료: triggerType={}, windowFrom={}, windowTo={}, groupBuyCount={}",
+                offset.triggerType, windowFrom, windowTo, groupBuys.size
+            )
+            return
+        }
+        val targetsByGroupBuyId = favoriteRepository
+            .findNotificationTargetsByGroupBuyIdsExcludingParticipants(groupBuyIds)
+            .groupBy(keySelector = { it.groupBuyId }, valueTransform = { it.userId })
+
         groupBuys.forEach { groupBuy ->
-            val userIds = favoriteRepository.findUserIdsByGroupBuyIdExcludingParticipants(groupBuy.id)
+            val userIds = targetsByGroupBuyId[groupBuy.id].orEmpty().distinct()
             if (userIds.isEmpty()) return@forEach
 
             notificationEventPublisher.publishScheduledTrigger(

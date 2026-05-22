@@ -3,6 +3,7 @@ package com.moongchijang.domain.notification.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.favorite.domain.repository.FavoriteNotificationTargetProjection
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
@@ -147,8 +148,16 @@ class NotificationTriggerSchedulerTest {
                 now.plusHours(24).plusMinutes(10)
             )
         ).thenReturn(listOf(d1GroupBuy))
-        `when`(favoriteRepository.findUserIdsByGroupBuyIdExcludingParticipants(21L)).thenReturn(listOf(100L))
-        `when`(favoriteRepository.findUserIdsByGroupBuyIdExcludingParticipants(22L)).thenReturn(listOf(200L))
+        `when`(
+            favoriteRepository.findNotificationTargetsByGroupBuyIdsExcludingParticipants(listOf(21L))
+        ).thenReturn(
+            listOf(notificationTarget(groupBuyId = 21L, userId = 100L))
+        )
+        `when`(
+            favoriteRepository.findNotificationTargetsByGroupBuyIdsExcludingParticipants(listOf(22L))
+        ).thenReturn(
+            listOf(notificationTarget(groupBuyId = 22L, userId = 200L))
+        )
 
         scheduler.triggerWishlistDeadlineNotificationsAt(now)
 
@@ -236,5 +245,12 @@ class NotificationTriggerSchedulerTest {
             "pickup-cutoff:41:${LocalDateTime.of(now.toLocalDate().minusDays(1), LocalTime.of(9, 0)).plusMinutes(30)}",
             now
         )
+    }
+}
+
+private fun notificationTarget(groupBuyId: Long, userId: Long): FavoriteNotificationTargetProjection {
+    return object : FavoriteNotificationTargetProjection {
+        override val groupBuyId: Long = groupBuyId
+        override val userId: Long = userId
     }
 }

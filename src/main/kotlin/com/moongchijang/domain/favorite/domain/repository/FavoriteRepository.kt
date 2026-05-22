@@ -45,4 +45,21 @@ interface FavoriteRepository : JpaRepository<Favorite, Long>, FavoriteRepository
     fun findUserIdsByGroupBuyIdExcludingParticipants(
         @Param("groupBuyId") groupBuyId: Long
     ): List<Long>
+
+    @Query(
+        """
+        SELECT f.groupBuy.id AS groupBuyId, f.user.id AS userId
+        FROM Favorite f
+        WHERE f.groupBuy.id IN :groupBuyIds
+          AND NOT EXISTS (
+              SELECT p.id
+              FROM Participation p
+              WHERE p.user.id = f.user.id
+                AND p.groupBuy.id = f.groupBuy.id
+          )
+        """
+    )
+    fun findNotificationTargetsByGroupBuyIdsExcludingParticipants(
+        @Param("groupBuyIds") groupBuyIds: Collection<Long>
+    ): List<FavoriteNotificationTargetProjection>
 }
