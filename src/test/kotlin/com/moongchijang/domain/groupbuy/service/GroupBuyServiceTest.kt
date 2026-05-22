@@ -214,7 +214,7 @@ class GroupBuyServiceTest {
     }
 
     @Test
-    fun `마감 시간이 지난 공구 상세 조회 시 참여 가능 여부 false 반환`() {
+    fun `deadline 이 지나도 IN_PROGRESS 상태 공구 상세 조회 시 참여 가능 여부 true 반환`() {
         val groupBuyId = 13L
         val userId = 4L
         val groupBuy = GroupBuyFixture.createGroupBuy(
@@ -230,7 +230,7 @@ class GroupBuyServiceTest {
 
         val result = service.getDetail(groupBuyId, userId)
 
-        assertFalse(result.canParticipate)
+        assertTrue(result.canParticipate)
     }
 
     @Test
@@ -274,7 +274,7 @@ class GroupBuyServiceTest {
     }
 
     @Test
-    fun `달성 완료 공구라도 마감 시간이 지나면 참여 가능 여부 false 반환`() {
+    fun `deadline 이 지나도 ACHIEVED 상태 공구 상세 조회 시 참여 가능 여부 true 반환`() {
         val groupBuyId = 16L
         val userId = 7L
         val groupBuy = GroupBuyFixture.createGroupBuy(
@@ -293,8 +293,8 @@ class GroupBuyServiceTest {
 
         val result = service.getDetail(groupBuyId, userId)
 
-        assertTrue(result.isClosed)
-        assertFalse(result.canParticipate)
+        assertFalse(result.isClosed)
+        assertTrue(result.canParticipate)
     }
 
     @Test

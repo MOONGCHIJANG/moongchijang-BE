@@ -438,7 +438,7 @@ class PaymentService(
     }
 
     private fun validateRefundEligibility(groupBuy: GroupBuy, order: PaymentOrder) {
-        if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED || groupBuy.status == GroupBuyStatus.COMPLETED) {
             log.info(
                 "[PaymentService] 환불 거절(달성 완료): orderId={}, groupBuyId={}, status={}",
                 order.orderId, groupBuy.id, groupBuy.status

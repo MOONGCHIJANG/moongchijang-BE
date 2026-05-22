@@ -25,7 +25,7 @@ data class GroupBuyProgressItem(
     companion object {
         fun from(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): GroupBuyProgressItem {
             val achievementRate = GroupBuyProgressCalculator.achievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
-            val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now)
+            val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy)
 
             return GroupBuyProgressItem(
                 groupBuyId = groupBuy.id,

@@ -150,7 +150,7 @@ data class GroupBuyDetailResponse(
                 dDay = dDay,
                 dDayLabel = "D-$dDay",
                 isWishlisted = isWishlisted,
-                isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now),
+                isClosed = GroupBuyProgressCalculator.isClosed(groupBuy),
                 isParticipated = isParticipated,
                 canParticipate = canParticipate
             )

@@ -88,8 +88,7 @@ class GroupBuyService(
             participationRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
         } ?: false
 
-        val now = LocalDateTime.now()
-        val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now)
+        val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy)
         val canParticipate = !isParticipated && !isClosed && groupBuy.currentQuantity < groupBuy.maxQuantity
 
         log.info(

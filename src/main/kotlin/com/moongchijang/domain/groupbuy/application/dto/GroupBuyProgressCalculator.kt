@@ -2,7 +2,6 @@ package com.moongchijang.domain.groupbuy.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
-import java.time.LocalDateTime
 
 object GroupBuyProgressCalculator {
     private val CLOSED_STATUSES = setOf(
@@ -16,8 +15,8 @@ object GroupBuyProgressCalculator {
         return ((currentQuantity * 100.0) / targetQuantity).toInt()
     }
 
-    fun isClosed(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): Boolean {
-        return groupBuy.status in CLOSED_STATUSES || groupBuy.deadline.isBefore(now)
+    fun isClosed(groupBuy: GroupBuy): Boolean {
+        return groupBuy.status in CLOSED_STATUSES
     }
 
     fun isParticipationOpenStatus(groupBuy: GroupBuy): Boolean {
