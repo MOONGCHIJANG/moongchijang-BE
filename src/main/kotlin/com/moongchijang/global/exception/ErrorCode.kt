@@ -113,4 +113,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PARTICIPATION_NOT_FOUND(404_356, "참여 정보를 찾을 수 없습니다.", 404),
     PARTICIPATION_CANCEL_NOT_ALLOWED(409_357, "취소할 수 없는 참여 상태입니다.", 409),
     PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED(400_358, "기타 취소 사유를 입력해주세요.", 400),
+
+    // Notification(360~369)
+    NOTIFICATION_NOT_FOUND(404_360, "알림을 찾을 수 없습니다.", 404),
+    NOTIFICATION_FORBIDDEN(403_360, "본인 알림만 처리할 수 있습니다.", 403),
 }

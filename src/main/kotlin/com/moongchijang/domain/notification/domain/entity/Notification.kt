@@ -57,4 +57,10 @@ class Notification(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
-) : BaseEntity()
+) : BaseEntity() {
+    fun markAsRead() {
+        if (!isRead) {
+            isRead = true
+        }
+    }
+}
