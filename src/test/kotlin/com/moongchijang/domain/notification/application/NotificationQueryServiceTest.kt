@@ -15,6 +15,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @ExtendWith(MockitoExtension::class)
 class NotificationQueryServiceTest {
@@ -25,7 +26,7 @@ class NotificationQueryServiceTest {
     private val service by lazy { NotificationQueryService(notificationRepository) }
 
     @Test
-    fun `카테고리 ALL 조회 시 type 필터 없음`() {
+    fun `카테고리 ALL로 조회할 때 type 필터 없는 목록 반환`() {
         val user = UserFixture.createEmailUser(id = 1L)
         val occurredAt = LocalDateTime.now().minusHours(1).withNano(0)
         val notifications = listOf(
@@ -61,7 +62,7 @@ class NotificationQueryServiceTest {
     }
 
     @Test
-    fun `카테고리 APPLY 조회 시 APPLY type 필터 적용`() {
+    fun `카테고리 APPLY로 조회할 때 APPLY type 필터 적용 검증`() {
         `when`(
             notificationRepository.findForList(
                 userId = 2L,
@@ -89,7 +90,7 @@ class NotificationQueryServiceTest {
     }
 
     @Test
-    fun `커서 기반 조회 hasNext와 nextCursor 반환`() {
+    fun `커서 기반으로 조회할 때 hasNext와 nextCursor 반환`() {
         val user = UserFixture.createEmailUser(id = 3L)
         val now = LocalDateTime.now().withNano(0)
         val n1 = NotificationFixture.createNotification(user = user, id = 31L, occurredAt = now.minusMinutes(1))
@@ -120,12 +121,24 @@ class NotificationQueryServiceTest {
     }
 
     @Test
-    fun `section TODAY YESTERDAY OLDER 분류`() {
+    fun `알림 목록을 조회할 때 TODAY YESTERDAY OLDER 섹션 분류 반환`() {
         val user = UserFixture.createEmailUser(id = 4L)
-        val now = LocalDateTime.now().withNano(0)
-        val today = NotificationFixture.createNotification(user = user, id = 41L, occurredAt = now)
-        val yesterday = NotificationFixture.createNotification(user = user, id = 40L, occurredAt = now.minusDays(1))
-        val older = NotificationFixture.createNotification(user = user, id = 39L, occurredAt = now.minusDays(3))
+        val kstToday = LocalDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDate()
+        val today = NotificationFixture.createNotification(
+            user = user,
+            id = 41L,
+            occurredAt = kstToday.atTime(10, 0)
+        )
+        val yesterday = NotificationFixture.createNotification(
+            user = user,
+            id = 40L,
+            occurredAt = kstToday.minusDays(1).atTime(10, 0)
+        )
+        val older = NotificationFixture.createNotification(
+            user = user,
+            id = 39L,
+            occurredAt = kstToday.minusDays(3).atTime(10, 0)
+        )
 
         `when`(
             notificationRepository.findForList(
@@ -148,7 +161,7 @@ class NotificationQueryServiceTest {
     }
 
     @Test
-    fun `limit 범위 보정`() {
+    fun `limit 범위를 벗어나 조회할 때 최소 최대 보정 적용`() {
         `when`(
             notificationRepository.findForList(
                 userId = 5L,
