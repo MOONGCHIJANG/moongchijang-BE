@@ -314,8 +314,11 @@ class PaymentService(
             )
         )
 
-        if (groupBuy.currentQuantity >= groupBuy.targetQuantity) {
-            groupBuy.status = GroupBuyStatus.ACHIEVED
+        if (groupBuy.currentQuantity >= groupBuy.targetQuantity && groupBuy.status == GroupBuyStatus.IN_PROGRESS) {
+            groupBuy.transitionToAchieved()
+        }
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED && groupBuy.currentQuantity >= groupBuy.maxQuantity) {
+            groupBuy.transitionToCompletedWhenMaxQuantityReached()
         }
         val approvedAt = paymentResult.paidAt ?: LocalDateTime.now()
         order.approve(approvedAt)
