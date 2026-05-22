@@ -28,27 +28,28 @@ class GroupBuyStatusTransitionScheduler(
             return
         }
 
-        log.debug("[GroupBuyStatusTransitionScheduler] deadline 자동 전이 스케줄 실행")
-        val key = STATUS_TRANSITION_LOCK_KEY
-        val token = try {
-            redisLockUtil.tryLockOrThrow(key, waitMs = lockWaitMs, leaseMs = lockLeaseMs)
-        } catch (e: CustomException) {
-            if (e.errorCode == ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED) {
-                log.warn("[GroupBuyStatusTransitionScheduler] 다른 인스턴스에서 실행 중이어서 이번 실행을 건너뜁니다.")
-                running.set(false)
-                return
-            }
-            running.set(false)
-            throw e
-        }
-
         try {
-            groupBuyStatusTransitionService.transitionExpiredGroupBuys()
-        } finally {
-            val unlocked = redisLockUtil.unlock(key, token)
-            if (!unlocked) {
-                log.warn("[GroupBuyStatusTransitionScheduler] 분산락 해제 실패: key={}", key)
+            log.debug("[GroupBuyStatusTransitionScheduler] deadline 자동 전이 스케줄 실행")
+            val key = STATUS_TRANSITION_LOCK_KEY
+            val token = try {
+                redisLockUtil.tryLockOrThrow(key, waitMs = lockWaitMs, leaseMs = lockLeaseMs)
+            } catch (e: CustomException) {
+                if (e.errorCode == ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED) {
+                    log.warn("[GroupBuyStatusTransitionScheduler] 다른 인스턴스에서 실행 중이어서 이번 실행을 건너뜁니다.")
+                    return
+                }
+                throw e
             }
+
+            try {
+                groupBuyStatusTransitionService.transitionExpiredGroupBuys()
+            } finally {
+                val unlocked = redisLockUtil.unlock(key, token)
+                if (!unlocked) {
+                    log.warn("[GroupBuyStatusTransitionScheduler] 분산락 해제 실패: key={}", key)
+                }
+            }
+        } finally {
             running.set(false)
         }
     }
