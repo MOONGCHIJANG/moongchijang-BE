@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.LocalDate
 import java.util.Optional
 
 interface ParticipationRepository : JpaRepository<Participation, Long> {
@@ -26,6 +27,39 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         """
     )
     fun findDistinctUserIdsByGroupBuyId(@Param("groupBuyId") groupBuyId: Long): List<Long>
+
+    @Query(
+        """
+        SELECT p
+        FROM Participation p
+        JOIN FETCH p.groupBuy gb
+        WHERE gb.pickupDate = :pickupDate
+          AND p.status IN :participationStatuses
+          AND p.pickupStatus IN :pickupStatuses
+        """
+    )
+    fun findForPickupReminderByPickupDate(
+        @Param("pickupDate") pickupDate: LocalDate,
+        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+        @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
+    ): List<Participation>
+
+    @Query(
+        """
+        SELECT p
+        FROM Participation p
+        JOIN FETCH p.groupBuy gb
+        WHERE gb.pickupDate BETWEEN :pickupDateFrom AND :pickupDateTo
+          AND p.status IN :participationStatuses
+          AND p.pickupStatus IN :pickupStatuses
+        """
+    )
+    fun findForPickupCutoffCheck(
+        @Param("pickupDateFrom") pickupDateFrom: LocalDate,
+        @Param("pickupDateTo") pickupDateTo: LocalDate,
+        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+        @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
+    ): List<Participation>
 
     @Query(
         value = """

@@ -68,6 +68,22 @@ class NotificationEventPublisher(
         )
     }
 
+    fun publishScheduledTrigger(
+        triggerType: NotificationTriggerType,
+        targetId: Long,
+        userIds: List<Long>,
+        scheduleKey: String,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = triggerType,
+            targetId = targetId,
+            userIds = userIds,
+            scheduleKey = scheduleKey,
+            occurredAt = occurredAt
+        )
+    }
+
     private fun publish(
         triggerType: NotificationTriggerType,
         targetId: Long,
