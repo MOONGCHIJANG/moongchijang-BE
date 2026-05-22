@@ -1180,7 +1180,7 @@ paths:
   /api/v1/notifications/unread-count:
     get:
       tags: [Notification]
-      summary: 미읽음 알림 개수 조회 (탭바 배지용)
+      summary: 미읽음 알림 개수 조회
       security:
         - bearerAuth: []
       responses:
@@ -1189,7 +1189,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseUnreadCount'
+                $ref: '#/components/schemas/ApiResponseNotificationUnreadCountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/notifications/read-all:
     patch:
@@ -1200,11 +1202,13 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SuccessNoData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/notifications/{notificationId}/read:
     patch:
       tags: [Notification]
-      summary: 개별 알림 읽음 처리
+      summary: 알림 단건 읽음 처리
       security:
         - bearerAuth: []
       parameters:
@@ -1217,6 +1221,12 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SuccessNoData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ─────────────────────────────────────────────────────────────
   # MyPage
@@ -2916,7 +2926,7 @@ components:
           $ref: '#/components/schemas/NotificationListResponse'
         error: { nullable: true, example: null }
 
-    ApiResponseUnreadCount:
+    ApiResponseNotificationUnreadCountResponse:
       type: object
       required: [success, data, error]
       properties:
@@ -2925,7 +2935,7 @@ components:
           type: object
           required: [count]
           properties:
-            count: { type: integer }
+            count: { type: integer, format: int64, example: 3 }
         error: { nullable: true, example: null }
 
     # ── MyPage ─────────────────────────────────────────────────
