@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 class GroupBuyTest {
 
     @Test
-    fun `IN_PROGRESS 에서 ACHIEVED 로 전이한다`() {
+    fun `IN_PROGRESS 상태일 때 ACHIEVED 전이`() {
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 1L,
             status = GroupBuyStatus.IN_PROGRESS
@@ -23,7 +23,7 @@ class GroupBuyTest {
     }
 
     @Test
-    fun `ACHIEVED 가 아닌 상태에서는 ACHIEVED 로 전이할 수 없다`() {
+    fun `ACHIEVED 외 상태일 때 ACHIEVED 전이 불가`() {
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 1L,
             status = GroupBuyStatus.COMPLETED
@@ -35,7 +35,7 @@ class GroupBuyTest {
     }
 
     @Test
-    fun `deadline 경과한 IN_PROGRESS 는 FAILED 로 전이한다`() {
+    fun `deadline 경과한 IN_PROGRESS 상태일 때 FAILED 전이`() {
         val now = LocalDateTime.now()
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 1L,
@@ -49,7 +49,7 @@ class GroupBuyTest {
     }
 
     @Test
-    fun `deadline 경과한 ACHIEVED 는 COMPLETED 로 전이한다`() {
+    fun `deadline 경과한 ACHIEVED 상태일 때 COMPLETED 전이`() {
         val now = LocalDateTime.now()
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 1L,
@@ -63,7 +63,7 @@ class GroupBuyTest {
     }
 
     @Test
-    fun `max 수량 달성한 ACHIEVED 는 COMPLETED 로 전이한다`() {
+    fun `max 수량 달성한 ACHIEVED 상태일 때 COMPLETED 전이`() {
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 1L,
             status = GroupBuyStatus.ACHIEVED,
@@ -77,7 +77,7 @@ class GroupBuyTest {
     }
 
     @Test
-    fun `terminal 상태 여부를 올바르게 판단한다`() {
+    fun `terminal 상태일 때 true 반환`() {
         val completed = GroupBuyFixture.createGroupBuy(id = 1L, status = GroupBuyStatus.COMPLETED)
         val failed = GroupBuyFixture.createGroupBuy(id = 2L, status = GroupBuyStatus.FAILED)
         val closed = GroupBuyFixture.createGroupBuy(id = 3L, status = GroupBuyStatus.CLOSED)

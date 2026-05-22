@@ -13,6 +13,10 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepositoryCustom {
+    fun findAllByStatusInAndDeadlineLessThanEqual(
+        statuses: Collection<GroupBuyStatus>,
+        deadline: LocalDateTime
+    ): List<GroupBuy>
 
     @EntityGraph(attributePaths = ["store"])
     fun findWithStoreById(id: Long): Optional<GroupBuy>
