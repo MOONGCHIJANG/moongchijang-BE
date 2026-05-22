@@ -3,6 +3,7 @@ package com.moongchijang.domain.groupbuy.domain.repository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import jakarta.persistence.LockModeType
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
@@ -13,6 +14,12 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepositoryCustom {
+
+    fun findByStatusInAndDeadlineLessThanEqual(
+        statuses: Collection<GroupBuyStatus>,
+        deadline: LocalDateTime,
+        pageable: Pageable
+    ): List<GroupBuy>
 
     @EntityGraph(attributePaths = ["store"])
     fun findWithStoreById(id: Long): Optional<GroupBuy>

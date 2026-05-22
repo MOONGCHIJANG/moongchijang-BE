@@ -148,9 +148,9 @@ data class GroupBuyDetailResponse(
                 pickupLatitude = groupBuy.store.latitude,
                 pickupLongitude = groupBuy.store.longitude,
                 dDay = dDay,
-                dDayLabel = "D-$dDay",
+                dDayLabel = if (dDay == 0) "D-day" else "D-$dDay",
                 isWishlisted = isWishlisted,
-                isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now),
+                isClosed = GroupBuyProgressCalculator.isClosed(groupBuy),
                 isParticipated = isParticipated,
                 canParticipate = canParticipate
             )

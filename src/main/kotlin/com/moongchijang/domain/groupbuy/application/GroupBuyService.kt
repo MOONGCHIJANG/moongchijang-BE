@@ -88,9 +88,12 @@ class GroupBuyService(
             participationRepository.existsByUserIdAndGroupBuyId(it, groupBuyId)
         } ?: false
 
+        val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy)
         val now = LocalDateTime.now()
-        val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy, now)
-        val canParticipate = !isParticipated && !isClosed && groupBuy.currentQuantity < groupBuy.maxQuantity
+        val canParticipate = !isParticipated &&
+            !isClosed &&
+            groupBuy.deadline.isAfter(now) &&
+            groupBuy.currentQuantity < groupBuy.maxQuantity
 
         log.info(
             "[GroupBuyService] 공구 상세 조회 완료: groupBuyId={}, isWishlisted={}, isParticipated={}, canParticipate={}",

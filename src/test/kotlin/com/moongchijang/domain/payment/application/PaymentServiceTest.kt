@@ -173,7 +173,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    fun `마감 시간이 지난 ACHIEVED 상태 공구는 체크아웃 정보 조회 불가`() {
+    fun `deadline 이 지나도 ACHIEVED 상태 공구는 체크아웃 정보 조회 가능`() {
         val groupBuy = createGroupBuy(
             status = GroupBuyStatus.ACHIEVED,
             currentQuantity = 50,
@@ -183,24 +183,32 @@ class PaymentServiceTest {
         }
         `when`(groupBuyRepository.findWithStoreById(10L)).thenReturn(Optional.of(groupBuy))
 
-        val ex = assertThrows<CustomException> {
-            service.getCheckoutInfo(10L, 1)
-        }
-
-        assertEquals(ErrorCode.PAYMENT_GROUPBUY_NOT_AVAILABLE, ex.errorCode)
+        val result = service.getCheckoutInfo(10L, 1)
+        assertEquals(10L, result.groupBuyId)
     }
 
     @Test
-    fun `마감 시간이 지난 ACHIEVED 상태 공구는 결제 주문 생성 불가`() {
+    fun `deadline 이 지나도 ACHIEVED 상태 공구는 결제 주문 생성 가능`() {
         val user = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
         val groupBuy = createGroupBuy(status = GroupBuyStatus.ACHIEVED, currentQuantity = 50, maxQuantity = 100).apply {
             deadline = LocalDateTime.now().minusMinutes(1)
         }
         `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
         `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(false)
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        val result = service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 1))
+        assertEquals("두쫀쿠 1개", result.orderName)
+    }
+
+    @Test
+    fun `COMPLETED 상태 공구는 체크아웃 정보 조회 불가`() {
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.COMPLETED, currentQuantity = 100, maxQuantity = 100)
+        `when`(groupBuyRepository.findWithStoreById(10L)).thenReturn(Optional.of(groupBuy))
 
         val ex = assertThrows<CustomException> {
-            service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 1))
+            service.getCheckoutInfo(10L, 1)
         }
 
         assertEquals(ErrorCode.PAYMENT_GROUPBUY_NOT_AVAILABLE, ex.errorCode)
@@ -301,6 +309,37 @@ class PaymentServiceTest {
 
         assertEquals(ParticipationStatus.CONFIRMED, result.participationStatus)
         assertEquals(GroupBuyStatus.ACHIEVED, groupBuy.status)
+    }
+
+    @Test
+    fun `결제 완료 시 max 수량 도달하면 COMPLETED 상태 전이`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(
+            status = GroupBuyStatus.ACHIEVED,
+            currentQuantity = 99,
+            maxQuantity = 100
+        )
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(groupBuyRepository.increaseCurrentQuantityIfAvailable(10L, 1)).thenAnswer {
+            groupBuy.currentQuantity += 1
+            1
+        }
+        `when`(groupBuyRepository.findById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(false)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 6000, "CARD", LocalDateTime.now()))
+        `when`(participationRepository.save(any(Participation::class.java))).thenAnswer {
+            (it.arguments[0] as Participation).apply { id = 101L }
+        }
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        val result = service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000), 1L)
+
+        assertEquals(ParticipationStatus.CONFIRMED, result.participationStatus)
+        assertEquals(GroupBuyStatus.COMPLETED, groupBuy.status)
     }
 
     @Test

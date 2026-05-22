@@ -67,3 +67,45 @@ class GroupBuy(
     var id: Long = 0L
 
 ) : BaseEntity()
+{
+    fun transitionToAchieved() {
+        requireStatus(GroupBuyStatus.IN_PROGRESS)
+        status = GroupBuyStatus.ACHIEVED
+    }
+
+    fun transitionToCompletedByDeadline(now: LocalDateTime) {
+        requireStatus(GroupBuyStatus.ACHIEVED)
+        require(deadline <= now) { "deadline 이 지나지 않아 COMPLETED 로 전이할 수 없습니다." }
+        status = GroupBuyStatus.COMPLETED
+    }
+
+    fun transitionToFailedByDeadline(now: LocalDateTime) {
+        requireStatus(GroupBuyStatus.IN_PROGRESS)
+        require(deadline <= now) { "deadline 이 지나지 않아 FAILED 로 전이할 수 없습니다." }
+        status = GroupBuyStatus.FAILED
+    }
+
+    fun transitionToCompletedWhenMaxQuantityReached() {
+        requireStatus(GroupBuyStatus.ACHIEVED)
+        require(currentQuantity >= maxQuantity) { "max 수량 미달성 상태에서는 COMPLETED 로 전이할 수 없습니다." }
+        status = GroupBuyStatus.COMPLETED
+    }
+
+    fun transitionToClosed() {
+        if (status == GroupBuyStatus.CLOSED) {
+            return
+        }
+        require(status == GroupBuyStatus.IN_PROGRESS || status == GroupBuyStatus.ACHIEVED) {
+            "CLOSED 는 IN_PROGRESS 또는 ACHIEVED 상태에서만 전이할 수 있습니다."
+        }
+        status = GroupBuyStatus.CLOSED
+    }
+
+    fun isTerminalStatus(): Boolean {
+        return status == GroupBuyStatus.COMPLETED || status == GroupBuyStatus.FAILED || status == GroupBuyStatus.CLOSED
+    }
+
+    private fun requireStatus(expected: GroupBuyStatus) {
+        require(status == expected) { "${expected.name} 전이 조건을 만족하지 않습니다. 현재 상태: ${status.name}" }
+    }
+}

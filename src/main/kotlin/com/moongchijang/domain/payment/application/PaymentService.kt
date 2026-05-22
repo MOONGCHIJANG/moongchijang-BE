@@ -314,8 +314,11 @@ class PaymentService(
             )
         )
 
-        if (groupBuy.currentQuantity >= groupBuy.targetQuantity) {
-            groupBuy.status = GroupBuyStatus.ACHIEVED
+        if (groupBuy.currentQuantity >= groupBuy.targetQuantity && groupBuy.status == GroupBuyStatus.IN_PROGRESS) {
+            groupBuy.transitionToAchieved()
+        }
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED && groupBuy.currentQuantity >= groupBuy.maxQuantity) {
+            groupBuy.transitionToCompletedWhenMaxQuantityReached()
         }
         val approvedAt = paymentResult.paidAt ?: LocalDateTime.now()
         order.approve(approvedAt)
@@ -435,7 +438,7 @@ class PaymentService(
     }
 
     private fun validateRefundEligibility(groupBuy: GroupBuy, order: PaymentOrder) {
-        if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED || groupBuy.status == GroupBuyStatus.COMPLETED) {
             log.info(
                 "[PaymentService] 환불 거절(달성 완료): orderId={}, groupBuyId={}, status={}",
                 order.orderId, groupBuy.id, groupBuy.status

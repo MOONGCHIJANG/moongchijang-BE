@@ -109,6 +109,32 @@ class WishlistQueryServiceTest {
         assertTrue(card.isWishlisted)
     }
 
+    @Test
+    fun `찜 목록 조회 시 D-day가 0이면 라벨 D-day 반환`() {
+        val userId = 3L
+        val pageable = PageRequest.of(0, 10)
+        val now = LocalDateTime.of(2026, 5, 22, 10, 0)
+        val deadline = LocalDateTime.of(2026, 5, 22, 21, 0)
+        val item = createGroupBuy(id = 303L, deadline = deadline)
+
+        `when`(
+            favoriteRepository.findWishlistGroupBuys(
+                userId = userId,
+                filter = WishFilterType.ALL,
+                sort = WishSortType.LATEST,
+                pageable = pageable,
+                now = now,
+            )
+        ).thenReturn(PageImpl(listOf(item), pageable, 1))
+        `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(1L)
+
+        val result = service.getWishlist(userId, WishFilterType.ALL, WishSortType.LATEST, pageable, now)
+        val card = result.content.first()
+
+        assertEquals(0, card.dDay)
+        assertEquals("D-day", card.dDayLabel)
+    }
+
     private fun createGroupBuy(
         id: Long,
         deadline: LocalDateTime = LocalDateTime.of(2026, 5, 24, 21, 0),
