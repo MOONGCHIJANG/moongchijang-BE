@@ -21,6 +21,12 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         pageable: Pageable
     ): List<GroupBuy>
 
+    fun findByStatusInAndDeadlineBetween(
+        statuses: Collection<GroupBuyStatus>,
+        deadlineFrom: LocalDateTime,
+        deadlineTo: LocalDateTime
+    ): List<GroupBuy>
+
     @EntityGraph(attributePaths = ["store"])
     fun findWithStoreById(id: Long): Optional<GroupBuy>
 

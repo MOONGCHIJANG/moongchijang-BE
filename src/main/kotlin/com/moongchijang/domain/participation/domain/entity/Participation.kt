@@ -88,4 +88,13 @@ class Participation(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
-) : BaseEntity()
+) : BaseEntity() {
+    fun markPickedUp(
+        processedBy: User,
+        pickedUpAt: LocalDateTime = LocalDateTime.now()
+    ) {
+        pickupProcessedBy = processedBy
+        pickupStatus = PickupStatus.PICKED_UP
+        this.pickedUpAt = pickedUpAt
+    }
+}

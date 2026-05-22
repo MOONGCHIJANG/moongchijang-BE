@@ -1,5 +1,7 @@
 package com.moongchijang.domain.groupbuy.application
 
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import org.springframework.beans.factory.annotation.Value
@@ -15,6 +17,8 @@ import java.time.LocalDateTime
 @Service
 class GroupBuyStatusTransitionService(
     private val groupBuyRepository: GroupBuyRepository,
+    private val participationRepository: ParticipationRepository,
+    private val notificationEventPublisher: NotificationEventPublisher,
     private val transactionManager: PlatformTransactionManager,
     @Value("\${groupbuy.status-transition.batch-size:500}")
     private val batchSize: Int
@@ -75,6 +79,7 @@ class GroupBuyStatusTransitionService(
             when (groupBuy.status) {
                 GroupBuyStatus.IN_PROGRESS -> {
                     groupBuy.transitionToFailedByDeadline(now)
+                    publishApplyGroupBuyFailedEvent(groupBuy.id, now)
                     inProgressToFailed++
                 }
                 GroupBuyStatus.ACHIEVED -> {
@@ -96,6 +101,17 @@ class GroupBuyStatusTransitionService(
         TransactionTemplate(transactionManager).apply {
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRES_NEW
         }
+
+    private fun publishApplyGroupBuyFailedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
+        val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
+        if (participantUserIds.isEmpty()) return
+
+        notificationEventPublisher.publishApplyGroupBuyFailed(
+            groupBuyId = groupBuyId,
+            participantUserIds = participantUserIds,
+            occurredAt = occurredAt
+        )
+    }
 
     private data class BatchTransitionResult(
         val total: Int,

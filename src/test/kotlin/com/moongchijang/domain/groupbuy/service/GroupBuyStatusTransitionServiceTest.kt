@@ -3,6 +3,8 @@ package com.moongchijang.domain.groupbuy.service
 import com.moongchijang.domain.groupbuy.application.GroupBuyStatusTransitionService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -31,12 +33,24 @@ class GroupBuyStatusTransitionServiceTest {
     @Mock
     private lateinit var transactionStatus: TransactionStatus
 
+    @Mock
+    private lateinit var participationRepository: ParticipationRepository
+
+    @Mock
+    private lateinit var notificationEventPublisher: NotificationEventPublisher
+
     private lateinit var service: GroupBuyStatusTransitionService
 
     @BeforeEach
     fun setUp() {
         `when`(transactionManager.getTransaction(any())).thenReturn(transactionStatus)
-        service = GroupBuyStatusTransitionService(groupBuyRepository, transactionManager, 500)
+        service = GroupBuyStatusTransitionService(
+            groupBuyRepository,
+            participationRepository,
+            notificationEventPublisher,
+            transactionManager,
+            500
+        )
     }
 
     @Test
@@ -127,7 +141,13 @@ class GroupBuyStatusTransitionServiceTest {
     @Test
     fun `자동 전이 실행 시 batch size 기준 반복 처리`() {
         val now = LocalDateTime.now()
-        val batchService = GroupBuyStatusTransitionService(groupBuyRepository, transactionManager, 2)
+        val batchService = GroupBuyStatusTransitionService(
+            groupBuyRepository,
+            participationRepository,
+            notificationEventPublisher,
+            transactionManager,
+            2
+        )
         val pageable = PageRequest.of(0, 2, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
         val first = GroupBuyFixture.createGroupBuy(id = 11L, status = GroupBuyStatus.IN_PROGRESS, deadline = now.minusMinutes(1))
         val second = GroupBuyFixture.createGroupBuy(id = 12L, status = GroupBuyStatus.ACHIEVED, deadline = now.minusMinutes(1))

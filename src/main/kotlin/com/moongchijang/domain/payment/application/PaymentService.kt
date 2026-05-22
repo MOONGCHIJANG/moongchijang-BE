@@ -5,6 +5,8 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -42,12 +44,14 @@ class PaymentService(
     private val groupBuyRepository: GroupBuyRepository,
     private val userRepository: UserRepository,
     private val participationRepository: ParticipationRepository,
+    private val favoriteRepository: FavoriteRepository,
     private val paymentOrderRepository: PaymentOrderRepository,
     private val paymentRepository: PaymentRepository,
     private val portOnePaymentPort: PortOnePaymentPort,
     private val portOneProperties: PortOneProperties,
     private val transactionManager: PlatformTransactionManager,
     private val redisLockUtil: RedisLockUtil,
+    private val notificationEventPublisher: NotificationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -335,6 +339,16 @@ class PaymentService(
             )
         )
 
+        publishApplyPaymentSuccessEvent(order, approvedAt)
+
+        if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
+            publishApplyGroupBuyAchievedEvent(groupBuy.id, approvedAt)
+            publishWishTargetAchievedEvent(groupBuy.id, approvedAt)
+            publishRequestTargetAchievedEvent(groupBuy, approvedAt)
+        }
+
+        publishRequestNewParticipantEvent(groupBuy, participation, approvedAt)
+
         return PaymentApprovalResult.Success(
             ConfirmPaymentResponse(
                 paymentId = paymentResult.paymentId,
@@ -345,6 +359,64 @@ class PaymentService(
                 method = paymentResult.method,
                 approvedAt = approvedAt,
             )
+        )
+    }
+
+    private fun publishApplyPaymentSuccessEvent(order: PaymentOrder, occurredAt: LocalDateTime) {
+        val userId = order.user.id ?: return
+        notificationEventPublisher.publishApplyPaymentSuccess(
+            groupBuyId = order.groupBuy.id,
+            orderId = order.orderId,
+            userId = userId,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishApplyGroupBuyAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
+        val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
+        if (participantUserIds.isEmpty()) return
+
+        notificationEventPublisher.publishApplyGroupBuyAchieved(
+            groupBuyId = groupBuyId,
+            participantUserIds = participantUserIds,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishWishTargetAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
+        val favoriteUserIds = favoriteRepository.findUserIdsByGroupBuyIdExcludingParticipants(groupBuyId)
+        if (favoriteUserIds.isEmpty()) return
+
+        notificationEventPublisher.publishWishTargetAchieved(
+            groupBuyId = groupBuyId,
+            userIds = favoriteUserIds,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishRequestNewParticipantEvent(
+        groupBuy: GroupBuy,
+        participation: Participation,
+        occurredAt: LocalDateTime
+    ) {
+        val requesterUserId = groupBuy.groupBuyRequest.userId
+        val participantUserId = participation.user.id ?: return
+        if (requesterUserId == participantUserId) return
+
+        notificationEventPublisher.publishRequestNewParticipant(
+            targetGroupBuyId = groupBuy.id,
+            requesterUserId = requesterUserId,
+            participationId = participation.id,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishRequestTargetAchievedEvent(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
+        val requesterUserId = groupBuy.groupBuyRequest.userId
+        notificationEventPublisher.publishRequestTargetAchieved(
+            targetGroupBuyId = groupBuy.id,
+            requesterUserId = requesterUserId,
+            occurredAt = occurredAt
         )
     }
 

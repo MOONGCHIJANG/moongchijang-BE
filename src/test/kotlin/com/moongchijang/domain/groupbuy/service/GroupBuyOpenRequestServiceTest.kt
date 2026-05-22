@@ -10,6 +10,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.NotificationStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
@@ -60,6 +61,9 @@ class GroupBuyOpenRequestServiceTest {
 
     @Mock
     private lateinit var aligoAlimtalkClient: AligoAlimtalkClient
+
+    @Mock
+    private lateinit var notificationEventPublisher: NotificationEventPublisher
 
     @InjectMocks
     private lateinit var service: GroupBuyOpenRequestService
