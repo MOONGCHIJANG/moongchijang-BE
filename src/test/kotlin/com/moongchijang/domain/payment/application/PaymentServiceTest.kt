@@ -5,6 +5,8 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -64,6 +66,9 @@ class PaymentServiceTest {
     private lateinit var participationRepository: ParticipationRepository
 
     @Mock
+    private lateinit var favoriteRepository: FavoriteRepository
+
+    @Mock
     private lateinit var paymentOrderRepository: PaymentOrderRepository
 
     @Mock
@@ -81,6 +86,9 @@ class PaymentServiceTest {
     @Mock
     private lateinit var redisLockUtil: RedisLockUtil
 
+    @Mock
+    private lateinit var notificationEventPublisher: NotificationEventPublisher
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
@@ -92,12 +100,14 @@ class PaymentServiceTest {
             groupBuyRepository = groupBuyRepository,
             userRepository = userRepository,
             participationRepository = participationRepository,
+            favoriteRepository = favoriteRepository,
             paymentOrderRepository = paymentOrderRepository,
             paymentRepository = paymentRepository,
             portOnePaymentPort = portOnePaymentPort,
             portOneProperties = portOneProperties,
             transactionManager = transactionManager,
             redisLockUtil = redisLockUtil,
+            notificationEventPublisher = notificationEventPublisher,
         )
     }
 

@@ -6,8 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
-import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
-import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -32,7 +31,6 @@ import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
@@ -53,7 +51,7 @@ class PaymentService(
     private val portOneProperties: PortOneProperties,
     private val transactionManager: PlatformTransactionManager,
     private val redisLockUtil: RedisLockUtil,
-    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val notificationEventPublisher: NotificationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -363,14 +361,11 @@ class PaymentService(
 
     private fun publishApplyPaymentSuccessEvent(order: PaymentOrder, occurredAt: LocalDateTime) {
         val userId = order.user.id ?: return
-        applicationEventPublisher.publishEvent(
-            NotificationImmediateTriggerEvent(
-                triggerType = NotificationTriggerType.APPLY_PAYMENT_SUCCESS_IMMEDIATE,
-                targetId = order.groupBuy.id,
-                userIds = listOf(userId),
-                scheduleKey = "payment-success:${order.orderId}",
-                occurredAt = occurredAt
-            )
+        notificationEventPublisher.publishApplyPaymentSuccess(
+            groupBuyId = order.groupBuy.id,
+            orderId = order.orderId,
+            userId = userId,
+            occurredAt = occurredAt
         )
     }
 
@@ -378,14 +373,10 @@ class PaymentService(
         val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
         if (participantUserIds.isEmpty()) return
 
-        applicationEventPublisher.publishEvent(
-            NotificationImmediateTriggerEvent(
-                triggerType = NotificationTriggerType.APPLY_GROUPBUY_ACHIEVED_IMMEDIATE,
-                targetId = groupBuyId,
-                userIds = participantUserIds,
-                scheduleKey = "groupbuy-achieved:$groupBuyId",
-                occurredAt = occurredAt
-            )
+        notificationEventPublisher.publishApplyGroupBuyAchieved(
+            groupBuyId = groupBuyId,
+            participantUserIds = participantUserIds,
+            occurredAt = occurredAt
         )
     }
 
@@ -393,14 +384,10 @@ class PaymentService(
         val favoriteUserIds = favoriteRepository.findUserIdsByGroupBuyIdExcludingParticipants(groupBuyId)
         if (favoriteUserIds.isEmpty()) return
 
-        applicationEventPublisher.publishEvent(
-            NotificationImmediateTriggerEvent(
-                triggerType = NotificationTriggerType.WISH_TARGET_ACHIEVED_IMMEDIATE,
-                targetId = groupBuyId,
-                userIds = favoriteUserIds,
-                scheduleKey = "wish-target-achieved:$groupBuyId",
-                occurredAt = occurredAt
-            )
+        notificationEventPublisher.publishWishTargetAchieved(
+            groupBuyId = groupBuyId,
+            userIds = favoriteUserIds,
+            occurredAt = occurredAt
         )
     }
 

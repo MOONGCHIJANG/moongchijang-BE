@@ -1,12 +1,10 @@
 package com.moongchijang.domain.groupbuy.application
 
-import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
-import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.slf4j.LoggerFactory
@@ -20,7 +18,7 @@ import java.time.LocalDateTime
 class GroupBuyStatusTransitionService(
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val notificationEventPublisher: NotificationEventPublisher,
     private val transactionManager: PlatformTransactionManager,
     @Value("\${groupbuy.status-transition.batch-size:500}")
     private val batchSize: Int
@@ -108,14 +106,10 @@ class GroupBuyStatusTransitionService(
         val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
         if (participantUserIds.isEmpty()) return
 
-        applicationEventPublisher.publishEvent(
-            NotificationImmediateTriggerEvent(
-                triggerType = NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE,
-                targetId = groupBuyId,
-                userIds = participantUserIds,
-                scheduleKey = "groupbuy-failed:$groupBuyId",
-                occurredAt = occurredAt
-            )
+        notificationEventPublisher.publishApplyGroupBuyFailed(
+            groupBuyId = groupBuyId,
+            participantUserIds = participantUserIds,
+            occurredAt = occurredAt
         )
     }
 
