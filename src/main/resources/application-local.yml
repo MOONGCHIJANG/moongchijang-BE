@@ -26,6 +26,8 @@ app:
   s3:
     bucket: local-bucket
     prefix: local
+  share:
+    base-url: ${APP_SHARE_BASE_URL:http://localhost:3000}
 
 oauth:
   kakao:

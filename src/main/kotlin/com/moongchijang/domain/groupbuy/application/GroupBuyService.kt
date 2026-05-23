@@ -17,6 +17,7 @@ import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,6 +29,7 @@ class GroupBuyService(
     private val groupBuyImageRepository: GroupBuyImageRepository,
     private val favoriteRepository: FavoriteRepository,
     private val participationRepository: ParticipationRepository,
+    @Value("\${app.share.base-url}") private val shareBaseUrl: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -195,6 +197,6 @@ class GroupBuyService(
     }
 
     private fun buildShareUrl(groupBuyId: Long): String {
-        return "/group-buys/$groupBuyId"
+        return "${shareBaseUrl.trimEnd('/')}/group-buys/$groupBuyId"
     }
 }
