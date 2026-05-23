@@ -12,4 +12,6 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
         statuses: Collection<GroupBuyRequestStatus>,
         desiredPickupDate: LocalDate
     ): List<GroupBuyRequest>
+
+    fun countByUserId(userId: Long): Long
 }
