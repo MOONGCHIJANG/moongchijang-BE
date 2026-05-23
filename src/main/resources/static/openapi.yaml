@@ -637,6 +637,21 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /api/v1/group-buys/{groupBuyId}/share:
+    get:
+      tags: [GroupBuy]
+      summary: 공유 메타데이터 조회
+      description: SNS 공유용 딥링크 URL 및 카드 메타데이터를 반환한다.
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 공유 메타데이터
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseShareMeta'
+
   /api/v1/search:
     post:
       tags: [GroupBuy]
@@ -2571,6 +2586,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GroupBuyProgressItem'
+        error: { nullable: true, example: null }
+
+    ApiResponseShareMeta:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [shareUrl, title, description, imageUrl, storeName, deadline, pickupDate, pickupTimeStart, pickupTimeEnd]
+          properties:
+            shareUrl: { type: string }
+            title: { type: string }
+            description: { type: string }
+            imageUrl: { type: string }
+            storeName: { type: string }
+            deadline: { type: string, format: date-time }
+            pickupDate: { type: string, format: date }
+            pickupTimeStart: { type: string, format: time, nullable: true }
+            pickupTimeEnd: { type: string, format: time, nullable: true }
         error: { nullable: true, example: null }
 
     # ── GroupBuyRequest ────────────────────────────────────────
