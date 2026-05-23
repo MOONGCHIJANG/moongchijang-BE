@@ -1,6 +1,5 @@
 package com.moongchijang.domain.search.application
 
-import com.moongchijang.domain.search.application.dto.GroupBuyCardDto
 import com.moongchijang.domain.search.application.dto.SearchCase
 import com.moongchijang.domain.search.application.dto.SearchResponse
 import com.moongchijang.domain.search.domain.SearchUiState
@@ -64,7 +63,7 @@ class SearchServiceTest {
         confidence = 0.0,
         uiState = SearchUiState.RESULTS,
         totalCount = 1,
-        results = listOf<GroupBuyCardDto>()
+        results = emptyList()
     )
 
     private fun storeItem(name: String) = StoreSearchResponse.StoreItem(
