@@ -671,6 +671,7 @@ class PaymentService(
             ParticipationStatus.PAID_WAITING_GOAL -> "참여중 / 달성 전"
             ParticipationStatus.CONFIRMED -> "참여중 / 달성 완료"
             ParticipationStatus.CANCELLED -> "취소"
+            ParticipationStatus.REFUND_PENDING -> "환불 대기"
             ParticipationStatus.REFUNDED -> "환불 완료"
             ParticipationStatus.PENDING -> "결제 대기"
         }
