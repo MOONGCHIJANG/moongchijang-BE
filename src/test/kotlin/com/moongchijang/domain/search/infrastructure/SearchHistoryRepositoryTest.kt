@@ -1,29 +1,39 @@
 package com.moongchijang.domain.search.infrastructure
 
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito
-import org.springframework.data.redis.core.ListOperations
 import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.data.redis.core.script.DefaultRedisScript
+import org.springframework.data.redis.core.script.RedisScript
 
 class SearchHistoryRepositoryTest {
 
     private val redisTemplate: StringRedisTemplate = Mockito.mock(StringRedisTemplate::class.java)
-
-    @Suppress("UNCHECKED_CAST")
-    private val listOperations: ListOperations<String, String> =
-        Mockito.mock(ListOperations::class.java) as ListOperations<String, String>
-
     private val repository = SearchHistoryRepository(redisTemplate)
 
     @Test
-    fun `save removes duplicated keyword before pushing latest keyword`() {
-        Mockito.`when`(redisTemplate.opsForList()).thenReturn(listOperations)
-
+    fun `save updates history with atomic redis script`() {
         repository.save(userId = 1L, query = "소금빵")
 
-        val inOrder = Mockito.inOrder(listOperations)
-        inOrder.verify(listOperations).remove("search:history:1", 0, "소금빵")
-        inOrder.verify(listOperations).leftPush("search:history:1", "소금빵")
-        inOrder.verify(listOperations).trim("search:history:1", 0, 9)
+        @Suppress("UNCHECKED_CAST")
+        Mockito.verify(redisTemplate).execute(
+            anyRedisScript(),
+            eqValue(listOf("search:history:1")),
+            eqValue("소금빵"),
+            eqValue("10"),
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun anyRedisScript(): RedisScript<Long> {
+        any(RedisScript::class.java)
+        return DefaultRedisScript("return 1", Long::class.java) as RedisScript<Long>
+    }
+
+    private fun <T> eqValue(value: T): T {
+        eq(value)
+        return value
     }
 }

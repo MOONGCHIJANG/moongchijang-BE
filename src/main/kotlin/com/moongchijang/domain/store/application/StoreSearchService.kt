@@ -10,6 +10,8 @@ class StoreSearchService(
     private val naverLocalSearchClient: NaverLocalSearchClient
 ) {
     companion object {
+        private const val NAVER_FETCH_DISPLAY = 20
+
         private val BAKERY_CATEGORY_KEYWORDS = listOf(
             "베이커리",
             "제과",
@@ -51,15 +53,15 @@ class StoreSearchService(
     }
 
     fun search(keyword: String, display: Int = 5): StoreSearchResponse {
-        val response = naverLocalSearchClient.search(keyword, display)
-        return StoreSearchResponse.from(response.items.filter { it.isBakeryDomain() })
+        val response = naverLocalSearchClient.search(keyword, display.coerceAtLeast(NAVER_FETCH_DISPLAY))
+        return StoreSearchResponse.from(response.items.filter { it.isBakeryDomain() }.take(display))
     }
 
     private fun NaverLocalSearchItem.isBakeryDomain(): Boolean {
         val normalizedCategory = category.lowercase()
         val normalizedStoreName = storeName().lowercase()
 
-        return BAKERY_CATEGORY_KEYWORDS.any { normalizedCategory.contains(it.lowercase()) } ||
-            BAKERY_STORE_NAME_KEYWORDS.any { normalizedStoreName.contains(it.lowercase()) }
+        return BAKERY_CATEGORY_KEYWORDS.any { normalizedCategory.contains(it) } ||
+            BAKERY_STORE_NAME_KEYWORDS.any { normalizedStoreName.contains(it) }
     }
 }
