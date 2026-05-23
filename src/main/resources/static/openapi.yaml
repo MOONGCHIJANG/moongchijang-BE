@@ -651,6 +651,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseShareMeta'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/v1/search:
     post:
@@ -2612,7 +2614,7 @@ components:
             shareUrl: { type: string }
             title: { type: string }
             description: { type: string }
-            imageUrl: { type: string }
+            imageUrl: { type: string, nullable: true }
             storeName: { type: string }
             deadline: { type: string, format: date-time }
             pickupDate: { type: string, format: date }
