@@ -65,6 +65,16 @@ class MypageControllerTest {
         verify(mypageService).getGroupBuyRequests(1L)
     }
 
+    @Test
+    fun `users me refunds는 마이페이지 환불 목록을 반환한다`() {
+        `when`(mypageService.getRefunds(1L)).thenReturn(emptyList())
+
+        val result = controller.getUserRefunds(principal())
+
+        assertEquals(emptyList<Any>(), result.body?.data)
+        verify(mypageService).getRefunds(1L)
+    }
+
     private fun principal(): CustomUserPrincipal =
         CustomUserPrincipal(
             id = 1L,
