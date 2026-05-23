@@ -329,6 +329,7 @@ class GroupBuyRequestServiceTest {
         verify(groupBuyRequestStatusHistoryRepository).save(captor.capture())
         assertEquals(requestId, captor.value.groupBuyRequestId)
         assertEquals(GroupBuyRequestStatus.IN_CONTACT, captor.value.status)
+        assertNotNull(captor.value.changedAt)
     }
 
     @Test
@@ -434,8 +435,29 @@ class GroupBuyRequestServiceTest {
     }
 
     @Test
-    fun `OPENED 변경 시 공구 id가 존재하지 않으면 GROUPBUY_NOT_FOUND 예외`() {
+    fun `OPENED 변경 시 공구 id가 없으면 GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED 예외`() {
         val requestId = 14L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+
+        val ex = assertThrows<CustomException> {
+            service.updateStatus(
+                requestId,
+                GroupBuyRequestStatusUpdateRequest(targetStatus = GroupBuyRequestStatus.OPENED)
+            )
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED, ex.errorCode)
+        verifyNoInteractions(groupBuyRepository, groupBuyOpenRequestService)
+        verify(groupBuyRequestStatusHistoryRepository, never()).save(any())
+    }
+
+    @Test
+    fun `OPENED 변경 시 공구 id가 존재하지 않으면 GROUPBUY_NOT_FOUND 예외`() {
+        val requestId = 15L
         val openedGroupBuyId = 100L
         val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
@@ -461,7 +483,7 @@ class GroupBuyRequestServiceTest {
 
     @Test
     fun `허용되지 않는 상태 전이는 GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION 예외`() {
-        val requestId = 15L
+        val requestId = 16L
         val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5)).apply { id = requestId }
 

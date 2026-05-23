@@ -14,6 +14,8 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusH
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -115,12 +117,12 @@ class GroupBuyRequestService(
                 groupBuyRequest.openedGroupBuyId = null
             }
             GroupBuyRequestStatus.OPENED -> {
-                openedGroupBuyForNotification = openedGroupBuyId?.let {
-                    groupBuyRepository.findWithStoreById(it)
-                        .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
-                }
+                val openedId = openedGroupBuyId
+                    ?: throw CustomException(ErrorCode.GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED)
+                openedGroupBuyForNotification = groupBuyRepository.findWithStoreById(openedId)
+                    .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
                 groupBuyRequest.rejectionReason = null
-                groupBuyRequest.openedGroupBuyId = openedGroupBuyId
+                groupBuyRequest.openedGroupBuyId = openedId
             }
             GroupBuyRequestStatus.IN_CONTACT -> {
                 groupBuyRequest.rejectionReason = null
@@ -135,10 +137,11 @@ class GroupBuyRequestService(
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
                 groupBuyRequestId = groupBuyRequest.id,
-                status = request.targetStatus
+                status = request.targetStatus,
+                changedAt = LocalDateTime.now()
             )
         )
-        openedGroupBuyForNotification?.let { groupBuyOpenRequestService.notifyOpened(it) }
+        openedGroupBuyForNotification?.let { notifyOpenedAfterCommit(it) }
 
         val history = groupBuyRequestStatusHistoryRepository
             .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
@@ -161,5 +164,20 @@ class GroupBuyRequestService(
         if (!isAllowed) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION)
         }
+    }
+
+    private fun notifyOpenedAfterCommit(groupBuy: GroupBuy) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            groupBuyOpenRequestService.notifyOpened(groupBuy)
+            return
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    groupBuyOpenRequestService.notifyOpened(groupBuy)
+                }
+            }
+        )
     }
 }
