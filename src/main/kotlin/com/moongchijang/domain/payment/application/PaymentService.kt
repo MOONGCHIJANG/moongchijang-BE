@@ -31,6 +31,8 @@ import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
@@ -254,6 +256,37 @@ class PaymentService(
                 )
             } ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         }
+    }
+
+    fun processPendingRefunds(batchSize: Int = PENDING_REFUND_BATCH_SIZE): PendingRefundProcessingResult {
+        val pageable = PageRequest.of(
+            0,
+            batchSize.coerceAtLeast(1),
+            Sort.by(Sort.Order.asc("cancelledAt"), Sort.Order.asc("createdAt"), Sort.Order.asc("id"))
+        )
+        val participations = transactionTemplate().execute {
+            participationRepository.findByStatusOrderByCancelledAtAscCreatedAtAsc(
+                status = ParticipationStatus.REFUND_PENDING,
+                pageable = pageable
+            )
+        } ?: emptyList()
+
+        var successCount = 0
+        var failedCount = 0
+        participations.forEach { participation ->
+            val success = processPendingRefund(participation.id)
+            if (success) {
+                successCount++
+            } else {
+                failedCount++
+            }
+        }
+
+        return PendingRefundProcessingResult(
+            targetCount = participations.size,
+            successCount = successCount,
+            failedCount = failedCount
+        )
     }
 
     private fun approvePayment(
@@ -576,6 +609,80 @@ class PaymentService(
         )
     }
 
+    private fun processPendingRefund(participationId: Long): Boolean {
+        val target = transactionTemplate().execute {
+            findPendingRefundTarget(participationId)
+        } ?: return false
+
+        val paymentResult = try {
+            portOnePaymentPort.cancelPayment(target.pgPaymentId, PENDING_REFUND_CANCEL_REASON)
+        } catch (e: CustomException) {
+            log.warn(
+                "[PaymentService] 환불대기 PG 취소 실패: participationId={}, orderId={}, errorCode={}",
+                target.participationId,
+                target.orderId,
+                e.errorCode
+            )
+            return false
+        }
+        if (paymentResult.status != PORTONE_STATUS_CANCELLED) {
+            log.warn(
+                "[PaymentService] 환불대기 PG 취소 미완료 상태: participationId={}, orderId={}, portOneStatus={}",
+                target.participationId,
+                target.orderId,
+                paymentResult.status
+            )
+            return false
+        }
+
+        return transactionTemplate().execute {
+            applyPendingRefundCompletion(
+                target = target,
+                refundedAt = paymentResult.cancelledAt ?: LocalDateTime.now()
+            )
+            true
+        } ?: false
+    }
+
+    private fun findPendingRefundTarget(participationId: Long): PendingRefundTarget? {
+        val participation = participationRepository.findByIdForUpdate(participationId)
+            .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+        if (participation.status != ParticipationStatus.REFUND_PENDING) {
+            return null
+        }
+
+        val userId = participation.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        val order = paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(userId, participation.groupBuy.id)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+        validateApprovedPaymentOrder(order)
+        val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+
+        return PendingRefundTarget(
+            participationId = participation.id,
+            orderId = order.orderId,
+            pgPaymentId = payment.pgPaymentId,
+        )
+    }
+
+    private fun applyPendingRefundCompletion(target: PendingRefundTarget, refundedAt: LocalDateTime) {
+        val participation = participationRepository.findByIdForUpdate(target.participationId)
+            .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+        if (participation.status != ParticipationStatus.REFUND_PENDING) {
+            return
+        }
+
+        val order = paymentOrderRepository.findByOrderIdForUpdate(target.orderId)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+        val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
+            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+
+        order.cancel(refundedAt)
+        payment.cancel(refundedAt)
+        participation.status = ParticipationStatus.REFUNDED
+        participation.refundedAt = refundedAt
+    }
+
     private fun validateParticipationOwner(participation: Participation, userId: Long) {
         if (participation.user.id != userId) {
             throw CustomException(ErrorCode.FORBIDDEN)
@@ -721,12 +828,26 @@ class PaymentService(
         val pgPaymentId: String,
     )
 
+    private data class PendingRefundTarget(
+        val participationId: Long,
+        val orderId: String,
+        val pgPaymentId: String,
+    )
+
     companion object {
         private const val LOCK_WAIT_MS = 500L
         private const val LOCK_LEASE_MS = 10_000L
+        private const val PENDING_REFUND_BATCH_SIZE = 100
+        private const val PENDING_REFUND_CANCEL_REASON = "MINIMUM_QUANTITY_NOT_MET"
         private const val PORTONE_STATUS_PAID = "PAID"
         private const val PORTONE_STATUS_FAILED = "FAILED"
         private const val PORTONE_STATUS_CANCELLED = "CANCELLED"
         private const val PORTONE_STATUS_PARTIAL_CANCELLED = "PARTIAL_CANCELLED"
     }
 }
+
+data class PendingRefundProcessingResult(
+    val targetCount: Int,
+    val successCount: Int,
+    val failedCount: Int,
+)
