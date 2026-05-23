@@ -157,6 +157,18 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     ): List<Participation>
 
     @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInOrderByCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
     fun findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
         userId: Long,
         statuses: Collection<ParticipationStatus>,
@@ -183,6 +195,8 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     ): Long
 
     fun countByUserIdAndStatus(userId: Long, status: ParticipationStatus): Long
+
+    fun countByUserIdAndStatusIn(userId: Long, statuses: Collection<ParticipationStatus>): Long
 
     fun existsByPickupToken(pickupToken: String): Boolean
 
