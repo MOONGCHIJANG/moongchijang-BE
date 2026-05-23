@@ -14,6 +14,8 @@ import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -147,47 +149,43 @@ class NotificationImmediateDispatchService(
     )
 
     private fun resolveTemplateVariables(triggerType: NotificationTriggerType, targetId: Long): Map<String, String> {
-        val variables = mutableMapOf(
-            "상품명" to "공구 상품",
-            "픽업시간범위" to "00:00 ~ 00:00",
-            "픽업일자" to "0000-00-00",
-            "매장명" to "매장",
-            "매장주소" to "매장 주소",
-            "마감시각" to "00:00",
-            "목표참여개수" to "0",
-            "현재참여개수" to "0",
-            "환불예상시각" to "0000-00-00 00:00",
-        )
+        val variables = mutableMapOf<String, String>()
 
-        val groupBuy = when (triggerType) {
+        when (triggerType) {
             NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
-            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> null
+            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> {
+                val groupBuyRequest = groupBuyRequestRepository.findById(targetId)
+                    .orElseThrow {
+                        CustomException(
+                            ErrorCode.NOTIFICATION_NOT_FOUND,
+                            "알림 템플릿 대상 요청공구를 찾을 수 없습니다. targetId=$targetId, triggerType=$triggerType"
+                        )
+                    }
 
-            else -> groupBuyRepository.findWithStoreById(targetId)?.orElse(null)
-        }
-        val groupBuyRequest = when (triggerType) {
-            NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
-            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> groupBuyRequestRepository.findById(targetId)?.orElse(null)
+                variables["상품명"] = groupBuyRequest.productName
+                variables["목표참여개수"] = groupBuyRequest.desiredQuantity.toString()
+            }
 
-            else -> null
-        }
+            else -> {
+                val groupBuy = groupBuyRepository.findWithStoreById(targetId)
+                    .orElseThrow {
+                        CustomException(
+                            ErrorCode.NOTIFICATION_NOT_FOUND,
+                            "알림 템플릿 대상 공구를 찾을 수 없습니다. targetId=$targetId, triggerType=$triggerType"
+                        )
+                    }
 
-        if (groupBuy != null) {
-            variables["상품명"] = groupBuy.productName
-            variables["픽업시간범위"] =
-                "${groupBuy.pickupTimeStart.format(TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(TIME_FORMATTER)}"
-            variables["픽업일자"] = groupBuy.pickupDate.format(DATE_FORMATTER)
-            variables["매장명"] = groupBuy.store.name
-            variables["매장주소"] = groupBuy.store.address
-            variables["마감시각"] = groupBuy.deadline.format(TIME_FORMATTER)
-            variables["목표참여개수"] = groupBuy.targetQuantity.toString()
-            variables["현재참여개수"] = groupBuy.currentQuantity.toString()
-            variables["환불예상시각"] = estimateRefundDateTime(groupBuy.deadline).format(DATETIME_FORMATTER)
-        }
-
-        if (groupBuyRequest != null) {
-            variables["상품명"] = groupBuyRequest.productName
-            variables["목표참여개수"] = groupBuyRequest.desiredQuantity.toString()
+                variables["상품명"] = groupBuy.productName
+                variables["픽업시간범위"] =
+                    "${groupBuy.pickupTimeStart.format(TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(TIME_FORMATTER)}"
+                variables["픽업일자"] = groupBuy.pickupDate.format(DATE_FORMATTER)
+                variables["매장명"] = groupBuy.store.name
+                variables["매장주소"] = groupBuy.store.address
+                variables["마감시각"] = groupBuy.deadline.format(TIME_FORMATTER)
+                variables["목표참여개수"] = groupBuy.targetQuantity.toString()
+                variables["현재참여개수"] = groupBuy.currentQuantity.toString()
+                variables["환불예상시각"] = estimateRefundDateTime(groupBuy.deadline).format(DATETIME_FORMATTER)
+            }
         }
 
         return variables
