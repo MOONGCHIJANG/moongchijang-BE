@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 
 @ExtendWith(MockitoExtension::class)
 class PickupServiceTest {
@@ -51,7 +52,7 @@ class PickupServiceTest {
 
     @Test
     fun `픽업 안내는 소비자 본인 참여의 매장 상품 픽업 정보를 반환한다`() {
-        val participation = createParticipation(pickupDate = LocalDate.now().plusDays(1))
+        val participation = createParticipation(pickupDate = todayKst().plusDays(1))
         `when`(participationRepository.findPickupDetailById(99L)).thenReturn(participation)
 
         val result = service.getPickupGuide(99L, 1L)
@@ -77,7 +78,7 @@ class PickupServiceTest {
     @Test
     fun `픽업 안내는 매장 좌표가 없어도 주소와 null 좌표를 반환한다`() {
         val participation = createParticipation(
-            pickupDate = LocalDate.now().plusDays(1),
+            pickupDate = todayKst().plusDays(1),
             store = createStore(latitude = null, longitude = null),
         )
         `when`(participationRepository.findPickupDetailById(99L)).thenReturn(participation)
@@ -103,7 +104,7 @@ class PickupServiceTest {
 
     @Test
     fun `픽업일 전 QR 조회는 잠금 상태와 null QR을 반환한다`() {
-        val participation = createParticipation(pickupDate = LocalDate.now().plusDays(1))
+        val participation = createParticipation(pickupDate = todayKst().plusDays(1))
         `when`(participationRepository.findPickupDetailById(99L)).thenReturn(participation)
 
         val result = service.getPickupQr(99L, 1L)
@@ -127,7 +128,7 @@ class PickupServiceTest {
 
     @Test
     fun `픽업일 00시 이후 QR 토큰이 없으면 지연 생성하고 READY로 전환한다`() {
-        val participation = createParticipation(pickupDate = LocalDate.now())
+        val participation = createParticipation(pickupDate = todayKst())
         `when`(participationRepository.findPickupDetailById(99L)).thenReturn(participation)
         `when`(participationRepository.existsByPickupToken(anyString())).thenReturn(false)
 
@@ -143,7 +144,7 @@ class PickupServiceTest {
     @Test
     fun `이미 픽업 완료된 참여는 QR 토큰을 노출하지 않는다`() {
         val participation = createParticipation(
-            pickupDate = LocalDate.now(),
+            pickupDate = todayKst(),
             pickupStatus = PickupStatus.PICKED_UP,
             pickupToken = "used-token",
             pickedUpAt = LocalDateTime.now().minusHours(1),
@@ -159,15 +160,15 @@ class PickupServiceTest {
 
     @Test
     fun `가장 가까운 QR은 당일 픽업 중 가장 이른 참여를 반환하고 다건 여부를 표시한다`() {
-        val laterToday = createParticipation(id = 101L, pickupDate = LocalDate.now(), pickupTimeStart = LocalTime.of(16, 0))
-        val earliestToday = createParticipation(id = 102L, pickupDate = LocalDate.now(), pickupTimeStart = LocalTime.of(10, 0))
-        val future = createParticipation(id = 103L, pickupDate = LocalDate.now().plusDays(1), pickupTimeStart = LocalTime.of(9, 0))
+        val laterToday = createParticipation(id = 101L, pickupDate = todayKst(), pickupTimeStart = LocalTime.of(16, 0))
+        val earliestToday = createParticipation(id = 102L, pickupDate = todayKst(), pickupTimeStart = LocalTime.of(10, 0))
+        val future = createParticipation(id = 103L, pickupDate = todayKst().plusDays(1), pickupTimeStart = LocalTime.of(9, 0))
         `when`(
             participationRepository.findNearestPickupQrCandidates(
                 userId = 1L,
                 status = ParticipationStatus.CONFIRMED,
                 pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
-                fromDate = LocalDate.now(),
+                fromDate = todayKst(),
             )
         ).thenReturn(listOf(earliestToday, laterToday, future))
         `when`(participationRepository.existsByPickupToken(anyString())).thenReturn(false)
@@ -188,13 +189,13 @@ class PickupServiceTest {
 
     @Test
     fun `당일 픽업이 없고 미래 픽업만 있으면 잠금 상태 후보를 반환한다`() {
-        val future = createParticipation(id = 103L, pickupDate = LocalDate.now().plusDays(1))
+        val future = createParticipation(id = 103L, pickupDate = todayKst().plusDays(1))
         `when`(
             participationRepository.findNearestPickupQrCandidates(
                 userId = 1L,
                 status = ParticipationStatus.CONFIRMED,
                 pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
-                fromDate = LocalDate.now(),
+                fromDate = todayKst(),
             )
         ).thenReturn(listOf(future))
 
@@ -212,7 +213,7 @@ class PickupServiceTest {
     @Test
     fun `픽업일이 지난 QR 조회는 음수 D-day를 반환한다`() {
         val participation = createParticipation(
-            pickupDate = LocalDate.now().minusDays(1),
+            pickupDate = todayKst().minusDays(1),
             pickupStatus = PickupStatus.PICKED_UP,
             pickedUpAt = LocalDateTime.now().minusHours(1),
         )
@@ -231,7 +232,7 @@ class PickupServiceTest {
                 userId = 1L,
                 status = ParticipationStatus.CONFIRMED,
                 pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
-                fromDate = LocalDate.now(),
+                fromDate = todayKst(),
             )
         ).thenReturn(emptyList())
 
@@ -246,7 +247,7 @@ class PickupServiceTest {
     @Test
     fun `픽업일 전 QR 검증은 실패한다`() {
         val participation = createParticipation(
-            pickupDate = LocalDate.now().plusDays(1),
+            pickupDate = todayKst().plusDays(1),
             pickupStatus = PickupStatus.READY,
             pickupToken = "qr-token",
         )
@@ -263,7 +264,7 @@ class PickupServiceTest {
     @Test
     fun `QR 검증 처리자를 찾을 수 없으면 실패한다`() {
         val participation = createParticipation(
-            pickupDate = LocalDate.now(),
+            pickupDate = todayKst(),
             pickupStatus = PickupStatus.READY,
             pickupToken = "qr-token",
         )
@@ -281,7 +282,7 @@ class PickupServiceTest {
     fun `QR 검증 성공은 픽업 완료 처리하고 처리자를 저장한다`() {
         val processor = UserFixture.createKakaoUser(id = 7L)
         val participation = createParticipation(
-            pickupDate = LocalDate.now(),
+            pickupDate = todayKst(),
             pickupStatus = PickupStatus.READY,
             pickupToken = "qr-token",
         )
@@ -301,7 +302,7 @@ class PickupServiceTest {
     @Test
     fun `이미 사용된 QR은 재사용을 거부한다`() {
         val participation = createParticipation(
-            pickupDate = LocalDate.now(),
+            pickupDate = todayKst(),
             pickupStatus = PickupStatus.PICKED_UP,
             pickupToken = "qr-token",
             pickedUpAt = LocalDateTime.now().minusMinutes(10),
@@ -319,7 +320,7 @@ class PickupServiceTest {
     private fun createParticipation(
         id: Long = 99L,
         user: User = UserFixture.createKakaoUser(id = 1L),
-        pickupDate: LocalDate = LocalDate.now(),
+        pickupDate: LocalDate = todayKst(),
         pickupTimeStart: LocalTime = LocalTime.of(14, 0),
         pickupStatus: PickupStatus = PickupStatus.NOT_READY,
         pickupToken: String? = null,
@@ -389,4 +390,10 @@ class PickupServiceTest {
             desiredQuantity = 50,
             desiredPickupDate = pickupDate,
         ).apply { id = 30L }
+
+    private fun todayKst(): LocalDate = LocalDate.now(KST_ZONE)
+
+    companion object {
+        private val KST_ZONE: ZoneId = ZoneId.of("Asia/Seoul")
+    }
 }

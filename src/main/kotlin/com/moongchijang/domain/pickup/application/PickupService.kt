@@ -62,7 +62,7 @@ class PickupService(
 
     @Transactional
     fun getNearestPickupQr(userId: Long): NearestPickupQrResponse {
-        val today = LocalDate.now()
+        val today = todayKst()
         val candidates = participationRepository.findNearestPickupQrCandidates(
             userId = userId,
             status = ParticipationStatus.CONFIRMED,
