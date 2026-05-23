@@ -60,6 +60,13 @@ class MypageController(
     ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> =
         ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
 
+    @GetMapping("/users/me/refunds")
+    @Operation(summary = "내 환불 내역 조회 (마이페이지)")
+    fun getUserRefunds(
+        @AuthenticationPrincipal principal: CustomUserPrincipal
+    ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> =
+        ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
+
     @GetMapping("/mypage/participations/active")
     @Operation(summary = "내 참여중 공구 내역 조회")
     fun getActiveParticipations(

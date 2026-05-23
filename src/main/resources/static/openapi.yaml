@@ -637,21 +637,6 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/group-buys/{groupBuyId}/share:
-    get:
-      tags: [GroupBuy]
-      summary: 공유 메타데이터 조회
-      description: SNS 공유용 딥링크 URL 및 카드 메타데이터를 반환한다.
-      parameters:
-        - $ref: '#/components/parameters/GroupBuyId'
-      responses:
-        '200':
-          description: 공유 메타데이터
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseShareMeta'
-
   /api/v1/search:
     post:
       tags: [GroupBuy]
@@ -1095,20 +1080,6 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
-  /api/v1/refunds:
-    get:
-      tags: [Participation]
-      summary: 내 환불 내역 조회
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 환불 내역 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseRefundList'
-
   # ─────────────────────────────────────────────────────────────
   # Pickup & QR
   # ─────────────────────────────────────────────────────────────
@@ -1430,6 +1401,21 @@ paths:
     get:
       tags: [MyPage]
       summary: 내 환불 내역 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 환불 내역 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseRefundList'
+
+  /api/v1/users/me/refunds:
+    get:
+      tags: [MyPage]
+      summary: 내 환불 내역 조회 (마이페이지 alias)
+      description: /api/v1/mypage/refunds 와 동일한 응답을 반환한다. 신규 클라이언트는 본 경로를 사용한다.
       security:
         - bearerAuth: []
       responses:
@@ -2587,26 +2573,6 @@ components:
             $ref: '#/components/schemas/GroupBuyProgressItem'
         error: { nullable: true, example: null }
 
-    ApiResponseShareMeta:
-      type: object
-      required: [success, data, error]
-      properties:
-        success: { type: boolean, example: true }
-        data:
-          type: object
-          required: [shareUrl, title, description, imageUrl, storeName, deadline, pickupDate, pickupTimeStart, pickupTimeEnd]
-          properties:
-            shareUrl: { type: string }
-            title: { type: string }
-            description: { type: string }
-            imageUrl: { type: string }
-            storeName: { type: string }
-            deadline: { type: string, format: date-time }
-            pickupDate: { type: string, format: date }
-            pickupTimeStart: { type: string, format: time, nullable: true }
-            pickupTimeEnd: { type: string, format: time, nullable: true }
-        error: { nullable: true, example: null }
-
     # ── GroupBuyRequest ────────────────────────────────────────
     GroupBuyRequestCreate:
       type: object
@@ -2771,9 +2737,9 @@ components:
           properties:
             participationId: { type: integer, format: int64 }
             orderName: { type: string, description: "포트원 SDK에 전달할 주문명. 예) 두쫀쿠 오리지널 1개" }
-            totalAmount: { type: integer, description: 상품금액 + 수수료(30%) — 포트원 SDK totalAmount에 사용 }
+            totalAmount: { type: integer, description: "상품금액 + 수수료(현재 정책상 0원) — 포트원 SDK totalAmount에 사용" }
             productAmount: { type: integer }
-            feeAmount: { type: integer }
+            feeAmount: { type: integer, description: "현재 정책: 0원" }
         error: { nullable: true, example: null }
 
     PaymentConfirm:
