@@ -72,13 +72,13 @@ class NotificationTemplateRegistry {
         NotificationTemplateType.APPLY_GROUPBUY_ACHIEVED to NotificationTemplate(
             type = NotificationTemplateType.APPLY_GROUPBUY_ACHIEVED,
             titleTemplate = "공구 성공! 픽업 일정 확인하세요.",
-            bodyTemplate = "{상품명} 공구가 달성됐어요.\n마이페이지에서 픽업 정보를 확인해주세요!",
+            bodyTemplate = "{상품명} 공구가 달성됐어요.\n픽업: {픽업일자} {픽업시간범위}\n매장: {매장명}\n주소: {매장주소}",
             deeplinkType = NotificationDeeplinkType.MY_APPLYING,
         ),
         NotificationTemplateType.APPLY_GROUPBUY_FAILED to NotificationTemplate(
             type = NotificationTemplateType.APPLY_GROUPBUY_FAILED,
             titleTemplate = "아쉽게도 공구가 미달성됐어요.",
-            bodyTemplate = "{상품명} 공구가 목표 수량에 미달해 마감됐어요.\n결제 금액은 3~5 영업일 내 환불될 예정이에요.",
+            bodyTemplate = "{상품명} 공구가 목표 수량에 미달해 마감됐어요.\n결제 금액은 {환불예상시각} 환불될 예정이에요.",
             deeplinkType = NotificationDeeplinkType.MY_APPLYING,
         ),
         NotificationTemplateType.REQUEST_OPENED to NotificationTemplate(

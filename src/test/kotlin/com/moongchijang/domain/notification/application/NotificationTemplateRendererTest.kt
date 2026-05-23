@@ -46,4 +46,35 @@ class NotificationTemplateRendererTest {
         assertEquals(ErrorCode.NOTIFICATION_TEMPLATE_VARIABLE_MISSING, exception.errorCode)
         assertTrue(exception.detail!!.contains("목표참여개수"))
     }
+
+    @Test
+    fun `달성 템플릿 렌더링 시 픽업 정보 포함 본문 반환`() {
+        val rendered = renderer.render(
+            templateType = NotificationTemplateType.APPLY_GROUPBUY_ACHIEVED,
+            variables = mapOf(
+                "상품명" to "소금빵",
+                "픽업일자" to "2026-05-30",
+                "픽업시간범위" to "09:00 ~ 12:00",
+                "매장명" to "성수베이커리",
+                "매장주소" to "서울 성동구 성수이로 1"
+            )
+        )
+
+        assertTrue(rendered.body.contains("픽업: 2026-05-30 09:00 ~ 12:00"))
+        assertTrue(rendered.body.contains("매장: 성수베이커리"))
+        assertTrue(rendered.body.contains("주소: 서울 성동구 성수이로 1"))
+    }
+
+    @Test
+    fun `미달성 템플릿 렌더링 시 환불 예상 시각 포함 본문 반환`() {
+        val rendered = renderer.render(
+            templateType = NotificationTemplateType.APPLY_GROUPBUY_FAILED,
+            variables = mapOf(
+                "상품명" to "소금빵",
+                "환불예상시각" to "2026-05-28 10:00"
+            )
+        )
+
+        assertTrue(rendered.body.contains("2026-05-28 10:00"))
+    }
 }
