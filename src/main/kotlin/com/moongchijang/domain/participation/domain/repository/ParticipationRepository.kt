@@ -6,6 +6,7 @@ import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
@@ -142,6 +143,46 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
         @Param("fromDate") fromDate: LocalDate,
     ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusOrderByRefundedAtDescCreatedAtDesc(
+        userId: Long,
+        status: ParticipationStatus
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusOrderByCreatedAtDesc(
+        userId: Long,
+        status: ParticipationStatus
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatuses: Collection<PickupStatus>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInAndPickupStatusOrderByPickedUpAtDescCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatus: PickupStatus
+    ): List<Participation>
+
+    fun countByUserIdAndStatusInAndPickupStatusIn(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatuses: Collection<PickupStatus>
+    ): Long
+
+    fun countByUserIdAndStatusInAndPickupStatus(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatus: PickupStatus
+    ): Long
+
+    fun countByUserIdAndStatus(userId: Long, status: ParticipationStatus): Long
 
     fun existsByPickupToken(pickupToken: String): Boolean
 
