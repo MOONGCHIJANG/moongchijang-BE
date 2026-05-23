@@ -696,6 +696,77 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `환불대기 처리 중 개별 예외가 발생해도 다음 대기 건을 처리한다`() {
+        val firstUser = UserFixture.createKakaoUser(id = 1L)
+        val secondUser = UserFixture.createKakaoUser(id = 2L)
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.FAILED)
+        val firstParticipation = Participation(
+            user = firstUser,
+            groupBuy = groupBuy,
+            quantity = 1,
+            productAmount = 6_000,
+            feeAmount = 0,
+            totalAmount = 6_000,
+            status = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 0),
+        ).apply { id = 90L }
+        val secondOrder = createPaymentOrder(user = secondUser, groupBuy = groupBuy, quantity = 1).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val secondPayment = Payment(
+            paymentOrder = secondOrder,
+            pgPaymentId = "second-portone-payment-id",
+            orderId = secondOrder.orderId,
+            amount = secondOrder.totalAmount,
+            method = "CARD",
+            approvedAt = secondOrder.approvedAt!!,
+        )
+        val secondParticipation = Participation(
+            user = secondUser,
+            groupBuy = groupBuy,
+            quantity = 1,
+            productAmount = 6_000,
+            feeAmount = 0,
+            totalAmount = 6_000,
+            status = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 1),
+        ).apply { id = 91L }
+        val refundedAt = LocalDateTime.of(2026, 5, 18, 11, 0)
+        val pageable = pendingRefundPageable()
+        stubTransaction()
+        `when`(
+            participationRepository.findByStatusOrderByCancelledAtAscCreatedAtAsc(
+                ParticipationStatus.REFUND_PENDING,
+                pageable
+            )
+        ).thenReturn(listOf(firstParticipation, secondParticipation))
+        `when`(participationRepository.findByIdForUpdate(90L)).thenThrow(CustomException(ErrorCode.PARTICIPATION_NOT_FOUND))
+        `when`(participationRepository.findByIdForUpdate(91L)).thenReturn(Optional.of(secondParticipation))
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(2L, 10L)).thenReturn(secondOrder)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate(secondOrder.orderId)).thenReturn(secondOrder)
+        `when`(paymentRepository.findByPaymentOrderOrderId(secondOrder.orderId)).thenReturn(secondPayment)
+        `when`(portOnePaymentPort.cancelPayment("second-portone-payment-id", "MINIMUM_QUANTITY_NOT_MET"))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "second-portone-payment-id",
+                    status = "CANCELLED",
+                    totalAmount = 6_000,
+                    method = "CARD",
+                    paidAt = secondOrder.approvedAt,
+                    cancelledAt = refundedAt,
+                )
+            )
+
+        val result = service.processPendingRefunds()
+
+        assertEquals(2, result.targetCount)
+        assertEquals(1, result.successCount)
+        assertEquals(1, result.failedCount)
+        assertEquals(ParticipationStatus.REFUNDED, secondParticipation.status)
+        assertEquals(refundedAt, secondParticipation.refundedAt)
+    }
+
+    @Test
     fun `확정된 참여는 취소할 수 없다`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy()

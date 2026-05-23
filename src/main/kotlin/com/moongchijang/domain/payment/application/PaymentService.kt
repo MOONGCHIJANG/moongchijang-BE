@@ -274,10 +274,15 @@ class PaymentService(
         var successCount = 0
         var failedCount = 0
         participations.forEach { participation ->
-            val success = processPendingRefund(participation.id)
-            if (success) {
-                successCount++
-            } else {
+            try {
+                val success = processPendingRefund(participation.id)
+                if (success) {
+                    successCount++
+                } else {
+                    failedCount++
+                }
+            } catch (e: Exception) {
+                log.error("[PaymentService] 환불대기 처리 중 예외 발생: participationId={}", participation.id, e)
                 failedCount++
             }
         }
