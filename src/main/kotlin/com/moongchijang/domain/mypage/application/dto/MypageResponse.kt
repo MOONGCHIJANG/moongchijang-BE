@@ -99,7 +99,9 @@ data class MypageParticipationResponse(
                 paymentAmount = participation.totalAmount,
                 quantity = participation.quantity,
                 pickupStatus = participation.pickupStatus.name,
-                dDay = ChronoUnit.DAYS.between(LocalDate.now(), groupBuy.deadline.toLocalDate()).toInt(),
+                dDay = ChronoUnit.DAYS.between(LocalDate.now(), groupBuy.deadline.toLocalDate())
+                    .toInt()
+                    .coerceAtLeast(0),
                 canCancel = participation.status == ParticipationStatus.PAID_WAITING_GOAL &&
                     groupBuy.id in approvedPaymentGroupBuyIds,
                 canViewPickup = canViewPickupOrQr,
@@ -121,12 +123,10 @@ data class MypageParticipationResponse(
 
         private fun displayStatus(status: ParticipationStatus, pickupStatus: PickupStatus): String =
             when {
-                pickupStatus == PickupStatus.PICKED_UP -> "픽업 완료"
-                status == ParticipationStatus.PAID_WAITING_GOAL -> "참여중 / 달성 전"
-                status == ParticipationStatus.CONFIRMED -> "참여중 / 달성 완료"
-                status == ParticipationStatus.CANCELLED -> "취소"
-                status == ParticipationStatus.REFUNDED -> "환불 완료"
-                status == ParticipationStatus.PENDING -> "결제 대기"
+                pickupStatus == PickupStatus.PICKED_UP -> "PICKED_UP"
+                status == ParticipationStatus.PAID_WAITING_GOAL -> "PAID_WAITING_GOAL"
+                status == ParticipationStatus.CONFIRMED -> "CONFIRMED"
+                status == ParticipationStatus.REFUNDED -> "REFUNDED"
                 else -> status.name
             }
 

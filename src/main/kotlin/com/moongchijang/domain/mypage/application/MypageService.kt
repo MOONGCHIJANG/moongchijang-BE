@@ -57,13 +57,15 @@ class MypageService(
         }
 
     fun getActiveParticipations(userId: Long): List<MypageParticipationResponse> {
+        val participations = participationRepository.findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
+            userId = userId,
+            statuses = ACTIVE_PARTICIPATION_STATUSES,
+            pickupStatuses = ACTIVE_PICKUP_STATUSES
+        )
+        if (participations.isEmpty()) return emptyList()
+
         val cancellableGroupBuyIds = approvedPaymentGroupBuyIds(userId)
-        return participationRepository.findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
-                userId = userId,
-                statuses = ACTIVE_PARTICIPATION_STATUSES,
-                pickupStatuses = ACTIVE_PICKUP_STATUSES
-            )
-            .map { MypageParticipationResponse.from(it, cancellableGroupBuyIds) }
+        return participations.map { MypageParticipationResponse.from(it, cancellableGroupBuyIds) }
     }
 
     fun getCompletedParticipations(userId: Long): List<MypageParticipationResponse> =

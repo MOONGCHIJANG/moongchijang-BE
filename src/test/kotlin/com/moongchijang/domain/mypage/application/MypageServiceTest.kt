@@ -22,13 +22,13 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 
 @ExtendWith(MockitoExtension::class)
 class MypageServiceTest {
@@ -137,7 +137,7 @@ class MypageServiceTest {
         assertEquals(ParticipationStatus.PAID_WAITING_GOAL.name, result[0].participationStatus)
         assertEquals(60, result[0].achievementRate)
         assertEquals("BEFORE_ACHIEVED", result[0].achievementStatus)
-        assertEquals("참여중 / 달성 전", result[0].displayStatus)
+        assertEquals("PAID_WAITING_GOAL", result[0].displayStatus)
         assertEquals("문치 베이커리", result[0].storeName)
         assertEquals(LocalDate.of(2026, 5, 25), result[0].pickupDate)
         assertEquals(LocalTime.of(13, 0), result[0].pickupTimeStart)
@@ -146,14 +146,31 @@ class MypageServiceTest {
         assertEquals(24_000, result[0].paymentAmount)
         assertEquals(2, result[0].quantity)
         assertEquals(PickupStatus.NOT_READY.name, result[0].pickupStatus)
-        assertEquals(
-            ChronoUnit.DAYS.between(LocalDate.now(), participation.groupBuy.deadline.toLocalDate()).toInt(),
-            result[0].dDay
-        )
+        assertEquals(1, result[0].dDay)
         assertEquals(true, result[0].canCancel)
         assertEquals(false, result[0].canViewPickup)
         assertEquals(false, result[0].canViewQr)
         assertEquals("UNAVAILABLE", result[0].qrAvailability)
+    }
+
+    @Test
+    fun `active participations가 비어 있으면 결제 주문을 조회하지 않는다`() {
+        val userId = 1L
+        `when`(
+            participationRepository.findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
+                userId,
+                listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(emptyList())
+
+        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.ACTIVE)
+
+        assertEquals(emptyList<Any>(), result)
+        verify(paymentOrderRepository, never()).findGroupBuyIdsByUserIdAndStatus(
+            userId,
+            PaymentOrderStatus.APPROVED
+        )
     }
 
     @Test
@@ -183,7 +200,7 @@ class MypageServiceTest {
         assertEquals(ParticipationStatus.CONFIRMED.name, result[0].participationStatus)
         assertEquals(0, result[0].achievementRate)
         assertEquals("ACHIEVED", result[0].achievementStatus)
-        assertEquals("픽업 완료", result[0].displayStatus)
+        assertEquals("PICKED_UP", result[0].displayStatus)
         assertEquals("문치 베이커리", result[0].storeName)
         assertEquals(LocalDate.of(2026, 5, 25), result[0].pickupDate)
         assertEquals(LocalTime.of(13, 0), result[0].pickupTimeStart)
@@ -273,7 +290,7 @@ class MypageServiceTest {
             targetQuantity = 10,
             maxQuantity = 20,
             status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.IN_PROGRESS,
-            deadline = LocalDateTime.of(2026, 5, 24, 23, 59),
+            deadline = LocalDate.now().plusDays(1).atTime(23, 59),
             pickupDate = LocalDate.of(2026, 5, 25),
             pickupTimeStart = LocalTime.of(13, 0),
             pickupTimeEnd = LocalTime.of(15, 0),

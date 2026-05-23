@@ -3144,7 +3144,7 @@ components:
               achievementStatus:
                 type: string
                 enum: [BEFORE_ACHIEVED, ACHIEVED]
-              displayStatus: { type: string, example: "참여중 / 달성 완료" }
+              displayStatus: { type: string, example: CONFIRMED }
               storeName: { type: string }
               pickupDate: { type: string, format: date }
               pickupTimeStart: { type: string, format: time }
