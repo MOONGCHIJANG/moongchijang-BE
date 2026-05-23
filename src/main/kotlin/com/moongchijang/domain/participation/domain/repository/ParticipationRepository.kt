@@ -22,6 +22,18 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.id = :participationId
+        """
+    )
+    fun findPickupDetailById(@Param("participationId") participationId: Long): Participation?
+
+    @Query(
+        """
         SELECT DISTINCT p.user.id
         FROM Participation p
         WHERE p.groupBuy.id = :groupBuyId
@@ -109,6 +121,42 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
         pageable: Pageable
     ): Page<Participation>
+
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.user.id = :userId
+          and p.status = :status
+          and p.pickupStatus in :pickupStatuses
+          and gb.pickupDate >= :fromDate
+        order by gb.pickupDate asc, gb.pickupTimeStart asc, p.id asc
+        """
+    )
+    fun findNearestPickupQrCandidates(
+        @Param("userId") userId: Long,
+        @Param("status") status: ParticipationStatus,
+        @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
+        @Param("fromDate") fromDate: LocalDate,
+    ): List<Participation>
+
+    fun existsByPickupToken(pickupToken: String): Boolean
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.pickupToken = :pickupToken
+        """
+    )
+    fun findByPickupTokenForUpdate(@Param("pickupToken") pickupToken: String): Participation?
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participation p join fetch p.groupBuy where p.id = :id")
