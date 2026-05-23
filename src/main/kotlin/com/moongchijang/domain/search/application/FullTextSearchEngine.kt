@@ -27,11 +27,12 @@ class FullTextSearchEngine(
         if (booleanQuery.isEmpty()) {
             return emptyResponse()
         }
+        val now = LocalDateTime.now()
 
         val ids = groupBuyRepository.searchIdsByFullText(
             query = booleanQuery,
             status = GroupBuyStatus.IN_PROGRESS.name,
-            now = LocalDateTime.now(),
+            now = now,
             limit = DEFAULT_LIMIT,
         )
         if (ids.isEmpty()) {
@@ -49,7 +50,7 @@ class FullTextSearchEngine(
             confidence = 0.0,
             uiState = SearchUiState.RESULTS,
             totalCount = matches.size,
-            results = matches.map { GroupBuyFeedItemResponse.from(it) },
+            results = matches.map { GroupBuyFeedItemResponse.from(it, now) },
         )
     }
 
