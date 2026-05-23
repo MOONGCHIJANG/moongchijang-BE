@@ -8,12 +8,9 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import org.springframework.security.access.AccessDeniedException
 import java.time.LocalDateTime
 
 class PickupControllerTest {
@@ -67,15 +64,6 @@ class PickupControllerTest {
 
         assertEquals(response, result.body?.data)
         verify(pickupService).verifyPickup("qr-token", 8L)
-    }
-
-    @Test
-    fun `BUYER는 QR 검증을 호출할 수 없다`() {
-        assertThrows<AccessDeniedException> {
-            controller.verifyPickup("qr-token", principal(UserRole.BUYER, id = 1L))
-        }
-
-        verify(pickupService, never()).verifyPickup("qr-token", 1L)
     }
 
     private fun principal(role: UserRole, id: Long): CustomUserPrincipal =

@@ -39,7 +39,6 @@ class PickupService(
             storeName = store.name,
             storeAddress = store.address,
             storePhone = store.phoneNumber,
-            storePhoneNumber = store.phoneNumber,
             latitude = store.latitude,
             longitude = store.longitude,
             transitInfo = null,
@@ -129,10 +128,9 @@ class PickupService(
         }
 
         val processedBy = userRepository.findByIdAndDeletedAtIsNull(processedByUserId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
         val pickedUpAt = LocalDateTime.now()
-        participation.pickupStatus = PickupStatus.PICKED_UP
-        participation.pickedUpAt = pickedUpAt
-        participation.pickupProcessedBy = processedBy
+        participation.markPickedUp(processedBy, pickedUpAt)
 
         return PickupVerifyResponse(
             participationId = participation.id,

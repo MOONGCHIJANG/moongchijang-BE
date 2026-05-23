@@ -2856,7 +2856,6 @@ components:
             storeName: { type: string }
             storeAddress: { type: string }
             storePhone: { type: string, nullable: true }
-            storePhoneNumber: { type: string, nullable: true }
             latitude: { type: number, format: double, nullable: true }
             longitude: { type: number, format: double, nullable: true }
             transitInfo: { type: string, nullable: true, description: "대중교통 안내. 현재 저장 원천이 없으면 null" }

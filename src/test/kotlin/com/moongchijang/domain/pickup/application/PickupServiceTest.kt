@@ -62,7 +62,6 @@ class PickupServiceTest {
         assertEquals("뭉치장 베이커리", result.storeName)
         assertEquals("서울 성동구 성수동", result.storeAddress)
         assertEquals("02-1234-5678", result.storePhone)
-        assertEquals("02-1234-5678", result.storePhoneNumber)
         assertEquals(37.54, result.latitude)
         assertEquals(127.05, result.longitude)
         assertNull(result.transitInfo)
@@ -236,6 +235,23 @@ class PickupServiceTest {
 
         assertEquals(ErrorCode.PICKUP_LOCKED, ex.errorCode)
         verify(userRepository, never()).findByIdAndDeletedAtIsNull(7L)
+    }
+
+    @Test
+    fun `QR 검증 처리자를 찾을 수 없으면 실패한다`() {
+        val participation = createParticipation(
+            pickupDate = LocalDate.now(),
+            pickupStatus = PickupStatus.READY,
+            pickupToken = "qr-token",
+        )
+        `when`(participationRepository.findByPickupTokenForUpdate("qr-token")).thenReturn(participation)
+        `when`(userRepository.findByIdAndDeletedAtIsNull(7L)).thenReturn(null)
+
+        val ex = assertThrows<CustomException> {
+            service.verifyPickup("qr-token", 7L)
+        }
+
+        assertEquals(ErrorCode.USER_NOT_FOUND, ex.errorCode)
     }
 
     @Test

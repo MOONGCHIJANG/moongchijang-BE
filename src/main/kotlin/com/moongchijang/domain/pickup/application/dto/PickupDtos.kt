@@ -18,7 +18,6 @@ data class PickupGuideResponse(
     val storeName: String,
     val storeAddress: String,
     val storePhone: String?,
-    val storePhoneNumber: String?,
     val latitude: Double?,
     val longitude: Double?,
     val transitInfo: String?,
