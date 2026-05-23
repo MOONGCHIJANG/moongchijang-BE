@@ -43,7 +43,11 @@ class MypageService(
 
     fun getRefunds(userId: Long): List<MypageRefundResponse> =
         participationRepository
-            .findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(userId, REFUND_PARTICIPATION_STATUSES)
+            .findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
+                userId = userId,
+                statuses = REFUND_PARTICIPATION_STATUSES,
+                refundPendingStatus = ParticipationStatus.REFUND_PENDING
+            )
             .map(MypageRefundResponse::from)
 
     fun getParticipations(

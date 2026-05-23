@@ -53,7 +53,8 @@ data class MypageRefundResponse(
         private fun refundStatus(participation: Participation): String =
             when (participation.status) {
                 ParticipationStatus.REFUND_PENDING -> "PENDING"
-                else -> "COMPLETED"
+                ParticipationStatus.REFUNDED -> "COMPLETED"
+                else -> throw IllegalArgumentException("Unsupported refund participation status: ${participation.status}")
             }
     }
 }

@@ -99,7 +99,8 @@ class MypageServiceTest {
         `when`(
             participationRepository.findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
                 userId,
-                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                ParticipationStatus.REFUND_PENDING
             )
         ).thenReturn(listOf(pending, completed))
 

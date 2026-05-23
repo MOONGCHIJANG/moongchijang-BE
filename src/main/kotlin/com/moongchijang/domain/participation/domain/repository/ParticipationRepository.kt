@@ -156,10 +156,24 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         status: ParticipationStatus
     ): List<Participation>
 
-    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.user.id = :userId
+          and p.status in :statuses
+        order by
+          case when p.status = :refundPendingStatus then 0 else 1 end,
+          p.refundedAt desc,
+          p.createdAt desc
+        """
+    )
     fun findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
-        userId: Long,
-        statuses: Collection<ParticipationStatus>
+        @Param("userId") userId: Long,
+        @Param("statuses") statuses: Collection<ParticipationStatus>,
+        @Param("refundPendingStatus") refundPendingStatus: ParticipationStatus = ParticipationStatus.REFUND_PENDING
     ): List<Participation>
 
     @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
