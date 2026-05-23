@@ -121,8 +121,7 @@ class GroupBuyService(
 
         val response = ShareMetaResponse.from(
             groupBuy = groupBuy,
-            shareUrl = buildShareUrl(groupBuy.id),
-            description = groupBuy.productDescription
+            shareUrl = buildShareUrl(groupBuy.id)
         )
 
         log.info("[GroupBuyService] 공구 공유 메타데이터 조회 완료: groupBuyId={}", groupBuyId)
