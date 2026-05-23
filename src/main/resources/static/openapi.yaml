@@ -854,13 +854,25 @@ paths:
   /api/v1/group-buy-open-requests/store-recommendations:
     post:
       tags: [GroupBuyRequest]
-      summary: AI 매장 추천 바텀시트용 매장 후보 조회
+      summary: 매장 추천 바텀시트용 네이버 Local Search 매장 후보 조회
       description: |
-        동네와 상품 조건이 확정된 뒤 네이버 Local Search API와 자사 공구 이력을 기반으로
-        최대 10개의 매장 후보를 추천한다.
+        1.1.4-9 매장 추천 바텀시트용 API.
+
+        Case 1~4의 바텀시트에서 동네·상품 조건이 모두 확정된 후 CTA 버튼을 탭하면,
+        백엔드는 네이버 Local Search API를 조회하여 해당 조건에 맞는 매장 후보를 검색한다.
+
+        매장 후보는 최대 10개까지 반환하며, 추천 매장 후보는 다음 기준을 반영해 정렬한다.
+
+        - 네이버 Local Search API의 기본 관련도 순서
+        - 매장 주소가 선택한 동네와 일치하거나 포함되는지 여부
+        - 매장 카테고리가 상품 조건과 관련 있는지 여부
+        - 자사 DB에 등록된 매장인지 여부
+        - 해당 매장의 과거 공구 이력이 있는지 여부
 
         네이버 결과가 0건이거나 네이버 API 호출 실패/timeout이 발생하면 `stores=[]`를 반환하며,
         프론트는 기존 공구 개설 요청 플로우로 fallback한다.
+
+        중복 매장은 하나로 합쳐 반환하고, 매장명에 포함된 HTML 태그는 제거해서 반환한다.
       security:
         - bearerAuth: []
       requestBody:
