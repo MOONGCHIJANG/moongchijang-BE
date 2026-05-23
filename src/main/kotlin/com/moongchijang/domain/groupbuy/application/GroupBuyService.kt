@@ -8,6 +8,7 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressItem
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressResponse
+import com.moongchijang.domain.groupbuy.application.dto.ShareMetaResponse
 import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
@@ -109,6 +110,23 @@ class GroupBuyService(
         )
     }
 
+    @Transactional(readOnly = true)
+    fun getShareMeta(groupBuyId: Long): ShareMetaResponse {
+        log.info("[GroupBuyService] 공구 공유 메타데이터 조회 시작: groupBuyId={}", groupBuyId)
+
+        val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+
+        val response = ShareMetaResponse.from(
+            groupBuy = groupBuy,
+            shareUrl = buildShareUrl(groupBuy.id),
+            description = groupBuy.productDescription
+        )
+
+        log.info("[GroupBuyService] 공구 공유 메타데이터 조회 완료: groupBuyId={}", groupBuyId)
+        return response
+    }
+
     @Transactional(readOnly = true, timeout = 3)
     fun getProgress(groupBuyId: Long): GroupBuyProgressResponse {
         log.debug("[GroupBuyService] 공구 progress 단건 조회 시작: groupBuyId={}", groupBuyId)
@@ -174,5 +192,9 @@ class GroupBuyService(
                 listOf(district)
             }
         }.toSet()
+    }
+
+    private fun buildShareUrl(groupBuyId: Long): String {
+        return "/group-buys/$groupBuyId"
     }
 }
