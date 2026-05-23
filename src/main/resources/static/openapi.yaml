@@ -1112,11 +1112,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseQrCode'
 
+  /api/v1/pickups/me/nearest-qr:
+    get:
+      tags: [Pickup]
+      summary: 피드용 가장 가까운 픽업 QR 조회
+      description: |
+        피드 진입 시 사용자의 가장 가까운 픽업 QR 후보를 조회한다.
+        당일 픽업 예정 건이 있으면 픽업 시작 시간이 가장 빠른 건을 반환하고,
+        당일 건이 여러 개면 hasMultipleToday=true로 내려준다.
+        당일 픽업 건이 없고 향후 픽업 예정 건만 있으면 LOCKED 상태와 qrCode=null로 반환한다.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 가장 가까운 픽업 QR 후보
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseNearestPickupQr'
+
   /api/v1/pickups/{qrCode}/verify:
     post:
       tags: [Pickup]
       summary: QR 코드 스캔 검증 및 수령 처리
-      description: 소비자 QR을 매장(사장님)이 스캔하면 대기 → 완료로 자동 전환된다.
+      description: ADMIN 또는 SELLER 권한 사용자가 소비자 QR을 스캔하면 대기 → 완료로 자동 전환된다.
       security:
         - bearerAuth: []
       parameters:
@@ -2825,21 +2844,30 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [participationId, storeName, storePhone, storeAddress, latitude, longitude, transitInfo, pickupDate, pickupTimeStart, pickupTimeEnd, productName, quantity, remainingMinutes]
+          required: [participationId, availabilityStatus, pickupStatus, storeName, storeAddress, productName, quantity, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation]
           properties:
             participationId: { type: integer, format: int64 }
+            availabilityStatus:
+              type: string
+              enum: [LOCKED, AVAILABLE, PICKED_UP]
+            pickupStatus:
+              type: string
+              enum: [NOT_READY, READY, PICKED_UP, NO_SHOW]
             storeName: { type: string }
-            storePhone: { type: string }
             storeAddress: { type: string }
+            storePhone: { type: string, nullable: true }
+            storePhoneNumber: { type: string, nullable: true }
             latitude: { type: number, format: double, nullable: true }
             longitude: { type: number, format: double, nullable: true }
-            transitInfo: { type: string, nullable: true, description: "대중교통 안내 텍스트. 예) 2호선 성수역 3번 출구에서 도보 5분" }
+            transitInfo: { type: string, nullable: true, description: "대중교통 안내. 현재 저장 원천이 없으면 null" }
+            productName: { type: string }
+            quantity: { type: integer }
             pickupDate: { type: string, format: date }
             pickupTimeStart: { type: string, format: time }
             pickupTimeEnd: { type: string, format: time }
-            productName: { type: string }
-            quantity: { type: integer }
-            remainingMinutes: { type: integer, nullable: true, description: 픽업 종료까지 남은 분 (당일만) }
+            pickupLocation: { type: string }
+            remainingMinutes: { type: integer, format: int64, nullable: true, description: "당일 픽업 종료까지 남은 분. 당일이 아니면 null" }
+            pickedUpAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
     ApiResponseQrCode:
@@ -2849,17 +2877,73 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [qrCode, nickname, productName, quantity, isUsed, storeName, pickupDate, pickupTimeStart, pickupTimeEnd]
+          required: [participationId, availabilityStatus, pickupStatus, productName, quantity, storeName, pickupLocation, pickupDate, pickupTimeStart, pickupTimeEnd]
           properties:
-            qrCode: { type: string, format: uuid }
-            nickname: { type: string }
+            participationId: { type: integer, format: int64 }
+            availabilityStatus:
+              type: string
+              enum: [LOCKED, AVAILABLE, PICKED_UP]
+            pickupStatus:
+              type: string
+              enum: [NOT_READY, READY, PICKED_UP, NO_SHOW]
+            userName: { type: string, nullable: true, description: "참여자 닉네임" }
             productName: { type: string }
-            quantity: { type: integer }
-            isUsed: { type: boolean }
+            quantity: { type: integer, format: int32 }
             storeName: { type: string }
+            pickupLocation: { type: string }
+            qrCode: { type: string, format: uuid, nullable: true }
             pickupDate: { type: string, format: date }
             pickupTimeStart: { type: string, format: time, description: "픽업 시작 시각. 예) 13:00" }
             pickupTimeEnd: { type: string, format: time, description: "픽업 종료 시각. 예) 17:00" }
+            pickedUpAt: { type: string, format: date-time, nullable: true }
+        error: { nullable: true, example: null }
+
+    ApiResponseNearestPickupQr:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [hasCandidate, hasMultipleToday, item]
+          properties:
+            hasCandidate:
+              type: boolean
+              description: 표시 가능한 픽업 후보가 있으면 true
+              example: true
+            hasMultipleToday:
+              type: boolean
+              description: 당일 픽업 예정 건이 2개 이상이면 true
+              example: false
+            reason:
+              type: string
+              nullable: true
+              enum: [NO_AVAILABLE_PICKUP, ONLY_FUTURE_PICKUP]
+              description: 후보가 없거나 QR이 잠긴 사유
+              example: null
+            item:
+              type: object
+              nullable: true
+              required: [participationId, availabilityStatus, pickupStatus, productName, quantity, storeName, pickupLocation, pickupDate, pickupTimeStart, pickupTimeEnd]
+              properties:
+                participationId: { type: integer, format: int64 }
+                availabilityStatus:
+                  type: string
+                  enum: [LOCKED, AVAILABLE, PICKED_UP]
+                  description: 당일 00시 이후 QR 사용 가능 시 AVAILABLE
+                pickupStatus:
+                  type: string
+                  enum: [NOT_READY, READY, PICKED_UP, NO_SHOW]
+                userName: { type: string, nullable: true, description: "참여자 닉네임" }
+                productName: { type: string }
+                quantity: { type: integer, format: int32 }
+                storeName: { type: string }
+                pickupLocation: { type: string }
+                qrCode: { type: string, format: uuid, nullable: true, description: "LOCKED 상태에서는 null" }
+                pickupDate: { type: string, format: date }
+                pickupTimeStart: { type: string, format: time, description: "픽업 시작 시각. 예) 13:00" }
+                pickupTimeEnd: { type: string, format: time, description: "픽업 종료 시각. 예) 17:00" }
+                pickedUpAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
     ApiResponsePickupVerify:
@@ -2869,18 +2953,14 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [participationId, userName, productName, quantity, pickupDate, pickupTimeStart, pickupTimeEnd, pickupStatus]
+          required: [participationId, pickupStatus, pickedUpAt]
           properties:
             participationId: { type: integer, format: int64 }
-            userName: { type: string }
-            productName: { type: string }
-            quantity: { type: integer }
-            pickupDate: { type: string, format: date }
-            pickupTimeStart: { type: string, format: time }
-            pickupTimeEnd: { type: string, format: time }
             pickupStatus:
               type: string
-              enum: [WAITING, COMPLETED]
+              enum: [NOT_READY, READY, PICKED_UP, NO_SHOW]
+            pickedUpAt: { type: string, format: date-time }
+            pickupProcessedByUserId: { type: integer, format: int64, nullable: true }
         error: { nullable: true, example: null }
 
     # ── Notification ───────────────────────────────────────────
