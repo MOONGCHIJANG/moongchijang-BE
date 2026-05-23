@@ -3731,7 +3731,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [searchCase, uiState, totalCount, results]
+          required: [searchCase, confidence, uiState, totalCount, results]
           properties:
             searchCase:
               type: string
@@ -3801,6 +3801,7 @@ components:
 
     ApiResponseRecentSearchList:
       type: object
+      required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
