@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDate
@@ -41,6 +42,23 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         """
     )
     fun findDistinctUserIdsByGroupBuyId(@Param("groupBuyId") groupBuyId: Long): List<Long>
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        update Participation p
+        set p.status = :newStatus,
+            p.cancelledAt = :cancelledAt
+        where p.groupBuy.id = :groupBuyId
+          and p.status = :oldStatus
+        """
+    )
+    fun updateStatusByGroupBuyIdAndStatus(
+        @Param("groupBuyId") groupBuyId: Long,
+        @Param("oldStatus") oldStatus: ParticipationStatus,
+        @Param("newStatus") newStatus: ParticipationStatus,
+        @Param("cancelledAt") cancelledAt: LocalDateTime
+    ): Int
 
     @Query(
         """
@@ -180,6 +198,12 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     fun findByUserIdAndStatusInOrderByCreatedAtDesc(
         userId: Long,
         statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["user", "groupBuy", "groupBuy.store"])
+    fun findByStatusOrderByCancelledAtAscCreatedAtAsc(
+        status: ParticipationStatus,
+        pageable: Pageable
     ): List<Participation>
 
     @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
