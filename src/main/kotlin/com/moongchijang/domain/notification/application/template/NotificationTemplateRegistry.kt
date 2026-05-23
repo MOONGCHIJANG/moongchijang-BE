@@ -2,6 +2,8 @@ package com.moongchijang.domain.notification.application.template
 
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import org.springframework.stereotype.Component
 
 @Component
@@ -113,13 +115,22 @@ class NotificationTemplateRegistry {
 
     fun getTemplateByTriggerType(triggerType: NotificationTriggerType): NotificationTemplate {
         val templateType = triggerTypeToTemplateType[triggerType]
-            ?: throw IllegalArgumentException("지원하지 않는 알림 트리거입니다: $triggerType")
+            ?: throw CustomException(
+                ErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND,
+                "notification template trigger mapping not found: triggerType=$triggerType"
+            )
         return templates[templateType]
-            ?: throw IllegalArgumentException("등록되지 않은 알림 템플릿입니다: $templateType")
+            ?: throw CustomException(
+                ErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND,
+                "notification template not registered: templateType=$templateType"
+            )
     }
 
     fun getTemplateByType(templateType: NotificationTemplateType): NotificationTemplate {
         return templates[templateType]
-            ?: throw IllegalArgumentException("등록되지 않은 알림 템플릿입니다: $templateType")
+            ?: throw CustomException(
+                ErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND,
+                "notification template not registered: templateType=$templateType"
+            )
     }
 }

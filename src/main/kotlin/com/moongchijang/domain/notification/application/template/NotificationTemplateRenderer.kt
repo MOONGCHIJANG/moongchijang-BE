@@ -1,5 +1,7 @@
 package com.moongchijang.domain.notification.application.template
 
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import org.springframework.stereotype.Component
 
 @Component
@@ -19,7 +21,10 @@ class NotificationTemplateRenderer(
         val placeholders = PLACEHOLDER_PATTERN.findAll(templateText).map { it.groupValues[1] }.toSet()
         val missing = placeholders.filterNot { variables[it]?.isNotBlank() == true }
         if (missing.isNotEmpty()) {
-            throw IllegalArgumentException("알림 템플릿 변수 누락: ${missing.joinToString(",")}")
+            throw CustomException(
+                ErrorCode.NOTIFICATION_TEMPLATE_VARIABLE_MISSING,
+                "missing notification template variables: ${missing.joinToString(",")}"
+            )
         }
 
         var rendered = templateText

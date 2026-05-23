@@ -126,4 +126,6 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     // Notification(360~369)
     NOTIFICATION_NOT_FOUND(404_360, "알림을 찾을 수 없습니다.", 404),
     NOTIFICATION_FORBIDDEN(403_360, "본인 알림만 처리할 수 있습니다.", 403),
+    NOTIFICATION_TEMPLATE_NOT_FOUND(404_361, "알림 템플릿을 찾을 수 없습니다.", 404),
+    NOTIFICATION_TEMPLATE_VARIABLE_MISSING(400_361, "알림 템플릿 변수 값이 누락되었습니다.", 400),
 }

@@ -4,6 +4,8 @@ import com.moongchijang.domain.notification.application.template.NotificationTem
 import com.moongchijang.domain.notification.application.template.NotificationTemplateRegistry
 import com.moongchijang.domain.notification.application.template.NotificationTemplateType
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -31,7 +33,7 @@ class NotificationTemplateRendererTest {
 
     @Test
     fun `필수 템플릿 변수가 누락될 때 예외 발생`() {
-        val exception = assertThrows<IllegalArgumentException> {
+        val exception = assertThrows<CustomException> {
             renderer.render(
                 templateType = NotificationTemplateType.REQUEST_NEW_PARTICIPANT,
                 variables = mapOf(
@@ -41,6 +43,7 @@ class NotificationTemplateRendererTest {
             )
         }
 
-        assertTrue(exception.message!!.contains("목표참여개수"))
+        assertEquals(ErrorCode.NOTIFICATION_TEMPLATE_VARIABLE_MISSING, exception.errorCode)
+        assertTrue(exception.detail!!.contains("목표참여개수"))
     }
 }
