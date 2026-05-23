@@ -46,11 +46,5 @@ data class GroupBuyRequestCreateRequest(
     val desiredPickupDate: LocalDate,
 
     @Size(max = 500, message = "추가 요청사항은 500자 이하이어야 합니다")
-    val additionalNote: String? = null,
-
-    @Size(max = 20, message = "연락처는 20자 이하이어야 합니다")
-    val contactPhone: String? = null,
-
-    @Size(max = 50, message = "인스타그램 계정은 50자 이하이어야 합니다")
-    val contactInstagram: String? = null
+    val additionalNote: String? = null
 )

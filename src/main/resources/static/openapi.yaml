@@ -2659,16 +2659,6 @@ components:
           type: string
           maxLength: 500
           nullable: true
-        contactPhone:
-          type: string
-          maxLength: 20
-          nullable: true
-          description: 요청자 연락처(전화번호)
-        contactInstagram:
-          type: string
-          maxLength: 50
-          nullable: true
-          description: 요청자 인스타그램 계정
 
     ApiResponseRequestId:
       type: object
@@ -2704,8 +2694,6 @@ components:
           description: |
             IN_REVIEW=검토 중 / IN_CONTACT=매장 컨택 중 /
             OPENED=공구 개설 완료 / REJECTED=개설 불가
-        contactPhone: { type: string, nullable: true }
-        contactInstagram: { type: string, nullable: true }
         rejectionReason: { type: string, nullable: true, description: status=REJECTED 시 노출 }
         openedGroupBuyId: { type: integer, format: int64, nullable: true, description: status=OPENED 시 개설된 공구 id }
         statusHistory:
@@ -3497,7 +3485,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, additionalNote, status, contactPhone, contactInstagram, rejectionReason, requesterName, createdAt]
+          required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, additionalNote, status, rejectionReason, requesterName, createdAt]
           properties:
             requestId: { type: integer, format: int64 }
             storeName: { type: string }
@@ -3508,8 +3496,6 @@ components:
             status:
               type: string
               enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
-            contactPhone: { type: string, nullable: true }
-            contactInstagram: { type: string, nullable: true }
             rejectionReason: { type: string, nullable: true }
             requesterName: { type: string }
             createdAt: { type: string, format: date-time }
