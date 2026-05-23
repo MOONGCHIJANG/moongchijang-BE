@@ -42,6 +42,11 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     )
     fun findDistinctUserIdsByGroupBuyId(@Param("groupBuyId") groupBuyId: Long): List<Long>
 
+    fun findByGroupBuyIdAndStatusIn(
+        groupBuyId: Long,
+        statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
     @Query(
         """
         SELECT p
@@ -180,6 +185,12 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     fun findByUserIdAndStatusInOrderByCreatedAtDesc(
         userId: Long,
         statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["user", "groupBuy", "groupBuy.store"])
+    fun findByStatusOrderByCancelledAtAscCreatedAtAsc(
+        status: ParticipationStatus,
+        pageable: Pageable
     ): List<Participation>
 
     @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
