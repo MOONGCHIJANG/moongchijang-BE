@@ -114,7 +114,7 @@ class GroupBuyService(
 
     @Transactional(readOnly = true)
     fun getShareMeta(groupBuyId: Long): ShareMetaResponse {
-        log.info("[GroupBuyService] 공구 공유 메타데이터 조회 시작: groupBuyId={}", groupBuyId)
+        log.debug("[GroupBuyService] 공구 공유 메타데이터 조회 시작: groupBuyId={}", groupBuyId)
 
         val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
@@ -124,7 +124,7 @@ class GroupBuyService(
             shareUrl = buildShareUrl(groupBuy.id)
         )
 
-        log.info("[GroupBuyService] 공구 공유 메타데이터 조회 완료: groupBuyId={}", groupBuyId)
+        log.debug("[GroupBuyService] 공구 공유 메타데이터 조회 완료: groupBuyId={}", groupBuyId)
         return response
     }
 

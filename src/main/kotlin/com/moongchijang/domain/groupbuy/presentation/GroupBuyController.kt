@@ -118,11 +118,11 @@ class GroupBuyController(
     fun getShareMeta(
         @PathVariable groupBuyId: Long
     ): ResponseEntity<ApiResponse<ShareMetaResponse>> {
-        log.info("[GroupBuyController] 공구 공유 메타데이터 조회 요청 수신: groupBuyId={}", groupBuyId)
+        log.debug("[GroupBuyController] 공구 공유 메타데이터 조회 요청 수신: groupBuyId={}", groupBuyId)
 
         val response = groupBuyService.getShareMeta(groupBuyId)
 
-        log.info("[GroupBuyController] 공구 공유 메타데이터 조회 응답 완료: groupBuyId={}", groupBuyId)
+        log.debug("[GroupBuyController] 공구 공유 메타데이터 조회 응답 완료: groupBuyId={}", groupBuyId)
         return ResponseEntity.ok(ApiResponse.success(response))
     }
 
