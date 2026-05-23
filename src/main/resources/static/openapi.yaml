@@ -3006,7 +3006,7 @@ components:
             pickupDate: { type: string, format: date }
             pickupTimeStart: { type: string, format: time, description: "픽업 시작 시각. 예) 13:00" }
             pickupTimeEnd: { type: string, format: time, description: "픽업 종료 시각. 예) 17:00" }
-            dDay: { type: integer, format: int32, description: "픽업일까지 남은 날짜. 당일이면 0" }
+            dDay: { type: integer, format: int32, description: "KST 기준 픽업일까지 남은 날짜. 당일이면 0, 지난 픽업일이면 음수" }
             pickedUpAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
@@ -3057,7 +3057,7 @@ components:
                 pickupDate: { type: string, format: date }
                 pickupTimeStart: { type: string, format: time, description: "픽업 시작 시각. 예) 13:00" }
                 pickupTimeEnd: { type: string, format: time, description: "픽업 종료 시각. 예) 17:00" }
-                dDay: { type: integer, format: int32, description: "픽업일까지 남은 날짜. 당일이면 0" }
+                dDay: { type: integer, format: int32, description: "KST 기준 픽업일까지 남은 날짜. 당일이면 0, 지난 픽업일이면 음수" }
                 pickedUpAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 

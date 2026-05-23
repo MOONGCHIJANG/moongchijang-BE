@@ -210,6 +210,21 @@ class PickupServiceTest {
     }
 
     @Test
+    fun `픽업일이 지난 QR 조회는 음수 D-day를 반환한다`() {
+        val participation = createParticipation(
+            pickupDate = LocalDate.now().minusDays(1),
+            pickupStatus = PickupStatus.PICKED_UP,
+            pickedUpAt = LocalDateTime.now().minusHours(1),
+        )
+        `when`(participationRepository.findPickupDetailById(99L)).thenReturn(participation)
+
+        val result = service.getPickupQr(99L, 1L)
+
+        assertEquals(PickupAvailabilityStatus.PICKED_UP, result.availabilityStatus)
+        assertEquals(-1, result.dDay)
+    }
+
+    @Test
     fun `가장 가까운 QR 후보가 없으면 빈 상태를 반환한다`() {
         `when`(
             participationRepository.findNearestPickupQrCandidates(
