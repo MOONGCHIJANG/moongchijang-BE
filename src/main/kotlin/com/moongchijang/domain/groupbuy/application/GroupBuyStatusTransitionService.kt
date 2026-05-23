@@ -1,6 +1,7 @@
 package com.moongchijang.domain.groupbuy.application
 
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
@@ -79,6 +80,7 @@ class GroupBuyStatusTransitionService(
             when (groupBuy.status) {
                 GroupBuyStatus.IN_PROGRESS -> {
                     groupBuy.transitionToFailedByDeadline(now)
+                    markParticipationsRefundPending(groupBuy.id, now)
                     publishApplyGroupBuyFailedEvent(groupBuy.id, now)
                     inProgressToFailed++
                 }
@@ -111,6 +113,17 @@ class GroupBuyStatusTransitionService(
             participantUserIds = participantUserIds,
             occurredAt = occurredAt
         )
+    }
+
+    private fun markParticipationsRefundPending(groupBuyId: Long, cancelledAt: LocalDateTime) {
+        val participations = participationRepository.findByGroupBuyIdAndStatusIn(
+            groupBuyId = groupBuyId,
+            statuses = listOf(ParticipationStatus.PAID_WAITING_GOAL)
+        )
+        participations.forEach { participation ->
+            participation.status = ParticipationStatus.REFUND_PENDING
+            participation.cancelledAt = cancelledAt
+        }
     }
 
     private data class BatchTransitionResult(
