@@ -50,6 +50,7 @@ class SecurityConfig(
                     "/api/v1/group-buys/progress",
                     "/api/v1/group-buys/*/progress",
                 ).permitAll()
+                it.requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                 it.anyRequest().authenticated()
             }
@@ -71,7 +72,7 @@ class SecurityConfig(
             "https://www.moongchijang.com",
             "https://api.moongchijang.com"
         )
-        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        configuration.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
         configuration.allowCredentials = true
 

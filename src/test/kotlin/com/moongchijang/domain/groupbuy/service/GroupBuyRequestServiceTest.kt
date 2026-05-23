@@ -1,14 +1,18 @@
 package com.moongchijang.domain.groupbuy.service
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyRequestService
-import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestCreateRequest
+import com.moongchijang.domain.groupbuy.application.GroupBuyOpenRequestService
+import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestStatusUpdateRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.GroupBuyRequestFixture
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -30,6 +34,12 @@ class GroupBuyRequestServiceTest {
 
     @Mock
     private lateinit var groupBuyRequestStatusHistoryRepository: GroupBuyRequestStatusHistoryRepository
+
+    @Mock
+    private lateinit var groupBuyRepository: GroupBuyRepository
+
+    @Mock
+    private lateinit var groupBuyOpenRequestService: GroupBuyOpenRequestService
 
     @InjectMocks
     private lateinit var service: GroupBuyRequestService
@@ -289,6 +299,205 @@ class GroupBuyRequestServiceTest {
 
         val ex = assertThrows<CustomException> { service.getDetail(1L, requestId) }
         assertEquals(ErrorCode.GROUPBUY_REQUEST_FORBIDDEN, ex.errorCode)
+    }
+
+    @Test
+    fun `IN_REVIEW 요청을 IN_CONTACT로 변경하면 상태와 히스토리를 저장한다`() {
+        val requestId = 10L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5)).apply { id = requestId }
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
+            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT)
+        )
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+            .thenReturn(listOf(
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW),
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT)
+            ))
+
+        val result = service.updateStatus(
+            requestId,
+            GroupBuyRequestStatusUpdateRequest(targetStatus = GroupBuyRequestStatus.IN_CONTACT)
+        )
+
+        assertEquals(GroupBuyRequestStatus.IN_CONTACT, groupBuyRequest.status)
+        assertEquals(GroupBuyRequestStatus.IN_CONTACT.name, result.status)
+        assertEquals(2, result.statusHistory.size)
+        val captor = argumentCaptor<GroupBuyRequestStatusHistory>()
+        verify(groupBuyRequestStatusHistoryRepository).save(captor.capture())
+        assertEquals(requestId, captor.value.groupBuyRequestId)
+        assertEquals(GroupBuyRequestStatus.IN_CONTACT, captor.value.status)
+        assertNotNull(captor.value.changedAt)
+    }
+
+    @Test
+    fun `IN_CONTACT 요청을 REJECTED로 변경할 때 거절 사유를 저장한다`() {
+        val requestId = 11L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.IN_CONTACT).apply {
+            id = requestId
+            openedGroupBuyId = 99L
+        }
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
+            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.REJECTED)
+        )
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+            .thenReturn(listOf(
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW),
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT),
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.REJECTED)
+            ))
+
+        val result = service.updateStatus(
+            requestId,
+            GroupBuyRequestStatusUpdateRequest(
+                targetStatus = GroupBuyRequestStatus.REJECTED,
+                rejectionReason = "  공급 불가  "
+            )
+        )
+
+        assertEquals(GroupBuyRequestStatus.REJECTED, groupBuyRequest.status)
+        assertEquals("공급 불가", groupBuyRequest.rejectionReason)
+        assertNull(groupBuyRequest.openedGroupBuyId)
+        assertEquals("공급 불가", result.rejectionReason)
+    }
+
+    @Test
+    fun `REJECTED 변경 시 거절 사유가 없으면 GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED 예외`() {
+        val requestId = 12L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+
+        val ex = assertThrows<CustomException> {
+            service.updateStatus(
+                requestId,
+                GroupBuyRequestStatusUpdateRequest(
+                    targetStatus = GroupBuyRequestStatus.REJECTED,
+                    rejectionReason = " "
+                )
+            )
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED, ex.errorCode)
+        verify(groupBuyRequestStatusHistoryRepository, never()).save(any())
+    }
+
+    @Test
+    fun `IN_CONTACT 요청을 OPENED로 변경할 때 공구 id가 있으면 존재 검증 후 저장한다`() {
+        val requestId = 13L
+        val openedGroupBuyId = 100L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.IN_CONTACT).apply {
+            id = requestId
+            rejectionReason = "이전 사유"
+        }
+        val openedGroupBuy = GroupBuyFixture.createGroupBuy(
+            id = openedGroupBuyId,
+            status = GroupBuyStatus.IN_PROGRESS,
+            productName = "튀김소보로"
+        )
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRepository.findWithStoreById(openedGroupBuyId)).thenReturn(Optional.of(openedGroupBuy))
+        `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
+            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.OPENED)
+        )
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+            .thenReturn(listOf(
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW),
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT),
+                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.OPENED)
+            ))
+
+        val result = service.updateStatus(
+            requestId,
+            GroupBuyRequestStatusUpdateRequest(
+                targetStatus = GroupBuyRequestStatus.OPENED,
+                openedGroupBuyId = openedGroupBuyId
+            )
+        )
+
+        assertEquals(GroupBuyRequestStatus.OPENED, groupBuyRequest.status)
+        assertNull(groupBuyRequest.rejectionReason)
+        assertEquals(openedGroupBuyId, groupBuyRequest.openedGroupBuyId)
+        assertEquals(openedGroupBuyId, result.openedGroupBuyId)
+        verify(groupBuyRepository).findWithStoreById(openedGroupBuyId)
+        verify(groupBuyOpenRequestService).notifyOpened(openedGroupBuy)
+    }
+
+    @Test
+    fun `OPENED 변경 시 공구 id가 없으면 GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED 예외`() {
+        val requestId = 14L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+
+        val ex = assertThrows<CustomException> {
+            service.updateStatus(
+                requestId,
+                GroupBuyRequestStatusUpdateRequest(targetStatus = GroupBuyRequestStatus.OPENED)
+            )
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED, ex.errorCode)
+        verifyNoInteractions(groupBuyRepository, groupBuyOpenRequestService)
+        verify(groupBuyRequestStatusHistoryRepository, never()).save(any())
+    }
+
+    @Test
+    fun `OPENED 변경 시 공구 id가 존재하지 않으면 GROUPBUY_NOT_FOUND 예외`() {
+        val requestId = 15L
+        val openedGroupBuyId = 100L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRepository.findWithStoreById(openedGroupBuyId)).thenReturn(Optional.empty())
+
+        val ex = assertThrows<CustomException> {
+            service.updateStatus(
+                requestId,
+                GroupBuyRequestStatusUpdateRequest(
+                    targetStatus = GroupBuyRequestStatus.OPENED,
+                    openedGroupBuyId = openedGroupBuyId
+                )
+            )
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_NOT_FOUND, ex.errorCode)
+        verify(groupBuyRequestStatusHistoryRepository, never()).save(any())
+        verifyNoInteractions(groupBuyOpenRequestService)
+    }
+
+    @Test
+    fun `허용되지 않는 상태 전이는 GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION 예외`() {
+        val requestId = 16L
+        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+            desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5)).apply { id = requestId }
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+
+        val ex = assertThrows<CustomException> {
+            service.updateStatus(
+                requestId,
+                GroupBuyRequestStatusUpdateRequest(targetStatus = GroupBuyRequestStatus.OPENED)
+            )
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION, ex.errorCode)
+        verify(groupBuyRequestStatusHistoryRepository, never()).save(any())
     }
 
     private inline fun <reified T> argumentCaptor() = org.mockito.ArgumentCaptor.forClass(T::class.java)
