@@ -110,14 +110,17 @@ class PickupServiceTest {
 
         assertEquals(PickupAvailabilityStatus.LOCKED, result.availabilityStatus)
         assertEquals(PickupStatus.NOT_READY, result.pickupStatus)
+        assertEquals("MCJ-P000099", result.reservationNumber)
         assertEquals("테스트유저", result.userName)
         assertEquals("두쫀쿠", result.productName)
         assertEquals(2, result.quantity)
         assertEquals("뭉치장 베이커리", result.storeName)
+        assertEquals("서울 성동구 성수동", result.storeAddress)
         assertEquals("매장 카운터", result.pickupLocation)
         assertEquals(participation.groupBuy.pickupDate, result.pickupDate)
         assertEquals(LocalTime.of(14, 0), result.pickupTimeStart)
         assertEquals(LocalTime.of(18, 0), result.pickupTimeEnd)
+        assertEquals(1, result.dDay)
         assertNull(result.qrCode)
         assertNull(participation.pickupToken)
     }
@@ -132,6 +135,7 @@ class PickupServiceTest {
 
         assertEquals(PickupAvailabilityStatus.AVAILABLE, result.availabilityStatus)
         assertEquals(PickupStatus.READY, result.pickupStatus)
+        assertEquals(0, result.dDay)
         assertNotNull(result.qrCode)
         assertEquals(result.qrCode, participation.pickupToken)
     }
@@ -174,7 +178,10 @@ class PickupServiceTest {
         assertEquals(true, result.hasMultipleToday)
         assertNull(result.reason)
         assertEquals(102L, result.item?.participationId)
+        assertEquals("MCJ-P000102", result.item?.reservationNumber)
         assertEquals(PickupAvailabilityStatus.AVAILABLE, result.item?.availabilityStatus)
+        assertEquals(0, result.item?.dDay)
+        assertEquals("서울 성동구 성수동", result.item?.storeAddress)
         assertNotNull(result.item?.qrCode)
         assertEquals(PickupStatus.READY, earliestToday.pickupStatus)
     }
@@ -198,6 +205,7 @@ class PickupServiceTest {
         assertEquals(NearestPickupQrReason.ONLY_FUTURE_PICKUP, result.reason)
         assertEquals(103L, result.item?.participationId)
         assertEquals(PickupAvailabilityStatus.LOCKED, result.item?.availabilityStatus)
+        assertEquals(1, result.item?.dDay)
         assertNull(result.item?.qrCode)
     }
 
