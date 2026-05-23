@@ -15,6 +15,7 @@ class SearchHistoryRepository(
     fun save(userId: Long, query: String) {
         val ops = redisTemplate.opsForList()
         val key = key(userId)
+        ops.remove(key, 0, query)
         ops.leftPush(key, query)
         ops.trim(key, 0, MAX_HISTORY - 1)
     }
