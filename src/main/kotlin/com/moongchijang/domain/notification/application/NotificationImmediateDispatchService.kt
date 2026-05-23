@@ -108,7 +108,7 @@ class NotificationImmediateDispatchService(
         val notificationType = toNotificationType(triggerType)
         val template = notificationTemplateRegistry.getTemplateByTriggerType(triggerType)
         val rendered = notificationTemplateRenderer.render(
-            templateType = template.type,
+            template = template,
             variables = resolveTemplateVariables(triggerType, targetId)
         )
         return NotificationMeta(

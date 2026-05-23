@@ -14,12 +14,12 @@ import org.junit.jupiter.api.assertThrows
 class NotificationTemplateRendererTest {
 
     private val registry = NotificationTemplateRegistry()
-    private val renderer = NotificationTemplateRenderer(registry)
+    private val renderer = NotificationTemplateRenderer()
 
     @Test
     fun `픽업 전일 템플릿 렌더링 시 줄바꿈 포함 본문 반환`() {
         val rendered = renderer.render(
-            templateType = NotificationTemplateType.PICKUP_DAY_BEFORE_REMINDER,
+            template = registry.getTemplateByType(NotificationTemplateType.PICKUP_DAY_BEFORE_REMINDER),
             variables = mapOf(
                 "상품명" to "소금빵",
                 "픽업시간범위" to "10:00 ~ 12:00"
@@ -35,7 +35,7 @@ class NotificationTemplateRendererTest {
     fun `필수 템플릿 변수가 누락될 때 예외 발생`() {
         val exception = assertThrows<CustomException> {
             renderer.render(
-                templateType = NotificationTemplateType.REQUEST_NEW_PARTICIPANT,
+                template = registry.getTemplateByType(NotificationTemplateType.REQUEST_NEW_PARTICIPANT),
                 variables = mapOf(
                     "상품명" to "소금빵",
                     "현재참여개수" to "3"
@@ -50,7 +50,7 @@ class NotificationTemplateRendererTest {
     @Test
     fun `달성 템플릿 렌더링 시 픽업 정보 포함 본문 반환`() {
         val rendered = renderer.render(
-            templateType = NotificationTemplateType.APPLY_GROUPBUY_ACHIEVED,
+            template = registry.getTemplateByType(NotificationTemplateType.APPLY_GROUPBUY_ACHIEVED),
             variables = mapOf(
                 "상품명" to "소금빵",
                 "픽업일자" to "2026-05-30",
@@ -68,7 +68,7 @@ class NotificationTemplateRendererTest {
     @Test
     fun `미달성 템플릿 렌더링 시 환불 예상 시각 포함 본문 반환`() {
         val rendered = renderer.render(
-            templateType = NotificationTemplateType.APPLY_GROUPBUY_FAILED,
+            template = registry.getTemplateByType(NotificationTemplateType.APPLY_GROUPBUY_FAILED),
             variables = mapOf(
                 "상품명" to "소금빵",
                 "환불예상시각" to "2026-05-28 10:00"

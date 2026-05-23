@@ -47,7 +47,7 @@ class NotificationImmediateDispatchServiceTest {
     private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
 
     private val notificationTemplateRegistry = NotificationTemplateRegistry()
-    private val notificationTemplateRenderer = NotificationTemplateRenderer(notificationTemplateRegistry)
+    private val notificationTemplateRenderer = NotificationTemplateRenderer()
 
     private val service by lazy {
         NotificationImmediateDispatchService(

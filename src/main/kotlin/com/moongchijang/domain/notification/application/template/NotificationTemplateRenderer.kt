@@ -5,11 +5,8 @@ import com.moongchijang.global.exception.ErrorCode
 import org.springframework.stereotype.Component
 
 @Component
-class NotificationTemplateRenderer(
-    private val notificationTemplateRegistry: NotificationTemplateRegistry,
-) {
-    fun render(templateType: NotificationTemplateType, variables: Map<String, String>): NotificationTemplateRenderResult {
-        val template = notificationTemplateRegistry.getTemplateByType(templateType)
+class NotificationTemplateRenderer {
+    fun render(template: NotificationTemplate, variables: Map<String, String>): NotificationTemplateRenderResult {
         return NotificationTemplateRenderResult(
             title = renderText(template.titleTemplate, variables),
             body = renderText(template.bodyTemplate, variables),
