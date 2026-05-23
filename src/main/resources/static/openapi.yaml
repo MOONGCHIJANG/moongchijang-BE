@@ -3174,7 +3174,7 @@ components:
               productName: { type: string }
               participationStatus:
                 type: string
-                enum: [PENDING, PAID_WAITING_GOAL, CONFIRMED, CANCELLED, REFUNDED]
+                enum: [PENDING, PAID_WAITING_GOAL, CONFIRMED, CANCELLED, REFUND_PENDING, REFUNDED]
               achievementRate:
                 type: integer
                 minimum: 0
@@ -3185,7 +3185,7 @@ components:
                 enum: [BEFORE_ACHIEVED, ACHIEVED]
               displayStatus:
                 type: string
-                enum: [PICKED_UP, PAID_WAITING_GOAL, CONFIRMED, REFUNDED, PENDING, CANCELLED]
+                enum: [PICKED_UP, PAID_WAITING_GOAL, CONFIRMED, REFUND_PENDING, REFUNDED, PENDING, CANCELLED]
                 description: 픽업/참여 상태 조합 기반 화면 표시 상태
               storeName: { type: string }
               pickupDate: { type: string, format: date }

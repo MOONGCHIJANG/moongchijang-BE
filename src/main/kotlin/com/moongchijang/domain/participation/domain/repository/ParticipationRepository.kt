@@ -156,6 +156,32 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         status: ParticipationStatus
     ): List<Participation>
 
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.user.id = :userId
+          and p.status in :statuses
+        order by
+          case when p.status = :refundPendingStatus then 0 else 1 end,
+          p.refundedAt desc,
+          p.createdAt desc
+        """
+    )
+    fun findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
+        @Param("userId") userId: Long,
+        @Param("statuses") statuses: Collection<ParticipationStatus>,
+        @Param("refundPendingStatus") refundPendingStatus: ParticipationStatus = ParticipationStatus.REFUND_PENDING
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInOrderByCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
     @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
     fun findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
         userId: Long,
@@ -183,6 +209,8 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     ): Long
 
     fun countByUserIdAndStatus(userId: Long, status: ParticipationStatus): Long
+
+    fun countByUserIdAndStatusIn(userId: Long, statuses: Collection<ParticipationStatus>): Long
 
     fun existsByPickupToken(pickupToken: String): Boolean
 

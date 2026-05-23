@@ -34,16 +34,20 @@ class MypageService(
                 statuses = ACTIVE_PARTICIPATION_STATUSES,
                 pickupStatus = PickupStatus.PICKED_UP
             ),
-            refundedCount = participationRepository.countByUserIdAndStatus(
+            refundedCount = participationRepository.countByUserIdAndStatusIn(
                 userId = userId,
-                status = ParticipationStatus.REFUNDED
+                statuses = REFUND_PARTICIPATION_STATUSES
             ),
             requestCount = groupBuyRequestRepository.countByUserId(userId)
         )
 
     fun getRefunds(userId: Long): List<MypageRefundResponse> =
         participationRepository
-            .findByUserIdAndStatusOrderByRefundedAtDescCreatedAtDesc(userId, ParticipationStatus.REFUNDED)
+            .findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
+                userId = userId,
+                statuses = REFUND_PARTICIPATION_STATUSES,
+                refundPendingStatus = ParticipationStatus.REFUND_PENDING
+            )
             .map(MypageRefundResponse::from)
 
     fun getParticipations(
@@ -79,7 +83,7 @@ class MypageService(
 
     fun getRefundedParticipations(userId: Long): List<MypageParticipationResponse> =
         participationRepository
-            .findByUserIdAndStatusOrderByCreatedAtDesc(userId, ParticipationStatus.REFUNDED)
+            .findByUserIdAndStatusInOrderByCreatedAtDesc(userId, REFUND_PARTICIPATION_STATUSES)
             .map(MypageParticipationResponse::from)
 
     fun getGroupBuyRequests(userId: Long): List<MypageGroupBuyRequestResponse> =
@@ -98,6 +102,10 @@ class MypageService(
         val ACTIVE_PICKUP_STATUSES = listOf(
             PickupStatus.NOT_READY,
             PickupStatus.READY
+        )
+        val REFUND_PARTICIPATION_STATUSES = listOf(
+            ParticipationStatus.REFUND_PENDING,
+            ParticipationStatus.REFUNDED
         )
     }
 }

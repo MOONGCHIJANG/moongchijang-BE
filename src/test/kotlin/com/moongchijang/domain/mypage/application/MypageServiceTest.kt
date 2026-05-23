@@ -62,7 +62,12 @@ class MypageServiceTest {
                 PickupStatus.PICKED_UP
             )
         ).thenReturn(3L)
-        `when`(participationRepository.countByUserIdAndStatus(userId, ParticipationStatus.REFUNDED))
+        `when`(
+            participationRepository.countByUserIdAndStatusIn(
+                userId,
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
+            )
+        )
             .thenReturn(1L)
         `when`(groupBuyRequestRepository.countByUserId(userId)).thenReturn(4L)
 
@@ -75,9 +80,16 @@ class MypageServiceTest {
     }
 
     @Test
-    fun `refunds는 REFUNDED 참여만 환불 내역 DTO로 변환한다`() {
+    fun `refunds는 환불대기와 환불완료 참여를 환불 내역 DTO로 변환한다`() {
         val userId = 1L
-        val participation = createParticipation().apply {
+        val pending = createParticipation().apply {
+            id = 9L
+            status = ParticipationStatus.REFUND_PENDING
+            cancelReason = ParticipationCancelReason.TIME_UNAVAILABLE
+            cancelReasonDetail = "마감 전 직접 취소"
+            refundedAt = null
+        }
+        val completed = createParticipation().apply {
             id = 10L
             status = ParticipationStatus.REFUNDED
             cancelReason = ParticipationCancelReason.TIME_UNAVAILABLE
@@ -85,18 +97,19 @@ class MypageServiceTest {
             refundedAt = LocalDateTime.of(2026, 5, 20, 10, 0)
         }
         `when`(
-            participationRepository.findByUserIdAndStatusOrderByRefundedAtDescCreatedAtDesc(
+            participationRepository.findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
                 userId,
-                ParticipationStatus.REFUNDED
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                ParticipationStatus.REFUND_PENDING
             )
-        ).thenReturn(listOf(participation))
+        ).thenReturn(listOf(pending, completed))
 
         val result = mypageService.getRefunds(userId)
 
-        assertEquals(1, result.size)
-        assertEquals(10L, result[0].participationId)
+        assertEquals(2, result.size)
+        assertEquals(9L, result[0].participationId)
         assertEquals("초코 케이크", result[0].productName)
-        assertEquals("COMPLETED", result[0].refundStatus)
+        assertEquals("PENDING", result[0].refundStatus)
         assertEquals("문치 베이커리", result[0].storeName)
         assertEquals(LocalDate.of(2026, 5, 25), result[0].pickupDate)
         assertEquals(LocalTime.of(13, 0), result[0].pickupTimeStart)
@@ -105,6 +118,10 @@ class MypageServiceTest {
         assertEquals(2, result[0].quantity)
         assertEquals(ParticipationCancelReason.TIME_UNAVAILABLE.name, result[0].cancelReason)
         assertEquals("마감 전 직접 취소", result[0].cancelReasonDetail)
+        assertEquals(null, result[0].refundedAt)
+        assertEquals(10L, result[1].participationId)
+        assertEquals("COMPLETED", result[1].refundStatus)
+        assertEquals(LocalDateTime.of(2026, 5, 20, 10, 0), result[1].refundedAt)
     }
 
     @Test
@@ -215,22 +232,26 @@ class MypageServiceTest {
     }
 
     @Test
-    fun `refunded participations는 REFUNDED 상태 목록 DTO를 반환한다`() {
+    fun `refunded participations는 환불대기와 환불완료 상태 목록 DTO를 반환한다`() {
         val userId = 1L
         val participation = createParticipation().apply {
             id = 13L
             groupBuy.id = 103L
-            status = ParticipationStatus.REFUNDED
+            status = ParticipationStatus.REFUND_PENDING
         }
         `when`(
-            participationRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, ParticipationStatus.REFUNDED)
+            participationRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(
+                userId,
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
+            )
         ).thenReturn(listOf(participation))
 
         val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.REFUNDED)
 
         assertEquals(1, result.size)
         assertEquals(13L, result[0].participationId)
-        assertEquals(ParticipationStatus.REFUNDED.name, result[0].participationStatus)
+        assertEquals(ParticipationStatus.REFUND_PENDING.name, result[0].participationStatus)
+        assertEquals("REFUND_PENDING", result[0].displayStatus)
         assertEquals(false, result[0].canCancel)
     }
 

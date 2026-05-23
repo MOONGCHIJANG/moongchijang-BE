@@ -37,7 +37,7 @@ data class MypageRefundResponse(
             return MypageRefundResponse(
                 participationId = participation.id,
                 productName = groupBuy.productName,
-                refundStatus = "COMPLETED",
+                refundStatus = refundStatus(participation),
                 storeName = groupBuy.store.name,
                 pickupDate = groupBuy.pickupDate,
                 pickupTimeStart = groupBuy.pickupTimeStart,
@@ -49,6 +49,13 @@ data class MypageRefundResponse(
                 refundedAt = participation.refundedAt
             )
         }
+
+        private fun refundStatus(participation: Participation): String =
+            when (participation.status) {
+                ParticipationStatus.REFUND_PENDING -> "PENDING"
+                ParticipationStatus.REFUNDED -> "COMPLETED"
+                else -> throw IllegalArgumentException("Unsupported refund participation status: ${participation.status}")
+            }
     }
 }
 
@@ -126,6 +133,7 @@ data class MypageParticipationResponse(
                 pickupStatus == PickupStatus.PICKED_UP -> "PICKED_UP"
                 status == ParticipationStatus.PAID_WAITING_GOAL -> "PAID_WAITING_GOAL"
                 status == ParticipationStatus.CONFIRMED -> "CONFIRMED"
+                status == ParticipationStatus.REFUND_PENDING -> "REFUND_PENDING"
                 status == ParticipationStatus.REFUNDED -> "REFUNDED"
                 else -> status.name
             }
