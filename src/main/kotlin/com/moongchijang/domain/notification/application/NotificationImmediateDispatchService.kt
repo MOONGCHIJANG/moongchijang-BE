@@ -99,7 +99,6 @@ class NotificationImmediateDispatchService(
 
     private fun toNotificationType(triggerType: NotificationTriggerType): NotificationType {
         return when (triggerType) {
-            NotificationTriggerType.PICKUP_COMPLETED_IMMEDIATE,
             NotificationTriggerType.PICKUP_SAME_DAY_MORNING,
             NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING,
             NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF -> NotificationType.PICKUP
