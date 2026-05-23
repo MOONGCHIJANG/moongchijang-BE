@@ -1,6 +1,10 @@
 package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRegistry
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRenderer
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
@@ -15,13 +19,22 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Service
 class NotificationImmediateDispatchService(
     private val notificationRepository: NotificationRepository,
     private val notificationDispatchHistoryRepository: NotificationDispatchHistoryRepository,
     private val userRepository: UserRepository,
+    private val groupBuyRepository: GroupBuyRepository,
+    private val groupBuyRequestRepository: GroupBuyRequestRepository,
+    private val notificationTemplateRegistry: NotificationTemplateRegistry,
+    private val notificationTemplateRenderer: NotificationTemplateRenderer,
 ) {
+    companion object {
+        private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    }
+
     private val log = LoggerFactory.getLogger(javaClass)
     private val zoneId: ZoneId = ZoneId.of("Asia/Seoul")
 
@@ -86,14 +99,18 @@ class NotificationImmediateDispatchService(
         }
     }
 
-    private fun toNotificationMeta(triggerType: NotificationTriggerType): NotificationMeta {
+    private fun toNotificationMeta(triggerType: NotificationTriggerType, targetId: Long): NotificationMeta {
         val notificationType = toNotificationType(triggerType)
+        val template = notificationTemplateRegistry.getTemplateByTriggerType(triggerType)
+        val rendered = notificationTemplateRenderer.render(
+            templateType = template.type,
+            variables = resolveTemplateVariables(triggerType, targetId)
+        )
         return NotificationMeta(
             type = notificationType,
-            // TODO: 상세 템플릿/문구는 정해진 이후 수정 예정
-            title = "알림",
-            body = "새 알림이 도착했습니다.",
-            deeplinkType = defaultDeeplinkType(notificationType)
+            title = rendered.title,
+            body = rendered.body,
+            deeplinkType = rendered.deeplinkType
         )
     }
 
@@ -119,21 +136,53 @@ class NotificationImmediateDispatchService(
         }
     }
 
-    private fun defaultDeeplinkType(notificationType: NotificationType): NotificationDeeplinkType {
-        return when (notificationType) {
-            NotificationType.PICKUP -> NotificationDeeplinkType.PICKUP_GUIDE
-            NotificationType.WISH -> NotificationDeeplinkType.GROUPBUY_DETAIL
-            NotificationType.APPLY -> NotificationDeeplinkType.MY_APPLYING
-            NotificationType.REQUEST -> NotificationDeeplinkType.REQUEST_STATUS
-        }
-    }
-
     private data class NotificationMeta(
         val type: NotificationType,
         val title: String,
         val body: String,
         val deeplinkType: NotificationDeeplinkType,
     )
+
+    private fun resolveTemplateVariables(triggerType: NotificationTriggerType, targetId: Long): Map<String, String> {
+        val variables = mutableMapOf(
+            "상품명" to "공구 상품",
+            "픽업시간범위" to "00:00 ~ 00:00",
+            "매장명" to "매장",
+            "마감시각" to "00:00",
+            "목표참여개수" to "0",
+            "현재참여개수" to "0",
+        )
+
+        val groupBuy = when (triggerType) {
+            NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> null
+
+            else -> groupBuyRepository.findWithStoreById(targetId).orElse(null)
+        }
+        val groupBuyRequest = when (triggerType) {
+            NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> groupBuyRequestRepository.findById(targetId).orElse(null)
+
+            else -> null
+        }
+
+        if (groupBuy != null) {
+            variables["상품명"] = groupBuy.productName
+            variables["픽업시간범위"] =
+                "${groupBuy.pickupTimeStart.format(TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(TIME_FORMATTER)}"
+            variables["매장명"] = groupBuy.store.name
+            variables["마감시각"] = groupBuy.deadline.format(TIME_FORMATTER)
+            variables["목표참여개수"] = groupBuy.targetQuantity.toString()
+            variables["현재참여개수"] = groupBuy.currentQuantity.toString()
+        }
+
+        if (groupBuyRequest != null) {
+            variables["상품명"] = groupBuyRequest.productName
+            variables["목표참여개수"] = groupBuyRequest.desiredQuantity.toString()
+        }
+
+        return variables
+    }
 
     private fun calculateNextRetryAt(retryCount: Int): LocalDateTime? {
         val now = LocalDateTime.now(zoneId)
@@ -164,7 +213,7 @@ class NotificationImmediateDispatchService(
                 return
             }
 
-            val meta = toNotificationMeta(event.triggerType)
+            val meta = toNotificationMeta(event.triggerType, event.targetId)
             notificationRepository.save(
                 Notification(
                     user = user,

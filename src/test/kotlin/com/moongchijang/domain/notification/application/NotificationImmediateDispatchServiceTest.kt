@@ -1,6 +1,10 @@
 package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRegistry
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRenderer
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchStatus
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
@@ -34,11 +38,24 @@ class NotificationImmediateDispatchServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
+    @Mock
+    private lateinit var groupBuyRepository: GroupBuyRepository
+
+    @Mock
+    private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
+
+    private val notificationTemplateRegistry = NotificationTemplateRegistry()
+    private val notificationTemplateRenderer = NotificationTemplateRenderer(notificationTemplateRegistry)
+
     private val service by lazy {
         NotificationImmediateDispatchService(
             notificationRepository = notificationRepository,
             notificationDispatchHistoryRepository = notificationDispatchHistoryRepository,
-            userRepository = userRepository
+            userRepository = userRepository,
+            groupBuyRepository = groupBuyRepository,
+            groupBuyRequestRepository = groupBuyRequestRepository,
+            notificationTemplateRegistry = notificationTemplateRegistry,
+            notificationTemplateRenderer = notificationTemplateRenderer
         )
     }
 
