@@ -100,17 +100,20 @@ class PickupService(
 
         return PickupQrResponse(
             participationId = participation.id,
+            reservationNumber = participation.reservationNumber(),
             availabilityStatus = participation.availabilityStatus(),
             pickupStatus = participation.pickupStatus,
             userName = participation.user.nickname,
             productName = participation.groupBuy.productName,
             quantity = participation.quantity,
             storeName = participation.groupBuy.store.name,
+            storeAddress = participation.groupBuy.store.address,
             pickupLocation = participation.groupBuy.pickupLocation,
             qrCode = participation.pickupToken.takeIf { isActive && participation.pickupStatus == PickupStatus.READY },
             pickupDate = participation.groupBuy.pickupDate,
             pickupTimeStart = participation.groupBuy.pickupTimeStart,
             pickupTimeEnd = participation.groupBuy.pickupTimeEnd,
+            dDay = participation.pickupDDay(),
             pickedUpAt = participation.pickedUpAt,
         )
     }
@@ -168,6 +171,14 @@ class PickupService(
         val pickupEndAt = LocalDateTime.of(groupBuy.pickupDate, groupBuy.pickupTimeEnd)
         return ChronoUnit.MINUTES.between(now, pickupEndAt).coerceAtLeast(0)
     }
+
+    private fun Participation.pickupDDay(): Int =
+        ChronoUnit.DAYS.between(LocalDate.now(), groupBuy.pickupDate)
+            .toInt()
+            .coerceAtLeast(0)
+
+    private fun Participation.reservationNumber(): String =
+        "MCJ-P%06d".format(id)
 
     private fun generateUniquePickupToken(): String {
         repeat(TOKEN_GENERATION_ATTEMPTS) {
