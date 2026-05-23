@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -100,17 +101,20 @@ class PickupService(
 
         return PickupQrResponse(
             participationId = participation.id,
+            reservationNumber = participation.reservationNumber(),
             availabilityStatus = participation.availabilityStatus(),
             pickupStatus = participation.pickupStatus,
             userName = participation.user.nickname,
             productName = participation.groupBuy.productName,
             quantity = participation.quantity,
             storeName = participation.groupBuy.store.name,
+            storeAddress = participation.groupBuy.store.address,
             pickupLocation = participation.groupBuy.pickupLocation,
             qrCode = participation.pickupToken.takeIf { isActive && participation.pickupStatus == PickupStatus.READY },
             pickupDate = participation.groupBuy.pickupDate,
             pickupTimeStart = participation.groupBuy.pickupTimeStart,
             pickupTimeEnd = participation.groupBuy.pickupTimeEnd,
+            dDay = participation.pickupDDay(),
             pickedUpAt = participation.pickedUpAt,
         )
     }
@@ -151,7 +155,7 @@ class PickupService(
     }
 
     private fun Participation.isPickupActive(): Boolean =
-        !LocalDate.now().isBefore(groupBuy.pickupDate)
+        !todayKst().isBefore(groupBuy.pickupDate)
 
     private fun Participation.availabilityStatus(): PickupAvailabilityStatus =
         when {
@@ -161,13 +165,24 @@ class PickupService(
         }
 
     private fun Participation.remainingPickupMinutes(): Long? {
-        val today = LocalDate.now()
+        val today = todayKst()
         if (groupBuy.pickupDate != today) return null
 
-        val now = LocalDateTime.now()
+        val now = nowKst()
         val pickupEndAt = LocalDateTime.of(groupBuy.pickupDate, groupBuy.pickupTimeEnd)
         return ChronoUnit.MINUTES.between(now, pickupEndAt).coerceAtLeast(0)
     }
+
+    private fun Participation.pickupDDay(): Int =
+        ChronoUnit.DAYS.between(todayKst(), groupBuy.pickupDate)
+            .toInt()
+
+    private fun Participation.reservationNumber(): String =
+        "MCJ-P%06d".format(id)
+
+    private fun todayKst(): LocalDate = LocalDate.now(KST_ZONE)
+
+    private fun nowKst(): LocalDateTime = LocalDateTime.now(KST_ZONE)
 
     private fun generateUniquePickupToken(): String {
         repeat(TOKEN_GENERATION_ATTEMPTS) {
@@ -181,5 +196,6 @@ class PickupService(
 
     companion object {
         private const val TOKEN_GENERATION_ATTEMPTS = 5
+        private val KST_ZONE: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }

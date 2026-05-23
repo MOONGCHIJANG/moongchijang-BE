@@ -2986,9 +2986,10 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [participationId, availabilityStatus, pickupStatus, productName, quantity, storeName, pickupLocation, pickupDate, pickupTimeStart, pickupTimeEnd]
+          required: [participationId, reservationNumber, availabilityStatus, pickupStatus, productName, quantity, storeName, storeAddress, pickupLocation, pickupDate, pickupTimeStart, pickupTimeEnd, dDay]
           properties:
             participationId: { type: integer, format: int64 }
+            reservationNumber: { type: string, description: "예약 번호. 참여 id 기반 표시값. 예) MCJ-P000123" }
             availabilityStatus:
               type: string
               enum: [LOCKED, AVAILABLE, PICKED_UP]
@@ -2999,11 +3000,13 @@ components:
             productName: { type: string }
             quantity: { type: integer, format: int32 }
             storeName: { type: string }
+            storeAddress: { type: string }
             pickupLocation: { type: string }
             qrCode: { type: string, format: uuid, nullable: true }
             pickupDate: { type: string, format: date }
             pickupTimeStart: { type: string, format: time, description: "픽업 시작 시각. 예) 13:00" }
             pickupTimeEnd: { type: string, format: time, description: "픽업 종료 시각. 예) 17:00" }
+            dDay: { type: integer, format: int32, description: "KST 기준 픽업일까지 남은 날짜. 당일이면 0, 지난 픽업일이면 음수" }
             pickedUpAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
@@ -3033,9 +3036,10 @@ components:
             item:
               type: object
               nullable: true
-              required: [participationId, availabilityStatus, pickupStatus, productName, quantity, storeName, pickupLocation, pickupDate, pickupTimeStart, pickupTimeEnd]
+              required: [participationId, reservationNumber, availabilityStatus, pickupStatus, productName, quantity, storeName, storeAddress, pickupLocation, pickupDate, pickupTimeStart, pickupTimeEnd, dDay]
               properties:
                 participationId: { type: integer, format: int64 }
+                reservationNumber: { type: string, description: "예약 번호. 참여 id 기반 표시값. 예) MCJ-P000123" }
                 availabilityStatus:
                   type: string
                   enum: [LOCKED, AVAILABLE, PICKED_UP]
@@ -3047,11 +3051,13 @@ components:
                 productName: { type: string }
                 quantity: { type: integer, format: int32 }
                 storeName: { type: string }
+                storeAddress: { type: string }
                 pickupLocation: { type: string }
                 qrCode: { type: string, format: uuid, nullable: true, description: "LOCKED 상태에서는 null" }
                 pickupDate: { type: string, format: date }
                 pickupTimeStart: { type: string, format: time, description: "픽업 시작 시각. 예) 13:00" }
                 pickupTimeEnd: { type: string, format: time, description: "픽업 종료 시각. 예) 17:00" }
+                dDay: { type: integer, format: int32, description: "KST 기준 픽업일까지 남은 날짜. 당일이면 0, 지난 픽업일이면 음수" }
                 pickedUpAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 

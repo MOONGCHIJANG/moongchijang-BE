@@ -33,17 +33,20 @@ data class PickupGuideResponse(
 
 data class PickupQrResponse(
     val participationId: Long,
+    val reservationNumber: String,
     val availabilityStatus: PickupAvailabilityStatus,
     val pickupStatus: PickupStatus,
     val userName: String?,
     val productName: String,
     val quantity: Int,
     val storeName: String,
+    val storeAddress: String,
     val pickupLocation: String,
     val qrCode: String?,
     val pickupDate: LocalDate,
     val pickupTimeStart: LocalTime,
     val pickupTimeEnd: LocalTime,
+    val dDay: Int,
     val pickedUpAt: LocalDateTime?,
 )
 
