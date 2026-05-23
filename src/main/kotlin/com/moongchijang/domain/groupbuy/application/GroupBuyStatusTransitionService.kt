@@ -116,14 +116,12 @@ class GroupBuyStatusTransitionService(
     }
 
     private fun markParticipationsRefundPending(groupBuyId: Long, cancelledAt: LocalDateTime) {
-        val participations = participationRepository.findByGroupBuyIdAndStatusIn(
+        participationRepository.updateStatusByGroupBuyIdAndStatus(
             groupBuyId = groupBuyId,
-            statuses = listOf(ParticipationStatus.PAID_WAITING_GOAL)
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = cancelledAt
         )
-        participations.forEach { participation ->
-            participation.status = ParticipationStatus.REFUND_PENDING
-            participation.cancelledAt = cancelledAt
-        }
     }
 
     private data class BatchTransitionResult(

@@ -4,11 +4,9 @@ import com.moongchijang.domain.groupbuy.application.GroupBuyStatusTransitionServ
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
-import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.support.GroupBuyFixture
-import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -78,17 +76,16 @@ class GroupBuyStatusTransitionServiceTest {
                 pageable
             )
         ).thenReturn(listOf(inProgress, achieved))
-        `when`(
-            participationRepository.findByGroupBuyIdAndStatusIn(
-                1L,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL)
-            )
-        ).thenReturn(emptyList())
-
         service.transitionExpiredGroupBuysAt(now)
 
         assertEquals(GroupBuyStatus.FAILED, inProgress.status)
         assertEquals(GroupBuyStatus.COMPLETED, achieved.status)
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 1L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
     }
 
     @Test
@@ -169,24 +166,23 @@ class GroupBuyStatusTransitionServiceTest {
                 pageable
             )
         ).thenReturn(listOf(first, second), listOf(third), emptyList())
-        `when`(
-            participationRepository.findByGroupBuyIdAndStatusIn(
-                11L,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL)
-            )
-        ).thenReturn(emptyList())
-        `when`(
-            participationRepository.findByGroupBuyIdAndStatusIn(
-                13L,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL)
-            )
-        ).thenReturn(emptyList())
-
         batchService.transitionExpiredGroupBuysAt(now)
 
         assertEquals(GroupBuyStatus.FAILED, first.status)
         assertEquals(GroupBuyStatus.COMPLETED, second.status)
         assertEquals(GroupBuyStatus.FAILED, third.status)
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 11L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 13L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
     }
 
     @Test
@@ -197,15 +193,6 @@ class GroupBuyStatusTransitionServiceTest {
             status = GroupBuyStatus.IN_PROGRESS,
             deadline = now.minusMinutes(1)
         )
-        val participation = Participation(
-            user = UserFixture.createKakaoUser(id = 1L),
-            groupBuy = groupBuy,
-            quantity = 2,
-            productAmount = 12_000,
-            feeAmount = 0,
-            totalAmount = 12_000,
-            status = ParticipationStatus.PAID_WAITING_GOAL,
-        )
         val pageable = PageRequest.of(0, 500, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
         `when`(
             groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
@@ -214,17 +201,14 @@ class GroupBuyStatusTransitionServiceTest {
                 pageable
             )
         ).thenReturn(listOf(groupBuy))
-        `when`(
-            participationRepository.findByGroupBuyIdAndStatusIn(
-                21L,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL)
-            )
-        ).thenReturn(listOf(participation))
-
         service.transitionExpiredGroupBuysAt(now)
 
         assertEquals(GroupBuyStatus.FAILED, groupBuy.status)
-        assertEquals(ParticipationStatus.REFUND_PENDING, participation.status)
-        assertEquals(now, participation.cancelledAt)
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 21L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
     }
 }
