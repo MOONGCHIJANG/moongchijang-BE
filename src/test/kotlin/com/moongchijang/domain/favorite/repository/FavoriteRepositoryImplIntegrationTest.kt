@@ -39,7 +39,7 @@ class FavoriteRepositoryImplIntegrationTest {
     @Test
     fun `찜 목록 조회 시 groupBuy와 store를 함께 조회한다`() {
         val user = persistUser("favorite-user@test.com")
-        val groupBuy = persistGroupBuy()
+        val groupBuy = persistGroupBuy(requestUserId = user.id!!)
         em.persist(Favorite(user = user, groupBuy = groupBuy))
         flushAndClear()
 
@@ -74,7 +74,7 @@ class FavoriteRepositoryImplIntegrationTest {
         return user
     }
 
-    private fun persistGroupBuy(): GroupBuy {
+    private fun persistGroupBuy(requestUserId: Long): GroupBuy {
         val store = Store(
             name = "찜 테스트 매장",
             address = "서울 강남구",
@@ -84,12 +84,12 @@ class FavoriteRepositoryImplIntegrationTest {
         em.persist(store)
 
         val request = GroupBuyRequest(
-            userId = 1L,
+            userId = requestUserId,
             storeName = "찜 테스트 매장",
             storeAddress = "서울 강남구",
             productName = "테스트 상품",
             desiredQuantity = 50,
-            desiredPickupDate = LocalDate.now().plusDays(3),
+            desiredPickupDate = LocalDate.of(2026, 5, 26),
         )
         em.persist(request)
 
