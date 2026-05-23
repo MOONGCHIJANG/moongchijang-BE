@@ -3771,7 +3771,7 @@ components:
               type: array
               description: 검색된 공구 카드 목록
               items:
-                $ref: '#/components/schemas/GroupBuyCardDto'
+                $ref: '#/components/schemas/GroupBuyFeedItemResponse'
             recommendedStores:
               type: array
               nullable: true
@@ -3779,20 +3779,6 @@ components:
               items:
                 $ref: '#/components/schemas/RecommendedStoreDto'
         error: { nullable: true, example: null }
-
-    GroupBuyCardDto:
-      type: object
-      required: [id, storeName, region, productName, price, currentQuantity, targetQuantity, deadline]
-      properties:
-        id: { type: integer, format: int64 }
-        storeName: { type: string }
-        region: { type: string, description: 매장 동네 라벨 }
-        productName: { type: string }
-        thumbnailUrl: { type: string, nullable: true }
-        price: { type: integer }
-        currentQuantity: { type: integer }
-        targetQuantity: { type: integer }
-        deadline: { type: string, format: date-time }
 
     RecommendedStoreDto:
       type: object
