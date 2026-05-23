@@ -45,6 +45,9 @@ import org.mockito.Mockito.lenient
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.TransactionStatus
@@ -574,6 +577,125 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `환불대기 참여는 PG 취소 성공 시 환불완료 처리`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.FAILED)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val payment = Payment(
+            paymentOrder = order,
+            pgPaymentId = "portone-payment-id",
+            orderId = order.orderId,
+            amount = order.totalAmount,
+            method = "CARD",
+            approvedAt = order.approvedAt!!,
+        )
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 2,
+            productAmount = 12_000,
+            feeAmount = 0,
+            totalAmount = 12_000,
+            status = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 0),
+        ).apply { id = 88L }
+        val refundedAt = LocalDateTime.of(2026, 5, 18, 11, 0)
+        val pageable = pendingRefundPageable()
+        stubTransaction()
+        `when`(
+            participationRepository.findByStatusOrderByCancelledAtAscCreatedAtAsc(
+                ParticipationStatus.REFUND_PENDING,
+                pageable
+            )
+        ).thenReturn(listOf(participation))
+        `when`(participationRepository.findByIdForUpdate(88L)).thenReturn(Optional.of(participation))
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(1L, 10L)).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate(order.orderId)).thenReturn(order)
+        `when`(paymentRepository.findByPaymentOrderOrderId(order.orderId)).thenReturn(payment)
+        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET"))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "portone-payment-id",
+                    status = "CANCELLED",
+                    totalAmount = 12_000,
+                    method = "CARD",
+                    paidAt = order.approvedAt,
+                    cancelledAt = refundedAt,
+                )
+            )
+
+        val result = service.processPendingRefunds()
+
+        assertEquals(1, result.targetCount)
+        assertEquals(1, result.successCount)
+        assertEquals(0, result.failedCount)
+        assertEquals(PaymentOrderStatus.CANCELLED, order.status)
+        assertEquals(PaymentStatus.CANCELLED, payment.status)
+        assertEquals(ParticipationStatus.REFUNDED, participation.status)
+        assertEquals(refundedAt, participation.refundedAt)
+    }
+
+    @Test
+    fun `환불대기 참여는 PG 취소 실패 시 대기 상태를 유지`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.FAILED)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val payment = Payment(
+            paymentOrder = order,
+            pgPaymentId = "portone-payment-id",
+            orderId = order.orderId,
+            amount = order.totalAmount,
+            method = "CARD",
+            approvedAt = order.approvedAt!!,
+        )
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 2,
+            productAmount = 12_000,
+            feeAmount = 0,
+            totalAmount = 12_000,
+            status = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 0),
+        ).apply { id = 89L }
+        val pageable = pendingRefundPageable()
+        stubTransaction()
+        `when`(
+            participationRepository.findByStatusOrderByCancelledAtAscCreatedAtAsc(
+                ParticipationStatus.REFUND_PENDING,
+                pageable
+            )
+        ).thenReturn(listOf(participation))
+        `when`(participationRepository.findByIdForUpdate(89L)).thenReturn(Optional.of(participation))
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(1L, 10L)).thenReturn(order)
+        `when`(paymentRepository.findByPaymentOrderOrderId(order.orderId)).thenReturn(payment)
+        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET"))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "portone-payment-id",
+                    status = "FAILED",
+                    totalAmount = 12_000,
+                    method = "CARD",
+                    paidAt = order.approvedAt,
+                )
+            )
+
+        val result = service.processPendingRefunds()
+
+        assertEquals(1, result.targetCount)
+        assertEquals(0, result.successCount)
+        assertEquals(1, result.failedCount)
+        assertEquals(PaymentOrderStatus.APPROVED, order.status)
+        assertEquals(PaymentStatus.APPROVED, payment.status)
+        assertEquals(ParticipationStatus.REFUND_PENDING, participation.status)
+        assertEquals(null, participation.refundedAt)
+    }
+
+    @Test
     fun `확정된 참여는 취소할 수 없다`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy()
@@ -686,6 +808,13 @@ class PaymentServiceTest {
                 )
             )
     }
+
+    private fun pendingRefundPageable(): Pageable =
+        PageRequest.of(
+            0,
+            100,
+            Sort.by(Sort.Order.asc("cancelledAt"), Sort.Order.asc("createdAt"), Sort.Order.asc("id"))
+        )
 
     private fun createGroupBuy(
         id: Long = 10L,
