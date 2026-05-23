@@ -23,7 +23,7 @@ class NotificationTemplateRenderer(
         if (missing.isNotEmpty()) {
             throw CustomException(
                 ErrorCode.NOTIFICATION_TEMPLATE_VARIABLE_MISSING,
-                "missing notification template variables: ${missing.joinToString(",")}"
+                "알림 템플릿 변수 값이 누락되었습니다. missing=${missing.joinToString(",")}"
             )
         }
 

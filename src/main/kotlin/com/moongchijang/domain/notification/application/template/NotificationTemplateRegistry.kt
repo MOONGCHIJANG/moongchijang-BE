@@ -117,12 +117,12 @@ class NotificationTemplateRegistry {
         val templateType = triggerTypeToTemplateType[triggerType]
             ?: throw CustomException(
                 ErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND,
-                "notification template trigger mapping not found: triggerType=$triggerType"
+                "알림 템플릿 트리거 매핑을 찾을 수 없습니다. triggerType=$triggerType"
             )
         return templates[templateType]
             ?: throw CustomException(
                 ErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND,
-                "notification template not registered: templateType=$templateType"
+                "알림 템플릿이 등록되지 않았습니다. templateType=$templateType"
             )
     }
 
@@ -130,7 +130,7 @@ class NotificationTemplateRegistry {
         return templates[templateType]
             ?: throw CustomException(
                 ErrorCode.NOTIFICATION_TEMPLATE_NOT_FOUND,
-                "notification template not registered: templateType=$templateType"
+                "알림 템플릿이 등록되지 않았습니다. templateType=$templateType"
             )
     }
 }
