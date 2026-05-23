@@ -1,6 +1,10 @@
 package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRegistry
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRenderer
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
@@ -10,18 +14,32 @@ import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.DayOfWeek
 
 @Service
 class NotificationImmediateDispatchService(
     private val notificationRepository: NotificationRepository,
     private val notificationDispatchHistoryRepository: NotificationDispatchHistoryRepository,
     private val userRepository: UserRepository,
+    private val groupBuyRepository: GroupBuyRepository,
+    private val groupBuyRequestRepository: GroupBuyRequestRepository,
+    private val notificationTemplateRegistry: NotificationTemplateRegistry,
+    private val notificationTemplateRenderer: NotificationTemplateRenderer,
 ) {
+    companion object {
+        private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        private val DATETIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    }
+
     private val log = LoggerFactory.getLogger(javaClass)
     private val zoneId: ZoneId = ZoneId.of("Asia/Seoul")
 
@@ -86,20 +104,23 @@ class NotificationImmediateDispatchService(
         }
     }
 
-    private fun toNotificationMeta(triggerType: NotificationTriggerType): NotificationMeta {
+    private fun toNotificationMeta(triggerType: NotificationTriggerType, targetId: Long): NotificationMeta {
         val notificationType = toNotificationType(triggerType)
+        val template = notificationTemplateRegistry.getTemplateByTriggerType(triggerType)
+        val rendered = notificationTemplateRenderer.render(
+            template = template,
+            variables = resolveTemplateVariables(triggerType, targetId)
+        )
         return NotificationMeta(
             type = notificationType,
-            // TODO: 상세 템플릿/문구는 정해진 이후 수정 예정
-            title = "알림",
-            body = "새 알림이 도착했습니다.",
-            deeplinkType = defaultDeeplinkType(notificationType)
+            title = rendered.title,
+            body = rendered.body,
+            deeplinkType = rendered.deeplinkType
         )
     }
 
     private fun toNotificationType(triggerType: NotificationTriggerType): NotificationType {
         return when (triggerType) {
-            NotificationTriggerType.PICKUP_COMPLETED_IMMEDIATE,
             NotificationTriggerType.PICKUP_SAME_DAY_MORNING,
             NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING,
             NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF -> NotificationType.PICKUP
@@ -120,21 +141,67 @@ class NotificationImmediateDispatchService(
         }
     }
 
-    private fun defaultDeeplinkType(notificationType: NotificationType): NotificationDeeplinkType {
-        return when (notificationType) {
-            NotificationType.PICKUP -> NotificationDeeplinkType.PICKUP_GUIDE
-            NotificationType.WISH -> NotificationDeeplinkType.GROUPBUY_DETAIL
-            NotificationType.APPLY -> NotificationDeeplinkType.MY_APPLYING
-            NotificationType.REQUEST -> NotificationDeeplinkType.REQUEST_STATUS
-        }
-    }
-
     private data class NotificationMeta(
         val type: NotificationType,
         val title: String,
         val body: String,
         val deeplinkType: NotificationDeeplinkType,
     )
+
+    private fun resolveTemplateVariables(triggerType: NotificationTriggerType, targetId: Long): Map<String, String> {
+        val variables = mutableMapOf<String, String>()
+
+        when (triggerType) {
+            NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> {
+                val groupBuyRequest = groupBuyRequestRepository.findById(targetId)
+                    .orElseThrow {
+                        CustomException(
+                            ErrorCode.NOTIFICATION_NOT_FOUND,
+                            "알림 템플릿 대상 요청공구를 찾을 수 없습니다. targetId=$targetId, triggerType=$triggerType"
+                        )
+                    }
+
+                variables["상품명"] = groupBuyRequest.productName
+                variables["목표참여개수"] = groupBuyRequest.desiredQuantity.toString()
+            }
+
+            else -> {
+                val groupBuy = groupBuyRepository.findWithStoreById(targetId)
+                    .orElseThrow {
+                        CustomException(
+                            ErrorCode.NOTIFICATION_NOT_FOUND,
+                            "알림 템플릿 대상 공구를 찾을 수 없습니다. targetId=$targetId, triggerType=$triggerType"
+                        )
+                    }
+
+                variables["상품명"] = groupBuy.productName
+                variables["픽업시간범위"] =
+                    "${groupBuy.pickupTimeStart.format(TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(TIME_FORMATTER)}"
+                variables["픽업일자"] = groupBuy.pickupDate.format(DATE_FORMATTER)
+                variables["매장명"] = groupBuy.store.name
+                variables["매장주소"] = groupBuy.store.address
+                variables["마감시각"] = groupBuy.deadline.format(TIME_FORMATTER)
+                variables["목표참여개수"] = groupBuy.targetQuantity.toString()
+                variables["현재참여개수"] = groupBuy.currentQuantity.toString()
+                variables["환불예상시각"] = estimateRefundDateTime(groupBuy.deadline).format(DATETIME_FORMATTER)
+            }
+        }
+
+        return variables
+    }
+
+    private fun estimateRefundDateTime(baseDateTime: LocalDateTime): LocalDateTime {
+        var cursor = baseDateTime
+        var addedBusinessDays = 0
+        while (addedBusinessDays < 3) {
+            cursor = cursor.plusDays(1)
+            if (cursor.dayOfWeek != DayOfWeek.SATURDAY && cursor.dayOfWeek != DayOfWeek.SUNDAY) {
+                addedBusinessDays += 1
+            }
+        }
+        return cursor.withHour(10).withMinute(0).withSecond(0).withNano(0)
+    }
 
     private fun calculateNextRetryAt(retryCount: Int): LocalDateTime? {
         val now = LocalDateTime.now(zoneId)
@@ -165,7 +232,7 @@ class NotificationImmediateDispatchService(
                 return
             }
 
-            val meta = toNotificationMeta(event.triggerType)
+            val meta = toNotificationMeta(event.triggerType, event.targetId)
             notificationRepository.save(
                 Notification(
                     user = user,

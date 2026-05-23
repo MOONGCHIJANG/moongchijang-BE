@@ -1,6 +1,5 @@
 package com.moongchijang.domain.participation.application
 
-import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
@@ -14,7 +13,6 @@ import java.time.LocalDateTime
 class ParticipationPickupCommandService(
     private val participationRepository: ParticipationRepository,
     private val userRepository: UserRepository,
-    private val notificationEventPublisher: NotificationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -26,17 +24,9 @@ class ParticipationPickupCommandService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
         participation.markPickedUp(processedBy = processor, pickedUpAt = pickedUpAt)
-        val userId = participation.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-
-        notificationEventPublisher.publishPickupCompleted(
-            groupBuyId = participation.groupBuy.id,
-            userId = userId,
-            participationId = participation.id,
-            occurredAt = pickedUpAt
-        )
         log.info(
-            "[ParticipationPickupCommandService] 픽업 완료 처리 및 알림 트리거 발행: participationId={}, userId={}, processedByUserId={}",
-            participationId, userId, processedByUserId
+            "[ParticipationPickupCommandService] 픽업 완료 처리: participationId={}, processedByUserId={}",
+            participationId, processedByUserId
         )
     }
 }

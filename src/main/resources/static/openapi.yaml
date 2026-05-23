@@ -3055,7 +3055,7 @@ components:
 
     NotificationItemResponse:
       type: object
-      required: [id, type, title, body, isRead, occurredAt, deeplinkType, section]
+      required: [id, type, title, body, isRead, occurredAt, deeplinkType, deeplinkParams, section]
       properties:
         id:
           type: integer
@@ -3078,6 +3078,13 @@ components:
           nullable: true
         deeplinkType:
           $ref: '#/components/schemas/NotificationDeeplinkType'
+        deeplinkParams:
+          type: object
+          description: 딥링크 파라미터. PICKUP_GUIDE/GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 targetId를 사용합니다.
+          additionalProperties:
+            type: string
+          example:
+            groupBuyId: "2001"
         section:
           $ref: '#/components/schemas/NotificationSection'
 

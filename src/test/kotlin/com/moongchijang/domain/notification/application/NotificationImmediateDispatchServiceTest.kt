@@ -1,12 +1,18 @@
 package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRegistry
+import com.moongchijang.domain.notification.application.template.NotificationTemplateRenderer
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchStatus
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -34,11 +40,24 @@ class NotificationImmediateDispatchServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
+    @Mock
+    private lateinit var groupBuyRepository: GroupBuyRepository
+
+    @Mock
+    private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
+
+    private val notificationTemplateRegistry = NotificationTemplateRegistry()
+    private val notificationTemplateRenderer = NotificationTemplateRenderer()
+
     private val service by lazy {
         NotificationImmediateDispatchService(
             notificationRepository = notificationRepository,
             notificationDispatchHistoryRepository = notificationDispatchHistoryRepository,
-            userRepository = userRepository
+            userRepository = userRepository,
+            groupBuyRepository = groupBuyRepository,
+            groupBuyRequestRepository = groupBuyRequestRepository,
+            notificationTemplateRegistry = notificationTemplateRegistry,
+            notificationTemplateRenderer = notificationTemplateRenderer
         )
     }
 
@@ -116,6 +135,7 @@ class NotificationImmediateDispatchServiceTest {
         ).thenReturn(Optional.empty())
         `when`(notificationDispatchHistoryRepository.save(any(NotificationDispatchHistory::class.java))).thenReturn(pending)
         `when`(userRepository.findByIdAndDeletedAtIsNull(3L)).thenReturn(user)
+        `when`(groupBuyRepository.findWithStoreById(103L)).thenReturn(Optional.of(mockGroupBuy(103L)))
         `when`(notificationRepository.save(any())).thenAnswer { it.arguments[0] }
 
         service.dispatch(event)
@@ -145,6 +165,7 @@ class NotificationImmediateDispatchServiceTest {
             )
         ).thenReturn(listOf(failedHistory))
         `when`(userRepository.findByIdAndDeletedAtIsNull(9L)).thenReturn(user)
+        `when`(groupBuyRepository.findWithStoreById(901L)).thenReturn(Optional.of(mockGroupBuy(901L)))
         `when`(notificationRepository.save(any())).thenAnswer { it.arguments[0] }
 
         service.retryFailedDispatches(now)
@@ -161,4 +182,6 @@ class NotificationImmediateDispatchServiceTest {
             scheduleKey = scheduleKey
         )
     }
+
+    private fun mockGroupBuy(id: Long) = GroupBuyFixture.createGroupBuy(id = id, status = GroupBuyStatus.IN_PROGRESS)
 }

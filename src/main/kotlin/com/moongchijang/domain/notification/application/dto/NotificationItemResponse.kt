@@ -1,5 +1,6 @@
 package com.moongchijang.domain.notification.application.dto
 
+import com.moongchijang.domain.notification.application.deeplink.NotificationDeeplinkSchema
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
@@ -34,6 +35,12 @@ data class NotificationItemResponse(
     @field:Schema(description = "딥링크 타입", example = "PICKUP_GUIDE")
     val deeplinkType: NotificationDeeplinkType,
 
+    @field:Schema(
+        description = "딥링크 파라미터. PICKUP_GUIDE/GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 targetId를 사용합니다.",
+        example = "{\"groupBuyId\":\"2001\"}"
+    )
+    val deeplinkParams: Map<String, String>,
+
     @field:Schema(description = "기간 구분", example = "TODAY")
     val section: NotificationSection
 ) {
@@ -48,6 +55,7 @@ data class NotificationItemResponse(
                 occurredAt = notification.occurredAt,
                 targetId = notification.targetId,
                 deeplinkType = notification.deeplinkType,
+                deeplinkParams = NotificationDeeplinkSchema.toParams(notification.deeplinkType, notification.targetId),
                 section = resolveSection(notification.occurredAt.toLocalDate(), today)
             )
         }
