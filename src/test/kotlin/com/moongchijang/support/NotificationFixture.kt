@@ -2,6 +2,7 @@ package com.moongchijang.support
 
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.user.domain.entity.User
 import java.time.LocalDateTime
@@ -18,6 +19,7 @@ object NotificationFixture {
         occurredAt: LocalDateTime = LocalDateTime.now(),
         targetId: Long? = null,
         deeplinkType: NotificationDeeplinkType = NotificationDeeplinkType.PICKUP_GUIDE,
+        triggerType: NotificationTriggerType? = null,
     ): Notification {
         return Notification(
             user = user,
@@ -28,6 +30,7 @@ object NotificationFixture {
             occurredAt = occurredAt,
             targetId = targetId,
             deeplinkType = deeplinkType,
+            triggerType = triggerType,
             id = id,
         )
     }
