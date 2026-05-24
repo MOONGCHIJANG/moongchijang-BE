@@ -349,6 +349,9 @@ class UserServiceTest {
 
     @Test
     fun `회원탈퇴 기타 사유 상세 미입력 예외`() {
+        val user = UserFixture.createKakaoUser(id = 1L, providerId = "kakao-1", nickname = "탈퇴대상")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+
         val exception = assertThrows<CustomException> {
             userService.withdraw(
                 1L,
