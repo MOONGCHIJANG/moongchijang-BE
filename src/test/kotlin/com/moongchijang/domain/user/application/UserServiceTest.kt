@@ -2,9 +2,11 @@ package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
@@ -24,7 +26,15 @@ class UserServiceTest {
     private val phoneVerificationService: PhoneVerificationService =
         Mockito.mock(PhoneVerificationService::class.java)
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
-    private val userService = UserService(userRepository, phoneVerificationService, participationRepository)
+    private val favoriteRepository: FavoriteRepository = Mockito.mock(FavoriteRepository::class.java)
+    private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
+    private val userService = UserService(
+        userRepository,
+        phoneVerificationService,
+        participationRepository,
+        favoriteRepository,
+        paymentService,
+    )
 
     @Test
     fun `활성 카카오 사용자 존재 시 기존 사용자 반환`() {

@@ -10,6 +10,8 @@ interface FavoriteRepository : JpaRepository<Favorite, Long>, FavoriteRepository
 
     fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
 
+    fun deleteByUserId(userId: Long): Int
+
     fun deleteByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Int
 
     fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Favorite?
