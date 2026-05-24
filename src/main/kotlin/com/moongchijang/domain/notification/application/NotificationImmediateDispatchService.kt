@@ -249,7 +249,8 @@ class NotificationImmediateDispatchService(
                     body = meta.body,
                     occurredAt = event.occurredAt,
                     targetId = event.targetId,
-                    deeplinkType = meta.deeplinkType
+                    deeplinkType = meta.deeplinkType,
+                    triggerType = event.triggerType
                 )
             )
             history.markSuccess(event.occurredAt)
