@@ -108,7 +108,7 @@ class NotificationTriggerScheduler(
             ).plusMinutes(30)
             notificationEventPublisher.publishScheduledTrigger(
                 triggerType = NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF,
-                targetId = participation.groupBuy.id,
+                targetId = participation.id,
                 userIds = listOf(participation.user.id!!),
                 scheduleKey = "pickup-cutoff:${participation.id}:${cutoffAt}",
                 occurredAt = now
@@ -140,14 +140,13 @@ class NotificationTriggerScheduler(
             pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY)
         )
 
-        participations.groupBy { it.groupBuy.id }.forEach { (groupBuyId, items) ->
-            val userIds = items.mapNotNull { it.user.id }.distinct()
-            if (userIds.isEmpty()) return@forEach
+        participations.forEach { participation ->
+            val userId = participation.user.id ?: return@forEach
             notificationEventPublisher.publishScheduledTrigger(
                 triggerType = triggerType,
-                targetId = groupBuyId,
-                userIds = userIds,
-                scheduleKey = "$scheduleKeyPrefix:$groupBuyId:$pickupDate",
+                targetId = participation.id,
+                userIds = listOf(userId),
+                scheduleKey = "$scheduleKeyPrefix:${participation.id}:$pickupDate",
                 occurredAt = occurredAt
             )
         }
