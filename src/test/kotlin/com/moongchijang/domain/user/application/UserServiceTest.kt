@@ -3,10 +3,13 @@ package com.moongchijang.domain.user.application
 import com.moongchijang.domain.auth.application.PhoneVerificationService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.payment.application.PaymentService
+import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
@@ -269,5 +272,64 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP, exception.errorCode)
+    }
+
+    @Test
+    fun `회원탈퇴 성공 처리`() {
+        val user = UserFixture.createKakaoUser(id = 1L, providerId = "kakao-1", nickname = "탈퇴대상")
+        val participation = Mockito.mock(Participation::class.java)
+        Mockito.`when`(participation.id).thenReturn(100L)
+
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                1L,
+                ParticipationStatus.CONFIRMED,
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(false)
+        Mockito.`when`(
+            participationRepository.findByUserIdAndStatusOrderByCreatedAtDesc(1L, ParticipationStatus.PAID_WAITING_GOAL)
+        ).thenReturn(listOf(participation))
+        Mockito.`when`(favoriteRepository.deleteByUserId(1L)).thenReturn(3)
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+
+        userService.withdraw(1L)
+
+        Mockito.verify(paymentService).cancelParticipation(
+            100L,
+            1L,
+            CancelParticipationRequest(
+                reason = ParticipationCancelReason.OTHER,
+                reasonDetail = "회원탈퇴 자동 취소",
+            )
+        )
+        Mockito.verify(favoriteRepository).deleteByUserId(1L)
+        Assertions.assertEquals(true, user.deletedAt != null)
+    }
+
+    @Test
+    fun `회원탈퇴 참여중 공구 없음 처리`() {
+        val user = UserFixture.createKakaoUser(id = 2L, providerId = "kakao-2", nickname = "탈퇴대상2")
+
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                2L,
+                ParticipationStatus.CONFIRMED,
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(false)
+        Mockito.`when`(
+            participationRepository.findByUserIdAndStatusOrderByCreatedAtDesc(2L, ParticipationStatus.PAID_WAITING_GOAL)
+        ).thenReturn(emptyList())
+        Mockito.`when`(favoriteRepository.deleteByUserId(2L)).thenReturn(0)
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(2L)).thenReturn(user)
+
+        userService.withdraw(2L)
+
+        Mockito.verifyNoInteractions(paymentService)
+        Mockito.verify(favoriteRepository).deleteByUserId(2L)
+        Assertions.assertEquals(true, user.deletedAt != null)
     }
 }
