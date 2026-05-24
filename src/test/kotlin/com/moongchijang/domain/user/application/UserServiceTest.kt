@@ -14,6 +14,7 @@ import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.entity.WithdrawalReason
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
@@ -260,7 +261,9 @@ class UserServiceTest {
 
     @Test
     fun `내 정보 조회 성공`() {
-        val user = UserFixture.createKakaoUser(id = 41L, providerId = "kakao-41", nickname = "조회유저")
+        val user = UserFixture.createKakaoUser(id = 41L, providerId = "kakao-41", nickname = "조회유저").apply {
+            lastRole = UserRole.SELLER
+        }
         setAuditFields(user, LocalDateTime.now(), LocalDateTime.now())
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(41L)).thenReturn(user)
 
@@ -268,6 +271,7 @@ class UserServiceTest {
 
         Assertions.assertEquals(41L, response.id)
         Assertions.assertEquals(user.role, response.role)
+        Assertions.assertEquals(user.lastRole, response.lastRole)
     }
 
     @Test
