@@ -156,14 +156,15 @@ class UserService(
     @Transactional
     fun withdraw(userId: Long, request: WithdrawRequest) {
         log.info("[UserService] 회원탈퇴 처리 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
         validateWithdrawalReason(request)
         validateWithdrawable(userId)
         cancelActiveParticipationsForWithdrawal(userId)
         val deletedFavoriteCount = favoriteRepository.deleteByUserId(userId)
         log.info("[UserService] 회원탈퇴 찜 삭제 완료: userId={}, deletedCount={}", userId, deletedFavoriteCount)
 
-        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
-            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
         user.withdraw(
             reason = request.reason,
             reasonDetail = normalizedReasonDetail(request),
