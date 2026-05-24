@@ -64,6 +64,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     REJOIN_NOT_AVAILABLE_YET(409_102, "탈퇴 후 30일 이후에 다시 가입할 수 있습니다.", 409),
     DUPLICATE_NICKNAME(409_103, "이미 사용 중인 닉네임이에요.", 409),
     WITHDRAWAL_BLOCKED_PENDING_PICKUP(409_104, "수령 예정인 공구가 있어요. 카카오 채널로 문의해주세요.", 409),
+    WITHDRAWAL_REASON_DETAIL_REQUIRED(400_109, "기타 탈퇴 사유를 입력해주세요.", 400),
 
     // Token (150~199)
     TOKEN_EXPIRED(401_151, "토큰이 만료되었습니다.", 401),

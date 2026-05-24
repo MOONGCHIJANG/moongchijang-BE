@@ -13,9 +13,11 @@ import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
+import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.domain.user.domain.entity.WithdrawalReason
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -152,8 +154,9 @@ class UserService(
     }
 
     @Transactional
-    fun withdraw(userId: Long) {
+    fun withdraw(userId: Long, request: WithdrawRequest) {
         log.info("[UserService] 회원탈퇴 처리 시작: userId={}", userId)
+        validateWithdrawalReason(request)
         validateWithdrawable(userId)
         cancelActiveParticipationsForWithdrawal(userId)
         val deletedFavoriteCount = favoriteRepository.deleteByUserId(userId)
@@ -161,7 +164,10 @@ class UserService(
 
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-        user.withdraw()
+        user.withdraw(
+            reason = request.reason,
+            reasonDetail = normalizedReasonDetail(request),
+        )
 
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
     }
@@ -204,6 +210,15 @@ class UserService(
         }
         log.info("[UserService] 회원탈퇴 참여중 공구 자동 취소 완료: userId={}, targetCount={}", userId, activeParticipations.size)
     }
+
+    private fun validateWithdrawalReason(request: WithdrawRequest) {
+        if (request.reason == WithdrawalReason.OTHER && request.reasonDetail.isNullOrBlank()) {
+            throw CustomException(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED)
+        }
+    }
+
+    private fun normalizedReasonDetail(request: WithdrawRequest): String? =
+        request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
 
     private fun findActiveKakaoUser(providerId: String): User? {
         return userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(

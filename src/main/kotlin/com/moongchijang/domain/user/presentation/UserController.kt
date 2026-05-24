@@ -4,6 +4,7 @@ import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
+import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -80,9 +81,10 @@ class UserController(
     )
     fun withdraw(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: WithdrawRequest,
     ): ApiResponse<Nothing> {
         log.info("[UserController] 회원탈퇴 요청 수신: userId={}", principal.id)
-        userService.withdraw(principal.id)
+        userService.withdraw(principal.id, request)
         log.info("[UserController] 회원탈퇴 응답 완료: userId={}", principal.id)
         return ApiResponse.success()
     }

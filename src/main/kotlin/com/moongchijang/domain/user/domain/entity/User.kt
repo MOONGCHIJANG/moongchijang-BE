@@ -54,6 +54,13 @@ class User(
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "withdrawal_reason", length = 50)
+    var withdrawalReason: WithdrawalReason? = null,
+
+    @Column(name = "withdrawal_reason_detail", length = 500)
+    var withdrawalReasonDetail: String? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
@@ -64,7 +71,13 @@ class User(
         this.signupCompleted = true
     }
 
-    fun withdraw(now: LocalDateTime = LocalDateTime.now()) {
+    fun withdraw(
+        reason: WithdrawalReason?,
+        reasonDetail: String?,
+        now: LocalDateTime = LocalDateTime.now(),
+    ) {
+        this.withdrawalReason = reason
+        this.withdrawalReasonDetail = reasonDetail
         this.deletedAt = now
     }
 
