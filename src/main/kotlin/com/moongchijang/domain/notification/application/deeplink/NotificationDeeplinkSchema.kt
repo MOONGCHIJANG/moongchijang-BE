@@ -10,10 +10,10 @@ object NotificationDeeplinkSchema {
         }
 
         return when (deeplinkType) {
-            NotificationDeeplinkType.PICKUP_GUIDE -> mapOf("groupBuyId" to targetId.toString())
+            NotificationDeeplinkType.PICKUP_GUIDE -> mapOf("participationId" to targetId.toString())
             NotificationDeeplinkType.GROUPBUY_DETAIL -> mapOf("groupBuyId" to targetId.toString())
             NotificationDeeplinkType.MY_APPLYING -> mapOf("groupBuyId" to targetId.toString())
-            NotificationDeeplinkType.REQUEST_STATUS -> mapOf("targetId" to targetId.toString())
+            NotificationDeeplinkType.REQUEST_STATUS -> mapOf("requestId" to targetId.toString())
         }
     }
 }

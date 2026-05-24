@@ -106,16 +106,16 @@ class NotificationTriggerSchedulerTest {
 
         verify(notificationEventPublisher).publishScheduledTrigger(
             NotificationTriggerType.PICKUP_SAME_DAY_MORNING,
-            11L,
+            1L,
             listOf(1L),
-            "pickup-same-day-morning:11:${now.toLocalDate()}",
+            "pickup-same-day-morning:1:${now.toLocalDate()}",
             now
         )
         verify(notificationEventPublisher).publishScheduledTrigger(
             NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING,
-            12L,
+            2L,
             listOf(1L),
-            "pickup-day-before-morning:12:${now.toLocalDate().plusDays(1)}",
+            "pickup-day-before-morning:2:${now.toLocalDate().plusDays(1)}",
             now
         )
     }

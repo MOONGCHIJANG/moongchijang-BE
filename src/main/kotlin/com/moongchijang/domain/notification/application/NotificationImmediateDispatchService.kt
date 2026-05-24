@@ -152,7 +152,10 @@ class NotificationImmediateDispatchService(
         val variables = mutableMapOf<String, String>()
 
         when (triggerType) {
+            NotificationTriggerType.REQUEST_OPENED_IMMEDIATE,
             NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.REQUEST_NEW_PARTICIPANT_IMMEDIATE,
+            NotificationTriggerType.REQUEST_TARGET_ACHIEVED_IMMEDIATE,
             NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> {
                 val groupBuyRequest = groupBuyRequestRepository.findById(targetId)
                     .orElseThrow {
@@ -164,6 +167,11 @@ class NotificationImmediateDispatchService(
 
                 variables["상품명"] = groupBuyRequest.productName
                 variables["목표참여개수"] = groupBuyRequest.desiredQuantity.toString()
+                groupBuyRequest.openedGroupBuyId?.let { openedGroupBuyId ->
+                    groupBuyRepository.findWithStoreById(openedGroupBuyId).ifPresent { groupBuy ->
+                        variables["현재참여개수"] = groupBuy.currentQuantity.toString()
+                    }
+                }
             }
 
             else -> {

@@ -302,6 +302,7 @@ class PaymentServiceTest {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy(currentQuantity = 49)
         val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        val approvedAt = LocalDateTime.of(2026, 5, 17, 12, 0)
         stubTransaction()
         `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
@@ -312,7 +313,7 @@ class PaymentServiceTest {
         `when`(groupBuyRepository.findById(10L)).thenReturn(Optional.of(groupBuy))
         `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(false)
         `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
-            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 6000, "CARD", LocalDateTime.now()))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 6000, "CARD", approvedAt))
         `when`(participationRepository.save(any(Participation::class.java))).thenAnswer {
             (it.arguments[0] as Participation).apply { id = 100L }
         }
@@ -322,6 +323,45 @@ class PaymentServiceTest {
 
         assertEquals(ParticipationStatus.CONFIRMED, result.participationStatus)
         assertEquals(GroupBuyStatus.ACHIEVED, groupBuy.status)
+        verify(notificationEventPublisher).publishRequestTargetAchieved(20L, 1L, approvedAt)
+    }
+
+    @Test
+    fun `요청공구에 다른 사용자가 참여할 때 requestId 기준 새 참여자 알림 발행`() {
+        val requester = UserFixture.createKakaoUser(id = 1L)
+        val participantUser = UserFixture.createKakaoUser(id = 2L)
+        val groupBuy = createGroupBuy().apply {
+            groupBuyRequest = GroupBuyRequest(
+                userId = 1L,
+                storeName = "뭉치장 베이커리",
+                storeAddress = "서울 성동구",
+                productName = "두쫀쿠",
+                desiredQuantity = 50,
+                desiredPickupDate = LocalDate.now().plusDays(5)
+            ).apply { id = 320L }
+        }
+        val order = createPaymentOrder(user = participantUser, groupBuy = groupBuy, quantity = 1)
+        val approvedAt = LocalDateTime.of(2026, 5, 17, 12, 0)
+
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(groupBuyRepository.increaseCurrentQuantityIfAvailable(10L, 1)).thenAnswer {
+            groupBuy.currentQuantity += 1
+            1
+        }
+        `when`(groupBuyRepository.findById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(2L, 10L)).thenReturn(false)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 6000, "CARD", approvedAt))
+        `when`(participationRepository.save(any(Participation::class.java))).thenAnswer {
+            (it.arguments[0] as Participation).apply { id = 210L }
+        }
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000), 2L)
+
+        verify(notificationEventPublisher).publishRequestNewParticipant(320L, 1L, 210L, approvedAt)
     }
 
     @Test

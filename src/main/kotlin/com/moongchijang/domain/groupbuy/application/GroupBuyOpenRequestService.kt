@@ -78,7 +78,7 @@ class GroupBuyOpenRequestService(
         )
         if (result.targetUserIds.isNotEmpty()) {
             notificationEventPublisher.publishRequestOpened(
-                targetGroupBuyId = groupBuy.id,
+                requestId = groupBuy.groupBuyRequest.id,
                 requesterUserIds = result.targetUserIds,
                 occurredAt = java.time.LocalDateTime.now()
             )

@@ -295,6 +295,11 @@ class GroupBuyOpenRequestServiceTest {
         assertEquals(1, result.sentCount)
         assertEquals(0, result.failedCount)
         verify(aligoAlimtalkClient).send("01012345678", "[뭉치장] 요청하신 서울 전체 소금빵 공구가 열렸어요.")
+        val invocation = mockingDetails(notificationEventPublisher).invocations
+            .first { it.method.name == "publishRequestOpened" }
+        assertEquals(200L, invocation.arguments[0])
+        assertEquals(listOf(1L), invocation.arguments[1])
+        assertTrue(invocation.arguments[2] is LocalDateTime)
     }
 
     private fun createUser(id: Long, phoneNumber: String?): User =
@@ -319,7 +324,7 @@ class GroupBuyOpenRequestServiceTest {
                 productName = productName,
                 desiredQuantity = 10,
                 desiredPickupDate = LocalDate.now().plusDays(3),
-            ),
+            ).apply { id = 200L },
             productName = productName,
             productDescription = "설명",
             price = 6000,

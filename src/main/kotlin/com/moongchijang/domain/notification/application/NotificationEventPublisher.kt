@@ -69,44 +69,44 @@ class NotificationEventPublisher(
     }
 
     fun publishRequestOpened(
-        targetGroupBuyId: Long,
+        requestId: Long,
         requesterUserIds: List<Long>,
         occurredAt: LocalDateTime
     ) {
         publish(
             triggerType = NotificationTriggerType.REQUEST_OPENED_IMMEDIATE,
-            targetId = targetGroupBuyId,
+            targetId = requestId,
             userIds = requesterUserIds,
-            scheduleKey = "request-opened:$targetGroupBuyId",
+            scheduleKey = "request-opened:$requestId",
             occurredAt = occurredAt
         )
     }
 
     fun publishRequestNewParticipant(
-        targetGroupBuyId: Long,
+        requestId: Long,
         requesterUserId: Long,
         participationId: Long,
         occurredAt: LocalDateTime
     ) {
         publish(
             triggerType = NotificationTriggerType.REQUEST_NEW_PARTICIPANT_IMMEDIATE,
-            targetId = targetGroupBuyId,
+            targetId = requestId,
             userIds = listOf(requesterUserId),
-            scheduleKey = "request-new-participant:$targetGroupBuyId:$participationId",
+            scheduleKey = "request-new-participant:$requestId:$participationId",
             occurredAt = occurredAt
         )
     }
 
     fun publishRequestTargetAchieved(
-        targetGroupBuyId: Long,
+        requestId: Long,
         requesterUserId: Long,
         occurredAt: LocalDateTime
     ) {
         publish(
             triggerType = NotificationTriggerType.REQUEST_TARGET_ACHIEVED_IMMEDIATE,
-            targetId = targetGroupBuyId,
+            targetId = requestId,
             userIds = listOf(requesterUserId),
-            scheduleKey = "request-target-achieved:$targetGroupBuyId",
+            scheduleKey = "request-target-achieved:$requestId",
             occurredAt = occurredAt
         )
     }

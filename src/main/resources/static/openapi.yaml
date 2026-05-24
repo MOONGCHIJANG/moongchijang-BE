@@ -3166,11 +3166,11 @@ components:
           $ref: '#/components/schemas/NotificationDeeplinkType'
         deeplinkParams:
           type: object
-          description: 딥링크 파라미터. PICKUP_GUIDE/GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 targetId를 사용합니다.
+          description: 딥링크 파라미터. PICKUP_GUIDE는 participationId, GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 requestId를 사용합니다.
           additionalProperties:
             type: string
           example:
-            groupBuyId: "2001"
+            participationId: "2001"
         section:
           $ref: '#/components/schemas/NotificationSection'
 
