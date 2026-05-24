@@ -2,6 +2,7 @@ package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.notification.application.dto.NotificationCategory
 import com.moongchijang.domain.notification.application.dto.NotificationCursor
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
 import com.moongchijang.support.NotificationFixture
@@ -30,7 +31,12 @@ class NotificationQueryServiceTest {
         val user = UserFixture.createEmailUser(id = 1L)
         val occurredAt = LocalDateTime.now().minusHours(1).withNano(0)
         val notifications = listOf(
-            NotificationFixture.createNotification(user = user, id = 11L, occurredAt = occurredAt)
+            NotificationFixture.createNotification(
+                user = user,
+                id = 11L,
+                occurredAt = occurredAt,
+                triggerType = NotificationTriggerType.PICKUP_SAME_DAY_MORNING
+            )
         )
 
         `when`(
@@ -59,6 +65,7 @@ class NotificationQueryServiceTest {
         )
         assertThat(result.items).hasSize(1)
         assertThat(result.items[0].id).isEqualTo(11L)
+        assertThat(result.items[0].triggerType).isEqualTo(NotificationTriggerType.PICKUP_SAME_DAY_MORNING)
     }
 
     @Test

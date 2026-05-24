@@ -3,6 +3,7 @@ package com.moongchijang.domain.notification.application.dto
 import com.moongchijang.domain.notification.application.deeplink.NotificationDeeplinkSchema
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
@@ -36,6 +37,12 @@ data class NotificationItemResponse(
     val deeplinkType: NotificationDeeplinkType,
 
     @field:Schema(
+        description = "알림 트리거 타입(시나리오 식별자). 1~14 시나리오 분기 기준으로 사용합니다.",
+        example = "PICKUP_SAME_DAY_MORNING"
+    )
+    val triggerType: NotificationTriggerType?,
+
+    @field:Schema(
         description = "딥링크 파라미터. PICKUP_GUIDE는 participationId, GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 requestId를 사용합니다.",
         example = "{\"participationId\":\"2001\"}"
     )
@@ -55,6 +62,7 @@ data class NotificationItemResponse(
                 occurredAt = notification.occurredAt,
                 targetId = notification.targetId,
                 deeplinkType = notification.deeplinkType,
+                triggerType = notification.triggerType,
                 deeplinkParams = NotificationDeeplinkSchema.toParams(notification.deeplinkType, notification.targetId),
                 section = resolveSection(notification.occurredAt.toLocalDate(), today)
             )

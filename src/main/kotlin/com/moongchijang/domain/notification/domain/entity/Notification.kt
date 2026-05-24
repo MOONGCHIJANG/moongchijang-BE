@@ -54,6 +54,10 @@ class Notification(
     @Column(name = "deeplink_type", nullable = false, length = 30)
     var deeplinkType: NotificationDeeplinkType,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trigger_type", length = 50)
+    var triggerType: NotificationTriggerType? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L

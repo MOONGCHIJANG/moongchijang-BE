@@ -3135,6 +3135,40 @@ components:
       type: string
       enum: [PICKUP_GUIDE, GROUPBUY_DETAIL, MY_APPLYING, REQUEST_STATUS]
 
+    NotificationTriggerType:
+      type: string
+      description: |
+        알림 시나리오 식별자입니다.
+        1=PICKUP_SAME_DAY_MORNING
+        2=PICKUP_DAY_BEFORE_MORNING
+        3=PICKUP_NOT_COMPLETED_AFTER_CUTOFF
+        4=WISH_DEADLINE_MINUS_3_DAYS
+        5=WISH_DEADLINE_MINUS_1_DAY
+        6=WISH_TARGET_ACHIEVED_IMMEDIATE
+        7=APPLY_PAYMENT_SUCCESS_IMMEDIATE
+        8=APPLY_GROUPBUY_ACHIEVED_IMMEDIATE
+        9=APPLY_GROUPBUY_FAILED_IMMEDIATE
+        10=REQUEST_OPENED_IMMEDIATE
+        11=REQUEST_REJECTED_IMMEDIATE
+        12=REQUEST_NEW_PARTICIPANT_IMMEDIATE
+        13=REQUEST_TARGET_ACHIEVED_IMMEDIATE
+        14=REQUEST_DEADLINE_MINUS_3_DAYS
+      enum:
+        - PICKUP_SAME_DAY_MORNING
+        - PICKUP_DAY_BEFORE_MORNING
+        - PICKUP_NOT_COMPLETED_AFTER_CUTOFF
+        - WISH_DEADLINE_MINUS_3_DAYS
+        - WISH_DEADLINE_MINUS_1_DAY
+        - WISH_TARGET_ACHIEVED_IMMEDIATE
+        - APPLY_PAYMENT_SUCCESS_IMMEDIATE
+        - APPLY_GROUPBUY_ACHIEVED_IMMEDIATE
+        - APPLY_GROUPBUY_FAILED_IMMEDIATE
+        - REQUEST_OPENED_IMMEDIATE
+        - REQUEST_REJECTED_IMMEDIATE
+        - REQUEST_NEW_PARTICIPANT_IMMEDIATE
+        - REQUEST_TARGET_ACHIEVED_IMMEDIATE
+        - REQUEST_DEADLINE_MINUS_3_DAYS
+
     NotificationSection:
       type: string
       enum: [TODAY, YESTERDAY, OLDER]
@@ -3164,6 +3198,11 @@ components:
           nullable: true
         deeplinkType:
           $ref: '#/components/schemas/NotificationDeeplinkType'
+        triggerType:
+          allOf:
+            - $ref: '#/components/schemas/NotificationTriggerType'
+          nullable: true
+          description: 알림 트리거 타입(1~14 시나리오 식별). 기존 데이터는 null일 수 있습니다.
         deeplinkParams:
           type: object
           description: 딥링크 파라미터. PICKUP_GUIDE는 participationId, GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 requestId를 사용합니다.

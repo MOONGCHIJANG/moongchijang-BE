@@ -5,6 +5,7 @@ import com.moongchijang.domain.notification.application.template.NotificationTem
 import com.moongchijang.domain.notification.application.template.NotificationTemplateRenderer
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchStatus
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
@@ -141,7 +142,9 @@ class NotificationImmediateDispatchServiceTest {
         service.dispatch(event)
 
         assertEquals(NotificationDispatchStatus.SUCCESS, pending.status)
-        verify(notificationRepository).save(any())
+        val notificationCaptor = org.mockito.ArgumentCaptor.forClass(Notification::class.java)
+        verify(notificationRepository).save(notificationCaptor.capture())
+        assertEquals(NotificationTriggerType.WISH_TARGET_ACHIEVED_IMMEDIATE, notificationCaptor.value.triggerType)
     }
 
     @Test
