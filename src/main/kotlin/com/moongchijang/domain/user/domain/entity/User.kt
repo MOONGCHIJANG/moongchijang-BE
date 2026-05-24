@@ -44,6 +44,10 @@ class User(
     @Column(nullable = false, length = 20)
     var role: UserRole = UserRole.BUYER,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "last_role", length = 20)
+    var lastRole: UserRole? = null,
+
     @Column(name = "signup_completed", nullable = false)
     var signupCompleted: Boolean = false,
 
@@ -62,6 +66,10 @@ class User(
 
     fun withdraw(now: LocalDateTime = LocalDateTime.now()) {
         this.deletedAt = now
+    }
+
+    fun saveLastRole(role: UserRole) {
+        this.lastRole = role
     }
 
     companion object {

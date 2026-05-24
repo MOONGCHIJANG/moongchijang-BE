@@ -7,6 +7,7 @@ import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -129,6 +130,14 @@ class UserService(
         user.completeSignup(request.nickname, request.phoneNumber)
         log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
         return AdditionalInfoUpdatedResponse.from(user)
+    }
+
+    @Transactional
+    fun saveLastRole(userId: Long, role: UserRole) {
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        user.saveLastRole(role)
     }
 
     private fun findActiveKakaoUser(providerId: String): User? {
