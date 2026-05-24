@@ -153,7 +153,6 @@ class UserService(
         user.saveLastRole(role)
     }
 
-    @Transactional
     fun withdraw(userId: Long, request: WithdrawRequest) {
         log.info("[UserService] 회원탈퇴 처리 시작: userId={}", userId)
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
@@ -169,6 +168,7 @@ class UserService(
             reason = request.reason,
             reasonDetail = normalizedReasonDetail(request),
         )
+        userRepository.save(user)
 
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
     }
