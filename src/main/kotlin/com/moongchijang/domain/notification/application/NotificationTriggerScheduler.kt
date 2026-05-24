@@ -106,10 +106,11 @@ class NotificationTriggerScheduler(
                 participation.groupBuy.pickupDate,
                 participation.groupBuy.pickupTimeEnd
             ).plusMinutes(30)
+            val userId = requireNotNull(participation.user.id) { "참여자 userId는 null일 수 없습니다." }
             notificationEventPublisher.publishScheduledTrigger(
                 triggerType = NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF,
                 targetId = participation.id,
-                userIds = listOf(participation.user.id!!),
+                userIds = listOf(userId),
                 scheduleKey = "pickup-cutoff:${participation.id}:${cutoffAt}",
                 occurredAt = now
             )
@@ -141,7 +142,7 @@ class NotificationTriggerScheduler(
         )
 
         participations.forEach { participation ->
-            val userId = participation.user.id ?: return@forEach
+            val userId = requireNotNull(participation.user.id) { "참여자 userId는 null일 수 없습니다." }
             notificationEventPublisher.publishScheduledTrigger(
                 triggerType = triggerType,
                 targetId = participation.id,
