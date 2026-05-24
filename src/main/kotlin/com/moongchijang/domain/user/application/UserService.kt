@@ -1,6 +1,7 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -101,6 +102,15 @@ class UserService(
             nickname = nickname,
             available = !duplicated,
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getMyInfo(userId: Long): AuthUserResponse {
+        log.info("[UserService] 내 정보 조회 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        log.info("[UserService] 내 정보 조회 완료: userId={}", userId)
+        return AuthUserResponse.from(user)
     }
 
     @Transactional(readOnly = true)

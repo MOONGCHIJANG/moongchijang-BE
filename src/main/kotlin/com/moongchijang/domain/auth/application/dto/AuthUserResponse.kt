@@ -30,6 +30,9 @@ data class AuthUserResponse(
     @field:Schema(description = "서비스 역할", example = "BUYER")
     val role: UserRole,
 
+    @field:Schema(description = "마지막 사용 역할", example = "SELLER")
+    val lastRole: UserRole?,
+
     @field:Schema(description = "추가정보 입력 완료 여부", example = "false")
     val signupCompleted: Boolean,
 
@@ -51,6 +54,7 @@ data class AuthUserResponse(
             nickname = user.nickname,
             phoneNumber = user.phoneNumber,
             role = user.role,
+            lastRole = user.lastRole,
             signupCompleted = user.signupCompleted,
             deletedAt = user.deletedAt,
             createdAt = user.createdAt!!,

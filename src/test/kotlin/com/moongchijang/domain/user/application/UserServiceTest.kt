@@ -14,6 +14,7 @@ import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.entity.WithdrawalReason
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
@@ -259,6 +260,32 @@ class UserServiceTest {
     }
 
     @Test
+    fun `내 정보 조회 성공`() {
+        val user = UserFixture.createKakaoUser(id = 41L, providerId = "kakao-41", nickname = "조회유저").apply {
+            lastRole = UserRole.SELLER
+        }
+        setAuditFields(user, LocalDateTime.now(), LocalDateTime.now())
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(41L)).thenReturn(user)
+
+        val response = userService.getMyInfo(41L)
+
+        Assertions.assertEquals(41L, response.id)
+        Assertions.assertEquals(user.role, response.role)
+        Assertions.assertEquals(user.lastRole, response.lastRole)
+    }
+
+    @Test
+    fun `내 정보 조회 사용자 없음 예외`() {
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(42L)).thenReturn(null)
+
+        val exception = assertThrows<CustomException> {
+            userService.getMyInfo(42L)
+        }
+
+        Assertions.assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
     fun `회원탈퇴 불가 예외`() {
         Mockito.`when`(
             participationRepository.existsPendingPickupForWithdrawal(
@@ -363,5 +390,17 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED, exception.errorCode)
+    }
+
+    private fun setAuditFields(user: User, createdAt: LocalDateTime, updatedAt: LocalDateTime) {
+        val baseClass = user.javaClass.superclass
+
+        val createdAtField = baseClass.getDeclaredField("createdAt")
+        createdAtField.isAccessible = true
+        createdAtField.set(user, createdAt)
+
+        val updatedAtField = baseClass.getDeclaredField("updatedAt")
+        updatedAtField.isAccessible = true
+        updatedAtField.set(user, updatedAt)
     }
 }
