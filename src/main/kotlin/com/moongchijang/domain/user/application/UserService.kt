@@ -1,6 +1,10 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
@@ -22,6 +26,7 @@ import java.time.LocalDateTime
 class UserService(
     private val userRepository: UserRepository,
     private val phoneVerificationService: PhoneVerificationService,
+    private val participationRepository: ParticipationRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -138,6 +143,32 @@ class UserService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
         user.saveLastRole(role)
+    }
+
+    @Transactional
+    fun withdraw(userId: Long) {
+        log.info("[UserService] 회원탈퇴 처리 시작: userId={}", userId)
+        validateWithdrawable(userId)
+
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        user.withdraw()
+
+        log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
+    }
+
+    @Transactional(readOnly = true)
+    fun validateWithdrawable(userId: Long) {
+        val hasPendingPickup = participationRepository.existsPendingPickupForWithdrawal(
+            userId = userId,
+            participationStatus = ParticipationStatus.CONFIRMED,
+            pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+            groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+        )
+
+        if (hasPendingPickup) {
+            throw CustomException(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP)
+        }
     }
 
     private fun findActiveKakaoUser(providerId: String): User? {

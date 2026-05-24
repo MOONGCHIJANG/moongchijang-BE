@@ -63,6 +63,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     DUPLICATE_EMAIL(409_101, "이미 사용 중인 이메일입니다.", 409),
     REJOIN_NOT_AVAILABLE_YET(409_102, "탈퇴 후 30일 이후에 다시 가입할 수 있습니다.", 409),
     DUPLICATE_NICKNAME(409_103, "이미 사용 중인 닉네임이에요.", 409),
+    WITHDRAWAL_BLOCKED_PENDING_PICKUP(409_104, "수령 예정인 공구가 있어요. 카카오 채널로 문의해주세요.", 409),
 
     // Token (150~199)
     TOKEN_EXPIRED(401_151, "토큰이 만료되었습니다.", 401),

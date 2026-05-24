@@ -1,6 +1,10 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
@@ -19,7 +23,8 @@ class UserServiceTest {
     private val userRepository: UserRepository = Mockito.mock(UserRepository::class.java)
     private val phoneVerificationService: PhoneVerificationService =
         Mockito.mock(PhoneVerificationService::class.java)
-    private val userService = UserService(userRepository, phoneVerificationService)
+    private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
+    private val userService = UserService(userRepository, phoneVerificationService, participationRepository)
 
     @Test
     fun `활성 카카오 사용자 존재 시 기존 사용자 반환`() {
@@ -236,5 +241,23 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.INVALID_EMAIL_FORMAT, exception.errorCode)
+    }
+
+    @Test
+    fun `회원탈퇴 불가 예외`() {
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                1L,
+                ParticipationStatus.CONFIRMED,
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            userService.validateWithdrawable(1L)
+        }
+
+        Assertions.assertEquals(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP, exception.errorCode)
     }
 }
