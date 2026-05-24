@@ -2,6 +2,7 @@ package com.moongchijang.domain.favorite.domain.repository
 
 import com.moongchijang.domain.favorite.domain.entity.Favorite
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
@@ -10,7 +11,9 @@ interface FavoriteRepository : JpaRepository<Favorite, Long>, FavoriteRepository
 
     fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
 
-    fun deleteByUserId(userId: Long): Int
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Favorite f where f.user.id = :userId")
+    fun deleteByUserId(@Param("userId") userId: Long): Int
 
     fun deleteByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Int
 
