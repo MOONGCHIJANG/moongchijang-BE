@@ -11,8 +11,10 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.WithdrawalReason
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -294,7 +296,13 @@ class UserServiceTest {
         Mockito.`when`(favoriteRepository.deleteByUserId(1L)).thenReturn(3)
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
 
-        userService.withdraw(1L)
+        userService.withdraw(
+            1L,
+            WithdrawRequest(
+                reason = WithdrawalReason.NO_LONGER_INTERESTED,
+                reasonDetail = null,
+            )
+        )
 
         Mockito.verify(paymentService).cancelParticipation(
             100L,
@@ -326,10 +334,31 @@ class UserServiceTest {
         Mockito.`when`(favoriteRepository.deleteByUserId(2L)).thenReturn(0)
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(2L)).thenReturn(user)
 
-        userService.withdraw(2L)
+        userService.withdraw(
+            2L,
+            WithdrawRequest(
+                reason = WithdrawalReason.TIME_NOT_AVAILABLE,
+                reasonDetail = null,
+            )
+        )
 
         Mockito.verifyNoInteractions(paymentService)
         Mockito.verify(favoriteRepository).deleteByUserId(2L)
         Assertions.assertEquals(true, user.deletedAt != null)
+    }
+
+    @Test
+    fun `회원탈퇴 기타 사유 상세 미입력 예외`() {
+        val exception = assertThrows<CustomException> {
+            userService.withdraw(
+                1L,
+                WithdrawRequest(
+                    reason = WithdrawalReason.OTHER,
+                    reasonDetail = "   ",
+                )
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED, exception.errorCode)
     }
 }
