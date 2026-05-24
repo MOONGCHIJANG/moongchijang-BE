@@ -3,6 +3,7 @@ package com.moongchijang.domain.participation.domain.repository
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -17,6 +18,24 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 interface ParticipationRepository : JpaRepository<Participation, Long> {
+
+    @Query(
+        """
+        select case when count(p) > 0 then true else false end
+        from Participation p
+        join p.groupBuy gb
+        where p.user.id = :userId
+          and p.status = :participationStatus
+          and p.pickupStatus in :pickupStatuses
+          and gb.status in :groupBuyStatuses
+        """
+    )
+    fun existsPendingPickupForWithdrawal(
+        @Param("userId") userId: Long,
+        @Param("participationStatus") participationStatus: ParticipationStatus,
+        @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+    ): Boolean
 
     fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
 
