@@ -158,7 +158,7 @@ class AuthController(
         val userId = principal.id
         log.info("[AuthController] 로그아웃 요청 수신: userId={}", userId)
 
-        authService.logout(userId)
+        authService.logout(userId, principal.role)
         tokenService.clearRefreshTokenCookie(response)
 
         log.info("[AuthController] 로그아웃 응답 완료: userId={}", userId)

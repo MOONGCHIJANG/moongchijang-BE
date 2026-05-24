@@ -1,9 +1,20 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.application.PaymentService
+import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.WithdrawalReason
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -19,7 +30,16 @@ class UserServiceTest {
     private val userRepository: UserRepository = Mockito.mock(UserRepository::class.java)
     private val phoneVerificationService: PhoneVerificationService =
         Mockito.mock(PhoneVerificationService::class.java)
-    private val userService = UserService(userRepository, phoneVerificationService)
+    private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
+    private val favoriteRepository: FavoriteRepository = Mockito.mock(FavoriteRepository::class.java)
+    private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
+    private val userService = UserService(
+        userRepository,
+        phoneVerificationService,
+        participationRepository,
+        favoriteRepository,
+        paymentService,
+    )
 
     @Test
     fun `활성 카카오 사용자 존재 시 기존 사용자 반환`() {
@@ -236,5 +256,112 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.INVALID_EMAIL_FORMAT, exception.errorCode)
+    }
+
+    @Test
+    fun `회원탈퇴 불가 예외`() {
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                1L,
+                ParticipationStatus.CONFIRMED,
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            userService.validateWithdrawable(1L)
+        }
+
+        Assertions.assertEquals(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP, exception.errorCode)
+    }
+
+    @Test
+    fun `회원탈퇴 성공 처리`() {
+        val user = UserFixture.createKakaoUser(id = 1L, providerId = "kakao-1", nickname = "탈퇴대상")
+        val participation = Mockito.mock(Participation::class.java)
+        Mockito.`when`(participation.id).thenReturn(100L)
+
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                1L,
+                ParticipationStatus.CONFIRMED,
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(false)
+        Mockito.`when`(
+            participationRepository.findByUserIdAndStatusOrderByCreatedAtDesc(1L, ParticipationStatus.PAID_WAITING_GOAL)
+        ).thenReturn(listOf(participation))
+        Mockito.`when`(favoriteRepository.deleteByUserId(1L)).thenReturn(3)
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+
+        userService.withdraw(
+            1L,
+            WithdrawRequest(
+                reason = WithdrawalReason.NO_LONGER_INTERESTED,
+                reasonDetail = null,
+            )
+        )
+
+        Mockito.verify(paymentService).cancelParticipation(
+            100L,
+            1L,
+            CancelParticipationRequest(
+                reason = ParticipationCancelReason.OTHER,
+                reasonDetail = "회원탈퇴 자동 취소",
+            )
+        )
+        Mockito.verify(favoriteRepository).deleteByUserId(1L)
+        Assertions.assertEquals(true, user.deletedAt != null)
+    }
+
+    @Test
+    fun `회원탈퇴 참여중 공구 없음 처리`() {
+        val user = UserFixture.createKakaoUser(id = 2L, providerId = "kakao-2", nickname = "탈퇴대상2")
+
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                2L,
+                ParticipationStatus.CONFIRMED,
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(false)
+        Mockito.`when`(
+            participationRepository.findByUserIdAndStatusOrderByCreatedAtDesc(2L, ParticipationStatus.PAID_WAITING_GOAL)
+        ).thenReturn(emptyList())
+        Mockito.`when`(favoriteRepository.deleteByUserId(2L)).thenReturn(0)
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(2L)).thenReturn(user)
+
+        userService.withdraw(
+            2L,
+            WithdrawRequest(
+                reason = WithdrawalReason.TIME_NOT_AVAILABLE,
+                reasonDetail = null,
+            )
+        )
+
+        Mockito.verifyNoInteractions(paymentService)
+        Mockito.verify(favoriteRepository).deleteByUserId(2L)
+        Assertions.assertEquals(true, user.deletedAt != null)
+    }
+
+    @Test
+    fun `회원탈퇴 기타 사유 상세 미입력 예외`() {
+        val user = UserFixture.createKakaoUser(id = 1L, providerId = "kakao-1", nickname = "탈퇴대상")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+
+        val exception = assertThrows<CustomException> {
+            userService.withdraw(
+                1L,
+                WithdrawRequest(
+                    reason = WithdrawalReason.OTHER,
+                    reasonDetail = "   ",
+                )
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED, exception.errorCode)
     }
 }

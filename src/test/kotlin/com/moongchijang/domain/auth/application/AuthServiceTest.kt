@@ -8,6 +8,7 @@ import com.moongchijang.domain.auth.application.port.EmailSignupTokenStore
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.security.jwt.JwtTokenProvider
@@ -99,7 +100,8 @@ class AuthServiceTest {
 
     @Test
     fun `로그아웃 시 리프레시 토큰 삭제 호출`() {
-        authService.logout(9L)
+        authService.logout(9L, UserRole.SELLER)
+        Mockito.verify(userService).saveLastRole(9L, UserRole.SELLER)
         Mockito.verify(tokenService).deleteByUserId(9L)
     }
 

@@ -44,11 +44,22 @@ class User(
     @Column(nullable = false, length = 20)
     var role: UserRole = UserRole.BUYER,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "last_role", length = 20)
+    var lastRole: UserRole? = null,
+
     @Column(name = "signup_completed", nullable = false)
     var signupCompleted: Boolean = false,
 
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "withdrawal_reason", length = 50)
+    var withdrawalReason: WithdrawalReason? = null,
+
+    @Column(name = "withdrawal_reason_detail", length = 500)
+    var withdrawalReasonDetail: String? = null,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,8 +71,18 @@ class User(
         this.signupCompleted = true
     }
 
-    fun withdraw(now: LocalDateTime = LocalDateTime.now()) {
+    fun withdraw(
+        reason: WithdrawalReason?,
+        reasonDetail: String?,
+        now: LocalDateTime = LocalDateTime.now(),
+    ) {
+        this.withdrawalReason = reason
+        this.withdrawalReasonDetail = reasonDetail
         this.deletedAt = now
+    }
+
+    fun saveLastRole(role: UserRole) {
+        this.lastRole = role
     }
 
     companion object {

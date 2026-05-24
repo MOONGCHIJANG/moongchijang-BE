@@ -11,6 +11,7 @@ import com.moongchijang.domain.auth.application.dto.KakaoAuthUser
 import com.moongchijang.domain.auth.application.dto.KakaoLoginRequest
 import com.moongchijang.domain.auth.application.port.EmailSignupTokenStore
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -97,8 +98,9 @@ class AuthService(
     }
 
     @Transactional
-    fun logout(userId: Long) {
+    fun logout(userId: Long, role: UserRole) {
         log.info("[AuthService] 로그아웃 처리 시작: userId={}", userId)
+        userService.saveLastRole(userId, role)
         tokenService.deleteByUserId(userId)
         log.info("[AuthService] 로그아웃 처리 완료: userId={}", userId)
     }

@@ -1,12 +1,23 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.application.PaymentService
+import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
+import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.domain.user.domain.entity.WithdrawalReason
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -21,6 +32,9 @@ import java.time.LocalDateTime
 class UserService(
     private val userRepository: UserRepository,
     private val phoneVerificationService: PhoneVerificationService,
+    private val participationRepository: ParticipationRepository,
+    private val favoriteRepository: FavoriteRepository,
+    private val paymentService: PaymentService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -130,6 +144,82 @@ class UserService(
         log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
         return AdditionalInfoUpdatedResponse.from(user)
     }
+
+    @Transactional
+    fun saveLastRole(userId: Long, role: UserRole) {
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        user.saveLastRole(role)
+    }
+
+    fun withdraw(userId: Long, request: WithdrawRequest) {
+        log.info("[UserService] 회원탈퇴 처리 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        validateWithdrawalReason(request)
+        validateWithdrawable(userId)
+        cancelActiveParticipationsForWithdrawal(userId)
+        val deletedFavoriteCount = favoriteRepository.deleteByUserId(userId)
+        log.info("[UserService] 회원탈퇴 찜 삭제 완료: userId={}, deletedCount={}", userId, deletedFavoriteCount)
+
+        user.withdraw(
+            reason = request.reason,
+            reasonDetail = normalizedReasonDetail(request),
+        )
+        userRepository.save(user)
+
+        log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
+    }
+
+    @Transactional(readOnly = true)
+    fun validateWithdrawable(userId: Long) {
+        val hasPendingPickup = participationRepository.existsPendingPickupForWithdrawal(
+            userId = userId,
+            participationStatus = ParticipationStatus.CONFIRMED,
+            pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+            groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+        )
+
+        if (hasPendingPickup) {
+            throw CustomException(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP)
+        }
+    }
+
+    private fun cancelActiveParticipationsForWithdrawal(userId: Long) {
+        val activeParticipations = participationRepository.findByUserIdAndStatusOrderByCreatedAtDesc(
+            userId = userId,
+            status = ParticipationStatus.PAID_WAITING_GOAL,
+        )
+
+        if (activeParticipations.isEmpty()) {
+            return
+        }
+
+        log.info("[UserService] 회원탈퇴 참여중 공구 자동 취소 시작: userId={}, targetCount={}", userId, activeParticipations.size)
+        val request = CancelParticipationRequest(
+            reason = ParticipationCancelReason.OTHER,
+            reasonDetail = "회원탈퇴 자동 취소",
+        )
+        activeParticipations.forEach { participation ->
+            paymentService.cancelParticipation(
+                participationId = participation.id,
+                userId = userId,
+                request = request,
+            )
+        }
+        log.info("[UserService] 회원탈퇴 참여중 공구 자동 취소 완료: userId={}, targetCount={}", userId, activeParticipations.size)
+    }
+
+    private fun validateWithdrawalReason(request: WithdrawRequest) {
+        if (request.reason == WithdrawalReason.OTHER && request.reasonDetail.isNullOrBlank()) {
+            throw CustomException(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED)
+        }
+    }
+
+    private fun normalizedReasonDetail(request: WithdrawRequest): String? =
+        request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
 
     private fun findActiveKakaoUser(providerId: String): User? {
         return userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(
