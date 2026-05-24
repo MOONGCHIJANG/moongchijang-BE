@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test
 class NotificationDeeplinkSchemaTest {
 
     @Test
-    fun `PICKUP_GUIDE 딥링크 파라미터는 groupBuyId 반환`() {
+    fun `PICKUP_GUIDE 딥링크 파라미터는 participationId 반환`() {
         val params = NotificationDeeplinkSchema.toParams(NotificationDeeplinkType.PICKUP_GUIDE, 11L)
-        assertEquals("11", params["groupBuyId"])
+        assertEquals("11", params["participationId"])
     }
 
     @Test
@@ -27,9 +27,9 @@ class NotificationDeeplinkSchemaTest {
     }
 
     @Test
-    fun `REQUEST_STATUS 딥링크 파라미터는 targetId 반환`() {
+    fun `REQUEST_STATUS 딥링크 파라미터는 requestId 반환`() {
         val params = NotificationDeeplinkSchema.toParams(NotificationDeeplinkType.REQUEST_STATUS, 14L)
-        assertEquals("14", params["targetId"])
+        assertEquals("14", params["requestId"])
     }
 
     @Test

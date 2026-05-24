@@ -36,8 +36,8 @@ data class NotificationItemResponse(
     val deeplinkType: NotificationDeeplinkType,
 
     @field:Schema(
-        description = "딥링크 파라미터. PICKUP_GUIDE/GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 targetId를 사용합니다.",
-        example = "{\"groupBuyId\":\"2001\"}"
+        description = "딥링크 파라미터. PICKUP_GUIDE는 participationId, GROUPBUY_DETAIL/MY_APPLYING은 groupBuyId, REQUEST_STATUS는 requestId를 사용합니다.",
+        example = "{\"participationId\":\"2001\"}"
     )
     val deeplinkParams: Map<String, String>,
 
