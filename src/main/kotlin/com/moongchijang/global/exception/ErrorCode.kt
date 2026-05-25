@@ -125,6 +125,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PICKUP_LOCKED(400_400, "픽업일 00시 이후 이용할 수 있습니다.", 400),
     PICKUP_QR_NOT_FOUND(404_401, "픽업 QR을 찾을 수 없습니다.", 404),
     PICKUP_ALREADY_USED(409_400, "이미 사용된 픽업 QR입니다.", 409),
+    PICKUP_NOT_READY(409_401, "픽업 대기 상태인 QR만 완료 처리할 수 있습니다.", 409),
 
     OWNER_GROUPBUY_REQUEST_INVALID_DEADLINE(400_450, "희망 공구 기간은 최소 7일 이상이어야 합니다.", 400),
     OWNER_GROUPBUY_REQUEST_INVALID_QUANTITY(400_451, "공구 수량 조건이 올바르지 않습니다.", 400),
