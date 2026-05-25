@@ -1519,6 +1519,9 @@ paths:
       description: 사장님이 본인 매장 기준으로 제출한 공구 개설 요청 목록을 조회한다.
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
       responses:
         '200':
           description: 사장님 공구 개설 요청 목록
@@ -3668,24 +3671,32 @@ components:
       properties:
         success: { type: boolean, example: true }
         data:
-          type: array
-          items:
-            type: object
-            required: [requestId, productName, storeName, price, targetQuantity, pickupDate, status]
-            properties:
-              requestId: { type: integer, format: int64, example: 101 }
-              productName: { type: string, example: 두쫀쿠 세트 }
-              storeName: { type: string, example: 뭉치장 베이커리 }
-              originalPrice: { type: integer, nullable: true, example: 12000 }
-              price: { type: integer, example: 9900 }
-              targetQuantity: { type: integer, example: 20 }
-              pickupDate: { type: string, format: date, example: "2026-06-03" }
-              requestedAt: { type: string, format: date-time, nullable: true }
-              status:
-                type: string
-                enum: [PENDING, APPROVED, REJECTED]
-              rejectionReason: { type: string, nullable: true, example: 매장 사정으로 어렵습니다 }
-              approvedGroupBuyId: { type: integer, format: int64, nullable: true, example: 300 }
+          type: object
+          required: [content, totalElements, totalPages, number, size]
+          properties:
+            content:
+              type: array
+              items:
+                type: object
+                required: [requestId, productName, storeName, price, targetQuantity, pickupDate, status]
+                properties:
+                  requestId: { type: integer, format: int64, example: 101 }
+                  productName: { type: string, example: 두쫀쿠 세트 }
+                  storeName: { type: string, example: 뭉치장 베이커리 }
+                  originalPrice: { type: integer, nullable: true, example: 12000 }
+                  price: { type: integer, example: 9900 }
+                  targetQuantity: { type: integer, example: 20 }
+                  pickupDate: { type: string, format: date, example: "2026-06-03" }
+                  requestedAt: { type: string, format: date-time, nullable: true }
+                  status:
+                    type: string
+                    enum: [PENDING, APPROVED, REJECTED]
+                  rejectionReason: { type: string, nullable: true, example: 매장 사정으로 어렵습니다 }
+                  approvedGroupBuyId: { type: integer, format: int64, nullable: true, example: 300 }
+            totalElements: { type: integer, format: int64, example: 1 }
+            totalPages: { type: integer, example: 1 }
+            number: { type: integer, example: 0 }
+            size: { type: integer, example: 20 }
         error: { nullable: true, example: null }
 
     ApiResponseOwnerGroupBuyRequestDetail:
