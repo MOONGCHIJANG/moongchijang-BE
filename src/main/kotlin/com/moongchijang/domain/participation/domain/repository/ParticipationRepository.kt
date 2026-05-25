@@ -84,6 +84,11 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         pageable: Pageable
     ): Page<Participation>
 
+    fun countByUserIdAndStatusIn(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>
+    ): Long
+
     @Query(
         value = """
             select p
@@ -107,6 +112,70 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         @Param("userId") userId: Long,
         @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
         @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
+        pageable: Pageable
+    ): Page<Participation>
+
+    @Query(
+        """
+            select count(p)
+            from Participation p
+            where p.user.id = :userId
+              and p.status in :participationStatuses
+              and p.pickupStatus in :pickupStatuses
+        """
+    )
+    fun countByUserIdAndStatusInAndPickupStatusIn(
+        @Param("userId") userId: Long,
+        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+        @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>
+    ): Long
+
+    @Query(
+        value = """
+            select p
+            from Participation p
+            join fetch p.groupBuy gb
+            join fetch gb.store
+            where p.user.id = :userId
+              and p.status in :participationStatuses
+              and p.pickupStatus in :pickupStatuses
+            order by p.pickedUpAt desc, p.createdAt desc
+        """,
+        countQuery = """
+            select count(p)
+            from Participation p
+            where p.user.id = :userId
+              and p.status in :participationStatuses
+              and p.pickupStatus in :pickupStatuses
+        """
+    )
+    fun findPickupCompletedByUserId(
+        @Param("userId") userId: Long,
+        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+        @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
+        pageable: Pageable
+    ): Page<Participation>
+
+    @Query(
+        value = """
+            select p
+            from Participation p
+            join fetch p.groupBuy gb
+            join fetch gb.store
+            where p.user.id = :userId
+              and p.status in :statuses
+            order by coalesce(p.refundedAt, p.cancelledAt, p.createdAt) desc
+        """,
+        countQuery = """
+            select count(p)
+            from Participation p
+            where p.user.id = :userId
+              and p.status in :statuses
+        """
+    )
+    fun findCancelledOrRefundedByUserId(
+        @Param("userId") userId: Long,
+        @Param("statuses") statuses: Collection<ParticipationStatus>,
         pageable: Pageable
     ): Page<Participation>
 
