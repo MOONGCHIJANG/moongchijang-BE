@@ -1,5 +1,8 @@
 package com.moongchijang.domain.groupbuy.application
 
+import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestDetailResponse
+import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestPageResponse
+import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestStatusFilter
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestCreateRequest
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestIdResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestResponse
@@ -11,8 +14,10 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHisto
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
@@ -27,6 +32,7 @@ class GroupBuyRequestService(
     private val groupBuyRequestStatusHistoryRepository: GroupBuyRequestStatusHistoryRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val groupBuyOpenRequestService: GroupBuyOpenRequestService,
+    private val userRepository: UserRepository,
 ) {
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
@@ -94,6 +100,38 @@ class GroupBuyRequestService(
             .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
 
         return GroupBuyRequestResponse.from(request, history)
+    }
+
+    @Transactional(readOnly = true)
+    fun getAdminRequests(
+        status: AdminGroupBuyRequestStatusFilter,
+        pageable: Pageable
+    ): AdminGroupBuyRequestPageResponse {
+        val page = status.toStatus()
+            ?.let { groupBuyRequestRepository.findByStatusOrderByCreatedAtDesc(it, pageable) }
+            ?: groupBuyRequestRepository.findAllByOrderByCreatedAtDesc(pageable)
+
+        val userIds = page.content.map { it.userId }.distinct()
+        val usersById = if (userIds.isEmpty()) {
+            emptyMap()
+        } else {
+            userRepository.findAllById(userIds)
+                .mapNotNull { user -> user.id?.let { it to user } }
+                .toMap()
+        }
+
+        return AdminGroupBuyRequestPageResponse.from(page, usersById)
+    }
+
+    @Transactional(readOnly = true)
+    fun getAdminDetail(requestId: Long): AdminGroupBuyRequestDetailResponse {
+        val request = groupBuyRequestRepository.findById(requestId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
+        val requester = userRepository.findById(request.userId).orElse(null)
+        val history = groupBuyRequestStatusHistoryRepository
+            .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
+
+        return AdminGroupBuyRequestDetailResponse.from(request, requester, history)
     }
 
     fun updateStatus(requestId: Long, request: GroupBuyRequestStatusUpdateRequest): GroupBuyRequestResponse {

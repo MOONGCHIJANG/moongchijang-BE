@@ -3834,13 +3834,13 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [content, totalElements, totalPages]
+          required: [content, totalElements, totalPages, number, size]
           properties:
             content:
               type: array
               items:
                 type: object
-                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterName, createdAt]
+                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterId, createdAt]
                 properties:
                   requestId: { type: integer, format: int64 }
                   storeName: { type: string }
@@ -3850,10 +3850,13 @@ components:
                   status:
                     type: string
                     enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
-                  requesterName: { type: string }
-                  createdAt: { type: string, format: date-time }
-            totalElements: { type: integer }
+                  requesterId: { type: integer, format: int64 }
+                  requesterName: { type: string, nullable: true }
+                  createdAt: { type: string, format: date-time, nullable: true }
+            totalElements: { type: integer, format: int64 }
             totalPages: { type: integer }
+            number: { type: integer }
+            size: { type: integer }
         error: { nullable: true, example: null }
 
     ApiResponseAdminRequestDetail:
@@ -3863,10 +3866,28 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, additionalNote, status, rejectionReason, requesterName, createdAt]
+          required: [requestId, requester, storeName, productName, desiredQuantity, desiredPickupDate, status, statusHistory, createdAt]
           properties:
             requestId: { type: integer, format: int64 }
+            requester:
+              type: object
+              required: [userId]
+              properties:
+                userId: { type: integer, format: int64 }
+                nickname: { type: string, nullable: true }
+                phoneNumber: { type: string, nullable: true }
+                email: { type: string, nullable: true }
+                provider:
+                  type: string
+                  nullable: true
+                  enum: [KAKAO, EMAIL]
             storeName: { type: string }
+            storeAddress: { type: string, nullable: true }
+            placeId: { type: string, nullable: true }
+            roadAddress: { type: string, nullable: true }
+            lotAddress: { type: string, nullable: true }
+            latitude: { type: number, format: double, nullable: true }
+            longitude: { type: number, format: double, nullable: true }
             productName: { type: string }
             desiredQuantity: { type: integer }
             desiredPickupDate: { type: string, format: date }
@@ -3875,8 +3896,18 @@ components:
               type: string
               enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
             rejectionReason: { type: string, nullable: true }
-            requesterName: { type: string }
-            createdAt: { type: string, format: date-time }
+            openedGroupBuyId: { type: integer, format: int64, nullable: true }
+            statusHistory:
+              type: array
+              items:
+                type: object
+                required: [status, changedAt]
+                properties:
+                  status:
+                    type: string
+                    enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+                  changedAt: { type: string, format: date-time }
+            createdAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
     AdminRequestStatusUpdate:
