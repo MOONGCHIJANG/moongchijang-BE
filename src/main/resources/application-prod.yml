@@ -73,6 +73,20 @@ ses:
   region: ${SES_REGION}
   from-email: ${SES_FROM_EMAIL}
 
+email:
+  provider: ${EMAIL_PROVIDER:SES}
+
+google:
+  smtp:
+    host: ${GOOGLE_SMTP_HOST:smtp.gmail.com}
+    port: ${GOOGLE_SMTP_PORT:587}
+    username: ${GOOGLE_SMTP_USERNAME:unset-username}
+    app-password: ${GOOGLE_SMTP_APP_PASSWORD:unset-app-password}
+    from: ${GOOGLE_SMTP_FROM:unset-from@example.com}
+    connection-timeout: ${GOOGLE_SMTP_CONNECTION_TIMEOUT:5000}
+    timeout: ${GOOGLE_SMTP_TIMEOUT:5000}
+    write-timeout: ${GOOGLE_SMTP_WRITE_TIMEOUT:5000}
+
 groupbuy:
   status-transition:
     fixed-delay-ms: ${GROUPBUY_STATUS_TRANSITION_FIXED_DELAY_MS:60000}

@@ -5,6 +5,8 @@ import com.moongchijang.domain.auth.application.dto.EmailVerificationCodeVerifyR
 import com.moongchijang.domain.auth.application.port.EmailSender
 import com.moongchijang.domain.auth.application.port.EmailSignupTokenStore
 import com.moongchijang.domain.auth.application.port.EmailVerificationStore
+import com.moongchijang.global.config.EmailProperties
+import com.moongchijang.global.config.EmailProvider
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.junit.jupiter.api.Assertions
@@ -23,6 +25,7 @@ class EmailVerificationServiceTest {
         emailVerificationStore = emailVerificationStore,
         emailSignupTokenStore = emailSignupTokenStore,
         emailSender = emailSender,
+        emailProperties = EmailProperties(provider = EmailProvider.SES),
     )
 
     @Test
