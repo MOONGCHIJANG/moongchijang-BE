@@ -1495,6 +1495,9 @@ paths:
     get:
       tags: [Owner]
       summary: 진행 중인 공구 목록 조회 (사장님용)
+      description: |
+        사장님이 소속된 매장의 공구를 조회한다.
+        공구 상태는 진행 중(IN_PROGRESS), 달성(ACHIEVED), 미달(FAILED) 기준으로 반환한다.
       security:
         - bearerAuth: []
       responses:
@@ -1504,6 +1507,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseOwnerGroupBuyList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/v1/owner/group-buy-requests:
     post:
@@ -3481,13 +3488,14 @@ components:
           type: array
           items:
             type: object
-            required: [groupBuyId, productName, achievementRate, currentQuantity, targetQuantity, deadline, status]
+            required: [groupBuyId, productName, achievementRate, currentQuantity, targetQuantity, price, deadline, status]
             properties:
               groupBuyId: { type: integer, format: int64 }
               productName: { type: string }
               achievementRate: { type: integer }
               currentQuantity: { type: integer }
               targetQuantity: { type: integer }
+              price: { type: integer, description: 공구가 }
               deadline: { type: string, format: date }
               status:
                 type: string
