@@ -58,9 +58,12 @@ google:
   smtp:
     host: smtp.gmail.com
     port: 587
-    username:
-    app-password:
-    from:
+    username: test-username
+    app-password: test-app-password
+    from: no-reply@test.com
+    connection-timeout: 5000
+    timeout: 5000
+    write-timeout: 5000
 
 gemini:
   api-key: test-dummy-key

@@ -26,9 +26,9 @@ class GoogleSmtpConfig(
         props["mail.transport.protocol"] = "smtp"
         props["mail.smtp.auth"] = "true"
         props["mail.smtp.starttls.enable"] = "true"
-        props["mail.smtp.connectiontimeout"] = "5000"
-        props["mail.smtp.timeout"] = "5000"
-        props["mail.smtp.writetimeout"] = "5000"
+        props["mail.smtp.connectiontimeout"] = googleSmtpProperties.connectionTimeout.toString()
+        props["mail.smtp.timeout"] = googleSmtpProperties.timeout.toString()
+        props["mail.smtp.writetimeout"] = googleSmtpProperties.writeTimeout.toString()
         sender.javaMailProperties = props
         return sender
     }
