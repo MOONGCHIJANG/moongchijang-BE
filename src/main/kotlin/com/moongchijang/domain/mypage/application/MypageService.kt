@@ -132,13 +132,16 @@ class MypageService(
         if (participations.isEmpty()) return emptyMap()
         return paymentOrderRepository.findPaymentSummariesByParticipationIdIn(
             participationIds = participations.map { it.id }
-        ).associate {
-            it.participationId to MypageParticipationPaymentInfo(
-                groupBuyId = it.groupBuyId,
-                isApproved = it.orderStatus == PaymentOrderStatus.APPROVED,
-                paidAt = it.paidAt,
-                paymentMethod = it.paymentMethod
-            )
+        ).groupBy { it.participationId }
+            .mapValues { (_, summaries) ->
+                val summary = summaries.find { it.orderStatus == PaymentOrderStatus.APPROVED }
+                    ?: summaries.first()
+                MypageParticipationPaymentInfo(
+                    groupBuyId = summary.groupBuyId,
+                    isApproved = summary.orderStatus == PaymentOrderStatus.APPROVED,
+                    paidAt = summary.paidAt,
+                    paymentMethod = summary.paymentMethod
+                )
         }
     }
 

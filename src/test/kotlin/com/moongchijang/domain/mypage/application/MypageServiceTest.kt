@@ -157,6 +157,13 @@ class MypageServiceTest {
                 paymentSummary(
                     participationId = 11L,
                     groupBuyId = 101L,
+                    orderStatus = PaymentOrderStatus.CANCELLED,
+                    paidAt = LocalDateTime.of(2026, 5, 23, 8, 0),
+                    paymentMethod = "KAKAOPAY"
+                ),
+                paymentSummary(
+                    participationId = 11L,
+                    groupBuyId = 101L,
                     orderStatus = PaymentOrderStatus.APPROVED,
                     paidAt = LocalDateTime.of(2026, 5, 24, 9, 30),
                     paymentMethod = "CARD"
