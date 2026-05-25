@@ -104,3 +104,10 @@ groupbuy:
     lock:
       wait-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_WAIT_MS:100}
       lease-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_LEASE_MS:55000}
+
+business-registration:
+  api:
+    enabled: ${BUSINESS_REGISTRATION_API_ENABLED:false}
+    base-url: ${BUSINESS_REGISTRATION_API_BASE_URL:https://api.odcloud.kr}
+    status-path: ${BUSINESS_REGISTRATION_API_STATUS_PATH:/api/nts-businessman/v1/status}
+    service-key: ${BUSINESS_REGISTRATION_API_SERVICE_KEY:}
