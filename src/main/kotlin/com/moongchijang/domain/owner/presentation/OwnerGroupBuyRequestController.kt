@@ -4,12 +4,13 @@ import com.moongchijang.domain.owner.application.OwnerGroupBuyRequestService
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateRequest
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestDetailResponse
-import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestListItemResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestPageResponse
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -30,9 +31,10 @@ class OwnerGroupBuyRequestController(
     @GetMapping
     @Operation(summary = "사장님 공구 개설 요청 목록 조회")
     fun getMyRequests(
-        @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<OwnerGroupBuyRequestListItemResponse>>> {
-        return ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getMyRequests(principal.id)))
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        pageable: Pageable
+    ): ResponseEntity<ApiResponse<OwnerGroupBuyRequestPageResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getMyRequests(principal.id, pageable)))
     }
 
     @GetMapping("/{requestId}")

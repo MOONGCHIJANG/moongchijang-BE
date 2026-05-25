@@ -3,7 +3,7 @@ package com.moongchijang.domain.owner.application
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateRequest
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestDetailResponse
-import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestListItemResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestPageResponse
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
@@ -15,6 +15,9 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -32,17 +35,17 @@ class OwnerGroupBuyRequestService(
 ) {
 
     @Transactional(readOnly = true)
-    fun getMyRequests(ownerId: Long): List<OwnerGroupBuyRequestListItemResponse> {
+    fun getMyRequests(ownerId: Long, pageable: Pageable): OwnerGroupBuyRequestPageResponse {
         validateSeller(ownerId)
 
         val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
         if (storeIds.isEmpty()) {
-            return emptyList()
+            return OwnerGroupBuyRequestPageResponse.from(PageImpl(emptyList(), pageable, 0))
         }
 
-        return ownerGroupBuyRequestRepository
-            .findByOwnerIdAndStoreIdInOrderByCreatedAtDesc(ownerId, storeIds)
-            .map { OwnerGroupBuyRequestListItemResponse.from(it) }
+        val page: Page<OwnerGroupBuyRequest> = ownerGroupBuyRequestRepository
+            .findPageByOwnerIdAndStoreIdIn(ownerId, storeIds, pageable)
+        return OwnerGroupBuyRequestPageResponse.from(page)
     }
 
     @Transactional(readOnly = true)

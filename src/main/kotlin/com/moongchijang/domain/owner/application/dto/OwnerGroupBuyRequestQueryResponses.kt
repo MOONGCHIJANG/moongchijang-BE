@@ -3,9 +3,29 @@ package com.moongchijang.domain.owner.application.dto
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
+import org.springframework.data.domain.Page
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+
+data class OwnerGroupBuyRequestPageResponse(
+    val content: List<OwnerGroupBuyRequestListItemResponse>,
+    val totalElements: Long,
+    val totalPages: Int,
+    val number: Int,
+    val size: Int
+) {
+    companion object {
+        fun from(page: Page<OwnerGroupBuyRequest>): OwnerGroupBuyRequestPageResponse =
+            OwnerGroupBuyRequestPageResponse(
+                content = page.content.map { OwnerGroupBuyRequestListItemResponse.from(it) },
+                totalElements = page.totalElements,
+                totalPages = page.totalPages,
+                number = page.number,
+                size = page.size
+            )
+    }
+}
 
 data class OwnerGroupBuyRequestListItemResponse(
     val requestId: Long,
