@@ -3592,7 +3592,7 @@ components:
           example: 두쫀쿠 세트
         productDescription:
           type: string
-          maxLength: 500
+          maxLength: 30
           description: 상품 설명
           example: 소금빵 포함
         deadline:
