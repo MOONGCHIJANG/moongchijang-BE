@@ -90,16 +90,6 @@ class MypageControllerTest {
         verify(mypageService).getRefunds(1L)
     }
 
-    @Test
-    fun `mypage participations cancelled-or-refunded는 환불 취소 목록을 반환한다`() {
-        `when`(mypageService.getCancelledOrRefundedParticipations(1L)).thenReturn(emptyList())
-
-        val result = controller.getCancelledOrRefundedParticipations(principal())
-
-        assertEquals(emptyList<Any>(), result.body?.data)
-        verify(mypageService).getCancelledOrRefundedParticipations(1L)
-    }
-
     private fun principal(): CustomUserPrincipal =
         CustomUserPrincipal(
             id = 1L,

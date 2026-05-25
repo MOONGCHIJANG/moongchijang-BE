@@ -150,7 +150,11 @@ class MypageServiceTest {
             )
         ).thenReturn(listOf(participation))
         `when`(
-            paymentOrderRepository.findGroupBuyIdsByUserIdAndStatus(userId, PaymentOrderStatus.APPROVED)
+            paymentOrderRepository.findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
+                userId,
+                PaymentOrderStatus.APPROVED,
+                setOf(101L)
+            )
         ).thenReturn(listOf(101L))
 
         val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.IN_PROGRESS)
@@ -192,9 +196,10 @@ class MypageServiceTest {
         val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.IN_PROGRESS)
 
         assertEquals(emptyList<Any>(), result)
-        verify(paymentOrderRepository, never()).findGroupBuyIdsByUserIdAndStatus(
+        verify(paymentOrderRepository, never()).findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
             userId,
-            PaymentOrderStatus.APPROVED
+            PaymentOrderStatus.APPROVED,
+            emptyList()
         )
     }
 

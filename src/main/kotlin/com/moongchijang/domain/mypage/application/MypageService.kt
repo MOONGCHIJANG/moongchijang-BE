@@ -74,7 +74,8 @@ class MypageService(
         )
         if (participations.isEmpty()) return emptyList()
 
-        val cancellableGroupBuyIds = approvedPaymentGroupBuyIds(userId)
+        val inProgressGroupBuyIds = participations.map { it.groupBuy.id }.toSet()
+        val cancellableGroupBuyIds = approvedPaymentGroupBuyIds(userId, inProgressGroupBuyIds)
         return participations.map { MypageParticipationResponse.from(it, cancellableGroupBuyIds) }
     }
 
@@ -106,35 +107,34 @@ class MypageService(
             .findByUserIdOrderByCreatedAtDesc(userId)
             .map(MypageGroupBuyRequestResponse::from)
 
-    private fun approvedPaymentGroupBuyIds(userId: Long): Set<Long> =
-        paymentOrderRepository.findGroupBuyIdsByUserIdAndStatus(userId, PaymentOrderStatus.APPROVED).toSet()
+    private fun approvedPaymentGroupBuyIds(userId: Long, groupBuyIds: Collection<Long>): Set<Long> {
+        if (groupBuyIds.isEmpty()) return emptySet()
+        return paymentOrderRepository.findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
+            userId = userId,
+            status = PaymentOrderStatus.APPROVED,
+            groupBuyIds = groupBuyIds
+        ).toSet()
+    }
 
     private companion object {
         val IN_PROGRESS_PARTICIPATION_STATUSES = listOf(
             ParticipationStatus.PAID_WAITING_GOAL
         )
-        val IN_PROGRESS_PICKUP_STATUSES = listOf(
+        val ACTIVE_PICKUP_STATUSES = listOf(
             PickupStatus.NOT_READY,
             PickupStatus.READY
         )
+        val IN_PROGRESS_PICKUP_STATUSES = ACTIVE_PICKUP_STATUSES
         val PICKUP_WAITING_PARTICIPATION_STATUSES = listOf(
             ParticipationStatus.CONFIRMED
         )
-        val PICKUP_WAITING_PICKUP_STATUSES = listOf(
-            PickupStatus.NOT_READY,
-            PickupStatus.READY
-        )
-        val PICKUP_COMPLETED_PARTICIPATION_STATUSES = listOf(
-            ParticipationStatus.CONFIRMED
-        )
+        val PICKUP_WAITING_PICKUP_STATUSES = ACTIVE_PICKUP_STATUSES
+        val PICKUP_COMPLETED_PARTICIPATION_STATUSES = PICKUP_WAITING_PARTICIPATION_STATUSES
         val REFUND_PARTICIPATION_STATUSES = listOf(
             ParticipationStatus.REFUND_PENDING,
             ParticipationStatus.REFUNDED
         )
-        val CANCELLED_OR_REFUNDED_PARTICIPATION_STATUSES = listOf(
-            ParticipationStatus.CANCELLED,
-            ParticipationStatus.REFUND_PENDING,
-            ParticipationStatus.REFUNDED
-        )
+        val CANCELLED_OR_REFUNDED_PARTICIPATION_STATUSES =
+            listOf(ParticipationStatus.CANCELLED) + REFUND_PARTICIPATION_STATUSES
     }
 }

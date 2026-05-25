@@ -67,34 +67,6 @@ class MypageController(
     ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> =
         ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
 
-    @GetMapping("/mypage/participations/in-progress")
-    @Operation(summary = "내 진행 중 공구 내역 조회")
-    fun getInProgressParticipations(
-        @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getInProgressParticipations(principal.id)))
-
-    @GetMapping("/mypage/participations/pickup-waiting")
-    @Operation(summary = "내 픽업 대기 공구 내역 조회")
-    fun getPickupWaitingParticipations(
-        @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getPickupWaitingParticipations(principal.id)))
-
-    @GetMapping("/mypage/participations/pickup-completed")
-    @Operation(summary = "내 픽업 완료 공구 내역 조회")
-    fun getPickupCompletedParticipations(
-        @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getPickupCompletedParticipations(principal.id)))
-
-    @GetMapping("/mypage/participations/cancelled-or-refunded")
-    @Operation(summary = "내 환불/취소 공구 내역 조회")
-    fun getCancelledOrRefundedParticipations(
-        @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getCancelledOrRefundedParticipations(principal.id)))
-
     @GetMapping("/mypage/group-buy-requests")
     @Operation(summary = "내 공구 개설 요청 내역 조회")
     fun getGroupBuyRequests(

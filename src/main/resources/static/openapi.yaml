@@ -1398,62 +1398,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseTabCounts'
 
-  /api/v1/mypage/participations/in-progress:
-    get:
-      tags: [MyPage]
-      summary: 내 진행 중 공구 내역 조회
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 진행 중 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseMypageParticipationList'
-
-  /api/v1/mypage/participations/pickup-waiting:
-    get:
-      tags: [MyPage]
-      summary: 내 픽업 대기 공구 내역 조회
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 픽업 대기 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseMypageParticipationList'
-
-  /api/v1/mypage/participations/pickup-completed:
-    get:
-      tags: [MyPage]
-      summary: 내 픽업 완료 공구 내역 조회
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 픽업 완료 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseMypageParticipationList'
-
-  /api/v1/mypage/participations/cancelled-or-refunded:
-    get:
-      tags: [MyPage]
-      summary: 내 환불/취소 공구 내역 조회
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 환불/취소 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseMypageParticipationList'
-
   /api/v1/mypage/refunds:
     get:
       tags: [MyPage]
