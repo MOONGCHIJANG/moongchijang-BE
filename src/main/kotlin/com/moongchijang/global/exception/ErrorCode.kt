@@ -130,6 +130,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     OWNER_GROUPBUY_REQUEST_INVALID_QUANTITY(400_451, "공구 수량 조건이 올바르지 않습니다.", 400),
     OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_TIME(400_452, "픽업 종료 시간은 시작 시간 이후여야 합니다.", 400),
     OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_DATE(400_453, "픽업일은 공구 마감일 이후여야 합니다.", 400),
+    OWNER_GROUPBUY_REQUEST_NOT_FOUND(404_450, "사장님 공구 개설 요청을 찾을 수 없습니다.", 404),
 
     // Notification(360~369)
     NOTIFICATION_NOT_FOUND(404_360, "알림을 찾을 수 없습니다.", 404),

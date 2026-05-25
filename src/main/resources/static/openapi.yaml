@@ -1513,6 +1513,26 @@ paths:
           $ref: '#/components/responses/Forbidden'
 
   /api/v1/owner/group-buy-requests:
+    get:
+      tags: [Owner]
+      summary: 사장님 공구 개설 요청 목록 조회
+      description: 사장님이 본인 매장 기준으로 제출한 공구 개설 요청 목록을 조회한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 사장님 공구 개설 요청 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyRequestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags: [Owner]
       summary: 사장님 공구 개설 요청 제출
@@ -1539,6 +1559,34 @@ paths:
                 $ref: '#/components/schemas/ApiResponseOwnerGroupBuyRequestCreated'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/owner/group-buy-requests/{requestId}:
+    get:
+      tags: [Owner]
+      summary: 사장님 공구 개설 요청 상세 조회
+      description: 사장님이 본인 매장 기준으로 제출한 공구 개설 요청 상세와 승인/반려 상태를 조회한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 사장님 공구 개설 요청 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyRequestDetail'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3619,6 +3667,98 @@ components:
               type: string
               enum: [PENDING, APPROVED, REJECTED]
               example: PENDING
+        error: { nullable: true, example: null }
+
+    ApiResponseOwnerGroupBuyRequestList:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [content, totalElements, totalPages, number, size]
+          properties:
+            content:
+              type: array
+              items:
+                type: object
+                required: [requestId, productName, storeName, price, targetQuantity, pickupDate, status]
+                properties:
+                  requestId: { type: integer, format: int64, example: 101 }
+                  productName: { type: string, example: 두쫀쿠 세트 }
+                  storeName: { type: string, example: 뭉치장 베이커리 }
+                  originalPrice: { type: integer, nullable: true, example: 12000 }
+                  price: { type: integer, example: 9900 }
+                  targetQuantity: { type: integer, example: 20 }
+                  pickupDate: { type: string, format: date, example: "2026-06-03" }
+                  requestedAt: { type: string, format: date-time, nullable: true }
+                  status:
+                    type: string
+                    enum: [PENDING, APPROVED, REJECTED]
+                  rejectionReason: { type: string, nullable: true, example: 매장 사정으로 어렵습니다 }
+                  approvedGroupBuyId: { type: integer, format: int64, nullable: true, example: 300 }
+            totalElements: { type: integer, format: int64, example: 1 }
+            totalPages: { type: integer, example: 1 }
+            number: { type: integer, example: 0 }
+            size: { type: integer, example: 20 }
+        error: { nullable: true, example: null }
+
+    ApiResponseOwnerGroupBuyRequestDetail:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required:
+            - requestId
+            - storeId
+            - storeName
+            - productName
+            - productDescription
+            - price
+            - targetQuantity
+            - maxQuantity
+            - thumbnailUrl
+            - imageUrls
+            - deadline
+            - pickupDate
+            - pickupTimeStart
+            - pickupTimeEnd
+            - pickupLocation
+            - status
+          properties:
+            requestId: { type: integer, format: int64, example: 101 }
+            storeId: { type: integer, format: int64, example: 1 }
+            storeName: { type: string, example: 뭉치장 베이커리 }
+            productName: { type: string, example: 두쫀쿠 세트 }
+            productDescription: { type: string, example: 소금빵 포함 }
+            originalPrice: { type: integer, nullable: true, example: 12000 }
+            price: { type: integer, example: 9900 }
+            targetQuantity: { type: integer, example: 20 }
+            maxQuantity: { type: integer, example: 50 }
+            perUserLimit: { type: integer, nullable: true, example: 2 }
+            thumbnailUrl: { type: string, example: https://cdn.example.com/owner-requests/1.jpg }
+            imageUrls:
+              type: array
+              items:
+                type: string
+              example:
+                - https://cdn.example.com/owner-requests/1.jpg
+                - https://cdn.example.com/owner-requests/2.jpg
+            deadline: { type: string, format: date-time, example: "2026-06-02T23:59:00" }
+            pickupDate: { type: string, format: date, example: "2026-06-03" }
+            pickupTimeStart: { type: string, format: time, example: "12:00:00" }
+            pickupTimeEnd: { type: string, format: time, example: "18:00:00" }
+            pickupLocation: { type: string, example: 서울 성동구 성수이로 1 }
+            pickupContact: { type: string, nullable: true, example: "01012345678" }
+            status:
+              type: string
+              enum: [PENDING, APPROVED, REJECTED]
+            rejectionReason: { type: string, nullable: true, example: 매장 사정으로 어렵습니다 }
+            approvedGroupBuyId: { type: integer, format: int64, nullable: true, example: 300 }
+            reviewedAt: { type: string, format: date-time, nullable: true }
+            requestedAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
     
     ApiResponseReservationPage:

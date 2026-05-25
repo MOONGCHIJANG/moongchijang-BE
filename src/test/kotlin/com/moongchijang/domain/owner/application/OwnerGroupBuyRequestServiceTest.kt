@@ -23,8 +23,11 @@ import org.mockito.Mock
 import org.mockito.Mockito.any
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -94,6 +97,104 @@ class OwnerGroupBuyRequestServiceTest {
         assertEquals(listOf(0, 1), images.map { it.sortOrder })
         assertEquals(listOf("https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"), images.map { it.imageUrl })
         assertTrue(images.all { it.request.id == 101L })
+    }
+
+    @Test
+    fun `사장님 본인 매장의 공구 개설 요청 목록을 조회한다`() {
+        val owner = seller()
+        val pageable = PageRequest.of(0, 20)
+        val request = ownerRequest(owner = owner).apply {
+            id = 101L
+            status = OwnerGroupBuyRequestStatus.REJECTED
+            rejectionReason = "매장 사정으로 어렵습니다"
+        }
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(ownerGroupBuyRequestRepository.findPageByOwnerIdAndStoreIdIn(owner.id!!, listOf(1L), pageable))
+            .thenReturn(PageImpl(listOf(request), pageable, 1))
+
+        val result = service.getMyRequests(owner.id!!, pageable)
+
+        assertEquals(1, result.content.size)
+        assertEquals(1, result.totalElements)
+        assertEquals(1, result.totalPages)
+        assertEquals(0, result.number)
+        assertEquals(20, result.size)
+        assertEquals(101L, result.content[0].requestId)
+        assertEquals("두쫀쿠 세트", result.content[0].productName)
+        assertEquals("뭉치장 베이커리", result.content[0].storeName)
+        assertEquals(12000, result.content[0].originalPrice)
+        assertEquals(9900, result.content[0].price)
+        assertEquals(20, result.content[0].targetQuantity)
+        assertEquals(OwnerGroupBuyRequestStatus.REJECTED, result.content[0].status)
+        assertEquals("매장 사정으로 어렵습니다", result.content[0].rejectionReason)
+    }
+
+    @Test
+    fun `사장님 소속 매장이 없으면 공구 개설 요청 목록은 빈 목록이다`() {
+        val owner = seller()
+        val pageable = PageRequest.of(0, 20)
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(emptyList())
+
+        val result = service.getMyRequests(owner.id!!, pageable)
+
+        assertEquals(emptyList<Any>(), result.content)
+        assertEquals(0, result.totalElements)
+        assertEquals(0, result.totalPages)
+        assertEquals(0, result.number)
+        assertEquals(20, result.size)
+        verifyNoInteractions(ownerGroupBuyRequestRepository)
+    }
+
+    @Test
+    fun `사장님 공구 개설 요청 상세를 조회한다`() {
+        val owner = seller()
+        val request = ownerRequest(owner = owner).apply { id = 101L }
+        val images = listOf(
+            OwnerGroupBuyRequestImage(request = request, imageUrl = "https://cdn.example.com/1.jpg", sortOrder = 0),
+            OwnerGroupBuyRequestImage(request = request, imageUrl = "https://cdn.example.com/2.jpg", sortOrder = 1)
+        )
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(ownerGroupBuyRequestRepository.findById(101L)).thenReturn(Optional.of(request))
+        `when`(storeStaffRepository.existsByUserIdAndStoreId(owner.id!!, 1L)).thenReturn(true)
+        `when`(ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(101L)).thenReturn(images)
+
+        val result = service.getDetail(owner.id!!, 101L)
+
+        assertEquals(101L, result.requestId)
+        assertEquals(1L, result.storeId)
+        assertEquals("뭉치장 베이커리", result.storeName)
+        assertEquals("두쫀쿠 세트", result.productName)
+        assertEquals("소금빵 포함", result.productDescription)
+        assertEquals(12000, result.originalPrice)
+        assertEquals(9900, result.price)
+        assertEquals(20, result.targetQuantity)
+        assertEquals(50, result.maxQuantity)
+        assertEquals(2, result.perUserLimit)
+        assertEquals("https://cdn.example.com/1.jpg", result.thumbnailUrl)
+        assertEquals(listOf("https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"), result.imageUrls)
+        assertEquals(OwnerGroupBuyRequestStatus.PENDING, result.status)
+    }
+
+    @Test
+    fun `본인 요청이 아니면 사장님 공구 개설 요청 상세를 조회할 수 없다`() {
+        val owner = seller()
+        val otherOwner = seller().apply { id = 2L }
+        val request = ownerRequest(owner = otherOwner).apply { id = 101L }
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(ownerGroupBuyRequestRepository.findById(101L)).thenReturn(Optional.of(request))
+
+        val ex = assertThrows<CustomException> {
+            service.getDetail(owner.id!!, 101L)
+        }
+
+        assertEquals(ErrorCode.FORBIDDEN, ex.errorCode)
+        verifyNoInteractions(ownerGroupBuyRequestImageRepository)
     }
 
     @Test
@@ -181,6 +282,27 @@ class OwnerGroupBuyRequestServiceTest {
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {
         role = UserRole.SELLER
     }
+
+    private fun ownerRequest(
+        owner: com.moongchijang.domain.user.domain.entity.User = seller()
+    ) = OwnerGroupBuyRequest(
+        owner = owner,
+        store = GroupBuyFixture.createStore(),
+        productName = "두쫀쿠 세트",
+        productDescription = "소금빵 포함",
+        originalPrice = 12000,
+        price = 9900,
+        targetQuantity = 20,
+        maxQuantity = 50,
+        perUserLimit = 2,
+        thumbnailUrl = "https://cdn.example.com/1.jpg",
+        deadline = FIXED_NOW.plusDays(8),
+        pickupDate = FIXED_NOW.toLocalDate().plusDays(9),
+        pickupTimeStart = LocalTime.of(12, 0),
+        pickupTimeEnd = LocalTime.of(18, 0),
+        pickupLocation = "서울 성동구 성수이로 1",
+        pickupContact = "01012345678"
+    )
 
     private fun validRequest(
         deadline: LocalDateTime = FIXED_NOW.plusDays(8),
