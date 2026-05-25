@@ -5,6 +5,7 @@ import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateR
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestDetailResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestListItemResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestPageResponse
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.security.principal.CustomUserPrincipal
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
+import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -26,27 +28,34 @@ class OwnerGroupBuyRequestControllerTest {
     @Test
     fun `사장님 공구 개설 요청 목록을 조회한다`() {
         val principal = principal()
-        val response = listOf(
-            OwnerGroupBuyRequestListItemResponse(
-                requestId = 101L,
-                productName = "두쫀쿠 세트",
-                storeName = "뭉치장 베이커리",
-                originalPrice = 12000,
-                price = 9900,
-                targetQuantity = 20,
-                pickupDate = LocalDate.of(2026, 6, 3),
-                requestedAt = LocalDateTime.of(2026, 5, 25, 12, 0),
-                status = OwnerGroupBuyRequestStatus.PENDING,
-                rejectionReason = null,
-                approvedGroupBuyId = null
-            )
+        val pageable = PageRequest.of(0, 20)
+        val response = OwnerGroupBuyRequestPageResponse(
+            content = listOf(
+                OwnerGroupBuyRequestListItemResponse(
+                    requestId = 101L,
+                    productName = "두쫀쿠 세트",
+                    storeName = "뭉치장 베이커리",
+                    originalPrice = 12000,
+                    price = 9900,
+                    targetQuantity = 20,
+                    pickupDate = LocalDate.of(2026, 6, 3),
+                    requestedAt = LocalDateTime.of(2026, 5, 25, 12, 0),
+                    status = OwnerGroupBuyRequestStatus.PENDING,
+                    rejectionReason = null,
+                    approvedGroupBuyId = null
+                )
+            ),
+            totalElements = 1,
+            totalPages = 1,
+            number = 0,
+            size = 20
         )
-        `when`(ownerGroupBuyRequestService.getMyRequests(1L)).thenReturn(response)
+        `when`(ownerGroupBuyRequestService.getMyRequests(1L, pageable)).thenReturn(response)
 
-        val result = controller.getMyRequests(principal)
+        val result = controller.getMyRequests(principal, pageable)
 
         assertEquals(response, result.body?.data)
-        verify(ownerGroupBuyRequestService).getMyRequests(1L)
+        verify(ownerGroupBuyRequestService).getMyRequests(1L, pageable)
     }
 
     @Test

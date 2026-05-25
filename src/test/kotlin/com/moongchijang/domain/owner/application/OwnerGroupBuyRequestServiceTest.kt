@@ -26,6 +26,8 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -100,6 +102,7 @@ class OwnerGroupBuyRequestServiceTest {
     @Test
     fun `사장님 본인 매장의 공구 개설 요청 목록을 조회한다`() {
         val owner = seller()
+        val pageable = PageRequest.of(0, 20)
         val request = ownerRequest(owner = owner).apply {
             id = 101L
             status = OwnerGroupBuyRequestStatus.REJECTED
@@ -108,32 +111,41 @@ class OwnerGroupBuyRequestServiceTest {
 
         `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
         `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
-        `when`(ownerGroupBuyRequestRepository.findByOwnerIdAndStoreIdInOrderByCreatedAtDesc(owner.id!!, listOf(1L)))
-            .thenReturn(listOf(request))
+        `when`(ownerGroupBuyRequestRepository.findPageByOwnerIdAndStoreIdIn(owner.id!!, listOf(1L), pageable))
+            .thenReturn(PageImpl(listOf(request), pageable, 1))
 
-        val result = service.getMyRequests(owner.id!!)
+        val result = service.getMyRequests(owner.id!!, pageable)
 
-        assertEquals(1, result.size)
-        assertEquals(101L, result[0].requestId)
-        assertEquals("두쫀쿠 세트", result[0].productName)
-        assertEquals("뭉치장 베이커리", result[0].storeName)
-        assertEquals(12000, result[0].originalPrice)
-        assertEquals(9900, result[0].price)
-        assertEquals(20, result[0].targetQuantity)
-        assertEquals(OwnerGroupBuyRequestStatus.REJECTED, result[0].status)
-        assertEquals("매장 사정으로 어렵습니다", result[0].rejectionReason)
+        assertEquals(1, result.content.size)
+        assertEquals(1, result.totalElements)
+        assertEquals(1, result.totalPages)
+        assertEquals(0, result.number)
+        assertEquals(20, result.size)
+        assertEquals(101L, result.content[0].requestId)
+        assertEquals("두쫀쿠 세트", result.content[0].productName)
+        assertEquals("뭉치장 베이커리", result.content[0].storeName)
+        assertEquals(12000, result.content[0].originalPrice)
+        assertEquals(9900, result.content[0].price)
+        assertEquals(20, result.content[0].targetQuantity)
+        assertEquals(OwnerGroupBuyRequestStatus.REJECTED, result.content[0].status)
+        assertEquals("매장 사정으로 어렵습니다", result.content[0].rejectionReason)
     }
 
     @Test
     fun `사장님 소속 매장이 없으면 공구 개설 요청 목록은 빈 목록이다`() {
         val owner = seller()
+        val pageable = PageRequest.of(0, 20)
 
         `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
         `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(emptyList())
 
-        val result = service.getMyRequests(owner.id!!)
+        val result = service.getMyRequests(owner.id!!, pageable)
 
-        assertEquals(emptyList<Any>(), result)
+        assertEquals(emptyList<Any>(), result.content)
+        assertEquals(0, result.totalElements)
+        assertEquals(0, result.totalPages)
+        assertEquals(0, result.number)
+        assertEquals(20, result.size)
         verifyNoInteractions(ownerGroupBuyRequestRepository)
     }
 
