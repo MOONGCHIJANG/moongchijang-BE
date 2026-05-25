@@ -36,7 +36,7 @@ class FavoriteRepositoryImpl(
         val content = queryFactory
             .select(groupBuy)
             .from(favorite)
-            .join(favorite.groupBuy, groupBuy).fetchJoin()
+            .join(favorite.groupBuy, groupBuy)
             .join(groupBuy.store, store).fetchJoin()
             .where(where)
             .orderBy(*orderSpecifiers.toTypedArray())

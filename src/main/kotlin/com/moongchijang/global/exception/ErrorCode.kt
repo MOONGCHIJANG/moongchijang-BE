@@ -117,7 +117,15 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PARTICIPATION_CANCEL_NOT_ALLOWED(409_357, "취소할 수 없는 참여 상태입니다.", 409),
     PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED(400_358, "기타 취소 사유를 입력해주세요.", 400),
 
+    // Pickup(400~449)
+    PICKUP_PARTICIPATION_FORBIDDEN(403_400, "본인의 참여 정보만 조회할 수 있습니다.", 403),
+    PICKUP_LOCKED(400_400, "픽업일 00시 이후 이용할 수 있습니다.", 400),
+    PICKUP_QR_NOT_FOUND(404_401, "픽업 QR을 찾을 수 없습니다.", 404),
+    PICKUP_ALREADY_USED(409_400, "이미 사용된 픽업 QR입니다.", 409),
+
     // Notification(360~369)
     NOTIFICATION_NOT_FOUND(404_360, "알림을 찾을 수 없습니다.", 404),
     NOTIFICATION_FORBIDDEN(403_360, "본인 알림만 처리할 수 있습니다.", 403),
+    NOTIFICATION_TEMPLATE_NOT_FOUND(404_361, "알림 템플릿을 찾을 수 없습니다.", 404),
+    NOTIFICATION_TEMPLATE_VARIABLE_MISSING(400_361, "알림 템플릿 변수 값이 누락되었습니다.", 400),
 }

@@ -2,6 +2,10 @@ spring:
   flyway:
     enabled: false
 
+app:
+  share:
+    base-url: https://test.moongchijang.com
+
 oauth:
   kakao:
     client-id: test-client-id

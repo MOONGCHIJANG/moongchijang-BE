@@ -16,9 +16,7 @@ object GroupBuyRequestFixture {
         longitude: Double? = null,
         productName: String = "튀김소보로",
         desiredQuantity: Int = 2,
-        desiredPickupDate: LocalDate = LocalDate.now().plusDays(3),
-        contactPhone: String? = null,
-        contactInstagram: String? = null
+        desiredPickupDate: LocalDate = LocalDate.now().plusDays(3)
     ): GroupBuyRequestCreateRequest {
         return GroupBuyRequestCreateRequest(
             storeName = storeName,
@@ -30,9 +28,7 @@ object GroupBuyRequestFixture {
             longitude = longitude,
             productName = productName,
             desiredQuantity = desiredQuantity,
-            desiredPickupDate = desiredPickupDate,
-            contactPhone = contactPhone,
-            contactInstagram = contactInstagram
+            desiredPickupDate = desiredPickupDate
         )
     }
 

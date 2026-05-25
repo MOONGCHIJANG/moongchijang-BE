@@ -8,6 +8,7 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedRequest
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressItem
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressResponse
+import com.moongchijang.domain.groupbuy.application.dto.ShareMetaResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerHeartbeatRequest
 import com.moongchijang.domain.store.domain.entity.DistrictType
@@ -99,6 +100,29 @@ class GroupBuyController(
         )
 
         log.info("[GroupBuyController] 공구 상세 조회 응답 완료: groupBuyId={}", groupBuyId)
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @GetMapping("/{groupBuyId}/share")
+    @Operation(summary = "공유 메타데이터 조회")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "공유 메타데이터 조회 성공"),
+            SwaggerApiResponse(
+                responseCode = "404",
+                description = "공구를 찾을 수 없음",
+                content = [Content(schema = Schema(implementation = ApiResponse::class))]
+            )
+        ]
+    )
+    fun getShareMeta(
+        @PathVariable groupBuyId: Long
+    ): ResponseEntity<ApiResponse<ShareMetaResponse>> {
+        log.debug("[GroupBuyController] 공구 공유 메타데이터 조회 요청 수신: groupBuyId={}", groupBuyId)
+
+        val response = groupBuyService.getShareMeta(groupBuyId)
+
+        log.debug("[GroupBuyController] 공구 공유 메타데이터 조회 응답 완료: groupBuyId={}", groupBuyId)
         return ResponseEntity.ok(ApiResponse.success(response))
     }
 

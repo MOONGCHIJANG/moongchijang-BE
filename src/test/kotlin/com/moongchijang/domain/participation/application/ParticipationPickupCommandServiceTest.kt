@@ -1,14 +1,14 @@
 package com.moongchijang.domain.participation.application
 
-import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.support.ParticipationFixture
 import com.moongchijang.support.UserFixture
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDate
@@ -25,19 +25,15 @@ class ParticipationPickupCommandServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
-    @Mock
-    private lateinit var notificationEventPublisher: NotificationEventPublisher
-
     private val service by lazy {
         ParticipationPickupCommandService(
             participationRepository = participationRepository,
-            userRepository = userRepository,
-            notificationEventPublisher = notificationEventPublisher
+            userRepository = userRepository
         )
     }
 
     @Test
-    fun `픽업 완료를 처리할 때 픽업 완료 즉시 알림 이벤트 발행`() {
+    fun `픽업 완료를 처리할 때 픽업 상태 변경`() {
         val now = LocalDateTime.of(2026, 5, 23, 12, 0)
         val participation = ParticipationFixture.createParticipation(
             participationId = 101L,
@@ -58,11 +54,8 @@ class ParticipationPickupCommandServiceTest {
 
         service.completePickup(participationId = 101L, processedByUserId = 999L, pickedUpAt = now)
 
-        verify(notificationEventPublisher).publishPickupCompleted(
-            groupBuyId = 201L,
-            userId = 1L,
-            participationId = 101L,
-            occurredAt = now
-        )
+        assertEquals(PickupStatus.PICKED_UP, participation.pickupStatus)
+        assertEquals(now, participation.pickedUpAt)
+        assertEquals(999L, participation.pickupProcessedBy?.id)
     }
 }

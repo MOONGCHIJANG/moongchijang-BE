@@ -1,8 +1,6 @@
 package com.moongchijang.domain.mypage.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
-import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
-import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -27,52 +25,8 @@ class MyPageParticipationQueryServiceTest {
     @Mock
     private lateinit var participationRepository: ParticipationRepository
 
-    @Mock
-    private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
-
     private val service by lazy {
-        MyPageParticipationQueryService(participationRepository, groupBuyRequestRepository)
-    }
-
-    @Test
-    fun `탭별 카운트 조회 시 Figma 탭 기준으로 분리된 건수 반환`() {
-        val userId = 1L
-
-        `when`(
-            participationRepository.countByUserIdAndStatusIn(
-                userId,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL)
-            )
-        ).thenReturn(4L)
-        `when`(
-            participationRepository.countByUserIdAndStatusInAndPickupStatusIn(
-                userId = userId,
-                participationStatuses = listOf(ParticipationStatus.CONFIRMED),
-                pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY)
-            )
-        ).thenReturn(2L)
-        `when`(
-            participationRepository.countByUserIdAndStatusInAndPickupStatusIn(
-                userId = userId,
-                participationStatuses = listOf(ParticipationStatus.CONFIRMED),
-                pickupStatuses = listOf(PickupStatus.PICKED_UP)
-            )
-        ).thenReturn(1L)
-        `when`(
-            participationRepository.countByUserIdAndStatusIn(
-                userId,
-                listOf(ParticipationStatus.CANCELLED, ParticipationStatus.REFUNDED)
-            )
-        ).thenReturn(3L)
-        `when`(groupBuyRequestRepository.countByUserId(userId)).thenReturn(5L)
-
-        val result = service.getTabCounts(userId)
-
-        assertEquals(4L, result.inProgressCount)
-        assertEquals(2L, result.pickupWaitingCount)
-        assertEquals(1L, result.pickupCompletedCount)
-        assertEquals(3L, result.cancelledOrRefundedCount)
-        assertEquals(5L, result.requestCount)
+        MyPageParticipationQueryService(participationRepository)
     }
 
     @Test
@@ -253,96 +207,5 @@ class MyPageParticipationQueryServiceTest {
         assertEquals(1, item.quantity)
         assertEquals(true, item.isClosed)
         assertEquals(createdAt, item.participatedAt)
-    }
-
-    @Test
-    fun `픽업 완료 참여 내역 조회 시 픽업 완료 상태 조건 페이지 반환`() {
-        val userId = 5L
-        val pageable = PageRequest.of(0, 20)
-        val now = LocalDateTime.now()
-        val participation = ParticipationFixture.createParticipation(
-            participationId = 501L,
-            groupBuyId = 1001L,
-            quantity = 1,
-            totalAmount = 18000,
-            currentQuantity = 50,
-            targetQuantity = 50,
-            deadline = now.minusDays(1),
-            pickupDate = now.toLocalDate().minusDays(1),
-            pickupTimeStart = LocalTime.of(13, 0),
-            createdAt = now.minusDays(3),
-            participationStatus = ParticipationStatus.CONFIRMED,
-            pickupStatus = PickupStatus.PICKED_UP,
-            groupBuyStatus = GroupBuyStatus.COMPLETED
-        ).apply {
-            pickedUpAt = now.minusDays(1)
-        }
-        val page = PageImpl(listOf(participation), pageable, 1)
-
-        `when`(
-            participationRepository.findPickupCompletedByUserId(
-                userId = userId,
-                participationStatuses = listOf(ParticipationStatus.CONFIRMED),
-                pickupStatuses = listOf(PickupStatus.PICKED_UP),
-                pageable = pageable
-            )
-        ).thenReturn(page)
-
-        val result = service.getPickupCompletedParticipations(userId, pageable)
-
-        verify(participationRepository).findPickupCompletedByUserId(
-            userId = userId,
-            participationStatuses = listOf(ParticipationStatus.CONFIRMED),
-            pickupStatuses = listOf(PickupStatus.PICKED_UP),
-            pageable = pageable
-        )
-        assertEquals(1L, result.totalElements)
-        assertEquals(501L, result.content.first().participationId)
-        assertEquals(participation.pickedUpAt, result.content.first().pickedUpAt)
-    }
-
-    @Test
-    fun `환불 취소 참여 내역 조회 시 취소 환불 상태 조건 페이지 반환`() {
-        val userId = 6L
-        val pageable = PageRequest.of(0, 20)
-        val now = LocalDateTime.now()
-        val participation = ParticipationFixture.createParticipation(
-            participationId = 601L,
-            groupBuyId = 1101L,
-            quantity = 1,
-            totalAmount = 18000,
-            currentQuantity = 10,
-            targetQuantity = 50,
-            deadline = now.plusDays(1),
-            pickupDate = now.toLocalDate().plusDays(2),
-            pickupTimeStart = LocalTime.of(13, 0),
-            createdAt = now.minusDays(1),
-            participationStatus = ParticipationStatus.CANCELLED
-        ).apply {
-            cancelReason = ParticipationCancelReason.OTHER
-            cancelReasonDetail = "시간이 맞지 않습니다"
-            cancelledAt = now
-            refundedAt = now
-        }
-        val page = PageImpl(listOf(participation), pageable, 1)
-
-        `when`(
-            participationRepository.findCancelledOrRefundedByUserId(
-                userId = userId,
-                statuses = listOf(ParticipationStatus.CANCELLED, ParticipationStatus.REFUNDED),
-                pageable = pageable
-            )
-        ).thenReturn(page)
-
-        val result = service.getCancelledOrRefundedParticipations(userId, pageable)
-
-        verify(participationRepository).findCancelledOrRefundedByUserId(
-            userId = userId,
-            statuses = listOf(ParticipationStatus.CANCELLED, ParticipationStatus.REFUNDED),
-            pageable = pageable
-        )
-        assertEquals(1L, result.totalElements)
-        assertEquals(ParticipationStatus.CANCELLED, result.content.first().status)
-        assertEquals(ParticipationCancelReason.OTHER, result.content.first().cancelReason)
     }
 }

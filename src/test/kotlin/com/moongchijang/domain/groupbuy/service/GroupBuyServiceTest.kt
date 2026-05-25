@@ -14,10 +14,10 @@ import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
@@ -46,8 +46,18 @@ class GroupBuyServiceTest {
     @Mock
     private lateinit var participationRepository: ParticipationRepository
 
-    @InjectMocks
     private lateinit var service: GroupBuyService
+
+    @BeforeEach
+    fun setUp() {
+        service = GroupBuyService(
+            groupBuyRepository = groupBuyRepository,
+            groupBuyImageRepository = groupBuyImageRepository,
+            favoriteRepository = favoriteRepository,
+            participationRepository = participationRepository,
+            shareBaseUrl = "https://moongchijang.com"
+        )
+    }
 
     @Test
     fun `공구 피드 keyword 제외 조회 검증`() {
@@ -302,6 +312,45 @@ class GroupBuyServiceTest {
         `when`(groupBuyRepository.findWithStoreById(999L)).thenReturn(Optional.empty())
 
         val ex = assertThrows<CustomException> { service.getDetail(999L, 1L) }
+
+        assertEquals(ErrorCode.GROUPBUY_NOT_FOUND, ex.errorCode)
+    }
+
+    @Test
+    fun `공구 공유 메타데이터 조회 성공`() {
+        val groupBuyId = 101L
+        val groupBuy = GroupBuyFixture.createGroupBuy(
+            id = groupBuyId,
+            status = GroupBuyStatus.IN_PROGRESS,
+            productName = "두쭌쿠 오리지널 1개"
+        ).apply {
+            thumbnailUrl = "https://cdn.moongchijang.com/group-buys/101/thumbnail.jpg"
+            productDescription = "지금 함께 주문하고 픽업해요."
+            pickupDate = LocalDate.of(2026, 5, 15)
+            pickupTimeStart = LocalTime.of(14, 0)
+            pickupTimeEnd = LocalTime.of(18, 0)
+        }
+
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+
+        val result = service.getShareMeta(groupBuyId)
+
+        assertEquals("https://moongchijang.com/group-buys/101", result.shareUrl)
+        assertEquals("두쭌쿠 오리지널 1개", result.title)
+        assertEquals("지금 함께 주문하고 픽업해요.", result.description)
+        assertEquals("https://cdn.moongchijang.com/group-buys/101/thumbnail.jpg", result.imageUrl)
+        assertEquals(groupBuy.store.name, result.storeName)
+        assertEquals(groupBuy.deadline, result.deadline)
+        assertEquals(groupBuy.pickupDate, result.pickupDate)
+        assertEquals(groupBuy.pickupTimeStart, result.pickupTimeStart)
+        assertEquals(groupBuy.pickupTimeEnd, result.pickupTimeEnd)
+    }
+
+    @Test
+    fun `존재하지 않는 공구 공유 메타데이터 조회 시 GROUPBUY_NOT_FOUND 예외 발생`() {
+        `when`(groupBuyRepository.findWithStoreById(999L)).thenReturn(Optional.empty())
+
+        val ex = assertThrows<CustomException> { service.getShareMeta(999L) }
 
         assertEquals(ErrorCode.GROUPBUY_NOT_FOUND, ex.errorCode)
     }

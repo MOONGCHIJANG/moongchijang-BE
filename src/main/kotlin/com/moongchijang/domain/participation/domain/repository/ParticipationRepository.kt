@@ -6,8 +6,10 @@ import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDate
@@ -22,12 +24,41 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.id = :participationId
+        """
+    )
+    fun findPickupDetailById(@Param("participationId") participationId: Long): Participation?
+
+    @Query(
+        """
         SELECT DISTINCT p.user.id
         FROM Participation p
         WHERE p.groupBuy.id = :groupBuyId
         """
     )
     fun findDistinctUserIdsByGroupBuyId(@Param("groupBuyId") groupBuyId: Long): List<Long>
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        update Participation p
+        set p.status = :newStatus,
+            p.cancelledAt = :cancelledAt
+        where p.groupBuy.id = :groupBuyId
+          and p.status = :oldStatus
+        """
+    )
+    fun updateStatusByGroupBuyIdAndStatus(
+        @Param("groupBuyId") groupBuyId: Long,
+        @Param("oldStatus") oldStatus: ParticipationStatus,
+        @Param("newStatus") newStatus: ParticipationStatus,
+        @Param("cancelledAt") cancelledAt: LocalDateTime
+    ): Int
 
     @Query(
         """
@@ -84,11 +115,6 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         pageable: Pageable
     ): Page<Participation>
 
-    fun countByUserIdAndStatusIn(
-        userId: Long,
-        statuses: Collection<ParticipationStatus>
-    ): Long
-
     @Query(
         value = """
             select p
@@ -117,67 +143,113 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
-            select count(p)
-            from Participation p
-            where p.user.id = :userId
-              and p.status in :participationStatuses
-              and p.pickupStatus in :pickupStatuses
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.user.id = :userId
+          and p.status = :status
+          and p.pickupStatus in :pickupStatuses
+          and gb.pickupDate >= :fromDate
+        order by gb.pickupDate asc, gb.pickupTimeStart asc, p.id asc
         """
     )
-    fun countByUserIdAndStatusInAndPickupStatusIn(
+    fun findNearestPickupQrCandidates(
         @Param("userId") userId: Long,
-        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
-        @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>
-    ): Long
-
-    @Query(
-        value = """
-            select p
-            from Participation p
-            join fetch p.groupBuy gb
-            join fetch gb.store
-            where p.user.id = :userId
-              and p.status in :participationStatuses
-              and p.pickupStatus in :pickupStatuses
-            order by p.pickedUpAt desc, p.createdAt desc
-        """,
-        countQuery = """
-            select count(p)
-            from Participation p
-            where p.user.id = :userId
-              and p.status in :participationStatuses
-              and p.pickupStatus in :pickupStatuses
-        """
-    )
-    fun findPickupCompletedByUserId(
-        @Param("userId") userId: Long,
-        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+        @Param("status") status: ParticipationStatus,
         @Param("pickupStatuses") pickupStatuses: Collection<PickupStatus>,
-        pageable: Pageable
-    ): Page<Participation>
+        @Param("fromDate") fromDate: LocalDate,
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusOrderByRefundedAtDescCreatedAtDesc(
+        userId: Long,
+        status: ParticipationStatus
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusOrderByCreatedAtDesc(
+        userId: Long,
+        status: ParticipationStatus
+    ): List<Participation>
 
     @Query(
-        value = """
-            select p
-            from Participation p
-            join fetch p.groupBuy gb
-            join fetch gb.store
-            where p.user.id = :userId
-              and p.status in :statuses
-            order by coalesce(p.refundedAt, p.cancelledAt, p.createdAt) desc
-        """,
-        countQuery = """
-            select count(p)
-            from Participation p
-            where p.user.id = :userId
-              and p.status in :statuses
+        """
+        select p
+        from Participation p
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.user.id = :userId
+          and p.status in :statuses
+        order by
+          case when p.status = :refundPendingStatus then 0 else 1 end,
+          p.refundedAt desc,
+          p.createdAt desc
         """
     )
-    fun findCancelledOrRefundedByUserId(
+    fun findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
         @Param("userId") userId: Long,
         @Param("statuses") statuses: Collection<ParticipationStatus>,
+        @Param("refundPendingStatus") refundPendingStatus: ParticipationStatus = ParticipationStatus.REFUND_PENDING
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInOrderByCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["user", "groupBuy", "groupBuy.store"])
+    fun findByStatusOrderByCancelledAtAscCreatedAtAsc(
+        status: ParticipationStatus,
         pageable: Pageable
-    ): Page<Participation>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatuses: Collection<PickupStatus>
+    ): List<Participation>
+
+    @EntityGraph(attributePaths = ["groupBuy", "groupBuy.store"])
+    fun findByUserIdAndStatusInAndPickupStatusOrderByPickedUpAtDescCreatedAtDesc(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatus: PickupStatus
+    ): List<Participation>
+
+    fun countByUserIdAndStatusInAndPickupStatusIn(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatuses: Collection<PickupStatus>
+    ): Long
+
+    fun countByUserIdAndStatusInAndPickupStatus(
+        userId: Long,
+        statuses: Collection<ParticipationStatus>,
+        pickupStatus: PickupStatus
+    ): Long
+
+    fun countByUserIdAndStatus(userId: Long, status: ParticipationStatus): Long
+
+    fun countByUserIdAndStatusIn(userId: Long, statuses: Collection<ParticipationStatus>): Long
+
+    fun existsByPickupToken(pickupToken: String): Boolean
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.pickupToken = :pickupToken
+        """
+    )
+    fun findByPickupTokenForUpdate(@Param("pickupToken") pickupToken: String): Participation?
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participation p join fetch p.groupBuy where p.id = :id")

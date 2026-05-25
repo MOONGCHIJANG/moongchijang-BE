@@ -3,8 +3,7 @@ package com.moongchijang.domain.notification.domain.entity
 enum class NotificationTriggerType {
     PICKUP_SAME_DAY_MORNING,              // ①
     PICKUP_DAY_BEFORE_MORNING,            // ②
-    PICKUP_COMPLETED_IMMEDIATE,           // ③-1
-    PICKUP_NOT_COMPLETED_AFTER_CUTOFF,    // ③-2
+    PICKUP_NOT_COMPLETED_AFTER_CUTOFF,    // ③
     WISH_DEADLINE_MINUS_3_DAYS,           // ④
     WISH_DEADLINE_MINUS_1_DAY,            // ⑤
     WISH_TARGET_ACHIEVED_IMMEDIATE,       // ⑥

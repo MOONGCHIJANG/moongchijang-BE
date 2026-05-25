@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.application.GroupBuyStatusTransitionServ
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -75,11 +76,16 @@ class GroupBuyStatusTransitionServiceTest {
                 pageable
             )
         ).thenReturn(listOf(inProgress, achieved))
-
         service.transitionExpiredGroupBuysAt(now)
 
         assertEquals(GroupBuyStatus.FAILED, inProgress.status)
         assertEquals(GroupBuyStatus.COMPLETED, achieved.status)
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 1L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
     }
 
     @Test
@@ -160,11 +166,49 @@ class GroupBuyStatusTransitionServiceTest {
                 pageable
             )
         ).thenReturn(listOf(first, second), listOf(third), emptyList())
-
         batchService.transitionExpiredGroupBuysAt(now)
 
         assertEquals(GroupBuyStatus.FAILED, first.status)
         assertEquals(GroupBuyStatus.COMPLETED, second.status)
         assertEquals(GroupBuyStatus.FAILED, third.status)
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 11L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 13L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
+    }
+
+    @Test
+    fun `IN_PROGRESS 공구가 실패하면 참여를 환불대기로 전환한다`() {
+        val now = LocalDateTime.now()
+        val groupBuy = GroupBuyFixture.createGroupBuy(
+            id = 21L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            deadline = now.minusMinutes(1)
+        )
+        val pageable = PageRequest.of(0, 500, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
+        `when`(
+            groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
+                listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+                now,
+                pageable
+            )
+        ).thenReturn(listOf(groupBuy))
+        service.transitionExpiredGroupBuysAt(now)
+
+        assertEquals(GroupBuyStatus.FAILED, groupBuy.status)
+        verify(participationRepository).updateStatusByGroupBuyIdAndStatus(
+            groupBuyId = 21L,
+            oldStatus = ParticipationStatus.PAID_WAITING_GOAL,
+            newStatus = ParticipationStatus.REFUND_PENDING,
+            cancelledAt = now
+        )
     }
 }

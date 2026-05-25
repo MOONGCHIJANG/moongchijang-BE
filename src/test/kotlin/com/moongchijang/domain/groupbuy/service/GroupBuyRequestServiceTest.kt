@@ -48,9 +48,7 @@ class GroupBuyRequestServiceTest {
     fun `유효한 입력으로 요청 시 requestId 반환`() {
         val userId = 1L
         val request = GroupBuyRequestFixture.createRequest(
-            desiredPickupDate = LocalDate.now().plusDays(3),
-            contactPhone = "010-1234-5678",
-            contactInstagram = "moongchi.bread"
+            desiredPickupDate = LocalDate.now().plusDays(3)
         )
         val saved = GroupBuyRequest(
             userId = userId,
@@ -59,9 +57,7 @@ class GroupBuyRequestServiceTest {
             productName = request.productName,
             desiredQuantity = request.desiredQuantity,
             desiredPickupDate = request.desiredPickupDate,
-            additionalNote = request.additionalNote,
-            contactPhone = request.contactPhone,
-            contactInstagram = request.contactInstagram
+            additionalNote = request.additionalNote
         ).apply { id = 42L }
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
@@ -74,8 +70,6 @@ class GroupBuyRequestServiceTest {
         assertEquals(42L, result.requestId)
         val captor = argumentCaptor<GroupBuyRequest>()
         verify(groupBuyRequestRepository).save(captor.capture())
-        assertEquals("010-1234-5678", captor.value.contactPhone)
-        assertEquals("moongchi.bread", captor.value.contactInstagram)
         assertNull(captor.value.placeId)
         assertNull(captor.value.latitude)
         assertNull(captor.value.longitude)
@@ -105,9 +99,7 @@ class GroupBuyRequestServiceTest {
             productName = request.productName,
             desiredQuantity = request.desiredQuantity,
             desiredPickupDate = request.desiredPickupDate,
-            additionalNote = request.additionalNote,
-            contactPhone = request.contactPhone,
-            contactInstagram = request.contactInstagram
+            additionalNote = request.additionalNote
         ).apply { id = 43L }
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
@@ -231,8 +223,6 @@ class GroupBuyRequestServiceTest {
 
         assertEquals(1, result.size)
         assertEquals("성심당", result[0].storeName)
-        assertNull(result[0].contactPhone)
-        assertNull(result[0].contactInstagram)
         assertEquals(GroupBuyRequestStatus.IN_REVIEW.name, result[0].status)
         assertEquals(1, result[0].statusHistory.size)
     }
@@ -252,7 +242,6 @@ class GroupBuyRequestServiceTest {
         val requestId = 10L
         val groupBuyRequest = GroupBuyRequest(userId = userId, storeName = "뚜레쥬르", productName = "크림빵",
             desiredQuantity = 1, desiredPickupDate = LocalDate.now().plusDays(7),
-            contactPhone = "010-9876-5432", contactInstagram = "bakery.pickup",
             placeId = "naver-place-2", roadAddress = "서울 강남구 도산대로 1",
             lotAddress = "서울 강남구 신사동 1", latitude = 37.1, longitude = 127.1).apply { id = requestId }
         val history = listOf(
@@ -269,8 +258,6 @@ class GroupBuyRequestServiceTest {
         val result = service.getDetail(userId, requestId)
 
         assertEquals(requestId, result.requestId)
-        assertEquals("010-9876-5432", result.contactPhone)
-        assertEquals("bakery.pickup", result.contactInstagram)
         assertEquals("naver-place-2", result.placeId)
         assertEquals("서울 강남구 도산대로 1", result.roadAddress)
         assertEquals("서울 강남구 신사동 1", result.lotAddress)

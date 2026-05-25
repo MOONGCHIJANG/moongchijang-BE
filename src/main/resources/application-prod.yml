@@ -30,6 +30,8 @@ app:
   s3:
     bucket: ${S3_BUCKET}
     prefix: ${S3_PREFIX}
+  share:
+    base-url: ${APP_SHARE_BASE_URL:https://moongchijang.com}
 
 portone:
   store-id: ${PORTONE_STORE_ID}

@@ -5,5 +5,6 @@ enum class ParticipationStatus {
     PAID_WAITING_GOAL,
     CONFIRMED,
     CANCELLED,
+    REFUND_PENDING,
     REFUNDED
 }
