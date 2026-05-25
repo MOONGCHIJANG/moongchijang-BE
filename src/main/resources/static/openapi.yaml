@@ -1533,6 +1533,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseOwnerGroupBuyList'
 
+  /api/v1/owner/group-buy-requests:
+    post:
+      tags: [Owner]
+      summary: 사장님 공구 개설 요청 제출
+      description: |
+        사장님이 본인 매장에 대한 공구 개설 요청을 제출한다.
+        - SELLER 권한만 요청할 수 있다.
+        - storeId는 요청자에게 연결된 매장이어야 한다.
+        - imageUrls의 첫 번째 이미지를 대표 이미지(thumbnailUrl)로 저장한다.
+        - 희망 공구 기간은 현재 시각 기준 최소 7일 이상이어야 한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerGroupBuyRequestCreate'
+      responses:
+        '201':
+          description: 사장님 공구 개설 요청 생성 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyRequestCreated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/owner/reservations:
     get:
       tags: [Owner]
@@ -3485,6 +3519,121 @@ components:
               status:
                 type: string
                 enum: [IN_PROGRESS, ACHIEVED, FAILED]
+        error: { nullable: true, example: null }
+
+    OwnerGroupBuyRequestCreate:
+      type: object
+      required:
+        - storeId
+        - productName
+        - productDescription
+        - deadline
+        - price
+        - targetQuantity
+        - maxQuantity
+        - imageUrls
+        - pickupDate
+        - pickupTimeStart
+        - pickupTimeEnd
+        - pickupLocation
+      properties:
+        storeId:
+          type: integer
+          format: int64
+          description: 요청자가 소속된 매장 ID
+          example: 1
+        productName:
+          type: string
+          maxLength: 30
+          description: 공구명
+          example: 두쫀쿠 세트
+        productDescription:
+          type: string
+          maxLength: 500
+          description: 상품 설명
+          example: 소금빵 포함
+        deadline:
+          type: string
+          format: date-time
+          description: 희망 모집 마감일시. 현재 시각 기준 최소 7일 이후여야 한다.
+          example: "2026-06-03T23:59:00"
+        originalPrice:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: 상품 정가
+          example: 12000
+        price:
+          type: integer
+          minimum: 1
+          description: 공구가
+          example: 9900
+        targetQuantity:
+          type: integer
+          minimum: 1
+          description: 목표 수량
+          example: 20
+        maxQuantity:
+          type: integer
+          minimum: 1
+          description: 최대 수량. 목표 수량 이상이어야 한다.
+          example: 50
+        perUserLimit:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: 1인 구매 제한 수량
+          example: 2
+        imageUrls:
+          type: array
+          minItems: 1
+          maxItems: 5
+          description: 상품 이미지 URL 목록. 첫 번째 이미지를 대표 이미지로 사용한다.
+          items:
+            type: string
+          example:
+            - https://cdn.example.com/owner-requests/1.jpg
+            - https://cdn.example.com/owner-requests/2.jpg
+        pickupDate:
+          type: string
+          format: date
+          description: 픽업일. 공구 마감일 이후여야 한다.
+          example: "2026-06-04"
+        pickupTimeStart:
+          type: string
+          format: time
+          example: "12:00:00"
+        pickupTimeEnd:
+          type: string
+          format: time
+          example: "18:00:00"
+        pickupLocation:
+          type: string
+          maxLength: 200
+          example: 서울 성동구 성수이로 1
+        pickupContact:
+          type: string
+          nullable: true
+          maxLength: 20
+          example: "01012345678"
+
+    ApiResponseOwnerGroupBuyRequestCreated:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [requestId, status]
+          properties:
+            requestId:
+              type: integer
+              format: int64
+              example: 101
+            status:
+              type: string
+              enum: [PENDING, APPROVED, REJECTED]
+              example: PENDING
         error: { nullable: true, example: null }
     
     ApiResponseReservationPage:
