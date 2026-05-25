@@ -140,6 +140,18 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `1인 구매 제한을 초과하면 체크아웃 정보 조회 실패`() {
+        val groupBuy = createGroupBuy().apply { perUserLimit = 2 }
+        `when`(groupBuyRepository.findWithStoreById(10L)).thenReturn(Optional.of(groupBuy))
+
+        val ex = assertThrows<CustomException> {
+            service.getCheckoutInfo(10L, 3)
+        }
+
+        assertEquals(ErrorCode.PAYMENT_INVALID_QUANTITY, ex.errorCode)
+    }
+
+    @Test
     fun `필수 동의가 없으면 결제 주문 생성 실패`() {
         val request = createOrderRequest(agreedNoWithdrawal = false)
 
@@ -183,6 +195,20 @@ class PaymentServiceTest {
         assertTrue(result.paymentId.startsWith("MCJ-10-"))
         assertEquals("두쫀쿠 2개", result.orderName)
         assertEquals(12000, result.amount)
+    }
+
+    @Test
+    fun `1인 구매 제한을 초과하면 결제 주문 생성 실패`() {
+        val user = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
+        val groupBuy = createGroupBuy().apply { perUserLimit = 2 }
+        `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+        `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
+
+        val ex = assertThrows<CustomException> {
+            service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 3))
+        }
+
+        assertEquals(ErrorCode.PAYMENT_INVALID_QUANTITY, ex.errorCode)
     }
 
     @Test

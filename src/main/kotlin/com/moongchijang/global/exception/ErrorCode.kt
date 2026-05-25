@@ -34,6 +34,11 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION(400_011, "허용되지 않는 공구 요청 상태 전이입니다.", 400),
     GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED(400_012, "거절 상태로 변경할 때는 거절 사유가 필요합니다.", 400),
     GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED(400_013, "개설 완료 상태로 변경할 때는 개설된 공구 ID가 필요합니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_STORE_REQUIRED(400_014, "공구 개설에 필요한 매장 정보가 누락되었습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_PRICE(400_015, "공구 가격 조건이 올바르지 않습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_QUANTITY(400_016, "공구 수량 조건이 올바르지 않습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_PERIOD(400_017, "공구 모집 기간이 올바르지 않습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_PICKUP(400_018, "공구 픽업 정보가 올바르지 않습니다.", 400),
 
     // GroupBuyOpenRequest
     DUPLICATE_OPEN_REQUEST(409_010, "이미 알림 신청한 공구입니다.", 409),

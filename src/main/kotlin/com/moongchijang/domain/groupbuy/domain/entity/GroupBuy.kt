@@ -31,6 +31,9 @@ class GroupBuy(
     @Column(nullable = false)
     var price: Int,
 
+    @Column(name = "original_price")
+    var originalPrice: Int? = null,
+
     @Column(nullable = false)
     var targetQuantity: Int,
 
@@ -40,9 +43,15 @@ class GroupBuy(
     @Column(nullable = false)
     var maxQuantity: Int,
 
+    @Column(name = "per_user_limit")
+    var perUserLimit: Int? = null,
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: GroupBuyStatus,
+
+    @Column(name = "recruitment_start_at")
+    var recruitmentStartAt: LocalDateTime? = null,
 
     @Column(nullable = false)
     var deadline: LocalDateTime,
@@ -58,6 +67,9 @@ class GroupBuy(
 
     @Column(nullable = false, length = 200)
     var pickupLocation: String,
+
+    @Column(name = "pickup_contact", length = 20)
+    var pickupContact: String? = null,
 
     @Column(nullable = false)
     var shareCount: Int = 0,

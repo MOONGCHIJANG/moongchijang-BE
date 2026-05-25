@@ -64,6 +64,7 @@ class PaymentService(
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
         validateGroupBuyAvailable(groupBuy)
+        validatePerUserLimit(groupBuy, quantity)
         validateRemainingQuantity(groupBuy, quantity)
 
         val amounts = calculateAmounts(groupBuy.price, quantity)
@@ -95,6 +96,7 @@ class PaymentService(
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
         validateGroupBuyAvailable(groupBuy)
+        validatePerUserLimit(groupBuy, request.quantity)
         validateRemainingQuantity(groupBuy, request.quantity)
         validateNotParticipated(userId, groupBuyId)
 
@@ -747,6 +749,13 @@ class PaymentService(
     private fun validateRemainingQuantity(groupBuy: GroupBuy, quantity: Int) {
         if (groupBuy.currentQuantity + quantity > groupBuy.maxQuantity) {
             throw CustomException(ErrorCode.PAYMENT_QUANTITY_EXCEEDED)
+        }
+    }
+
+    private fun validatePerUserLimit(groupBuy: GroupBuy, quantity: Int) {
+        val perUserLimit = groupBuy.perUserLimit ?: return
+        if (quantity > perUserLimit) {
+            throw CustomException(ErrorCode.PAYMENT_INVALID_QUANTITY)
         }
     }
 
