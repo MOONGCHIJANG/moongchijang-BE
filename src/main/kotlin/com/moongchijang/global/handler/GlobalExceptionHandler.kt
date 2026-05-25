@@ -10,8 +10,10 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.AuthenticationException
 import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -34,6 +36,27 @@ class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, errorMessage))
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException::class)
+    fun handleMissingServletRequestParameterException(
+        e: MissingServletRequestParameterException
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        val detail = "${e.parameterName}: required request parameter is missing"
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, detail))
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleMethodArgumentTypeMismatchException(
+        e: MethodArgumentTypeMismatchException
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        val requiredType = e.requiredType?.simpleName ?: "unknown"
+        val detail = "${e.name}: must be a valid $requiredType"
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, detail))
     }
 
     @ExceptionHandler(AccessDeniedException::class)
