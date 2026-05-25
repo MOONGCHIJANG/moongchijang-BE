@@ -3,6 +3,8 @@ package com.moongchijang.domain.owner.presentation
 import com.moongchijang.domain.owner.application.OwnerGroupBuyRequestService
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateRequest
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestDetailResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestListItemResponse
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -11,6 +13,8 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -22,6 +26,23 @@ import org.springframework.web.bind.annotation.RestController
 class OwnerGroupBuyRequestController(
     private val ownerGroupBuyRequestService: OwnerGroupBuyRequestService
 ) {
+
+    @GetMapping
+    @Operation(summary = "사장님 공구 개설 요청 목록 조회")
+    fun getMyRequests(
+        @AuthenticationPrincipal principal: CustomUserPrincipal
+    ): ResponseEntity<ApiResponse<List<OwnerGroupBuyRequestListItemResponse>>> {
+        return ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getMyRequests(principal.id)))
+    }
+
+    @GetMapping("/{requestId}")
+    @Operation(summary = "사장님 공구 개설 요청 상세 조회")
+    fun getDetail(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @PathVariable requestId: Long
+    ): ResponseEntity<ApiResponse<OwnerGroupBuyRequestDetailResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getDetail(principal.id, requestId)))
+    }
 
     @PostMapping
     @Operation(summary = "사장님 공구 개설 요청 제출")

@@ -2,6 +2,8 @@ package com.moongchijang.domain.owner.application
 
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateRequest
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestCreateResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestDetailResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyRequestListItemResponse
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
@@ -29,13 +31,37 @@ class OwnerGroupBuyRequestService(
     private val clock: Clock
 ) {
 
-    fun create(ownerId: Long, request: OwnerGroupBuyRequestCreateRequest): OwnerGroupBuyRequestCreateResponse {
-        val owner = userRepository.findByIdAndDeletedAtIsNull(ownerId)
-            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+    @Transactional(readOnly = true)
+    fun getMyRequests(ownerId: Long): List<OwnerGroupBuyRequestListItemResponse> {
+        validateSeller(ownerId)
 
-        if (owner.role != UserRole.SELLER) {
+        val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
+        if (storeIds.isEmpty()) {
+            return emptyList()
+        }
+
+        return ownerGroupBuyRequestRepository
+            .findByOwnerIdAndStoreIdInOrderByCreatedAtDesc(ownerId, storeIds)
+            .map { OwnerGroupBuyRequestListItemResponse.from(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun getDetail(ownerId: Long, requestId: Long): OwnerGroupBuyRequestDetailResponse {
+        validateSeller(ownerId)
+
+        val request = ownerGroupBuyRequestRepository.findById(requestId)
+            .orElseThrow { CustomException(ErrorCode.OWNER_GROUPBUY_REQUEST_NOT_FOUND) }
+
+        if (request.owner.id != ownerId || !storeStaffRepository.existsByUserIdAndStoreId(ownerId, request.store.id)) {
             throw CustomException(ErrorCode.FORBIDDEN)
         }
+
+        val images = ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)
+        return OwnerGroupBuyRequestDetailResponse.from(request, images)
+    }
+
+    fun create(ownerId: Long, request: OwnerGroupBuyRequestCreateRequest): OwnerGroupBuyRequestCreateResponse {
+        val owner = validateSeller(ownerId)
 
         val store = storeRepository.findById(request.storeId)
             .orElseThrow { CustomException(ErrorCode.STORE_NOT_FOUND) }
@@ -83,6 +109,15 @@ class OwnerGroupBuyRequestService(
             status = saved.status
         )
     }
+
+    private fun validateSeller(ownerId: Long) =
+        userRepository.findByIdAndDeletedAtIsNull(ownerId)
+            ?.also {
+                if (it.role != UserRole.SELLER) {
+                    throw CustomException(ErrorCode.FORBIDDEN)
+                }
+            }
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
     private fun validateRequest(request: OwnerGroupBuyRequestCreateRequest) {
         if (request.deadline.isBefore(LocalDateTime.now(clock).plusDays(MIN_RECRUITING_DAYS))) {

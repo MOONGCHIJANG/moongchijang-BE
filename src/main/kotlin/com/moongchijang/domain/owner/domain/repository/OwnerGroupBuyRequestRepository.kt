@@ -11,5 +11,10 @@ interface OwnerGroupBuyRequestRepository : JpaRepository<OwnerGroupBuyRequest, L
     @Query("SELECT r FROM OwnerGroupBuyRequest r WHERE r.owner.id = :ownerId ORDER BY r.createdAt DESC")
     fun findByOwnerIdOrderByCreatedAtDesc(@Param("ownerId") ownerId: Long): List<OwnerGroupBuyRequest>
 
+    fun findByOwnerIdAndStoreIdInOrderByCreatedAtDesc(
+        ownerId: Long,
+        storeIds: Collection<Long>
+    ): List<OwnerGroupBuyRequest>
+
     fun findByStatusOrderByCreatedAtAsc(status: OwnerGroupBuyRequestStatus): List<OwnerGroupBuyRequest>
 }
