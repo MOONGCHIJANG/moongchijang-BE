@@ -8,8 +8,8 @@ import jakarta.validation.constraints.Size
 data class SellerSettlementInfoUpsertRequest(
 
     @field:NotBlank(message = "은행은 필수입니다.")
-    @field:Size(max = 30, message = "은행값은 30자 이하여야 합니다.")
-    @field:Schema(description = "은행 선택값", example = "KOOKMIN")
+    @field:Size(max = 80, message = "은행값은 80자 이하여야 합니다.")
+    @field:Schema(description = "은행/증권사 선택값", example = "KB국민")
     val bankCode: String,
 
     @field:NotBlank(message = "계좌번호는 필수입니다.")

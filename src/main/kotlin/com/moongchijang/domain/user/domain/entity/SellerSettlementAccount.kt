@@ -25,7 +25,7 @@ class SellerSettlementAccount(
     @JoinColumn(name = "user_id", nullable = false)
     var user: User,
 
-    @Column(name = "bank_code", nullable = false, length = 30)
+    @Column(name = "bank_code", nullable = false, length = 80)
     var bankCode: String,
 
     @Column(name = "account_number", nullable = false, length = 50)

@@ -208,13 +208,14 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
+        val normalizedInstitutionCode = SettlementInstitutionCodeMapper.toCode(request.bankCode)
         val account = sellerSettlementAccountRepository.findByUserId(userId)?.apply {
-            bankCode = request.bankCode.trim()
+            bankCode = normalizedInstitutionCode
             accountNumber = request.accountNumber.trim()
             accountHolderName = request.accountHolderName.trim()
         } ?: SellerSettlementAccount(
             user = user,
-            bankCode = request.bankCode.trim(),
+            bankCode = normalizedInstitutionCode,
             accountNumber = request.accountNumber.trim(),
             accountHolderName = request.accountHolderName.trim(),
         )
