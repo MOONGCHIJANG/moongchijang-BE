@@ -1,6 +1,7 @@
 package com.moongchijang.domain.auth.infrastructure.email
 
 import com.moongchijang.domain.auth.application.port.EmailSender
+import com.moongchijang.global.util.MaskingUtils.maskEmail
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -14,7 +15,7 @@ class NoopEmailSender : EmailSender {
     override fun sendVerificationCode(toEmail: String, code: String, expiresInSeconds: Long) {
         log.info(
             "[NoopEmailSender] 발송 provider 설정으로 이메일 발송 생략: toEmail={}, expiresInSeconds={}",
-            toEmail,
+            maskEmail(toEmail),
             expiresInSeconds,
         )
     }
