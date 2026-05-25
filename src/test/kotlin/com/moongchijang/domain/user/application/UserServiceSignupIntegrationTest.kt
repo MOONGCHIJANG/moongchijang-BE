@@ -106,6 +106,24 @@ class UserServiceSignupIntegrationTest {
         assertThat(updated.hasRole(UserRole.SELLER)).isTrue()
     }
 
+    @Test
+    fun `사업자 정보 없이 사장님 정산 정보 저장 시 예외`() {
+        val user = persistUser("seller-without-business@test.com")
+
+        val thrown = org.junit.jupiter.api.assertThrows<com.moongchijang.global.exception.CustomException> {
+            userService.upsertSellerSettlementInfo(
+                request = SellerSettlementInfoUpsertRequest(
+                    bankCode = "KB국민",
+                    accountNumber = "000-000-0000",
+                    accountHolderName = "홍길동",
+                ),
+                userId = user.id!!,
+            )
+        }
+
+        assertThat(thrown.errorCode).isEqualTo(com.moongchijang.global.exception.ErrorCode.SELLER_BUSINESS_INFO_REQUIRED)
+    }
+
     private fun persistUser(email: String): User {
         return userRepository.save(
             User(

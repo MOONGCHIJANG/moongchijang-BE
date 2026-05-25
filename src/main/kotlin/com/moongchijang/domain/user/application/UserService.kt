@@ -207,6 +207,9 @@ class UserService(
         log.info("[UserService] 사장님 정산 정보 저장 시작: userId={}", userId)
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        if (!sellerBusinessProfileRepository.existsByUserId(userId)) {
+            throw CustomException(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED)
+        }
 
         val normalizedInstitutionCode = SettlementInstitutionCodeMapper.toCode(request.bankCode)
         val account = sellerSettlementAccountRepository.findByUserId(userId)?.apply {

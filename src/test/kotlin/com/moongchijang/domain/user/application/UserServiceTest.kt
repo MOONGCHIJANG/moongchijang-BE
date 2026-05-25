@@ -430,6 +430,7 @@ class UserServiceTest {
     fun `사장님 정산 정보 저장할 때 SELLER 권한과 가입 완료 상태가 반영됨`() {
         val user = UserFixture.createKakaoUser(id = 102L, providerId = "kakao-102")
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(102L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.existsByUserId(102L)).thenReturn(true)
         Mockito.`when`(sellerSettlementAccountRepository.findByUserId(102L)).thenReturn(null)
 
         val response = userService.upsertSellerSettlementInfo(
@@ -448,6 +449,26 @@ class UserServiceTest {
         Assertions.assertTrue(user.sellerSignupCompleted)
         Assertions.assertTrue(user.hasRole(UserRole.SELLER))
         Assertions.assertTrue(response.sellerSignupCompleted)
+    }
+
+    @Test
+    fun `사장님 정산 정보 저장 시 사업자 정보가 없으면 예외`() {
+        val user = UserFixture.createKakaoUser(id = 103L, providerId = "kakao-103")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(103L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.existsByUserId(103L)).thenReturn(false)
+
+        val exception = assertThrows<CustomException> {
+            userService.upsertSellerSettlementInfo(
+                request = com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest(
+                    bankCode = "KB국민",
+                    accountNumber = "000-000-0000",
+                    accountHolderName = "홍길동",
+                ),
+                userId = 103L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED, exception.errorCode)
     }
 
     private fun setAuditFields(user: User, createdAt: LocalDateTime, updatedAt: LocalDateTime) {
