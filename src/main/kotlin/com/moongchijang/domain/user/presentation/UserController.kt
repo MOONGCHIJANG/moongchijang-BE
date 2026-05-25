@@ -1,10 +1,16 @@
 package com.moongchijang.domain.user.presentation
 
 import com.moongchijang.domain.user.application.UserService
+import com.moongchijang.domain.user.application.BusinessRegistrationLookupService
 import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
+import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupRequest
+import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
+import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
@@ -21,6 +27,7 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -33,6 +40,7 @@ import org.slf4j.LoggerFactory
 @Tag(name = "User", description = "사용자 API")
 class UserController(
     private val userService: UserService,
+    private val businessRegistrationLookupService: BusinessRegistrationLookupService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -86,6 +94,66 @@ class UserController(
         @Valid @RequestBody request: AdditionalInfoUpsertRequest,
     ): ApiResponse<AdditionalInfoUpdatedResponse> {
         val response = userService.updateAdditionalInfo(request, principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PostMapping("/me/seller/business-registration/lookup")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "사업자등록번호 조회", description = "사업자등록번호를 조회해 사업자 정보를 반환합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun lookupBusinessRegistration(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: BusinessRegistrationLookupRequest,
+    ): ApiResponse<BusinessRegistrationLookupResponse> {
+        log.info("[UserController] 사업자등록번호 조회 요청 수신: userId={}", principal.id)
+        val response = businessRegistrationLookupService.lookup(request)
+        log.info("[UserController] 사업자등록번호 조회 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/seller/business-info")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "사장님 사업자 정보 저장", description = "사장님 가입의 사업자 정보를 저장합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "저장 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun upsertSellerBusinessInfo(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: SellerBusinessInfoUpsertRequest,
+    ): ApiResponse<SellerSignupStatusResponse> {
+        log.info("[UserController] 사장님 사업자 정보 저장 요청 수신: userId={}", principal.id)
+        val response = userService.upsertSellerBusinessInfo(request, principal.id)
+        log.info("[UserController] 사장님 사업자 정보 저장 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/seller/settlement-info")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "사장님 정산 정보 저장", description = "사장님 가입의 정산 정보를 저장하고 사장님 가입 완료 처리합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "저장 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun upsertSellerSettlementInfo(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: SellerSettlementInfoUpsertRequest,
+    ): ApiResponse<SellerSignupStatusResponse> {
+        log.info("[UserController] 사장님 정산 정보 저장 요청 수신: userId={}", principal.id)
+        val response = userService.upsertSellerSettlementInfo(request, principal.id)
+        log.info("[UserController] 사장님 정산 정보 저장 응답 완료: userId={}", principal.id)
         return ApiResponse.success(response)
     }
 
