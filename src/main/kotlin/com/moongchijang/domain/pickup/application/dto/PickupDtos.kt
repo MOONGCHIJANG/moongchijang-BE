@@ -21,6 +21,7 @@ data class PickupGuideResponse(
     val latitude: Double?,
     val longitude: Double?,
     val transitInfo: String?,
+    val thumbnailUrl: String?,
     val productName: String,
     val quantity: Int,
     val pickupDate: LocalDate,

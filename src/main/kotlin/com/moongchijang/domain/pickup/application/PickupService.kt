@@ -43,6 +43,7 @@ class PickupService(
             latitude = store.latitude,
             longitude = store.longitude,
             transitInfo = null,
+            thumbnailUrl = groupBuy.thumbnailUrl,
             productName = groupBuy.productName,
             quantity = participation.quantity,
             pickupDate = groupBuy.pickupDate,

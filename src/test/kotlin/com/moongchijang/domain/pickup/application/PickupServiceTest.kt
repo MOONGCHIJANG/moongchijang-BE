@@ -66,6 +66,7 @@ class PickupServiceTest {
         assertEquals(37.54, result.latitude)
         assertEquals(127.05, result.longitude)
         assertNull(result.transitInfo)
+        assertEquals("https://example.com/image.jpg", result.thumbnailUrl)
         assertEquals("두쫀쿠", result.productName)
         assertEquals(2, result.quantity)
         assertEquals(participation.groupBuy.pickupDate, result.pickupDate)
