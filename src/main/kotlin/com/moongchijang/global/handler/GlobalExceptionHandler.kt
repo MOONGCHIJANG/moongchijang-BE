@@ -42,7 +42,7 @@ class GlobalExceptionHandler {
     fun handleMissingServletRequestParameterException(
         e: MissingServletRequestParameterException
     ): ResponseEntity<ApiResponse<Nothing>> {
-        val detail = "${e.parameterName}: required request parameter is missing"
+        val detail = "${e.parameterName}: 필수 요청 파라미터가 누락되었습니다"
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, detail))
@@ -52,8 +52,7 @@ class GlobalExceptionHandler {
     fun handleMethodArgumentTypeMismatchException(
         e: MethodArgumentTypeMismatchException
     ): ResponseEntity<ApiResponse<Nothing>> {
-        val requiredType = e.requiredType?.simpleName ?: "unknown"
-        val detail = "${e.name}: must be a valid $requiredType"
+        val detail = "${e.name}: 올바른 형식이 아닙니다"
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(ApiResponse.fail(ErrorCode.INVALID_INPUT, detail))

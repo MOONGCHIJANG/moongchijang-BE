@@ -23,7 +23,7 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
         assertFalse(response.body!!.success)
         assertEquals(ErrorCode.INVALID_INPUT.name, response.body!!.error?.code)
-        assertEquals("status: required request parameter is missing", response.body!!.error?.detail)
+        assertEquals("status: 필수 요청 파라미터가 누락되었습니다", response.body!!.error?.detail)
     }
 
     @Test
@@ -41,7 +41,7 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
         assertFalse(response.body!!.success)
         assertEquals(ErrorCode.INVALID_INPUT.name, response.body!!.error?.code)
-        assertEquals("status: must be a valid MypageParticipationStatusFilter", response.body!!.error?.detail)
+        assertEquals("status: 올바른 형식이 아닙니다", response.body!!.error?.detail)
     }
 
     @Suppress("unused")
