@@ -14,11 +14,18 @@ import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
+import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
+import com.moongchijang.domain.user.domain.entity.SellerBusinessProfile
+import com.moongchijang.domain.user.domain.entity.SellerSettlementAccount
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.entity.WithdrawalReason
+import com.moongchijang.domain.user.domain.repository.SellerBusinessProfileRepository
+import com.moongchijang.domain.user.domain.repository.SellerSettlementAccountRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -32,6 +39,8 @@ import java.time.LocalDateTime
 @Service
 class UserService(
     private val userRepository: UserRepository,
+    private val sellerBusinessProfileRepository: SellerBusinessProfileRepository,
+    private val sellerSettlementAccountRepository: SellerSettlementAccountRepository,
     private val phoneVerificationService: PhoneVerificationService,
     private val participationRepository: ParticipationRepository,
     private val favoriteRepository: FavoriteRepository,
@@ -163,6 +172,66 @@ class UserService(
         user.saveLastRole(role)
     }
 
+    @Transactional
+    fun upsertSellerBusinessInfo(request: SellerBusinessInfoUpsertRequest, userId: Long): SellerSignupStatusResponse {
+        log.info("[UserService] 사장님 사업자 정보 저장 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        val normalizedBusinessRegistrationNumber = normalizeBusinessRegistrationNumber(request.businessRegistrationNumber)
+        val profile = sellerBusinessProfileRepository.findByUserId(userId)?.apply {
+            businessRegistrationNumber = normalizedBusinessRegistrationNumber
+            storeName = request.storeName.trim()
+            ownerName = request.ownerName.trim()
+            storeAddress = request.storeAddress.trim()
+            phoneNumber = request.phoneNumber.trim()
+        } ?: SellerBusinessProfile(
+            user = user,
+            businessRegistrationNumber = normalizedBusinessRegistrationNumber,
+            storeName = request.storeName.trim(),
+            ownerName = request.ownerName.trim(),
+            storeAddress = request.storeAddress.trim(),
+            phoneNumber = request.phoneNumber.trim(),
+        )
+        sellerBusinessProfileRepository.save(profile)
+
+        log.info("[UserService] 사장님 사업자 정보 저장 완료: userId={}", userId)
+        return SellerSignupStatusResponse(
+            id = userId,
+            sellerSignupCompleted = user.sellerSignupCompleted,
+        )
+    }
+
+    @Transactional
+    fun upsertSellerSettlementInfo(request: SellerSettlementInfoUpsertRequest, userId: Long): SellerSignupStatusResponse {
+        log.info("[UserService] 사장님 정산 정보 저장 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        val account = sellerSettlementAccountRepository.findByUserId(userId)?.apply {
+            bankCode = request.bankCode.trim()
+            accountNumber = request.accountNumber.trim()
+            accountHolderName = request.accountHolderName.trim()
+        } ?: SellerSettlementAccount(
+            user = user,
+            bankCode = request.bankCode.trim(),
+            accountNumber = request.accountNumber.trim(),
+            accountHolderName = request.accountHolderName.trim(),
+        )
+        sellerSettlementAccountRepository.save(account)
+
+        user.grantRole(UserRole.SELLER)
+        user.role = UserRole.SELLER
+        user.saveLastRole(UserRole.SELLER)
+        user.completeSellerSignup()
+
+        log.info("[UserService] 사장님 정산 정보 저장 완료: userId={}", userId)
+        return SellerSignupStatusResponse(
+            id = userId,
+            sellerSignupCompleted = user.sellerSignupCompleted,
+        )
+    }
+
     fun withdraw(userId: Long, request: WithdrawRequest) {
         log.info("[UserService] 회원탈퇴 처리 시작: userId={}", userId)
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
@@ -231,6 +300,8 @@ class UserService(
     private fun normalizedReasonDetail(request: WithdrawRequest): String? =
         request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
 
+    private fun normalizeBusinessRegistrationNumber(raw: String): String = raw.replace(Regex("[^0-9]"), "")
+
     private fun findActiveKakaoUser(providerId: String): User? {
         return userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(
             provider = AuthProvider.KAKAO,
@@ -261,6 +332,7 @@ class UserService(
             deletedUser.nickname = nickname
         }
         deletedUser.signupCompleted = false
+        deletedUser.sellerSignupCompleted = false
 
         return deletedUser
     }
