@@ -6,15 +6,17 @@ import com.moongchijang.domain.user.application.port.BusinessRegistrationLookupR
 import com.moongchijang.domain.user.infrastructure.business.dto.NtsBusinessStatusRequest
 import com.moongchijang.domain.user.infrastructure.business.dto.NtsBusinessStatusResponse
 import com.moongchijang.global.config.BusinessRegistrationApiProperties
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
-import org.springframework.web.client.RestClientException
 
 @Component
 class BusinessRegistrationLookupClient(
     private val properties: BusinessRegistrationApiProperties,
     restClientBuilder: RestClient.Builder,
 ) : BusinessRegistrationLookupPort {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     private val restClient = restClientBuilder
         .baseUrl(properties.baseUrl)
         .build()
@@ -26,11 +28,22 @@ class BusinessRegistrationLookupClient(
 
         val response = try {
             restClient.post()
-                .uri("${properties.statusPath}?serviceKey={serviceKey}&returnType=JSON", properties.serviceKey)
+                .uri { builder ->
+                    builder
+                        .path(properties.statusPath)
+                        .queryParam("serviceKey", properties.serviceKey)
+                        .queryParam("returnType", "JSON")
+                        .build()
+                }
                 .body(NtsBusinessStatusRequest(b_no = listOf(businessRegistrationNumber)))
                 .retrieve()
                 .body(NtsBusinessStatusResponse::class.java)
-        } catch (e: RestClientException) {
+        } catch (e: Exception) {
+            log.warn(
+                "[BusinessRegistrationLookupClient] 사업자 상태조회 호출 실패: bNo={}, message={}",
+                businessRegistrationNumber,
+                e.message,
+            )
             null
         }
 

@@ -91,7 +91,7 @@ groupbuy:
 
 business-registration:
   api:
-    enabled: ${BUSINESS_REGISTRATION_API_ENABLED:false}
+    enabled: ${BUSINESS_REGISTRATION_API_ENABLED:true}
     base-url: ${BUSINESS_REGISTRATION_API_BASE_URL:https://api.odcloud.kr}
     status-path: ${BUSINESS_REGISTRATION_API_STATUS_PATH:/api/nts-businessman/v1/status}
     service-key: ${BUSINESS_REGISTRATION_API_SERVICE_KEY:}
