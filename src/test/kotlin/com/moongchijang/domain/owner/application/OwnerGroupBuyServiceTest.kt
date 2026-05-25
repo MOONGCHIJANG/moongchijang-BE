@@ -55,7 +55,13 @@ class OwnerGroupBuyServiceTest {
         `when`(
             groupBuyRepository.findByStoreIdInAndStatusInOrderByDeadlineAsc(
                 listOf(1L, 2L),
-                listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED, GroupBuyStatus.FAILED)
+                listOf(
+                    GroupBuyStatus.IN_PROGRESS,
+                    GroupBuyStatus.ACHIEVED,
+                    GroupBuyStatus.COMPLETED,
+                    GroupBuyStatus.FAILED,
+                    GroupBuyStatus.CLOSED
+                )
             )
         ).thenReturn(listOf(groupBuy))
 
@@ -70,6 +76,44 @@ class OwnerGroupBuyServiceTest {
         assertEquals(9900, result[0].price)
         assertEquals(LocalDate.of(2026, 6, 1), result[0].deadline)
         assertEquals("IN_PROGRESS", result[0].status.name)
+    }
+
+    @Test
+    fun `마감 이후 완료와 종료 상태도 사장님 공구 목록에 포함한다`() {
+        val owner = seller()
+        val completed = groupBuy(
+            id = 11L,
+            status = GroupBuyStatus.COMPLETED,
+            currentQuantity = 20,
+            targetQuantity = 20,
+            price = 9900
+        )
+        val closed = groupBuy(
+            id = 12L,
+            status = GroupBuyStatus.CLOSED,
+            currentQuantity = 8,
+            targetQuantity = 20,
+            price = 9900
+        )
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(
+            groupBuyRepository.findByStoreIdInAndStatusInOrderByDeadlineAsc(
+                listOf(1L),
+                listOf(
+                    GroupBuyStatus.IN_PROGRESS,
+                    GroupBuyStatus.ACHIEVED,
+                    GroupBuyStatus.COMPLETED,
+                    GroupBuyStatus.FAILED,
+                    GroupBuyStatus.CLOSED
+                )
+            )
+        ).thenReturn(listOf(completed, closed))
+
+        val result = service.getMyGroupBuys(owner.id!!)
+
+        assertEquals(listOf("ACHIEVED", "FAILED"), result.map { it.status.name })
     }
 
     @Test

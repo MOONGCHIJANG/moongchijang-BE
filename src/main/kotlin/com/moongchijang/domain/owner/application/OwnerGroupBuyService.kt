@@ -41,7 +41,9 @@ class OwnerGroupBuyService(
         val OWNER_VISIBLE_STATUSES = listOf(
             GroupBuyStatus.IN_PROGRESS,
             GroupBuyStatus.ACHIEVED,
-            GroupBuyStatus.FAILED
+            GroupBuyStatus.COMPLETED,
+            GroupBuyStatus.FAILED,
+            GroupBuyStatus.CLOSED
         )
     }
 }
