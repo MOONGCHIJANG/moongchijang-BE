@@ -7,6 +7,7 @@ import com.moongchijang.domain.auth.application.dto.EmailVerificationVerifiedRes
 import com.moongchijang.domain.auth.application.port.EmailSender
 import com.moongchijang.domain.auth.application.port.EmailSignupTokenStore
 import com.moongchijang.domain.auth.application.port.EmailVerificationStore
+import com.moongchijang.global.config.EmailProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
@@ -21,12 +22,17 @@ class EmailVerificationService(
     private val emailVerificationStore: EmailVerificationStore,
     private val emailSignupTokenStore: EmailSignupTokenStore,
     private val emailSender: EmailSender,
+    private val emailProperties: EmailProperties,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun sendEmailVerificationCode(request: EmailVerificationCodeSendRequest): EmailVerificationCodeSentResponse {
         val email = normalizeEmail(request.email)
-        log.info("[EmailVerificationService] 이메일 인증코드 발송 시작: email={}", maskEmail(email))
+        log.info(
+            "[EmailVerificationService] 이메일 인증코드 발송 시작: email={}, provider={}",
+            maskEmail(email),
+            emailProperties.provider
+        )
 
         val dailyCount = emailVerificationStore.getDailySendCount(email)
         if (dailyCount >= DAILY_LIMIT) {
