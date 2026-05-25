@@ -1,0 +1,5 @@
+DROP INDEX uidx_seller_business_profiles_registration_no
+ON seller_business_profiles;
+
+CREATE INDEX idx_seller_business_profiles_registration_no
+ON seller_business_profiles (business_registration_number);

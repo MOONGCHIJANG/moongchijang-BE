@@ -17,7 +17,7 @@ import jakarta.persistence.Table
     name = "seller_business_profiles",
     indexes = [
         Index(name = "uidx_seller_business_profiles_user_id", columnList = "user_id", unique = true),
-        Index(name = "uidx_seller_business_profiles_registration_no", columnList = "business_registration_number", unique = true),
+        Index(name = "idx_seller_business_profiles_registration_no", columnList = "business_registration_number"),
     ],
 )
 class SellerBusinessProfile(
