@@ -26,7 +26,7 @@ class GoogleSmtpEmailSender(
 
         try {
             val mimeMessage = javaMailSender.createMimeMessage()
-            val helper = MimeMessageHelper(mimeMessage, false, "UTF-8")
+            val helper = MimeMessageHelper(mimeMessage, true, "UTF-8")
             helper.setFrom(googleSmtpProperties.from)
             helper.setTo(toEmail)
             helper.setSubject(template.subject)

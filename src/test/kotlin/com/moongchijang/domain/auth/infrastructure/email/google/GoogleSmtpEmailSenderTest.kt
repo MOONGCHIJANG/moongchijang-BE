@@ -5,6 +5,9 @@ import com.moongchijang.global.config.GoogleSmtpProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import jakarta.mail.Session
+import jakarta.mail.Multipart
+import jakarta.mail.Part
+import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeMessage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -48,7 +51,11 @@ class GoogleSmtpEmailSenderTest {
         )
 
         verify(javaMailSender, times(1)).send(mimeMessage)
+        assertEquals("noreply.moongchijang@gmail.com", (mimeMessage.from.first() as InternetAddress).address)
         assertEquals("[뭉치장] 이메일 인증코드를 확인해주세요", mimeMessage.subject)
+        val bodies = collectBodyTexts(mimeMessage)
+        assert(bodies.any { it.contains("123456") })
+        assert(bodies.any { it.contains("3분") })
     }
 
     @Test
@@ -69,5 +76,18 @@ class GoogleSmtpEmailSenderTest {
         }
 
         assertEquals(ErrorCode.EMAIL_SEND_FAILED, ex.errorCode)
+    }
+
+    private fun collectBodyTexts(part: Part): List<String> {
+        val content = part.content
+        return when (content) {
+            is String -> listOf(content)
+            is Multipart -> {
+                (0 until content.count).flatMap { idx ->
+                    collectBodyTexts(content.getBodyPart(idx))
+                }
+            }
+            else -> emptyList()
+        }
     }
 }
