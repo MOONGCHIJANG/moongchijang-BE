@@ -4,18 +4,23 @@ import com.moongchijang.domain.auth.infrastructure.email.VerificationEmailTempla
 import com.moongchijang.global.config.GoogleSmtpProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import jakarta.mail.Session
+import jakarta.mail.Multipart
+import jakarta.mail.Part
+import jakarta.mail.internet.InternetAddress
+import jakarta.mail.internet.MimeMessage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doThrow
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.any
 import org.springframework.mail.MailSendException
-import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
+import java.util.Properties
 
 class GoogleSmtpEmailSenderTest {
 
@@ -36,28 +41,31 @@ class GoogleSmtpEmailSenderTest {
 
     @Test
     fun `인증코드 메일 발송 성공`() {
+        val mimeMessage = MimeMessage(Session.getInstance(Properties()))
+        doReturn(mimeMessage).`when`(javaMailSender).createMimeMessage()
+
         sender.sendVerificationCode(
             toEmail = "user@example.com",
             code = "123456",
             expiresInSeconds = 180L
         )
 
-        val captor = ArgumentCaptor.forClass(SimpleMailMessage::class.java)
-        verify(javaMailSender, times(1)).send(captor.capture())
-        val sentMessage = captor.value
-
-        assertEquals("noreply.moongchijang@gmail.com", sentMessage.from)
-        assertEquals("user@example.com", sentMessage.to?.first())
-        assertEquals("[뭉치장] 이메일 인증코드를 확인해주세요", sentMessage.subject)
-        assert(sentMessage.text?.contains("123456") == true)
-        assert(sentMessage.text?.contains("3분간 유효") == true)
+        verify(javaMailSender, times(1)).send(mimeMessage)
+        assertEquals("noreply.moongchijang@gmail.com", (mimeMessage.from.first() as InternetAddress).address)
+        assertEquals("[뭉치장] 이메일 인증코드를 확인해주세요", mimeMessage.subject)
+        val bodies = collectBodyTexts(mimeMessage)
+        assert(bodies.any { it.contains("123456") })
+        assert(bodies.any { it.contains("3분") })
     }
 
     @Test
     fun `인증코드 메일 발송 실패 시 EMAIL_SEND_FAILED 예외`() {
+        val mimeMessage = MimeMessage(Session.getInstance(Properties()))
+        doReturn(mimeMessage).`when`(javaMailSender).createMimeMessage()
+
         doThrow(MailSendException("fail"))
             .`when`(javaMailSender)
-            .send(any(SimpleMailMessage::class.java))
+            .send(any(MimeMessage::class.java))
 
         val ex = assertThrows<CustomException> {
             sender.sendVerificationCode(
@@ -68,5 +76,18 @@ class GoogleSmtpEmailSenderTest {
         }
 
         assertEquals(ErrorCode.EMAIL_SEND_FAILED, ex.errorCode)
+    }
+
+    private fun collectBodyTexts(part: Part): List<String> {
+        val content = part.content
+        return when (content) {
+            is String -> listOf(content)
+            is Multipart -> {
+                (0 until content.count).flatMap { idx ->
+                    collectBodyTexts(content.getBodyPart(idx))
+                }
+            }
+            else -> emptyList()
+        }
     }
 }

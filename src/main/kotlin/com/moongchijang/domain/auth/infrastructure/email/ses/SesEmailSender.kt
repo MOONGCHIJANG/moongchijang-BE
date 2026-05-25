@@ -45,6 +45,7 @@ class SesEmailSender(
                             .body(
                                 Body.builder()
                                     .text(Content.builder().data(template.bodyText).charset("UTF-8").build())
+                                    .html(Content.builder().data(template.bodyHtml).charset("UTF-8").build())
                                     .build(),
                             )
                             .build(),
