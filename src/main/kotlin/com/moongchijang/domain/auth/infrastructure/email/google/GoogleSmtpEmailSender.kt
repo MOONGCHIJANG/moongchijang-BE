@@ -8,8 +8,8 @@ import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
+import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Component
 
 @Component
@@ -24,15 +24,15 @@ class GoogleSmtpEmailSender(
     override fun sendVerificationCode(toEmail: String, code: String, expiresInSeconds: Long) {
         val template = verificationEmailTemplateProvider.build(code, expiresInSeconds)
 
-        val message = SimpleMailMessage().apply {
-            from = googleSmtpProperties.from
-            setTo(toEmail)
-            this.subject = template.subject
-            text = template.bodyText
-        }
-
         try {
-            javaMailSender.send(message)
+            val mimeMessage = javaMailSender.createMimeMessage()
+            val helper = MimeMessageHelper(mimeMessage, true, "UTF-8")
+            helper.setFrom(googleSmtpProperties.from)
+            helper.setTo(toEmail)
+            helper.setSubject(template.subject)
+            helper.setText(template.bodyText, template.bodyHtml)
+
+            javaMailSender.send(mimeMessage)
             log.info("[GoogleSmtpEmailSender] 이메일 발송 완료: toEmail={}", maskEmail(toEmail))
         } catch (e: Exception) {
             log.error("[GoogleSmtpEmailSender] 이메일 발송 실패: toEmail={}", maskEmail(toEmail), e)
