@@ -227,7 +227,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseBusinessRegistrationLookup'
         '400':
-          description: 입력값 검증 실패 (예: INVALID_BUSINESS_REGISTRATION_NUMBER_FORMAT)
+          description: "입력값 검증 실패 (예: INVALID_BUSINESS_REGISTRATION_NUMBER_FORMAT)"
           content:
             application/json:
               schema:
