@@ -1334,6 +1334,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseMypageParticipationList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /api/v1/users/me/participations/in-progress:
     get:
