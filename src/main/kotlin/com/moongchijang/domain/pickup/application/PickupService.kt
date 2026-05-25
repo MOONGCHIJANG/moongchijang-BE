@@ -143,7 +143,7 @@ class PickupService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
         validatePickupProcessor(processedBy, participation.groupBuy.store.id)
 
-        val pickedUpAt = LocalDateTime.now()
+        val pickedUpAt = nowKst()
         participation.markPickedUp(processedBy, pickedUpAt)
 
         return PickupVerifyResponse(
@@ -153,7 +153,7 @@ class PickupService(
             productName = participation.groupBuy.productName,
             quantity = participation.quantity,
             pickedUpAt = pickedUpAt,
-            pickupProcessedByUserId = processedBy?.id,
+            pickupProcessedByUserId = processedBy.id,
         )
     }
 
@@ -197,8 +197,7 @@ class PickupService(
         when (processedBy.role) {
             UserRole.ADMIN -> return
             UserRole.SELLER -> {
-                val userId = processedBy.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-                if (storeStaffRepository.existsByUserIdAndStoreId(userId, storeId)) {
+                if (storeStaffRepository.existsByUserIdAndStoreId(processedBy.id!!, storeId)) {
                     return
                 }
             }
