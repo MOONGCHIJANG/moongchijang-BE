@@ -87,6 +87,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
 
     // Store(250~299)
     STORE_SEARCH_FAILED(502_250, "매장 검색 중 오류가 발생했습니다.", 502),
+    STORE_NOT_FOUND(404_250, "매장을 찾을 수 없습니다.", 404),
     INVALID_REGION_TYPE_LABEL(400_251, "유효하지 않은 지역 값입니다.", 400),
     INVALID_DISTRICT_TYPE_LABEL(400_252, "유효하지 않은 세부지역 값입니다.", 400),
 
@@ -124,6 +125,11 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PICKUP_LOCKED(400_400, "픽업일 00시 이후 이용할 수 있습니다.", 400),
     PICKUP_QR_NOT_FOUND(404_401, "픽업 QR을 찾을 수 없습니다.", 404),
     PICKUP_ALREADY_USED(409_400, "이미 사용된 픽업 QR입니다.", 409),
+
+    OWNER_GROUPBUY_REQUEST_INVALID_DEADLINE(400_450, "희망 공구 기간은 최소 7일 이상이어야 합니다.", 400),
+    OWNER_GROUPBUY_REQUEST_INVALID_QUANTITY(400_451, "공구 수량 조건이 올바르지 않습니다.", 400),
+    OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_TIME(400_452, "픽업 종료 시간은 시작 시간 이후여야 합니다.", 400),
+    OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_DATE(400_453, "픽업일은 공구 마감일 이후여야 합니다.", 400),
 
     // Notification(360~369)
     NOTIFICATION_NOT_FOUND(404_360, "알림을 찾을 수 없습니다.", 404),
