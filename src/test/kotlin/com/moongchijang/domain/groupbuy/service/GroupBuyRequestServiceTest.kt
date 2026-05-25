@@ -358,6 +358,19 @@ class GroupBuyRequestServiceTest {
     }
 
     @Test
+    fun `운영자 공구 요청 목록이 비어있으면 사용자 조회를 생략한다`() {
+        val pageable = PageRequest.of(0, 20)
+        `when`(groupBuyRequestRepository.findAllByOrderByCreatedAtDesc(pageable))
+            .thenReturn(PageImpl(emptyList(), pageable, 0))
+
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, pageable)
+
+        assertTrue(result.content.isEmpty())
+        assertEquals(0, result.totalElements)
+        verify(userRepository, never()).findAllById(anyList())
+    }
+
+    @Test
     fun `운영자는 공구 요청 상세를 조회한다`() {
         val requestId = 12L
         val requester = UserFixture.createKakaoUser(

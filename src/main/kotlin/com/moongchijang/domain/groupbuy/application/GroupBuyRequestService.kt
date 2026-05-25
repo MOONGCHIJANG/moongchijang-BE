@@ -111,8 +111,14 @@ class GroupBuyRequestService(
             ?.let { groupBuyRequestRepository.findByStatusOrderByCreatedAtDesc(it, pageable) }
             ?: groupBuyRequestRepository.findAllByOrderByCreatedAtDesc(pageable)
 
-        val usersById = userRepository.findAllById(page.content.map { it.userId }.distinct())
-            .associateBy { it.id!! }
+        val userIds = page.content.map { it.userId }.distinct()
+        val usersById = if (userIds.isEmpty()) {
+            emptyMap()
+        } else {
+            userRepository.findAllById(userIds)
+                .mapNotNull { user -> user.id?.let { it to user } }
+                .toMap()
+        }
 
         return AdminGroupBuyRequestPageResponse.from(page, usersById)
     }
