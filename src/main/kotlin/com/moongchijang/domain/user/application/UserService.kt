@@ -252,7 +252,6 @@ class UserService(
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
     }
 
-    @Transactional(readOnly = true)
     fun validateWithdrawable(userId: Long) {
         val hasPendingPickup = participationRepository.existsPendingPickupForWithdrawal(
             userId = userId,
