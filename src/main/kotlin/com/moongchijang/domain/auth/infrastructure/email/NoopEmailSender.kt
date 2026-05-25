@@ -12,7 +12,7 @@ class NoopEmailSender : EmailSender {
 
     override fun sendVerificationCode(toEmail: String, code: String, expiresInSeconds: Long) {
         log.info(
-            "[NoopEmailSender] ses.enabled=false, 이메일 발송 생략: toEmail={}, expiresInSeconds={}",
+            "[NoopEmailSender] 발송 provider 설정으로 이메일 발송 생략: toEmail={}, expiresInSeconds={}",
             toEmail,
             expiresInSeconds,
         )

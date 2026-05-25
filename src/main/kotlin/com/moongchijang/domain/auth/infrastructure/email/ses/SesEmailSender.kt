@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.sesv2.model.Message
 import software.amazon.awssdk.services.sesv2.model.SendEmailRequest
 
 @Component
+@ConditionalOnProperty(prefix = "email", name = ["provider"], havingValue = "SES", matchIfMissing = true)
 @ConditionalOnProperty(prefix = "ses", name = ["enabled"], havingValue = "true")
 class SesEmailSender(
     private val sesV2Client: SesV2Client,
