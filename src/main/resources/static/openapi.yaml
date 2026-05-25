@@ -202,6 +202,89 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
+  /api/v1/users/me/seller/business-registration/lookup:
+    post:
+      tags: [Auth]
+      summary: 사업자등록번호 조회
+      description: |
+        사업자등록번호를 조회해 상태를 반환한다.
+        - `VALID`: 정상 사업자(계속사업자)
+        - `CLOSED`: 휴업/폐업
+        - `NOT_FOUND`: 조회 불가/미확인
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessRegistrationLookupRequest'
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBusinessRegistrationLookup'
+        '400':
+          description: 입력값 검증 실패 (예: INVALID_BUSINESS_REGISTRATION_NUMBER_FORMAT)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/seller/business-info:
+    patch:
+      tags: [Auth]
+      summary: 사장님 사업자 정보 저장
+      description: 사장님 가입의 사업자 정보를 저장한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerBusinessInfoUpsertRequest'
+      responses:
+        '200':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSellerSignupStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/seller/settlement-info:
+    patch:
+      tags: [Auth]
+      summary: 사장님 정산 정보 저장
+      description: 사장님 정산 정보를 저장하고 사장님 가입 완료 상태를 반영한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerSettlementInfoUpsertRequest'
+      responses:
+        '200':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSellerSignupStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/v1/auth/email/availability:
     get:
       tags: [Auth]
@@ -2081,6 +2164,97 @@ components:
             signupCompleted: { type: boolean, example: true }
         error: { nullable: true, example: null }
 
+    BusinessRegistrationLookupRequest:
+      type: object
+      required: [businessRegistrationNumber]
+      properties:
+        businessRegistrationNumber:
+          type: string
+          description: 사업자등록번호(하이픈 포함/미포함 모두 허용)
+          pattern: "^\\d{3}-?\\d{2}-?\\d{5}$"
+          example: "111-22-33333"
+
+    ApiResponseBusinessRegistrationLookup:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [businessRegistrationNumber, status]
+          properties:
+            businessRegistrationNumber: { type: string, example: "111-22-33333" }
+            status:
+              type: string
+              enum: [VALID, CLOSED, NOT_FOUND]
+              example: VALID
+            storeName:
+              type: string
+              nullable: true
+            ownerName:
+              type: string
+              nullable: true
+            storeAddress:
+              type: string
+              nullable: true
+        error: { nullable: true, example: null }
+
+    SellerBusinessInfoUpsertRequest:
+      type: object
+      required: [businessRegistrationNumber, storeName, ownerName, storeAddress, phoneNumber]
+      properties:
+        businessRegistrationNumber:
+          type: string
+          pattern: "^\\d{3}-?\\d{2}-?\\d{5}$"
+          example: "111-22-33333"
+        storeName:
+          type: string
+          maxLength: 100
+          example: "뭉치장베이커리"
+        ownerName:
+          type: string
+          maxLength: 50
+          example: "홍길동"
+        storeAddress:
+          type: string
+          maxLength: 255
+          example: "서울시 강남구 테헤란로 123, 2층"
+        phoneNumber:
+          type: string
+          pattern: "^01[0-9]-?\\d{3,4}-?\\d{4}$"
+          example: "010-1234-5678"
+
+    SellerSettlementInfoUpsertRequest:
+      type: object
+      required: [bankCode, accountNumber, accountHolderName]
+      properties:
+        bankCode:
+          type: string
+          maxLength: 80
+          description: 은행/증권사 선택값(라벨 또는 코드)
+          example: "KB국민"
+        accountNumber:
+          type: string
+          maxLength: 50
+          example: "000-000-0000"
+        accountHolderName:
+          type: string
+          maxLength: 50
+          example: "홍길동"
+
+    ApiResponseSellerSignupStatus:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [id, sellerSignupCompleted]
+          properties:
+            id: { type: integer, format: int64, example: 1 }
+            sellerSignupCompleted: { type: boolean, example: true }
+        error: { nullable: true, example: null }
+
     ApiResponseEmailAvailability:
       type: object
       required: [success, data, error]
@@ -2269,7 +2443,7 @@ components:
 
     AuthUser:
       type: object
-      required: [id, provider, role, signupCompleted, createdAt, updatedAt]
+      required: [id, provider, role, signupCompleted, sellerSignupCompleted, createdAt, updatedAt]
       properties:
         id: { type: integer, format: int64 }
         provider:
@@ -2297,6 +2471,7 @@ components:
           nullable: true
           enum: [BUYER, SELLER, ADMIN]
         signupCompleted: { type: boolean }
+        sellerSignupCompleted: { type: boolean }
         deletedAt:
           type: string
           format: date-time
