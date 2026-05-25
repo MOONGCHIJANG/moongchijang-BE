@@ -10,8 +10,6 @@ import java.time.LocalTime
 
 class OwnerGroupBuyRequestCreateRequestTest {
 
-    private val validator = Validation.buildDefaultValidatorFactory().validator
-
     @Test
     fun `상품 설명은 30자까지 허용한다`() {
         val request = validRequest(productDescription = "가".repeat(30))
@@ -37,17 +35,21 @@ class OwnerGroupBuyRequestCreateRequestTest {
         storeId = 1L,
         productName = "두쫀쿠 세트",
         productDescription = productDescription,
-        deadline = LocalDateTime.of(2026, 6, 3, 23, 59),
+        deadline = LocalDateTime.now().plusDays(8),
         originalPrice = 12000,
         price = 9900,
         targetQuantity = 20,
         maxQuantity = 50,
         perUserLimit = 2,
         imageUrls = listOf("https://cdn.example.com/1.jpg"),
-        pickupDate = LocalDate.of(2026, 6, 4),
+        pickupDate = LocalDate.now().plusDays(9),
         pickupTimeStart = LocalTime.of(12, 0),
         pickupTimeEnd = LocalTime.of(18, 0),
         pickupLocation = "서울 성동구 성수이로 1",
         pickupContact = "01012345678"
     )
+
+    private companion object {
+        val validator = Validation.buildDefaultValidatorFactory().validator
+    }
 }
