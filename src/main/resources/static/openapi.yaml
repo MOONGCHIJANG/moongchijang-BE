@@ -3015,7 +3015,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [participationId, availabilityStatus, pickupStatus, storeName, storeAddress, productName, quantity, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation]
+          required: [participationId, availabilityStatus, pickupStatus, storeName, storeAddress, thumbnailUrl, productName, quantity, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation]
           properties:
             participationId: { type: integer, format: int64 }
             availabilityStatus:
@@ -3030,6 +3030,7 @@ components:
             latitude: { type: number, format: double, nullable: true }
             longitude: { type: number, format: double, nullable: true }
             transitInfo: { type: string, nullable: true, description: "대중교통 안내. 현재 저장 원천이 없으면 null" }
+            thumbnailUrl: { type: string, nullable: true, description: 픽업 안내 상단 카드 이미지 URL }
             productName: { type: string }
             quantity: { type: integer }
             pickupDate: { type: string, format: date }
@@ -3273,10 +3274,11 @@ components:
           type: array
           items:
             type: object
-            required: [participationId, groupBuyId, productName, participationStatus, achievementRate, achievementStatus, displayStatus, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, paymentAmount, quantity, pickupStatus, dDay, canCancel, canViewPickup, canViewQr, qrAvailability]
+            required: [participationId, groupBuyId, thumbnailUrl, productName, participationStatus, achievementRate, achievementStatus, displayStatus, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, paymentAmount, paidAt, paymentMethod, quantity, pickupStatus, dDay, canCancel, canViewPickup, canViewQr, qrAvailability]
             properties:
               participationId: { type: integer, format: int64 }
               groupBuyId: { type: integer, format: int64 }
+              thumbnailUrl: { type: string, nullable: true, description: 카드 상품 이미지 URL }
               productName: { type: string }
               participationStatus:
                 type: string
@@ -3299,6 +3301,8 @@ components:
               pickupTimeEnd: { type: string, format: time }
               pickupLocation: { type: string }
               paymentAmount: { type: integer }
+              paidAt: { type: string, format: date-time, nullable: true, description: 주문 상세 결제 날짜 }
+              paymentMethod: { type: string, nullable: true, description: 결제 내역 결제 수단 }
               quantity: { type: integer }
               pickupStatus:
                 type: string

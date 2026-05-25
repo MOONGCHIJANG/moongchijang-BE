@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.mypage.application.dto.MypageParticipationStatusFilter
 import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
+import com.moongchijang.domain.payment.domain.repository.ParticipationPaymentSummary
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
@@ -150,18 +151,32 @@ class MypageServiceTest {
             )
         ).thenReturn(listOf(participation))
         `when`(
-            paymentOrderRepository.findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
-                userId,
-                PaymentOrderStatus.APPROVED,
-                setOf(101L)
+            paymentOrderRepository.findPaymentSummariesByParticipationIdIn(listOf(11L))
+        ).thenReturn(
+            listOf(
+                paymentSummary(
+                    participationId = 11L,
+                    groupBuyId = 101L,
+                    orderStatus = PaymentOrderStatus.CANCELLED,
+                    paidAt = LocalDateTime.of(2026, 5, 23, 8, 0),
+                    paymentMethod = "KAKAOPAY"
+                ),
+                paymentSummary(
+                    participationId = 11L,
+                    groupBuyId = 101L,
+                    orderStatus = PaymentOrderStatus.APPROVED,
+                    paidAt = LocalDateTime.of(2026, 5, 24, 9, 30),
+                    paymentMethod = "CARD"
+                )
             )
-        ).thenReturn(listOf(101L))
+        )
 
         val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.IN_PROGRESS)
 
         assertEquals(1, result.size)
         assertEquals(11L, result[0].participationId)
         assertEquals(101L, result[0].groupBuyId)
+        assertEquals("https://example.com/cake.jpg", result[0].thumbnailUrl)
         assertEquals("초코 케이크", result[0].productName)
         assertEquals(ParticipationStatus.PAID_WAITING_GOAL.name, result[0].participationStatus)
         assertEquals(60, result[0].achievementRate)
@@ -173,6 +188,8 @@ class MypageServiceTest {
         assertEquals(LocalTime.of(15, 0), result[0].pickupTimeEnd)
         assertEquals("문치 베이커리", result[0].pickupLocation)
         assertEquals(24_000, result[0].paymentAmount)
+        assertEquals(LocalDateTime.of(2026, 5, 24, 9, 30), result[0].paidAt)
+        assertEquals("CARD", result[0].paymentMethod)
         assertEquals(2, result[0].quantity)
         assertEquals(PickupStatus.NOT_READY.name, result[0].pickupStatus)
         assertEquals(1, result[0].dDay)
@@ -196,11 +213,7 @@ class MypageServiceTest {
         val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.IN_PROGRESS)
 
         assertEquals(emptyList<Any>(), result)
-        verify(paymentOrderRepository, never()).findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
-            userId,
-            PaymentOrderStatus.APPROVED,
-            emptyList()
-        )
+        verify(paymentOrderRepository, never()).findPaymentSummariesByParticipationIdIn(emptyList())
     }
 
     @Test
@@ -220,12 +233,26 @@ class MypageServiceTest {
                 PickupStatus.PICKED_UP
             )
         ).thenReturn(listOf(participation))
+        `when`(
+            paymentOrderRepository.findPaymentSummariesByParticipationIdIn(listOf(12L))
+        ).thenReturn(
+            listOf(
+                paymentSummary(
+                    participationId = 12L,
+                    groupBuyId = 102L,
+                    orderStatus = PaymentOrderStatus.CANCELLED,
+                    paidAt = LocalDateTime.of(2026, 5, 23, 8, 0),
+                    paymentMethod = "KAKAOPAY"
+                )
+            )
+        )
 
         val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.PICKUP_COMPLETED)
 
         assertEquals(1, result.size)
         assertEquals(12L, result[0].participationId)
         assertEquals(102L, result[0].groupBuyId)
+        assertEquals("https://example.com/cake.jpg", result[0].thumbnailUrl)
         assertEquals("초코 케이크", result[0].productName)
         assertEquals(ParticipationStatus.CONFIRMED.name, result[0].participationStatus)
         assertEquals(0, result[0].achievementRate)
@@ -236,6 +263,8 @@ class MypageServiceTest {
         assertEquals(LocalTime.of(13, 0), result[0].pickupTimeStart)
         assertEquals(LocalTime.of(15, 0), result[0].pickupTimeEnd)
         assertEquals(24_000, result[0].paymentAmount)
+        assertEquals(LocalDateTime.of(2026, 5, 23, 8, 0), result[0].paidAt)
+        assertEquals("KAKAOPAY", result[0].paymentMethod)
         assertEquals(2, result[0].quantity)
         assertEquals(PickupStatus.PICKED_UP.name, result[0].pickupStatus)
         assertEquals(false, result[0].canCancel)
@@ -258,6 +287,9 @@ class MypageServiceTest {
                 listOf(ParticipationStatus.CANCELLED, ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
             )
         ).thenReturn(listOf(participation))
+        `when`(
+            paymentOrderRepository.findPaymentSummariesByParticipationIdIn(listOf(13L))
+        ).thenReturn(emptyList())
 
         val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.CANCELLED_OR_REFUNDED)
 
@@ -318,6 +350,7 @@ class MypageServiceTest {
         val groupBuy = com.moongchijang.domain.groupbuy.domain.entity.GroupBuy(
             store = store,
             groupBuyRequest = groupBuyRequest,
+            thumbnailUrl = "https://example.com/cake.jpg",
             productName = "초코 케이크",
             productDescription = "진한 초코 케이크",
             price = 12_000,
@@ -342,4 +375,19 @@ class MypageServiceTest {
             pickupStatus = PickupStatus.NOT_READY
         )
     }
+
+    private fun paymentSummary(
+        participationId: Long,
+        groupBuyId: Long,
+        orderStatus: PaymentOrderStatus,
+        paidAt: LocalDateTime?,
+        paymentMethod: String?
+    ): ParticipationPaymentSummary =
+        object : ParticipationPaymentSummary {
+            override val participationId: Long = participationId
+            override val groupBuyId: Long = groupBuyId
+            override val orderStatus: PaymentOrderStatus = orderStatus
+            override val paidAt: LocalDateTime? = paidAt
+            override val paymentMethod: String? = paymentMethod
+        }
 }

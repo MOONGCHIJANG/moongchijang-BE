@@ -63,6 +63,7 @@ data class MypageRefundResponse(
 data class MypageParticipationResponse(
     val participationId: Long,
     val groupBuyId: Long,
+    val thumbnailUrl: String?,
     val productName: String,
     val participationStatus: String,
     val achievementRate: Int,
@@ -74,6 +75,8 @@ data class MypageParticipationResponse(
     val pickupTimeEnd: LocalTime,
     val pickupLocation: String,
     val paymentAmount: Int,
+    val paidAt: LocalDateTime?,
+    val paymentMethod: String?,
     val quantity: Int,
     val pickupStatus: String,
     val dDay: Int,
@@ -85,7 +88,8 @@ data class MypageParticipationResponse(
     companion object {
         fun from(
             participation: Participation,
-            approvedPaymentGroupBuyIds: Set<Long> = emptySet()
+            approvedPaymentGroupBuyIds: Set<Long> = emptySet(),
+            paymentInfo: MypageParticipationPaymentInfo? = null
         ): MypageParticipationResponse {
             val groupBuy = participation.groupBuy
             val canViewPickupOrQr = participation.status == ParticipationStatus.CONFIRMED &&
@@ -94,6 +98,7 @@ data class MypageParticipationResponse(
             return MypageParticipationResponse(
                 participationId = participation.id,
                 groupBuyId = groupBuy.id,
+                thumbnailUrl = groupBuy.thumbnailUrl,
                 productName = groupBuy.productName,
                 participationStatus = participation.status.name,
                 achievementRate = achievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity),
@@ -105,6 +110,8 @@ data class MypageParticipationResponse(
                 pickupTimeEnd = groupBuy.pickupTimeEnd,
                 pickupLocation = groupBuy.pickupLocation,
                 paymentAmount = participation.totalAmount,
+                paidAt = paymentInfo?.paidAt,
+                paymentMethod = paymentInfo?.paymentMethod,
                 quantity = participation.quantity,
                 pickupStatus = participation.pickupStatus.name,
                 dDay = ChronoUnit.DAYS.between(LocalDate.now(), groupBuy.deadline.toLocalDate())
@@ -148,6 +155,13 @@ data class MypageParticipationResponse(
             }
     }
 }
+
+data class MypageParticipationPaymentInfo(
+    val groupBuyId: Long,
+    val isApproved: Boolean,
+    val paidAt: LocalDateTime?,
+    val paymentMethod: String?
+)
 
 data class MypageGroupBuyRequestResponse(
     val productName: String,

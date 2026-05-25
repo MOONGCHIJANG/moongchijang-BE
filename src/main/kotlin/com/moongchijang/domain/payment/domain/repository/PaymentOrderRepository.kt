@@ -7,6 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.LocalDateTime
+
+interface ParticipationPaymentSummary {
+    val participationId: Long
+    val groupBuyId: Long
+    val orderStatus: PaymentOrderStatus
+    val paidAt: LocalDateTime?
+    val paymentMethod: String?
+}
 
 interface PaymentOrderRepository : JpaRepository<PaymentOrder, Long> {
     fun findByOrderId(orderId: String): PaymentOrder?
@@ -33,16 +42,18 @@ interface PaymentOrderRepository : JpaRepository<PaymentOrder, Long> {
 
     @Query(
         """
-        select po.groupBuy.id
+        select p.id as participationId,
+               po.groupBuy.id as groupBuyId,
+               po.status as orderStatus,
+               coalesce(pay.approvedAt, po.approvedAt) as paidAt,
+               pay.method as paymentMethod
         from PaymentOrder po
-        where po.user.id = :userId
-          and po.status = :status
-          and po.groupBuy.id in :groupBuyIds
+        left join Payment pay on pay.paymentOrder = po
+        join Participation p on p.user = po.user and p.groupBuy = po.groupBuy
+        where p.id in :participationIds
         """
     )
-    fun findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
-        @Param("userId") userId: Long,
-        @Param("status") status: PaymentOrderStatus,
-        @Param("groupBuyIds") groupBuyIds: Collection<Long>,
-    ): List<Long>
+    fun findPaymentSummariesByParticipationIdIn(
+        @Param("participationIds") participationIds: Collection<Long>
+    ): List<ParticipationPaymentSummary>
 }

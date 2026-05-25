@@ -2,12 +2,14 @@ package com.moongchijang.domain.mypage.application
 
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.mypage.application.dto.MypageGroupBuyRequestResponse
+import com.moongchijang.domain.mypage.application.dto.MypageParticipationPaymentInfo
 import com.moongchijang.domain.mypage.application.dto.MypageParticipationResponse
 import com.moongchijang.domain.mypage.application.dto.MypageParticipationStatusFilter
 import com.moongchijang.domain.mypage.application.dto.MypageRefundResponse
 import com.moongchijang.domain.mypage.application.dto.MypageSummaryResponse
 import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
+import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -74,9 +76,18 @@ class MypageService(
         )
         if (participations.isEmpty()) return emptyList()
 
-        val inProgressGroupBuyIds = participations.map { it.groupBuy.id }.toSet()
-        val cancellableGroupBuyIds = approvedPaymentGroupBuyIds(userId, inProgressGroupBuyIds)
-        return participations.map { MypageParticipationResponse.from(it, cancellableGroupBuyIds) }
+        val paymentInfoByParticipationId = paymentInfoByParticipationId(participations)
+        val cancellableGroupBuyIds = paymentInfoByParticipationId.values
+            .filter { it.isApproved }
+            .map { it.groupBuyId }
+            .toSet()
+        return participations.map {
+            MypageParticipationResponse.from(
+                participation = it,
+                approvedPaymentGroupBuyIds = cancellableGroupBuyIds,
+                paymentInfo = paymentInfoByParticipationId[it.id]
+            )
+        }
     }
 
     fun getPickupWaitingParticipations(userId: Long): List<MypageParticipationResponse> =
@@ -86,7 +97,7 @@ class MypageService(
                 statuses = PICKUP_WAITING_PARTICIPATION_STATUSES,
                 pickupStatuses = PICKUP_WAITING_PICKUP_STATUSES
             )
-            .map(MypageParticipationResponse::from)
+            .let(::withPaymentInfo)
 
     fun getPickupCompletedParticipations(userId: Long): List<MypageParticipationResponse> =
         participationRepository
@@ -95,25 +106,43 @@ class MypageService(
                 statuses = PICKUP_COMPLETED_PARTICIPATION_STATUSES,
                 pickupStatus = PickupStatus.PICKED_UP
             )
-            .map(MypageParticipationResponse::from)
+            .let(::withPaymentInfo)
 
     fun getCancelledOrRefundedParticipations(userId: Long): List<MypageParticipationResponse> =
         participationRepository
             .findByUserIdAndStatusInOrderByCreatedAtDesc(userId, CANCELLED_OR_REFUNDED_PARTICIPATION_STATUSES)
-            .map(MypageParticipationResponse::from)
+            .let(::withPaymentInfo)
 
     fun getGroupBuyRequests(userId: Long): List<MypageGroupBuyRequestResponse> =
         groupBuyRequestRepository
             .findByUserIdOrderByCreatedAtDesc(userId)
             .map(MypageGroupBuyRequestResponse::from)
 
-    private fun approvedPaymentGroupBuyIds(userId: Long, groupBuyIds: Collection<Long>): Set<Long> {
-        if (groupBuyIds.isEmpty()) return emptySet()
-        return paymentOrderRepository.findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
-            userId = userId,
-            status = PaymentOrderStatus.APPROVED,
-            groupBuyIds = groupBuyIds
-        ).toSet()
+    private fun withPaymentInfo(participations: List<Participation>): List<MypageParticipationResponse> {
+        val paymentInfoByParticipationId = paymentInfoByParticipationId(participations)
+        return participations.map {
+            MypageParticipationResponse.from(
+                participation = it,
+                paymentInfo = paymentInfoByParticipationId[it.id]
+            )
+        }
+    }
+
+    private fun paymentInfoByParticipationId(participations: List<Participation>): Map<Long, MypageParticipationPaymentInfo> {
+        if (participations.isEmpty()) return emptyMap()
+        return paymentOrderRepository.findPaymentSummariesByParticipationIdIn(
+            participationIds = participations.map { it.id }
+        ).groupBy { it.participationId }
+            .mapValues { (_, summaries) ->
+                val summary = summaries.find { it.orderStatus == PaymentOrderStatus.APPROVED }
+                    ?: summaries.first()
+                MypageParticipationPaymentInfo(
+                    groupBuyId = summary.groupBuyId,
+                    isApproved = summary.orderStatus == PaymentOrderStatus.APPROVED,
+                    paidAt = summary.paidAt,
+                    paymentMethod = summary.paymentMethod
+                )
+        }
     }
 
     private companion object {
