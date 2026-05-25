@@ -1187,7 +1187,10 @@ paths:
     post:
       tags: [Pickup]
       summary: QR 코드 스캔 검증 및 수령 처리
-      description: ADMIN 또는 SELLER 권한 사용자가 소비자 QR을 스캔하면 대기 → 완료로 자동 전환된다.
+      description: |
+        SELLER 권한 사용자가 본인 매장 공구의 소비자 QR을 스캔하면 READY → PICKED_UP으로 자동 전환한다.
+        ADMIN 권한 사용자는 운영 대리 처리 용도로 매장 소속 검증 없이 처리할 수 있다.
+        응답에는 사장님 스캔 결과 화면에 필요한 유저이름, 상품명, 수량, 픽업 상태를 포함한다.
       security:
         - bearerAuth: []
       parameters:
@@ -1204,6 +1207,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponsePickupVerify'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
@@ -3178,12 +3183,15 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [participationId, pickupStatus, pickedUpAt]
+          required: [participationId, pickupStatus, productName, quantity, pickedUpAt]
           properties:
             participationId: { type: integer, format: int64 }
             pickupStatus:
               type: string
               enum: [NOT_READY, READY, PICKED_UP, NO_SHOW]
+            userName: { type: string, nullable: true, example: 테스트유저 }
+            productName: { type: string, example: 두쫀쿠 }
+            quantity: { type: integer, example: 2 }
             pickedUpAt: { type: string, format: date-time }
             pickupProcessedByUserId: { type: integer, format: int64, nullable: true }
         error: { nullable: true, example: null }
