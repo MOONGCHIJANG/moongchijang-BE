@@ -2,6 +2,7 @@ package com.moongchijang.domain.groupbuy.service
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyRequestService
 import com.moongchijang.domain.groupbuy.application.GroupBuyOpenRequestService
+import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestStatusFilter
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestStatusUpdateRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -10,10 +11,12 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHisto
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.GroupBuyRequestFixture
+import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -22,6 +25,8 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
@@ -40,6 +45,9 @@ class GroupBuyRequestServiceTest {
 
     @Mock
     private lateinit var groupBuyOpenRequestService: GroupBuyOpenRequestService
+
+    @Mock
+    private lateinit var userRepository: UserRepository
 
     @InjectMocks
     private lateinit var service: GroupBuyRequestService
@@ -286,6 +294,126 @@ class GroupBuyRequestServiceTest {
 
         val ex = assertThrows<CustomException> { service.getDetail(1L, requestId) }
         assertEquals(ErrorCode.GROUPBUY_REQUEST_FORBIDDEN, ex.errorCode)
+    }
+
+    @Test
+    fun `운영자는 전체 공구 요청 목록을 페이징 조회한다`() {
+        val pageable = PageRequest.of(0, 20)
+        val requester = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
+        val request = GroupBuyRequest(
+            userId = 1L,
+            storeName = "성심당",
+            productName = "튀김소보로",
+            desiredQuantity = 20,
+            desiredPickupDate = LocalDate.now().plusDays(5)
+        ).apply { id = 10L }
+
+        `when`(groupBuyRequestRepository.findAllByOrderByCreatedAtDesc(pageable))
+            .thenReturn(PageImpl(listOf(request), pageable, 1))
+        `when`(userRepository.findAllById(listOf(1L))).thenReturn(listOf(requester))
+
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, pageable)
+
+        assertEquals(1, result.content.size)
+        assertEquals(1, result.totalElements)
+        assertEquals(1, result.totalPages)
+        assertEquals(0, result.number)
+        assertEquals(20, result.size)
+        assertEquals(10L, result.content[0].requestId)
+        assertEquals("성심당", result.content[0].storeName)
+        assertEquals("튀김소보로", result.content[0].productName)
+        assertEquals(20, result.content[0].desiredQuantity)
+        assertEquals(GroupBuyRequestStatus.IN_REVIEW, result.content[0].status)
+        assertEquals(1L, result.content[0].requesterId)
+        assertEquals("은서", result.content[0].requesterName)
+    }
+
+    @Test
+    fun `운영자는 상태별 공구 요청 목록을 페이징 조회한다`() {
+        val pageable = PageRequest.of(1, 10)
+        val request = GroupBuyRequest(
+            userId = 2L,
+            storeName = "파리바게뜨",
+            productName = "단팥빵",
+            desiredQuantity = 5,
+            desiredPickupDate = LocalDate.now().plusDays(3),
+            status = GroupBuyRequestStatus.REJECTED
+        ).apply { id = 11L }
+
+        `when`(groupBuyRequestRepository.findByStatusOrderByCreatedAtDesc(GroupBuyRequestStatus.REJECTED, pageable))
+            .thenReturn(PageImpl(listOf(request), pageable, 11))
+        `when`(userRepository.findAllById(listOf(2L))).thenReturn(emptyList())
+
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.REJECTED, pageable)
+
+        assertEquals(1, result.content.size)
+        assertEquals(11, result.totalElements)
+        assertEquals(2, result.totalPages)
+        assertEquals(1, result.number)
+        assertEquals(10, result.size)
+        assertEquals(GroupBuyRequestStatus.REJECTED, result.content[0].status)
+        assertEquals(2L, result.content[0].requesterId)
+        assertNull(result.content[0].requesterName)
+        verify(groupBuyRequestRepository).findByStatusOrderByCreatedAtDesc(GroupBuyRequestStatus.REJECTED, pageable)
+    }
+
+    @Test
+    fun `운영자는 공구 요청 상세를 조회한다`() {
+        val requestId = 12L
+        val requester = UserFixture.createKakaoUser(
+            id = 3L,
+            email = "requester@example.com",
+            nickname = "요청자"
+        ).apply { phoneNumber = "01012345678" }
+        val request = GroupBuyRequest(
+            userId = 3L,
+            storeName = "뚜레쥬르",
+            storeAddress = "서울 성동구",
+            placeId = "place-1",
+            roadAddress = "서울 성동구 도로명",
+            lotAddress = "서울 성동구 지번",
+            latitude = 37.1,
+            longitude = 127.1,
+            productName = "크림빵",
+            desiredQuantity = 30,
+            desiredPickupDate = LocalDate.now().plusDays(7),
+            additionalNote = "오전 픽업 희망",
+            status = GroupBuyRequestStatus.IN_CONTACT
+        ).apply { id = requestId }
+        val history = listOf(
+            GroupBuyRequestStatusHistory(
+                groupBuyRequestId = requestId,
+                status = GroupBuyRequestStatus.IN_REVIEW,
+                changedAt = LocalDateTime.now().minusDays(1)
+            ),
+            GroupBuyRequestStatusHistory(
+                groupBuyRequestId = requestId,
+                status = GroupBuyRequestStatus.IN_CONTACT,
+                changedAt = LocalDateTime.now()
+            )
+        )
+
+        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(request))
+        `when`(userRepository.findById(3L)).thenReturn(Optional.of(requester))
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+            .thenReturn(history)
+
+        val result = service.getAdminDetail(requestId)
+
+        assertEquals(requestId, result.requestId)
+        assertEquals(3L, result.requester.userId)
+        assertEquals("요청자", result.requester.nickname)
+        assertEquals("01012345678", result.requester.phoneNumber)
+        assertEquals("requester@example.com", result.requester.email)
+        assertEquals("뚜레쥬르", result.storeName)
+        assertEquals("place-1", result.placeId)
+        assertEquals("크림빵", result.productName)
+        assertEquals(30, result.desiredQuantity)
+        assertEquals("오전 픽업 희망", result.additionalNote)
+        assertEquals(GroupBuyRequestStatus.IN_CONTACT, result.status)
+        assertEquals(2, result.statusHistory.size)
+        assertEquals(GroupBuyRequestStatus.IN_REVIEW, result.statusHistory[0].status)
+        assertEquals(GroupBuyRequestStatus.IN_CONTACT, result.statusHistory[1].status)
     }
 
     @Test
