@@ -2231,8 +2231,73 @@ components:
         bankCode:
           type: string
           maxLength: 80
-          description: 은행/증권사 선택값(라벨 또는 코드)
+          description: |
+            은행/증권사 선택값(라벨 또는 코드).
+            - 서버 저장 시 표준 코드로 정규화된다.
+            - 아래 enum은 저장되는 표준 코드 목록이다.
           example: "KB국민"
+          enum:
+            - NONGHYEOP
+            - KAKAOBANK
+            - KOOKMIN
+            - TOSSBANK
+            - SHINHAN
+            - WOORI
+            - IBK
+            - HANA
+            - SAEMAUL
+            - BUSANBANK
+            - DAEGUBANK
+            - KBANK
+            - SHINHYEOP
+            - POST
+            - SC
+            - KYONGNAMBANK
+            - GWANGJUBANK
+            - SUHYEOP
+            - JEONBUKBANK
+            - SAVINGBANK
+            - JEJUBANK
+            - CITI
+            - KDBBANK
+            - SANLIM
+            - BOA
+            - HSBC
+            - SAMSUNG_SECURITIES
+            - KB_SECURITIES
+            - NH_INVESTMENT_AND_SECURITIES
+            - YUANTA_SECURITES
+            - DAISHIN_SECURITIES
+            - HANA_INVESTMENT_AND_SECURITIES
+            - HANHWA_INVESTMENT_AND_SECURITIES
+            - EUGENE_INVESTMENT_AND_SECURITIES
+            - HI_INVESTMENT_AND_SECURITIES
+            - KYOBO_SECURITIES
+            - MERITZ_SECURITIES
+            - SK_SECURITIES
+            - LIG_INVESTMENT_AND_SECURITIES
+            - HYUNDAI_MOTOR_SECURITIES
+            - DB_INVESTMENT_AND_SECURITIES
+            - SHINYOUNG_SECURITIES
+            - DAOL_INVESTMENT_AND_SECURITIES
+            - BOOKOOK_SECURITIES
+            - TOSS_SECURITIES
+            - KAKAOPAY_SECURITIES
+            - MIRAE_ASSET_SECURITIES
+            - KIWOOM
+            - KOREA_INVESTMENT_AND_SECURITIES
+            - SHINHAN_SECURITIES
+            - IBK_INVESTMENT_SECURITIES
+            - WOORI_SECURITIES
+            - CAPE_INVESTMENT_SECURITIES
+            - BNK_INVESTMENT_SECURITIES
+            - SANGSANGIN_SECURITIES
+            - ICBC
+            - DEUTSCHE_BANK
+            - JPMORGAN_CHASE
+            - BNP_PARIBAS
+            - CCB
+            - BOC
         accountNumber:
           type: string
           maxLength: 50
