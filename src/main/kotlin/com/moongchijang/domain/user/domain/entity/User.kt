@@ -9,6 +9,8 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Index
+import jakarta.persistence.CascadeType
+import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
@@ -51,6 +53,9 @@ class User(
     @Column(name = "signup_completed", nullable = false)
     var signupCompleted: Boolean = false,
 
+    @Column(name = "seller_signup_completed", nullable = false)
+    var sellerSignupCompleted: Boolean = false,
+
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null,
 
@@ -61,14 +66,30 @@ class User(
     @Column(name = "withdrawal_reason_detail", length = 500)
     var withdrawalReasonDetail: String? = null,
 
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var roleAssignments: MutableSet<UserRoleAssignment> = mutableSetOf(),
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
 ) : BaseEntity() {
+    fun hasRole(role: UserRole): Boolean = roleAssignments.any { it.role == role }
+
+    fun grantRole(role: UserRole) {
+        if (hasRole(role)) {
+            return
+        }
+        roleAssignments.add(UserRoleAssignment(user = this, role = role))
+    }
+
     fun completeSignup(nickname: String, phoneNumber: String) {
         this.nickname = nickname
         this.phoneNumber = phoneNumber
         this.signupCompleted = true
+    }
+
+    fun completeSellerSignup() {
+        this.sellerSignupCompleted = true
     }
 
     fun withdraw(

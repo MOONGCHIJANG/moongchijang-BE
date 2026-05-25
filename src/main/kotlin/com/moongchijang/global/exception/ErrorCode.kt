@@ -50,6 +50,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     EMAIL_VERIFICATION_RESEND_COOLDOWN(400_106, "인증코드 재발송은 잠시 후 다시 시도해주세요.", 400),
     INVALID_PASSWORD_FORMAT(400_107, "8자 이상, 영문+숫자를 포함해주세요.", 400),
     INVALID_PASSWORD_SAME_AS_EMAIL_ID(400_108, "이메일 아이디와 동일한 비밀번호는 사용할 수 없습니다.", 400),
+    INVALID_BUSINESS_REGISTRATION_NUMBER_FORMAT(400_110, "올바른 사업자등록번호를 입력해주세요.", 400),
+    SELLER_BUSINESS_INFO_REQUIRED(400_111, "사장님 사업자 정보를 먼저 입력해주세요.", 400),
     EMAIL_VERIFICATION_DAILY_LIMIT_EXCEEDED(429_101, "내일 다시 시도해주세요.", 429),
     INVALID_SIGNUP_TOKEN(401_107, "회원가입 인증정보가 유효하지 않습니다. 이메일 인증을 다시 진행해주세요.", 401),
     KAKAO_TOKEN_REQUEST_INVALID(401_101, "카카오 토큰 요청 파라미터가 올바르지 않습니다.", 401),

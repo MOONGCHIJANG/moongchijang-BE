@@ -16,6 +16,10 @@ import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.entity.WithdrawalReason
+import com.moongchijang.domain.user.domain.entity.SellerBusinessProfile
+import com.moongchijang.domain.user.domain.entity.SellerSettlementAccount
+import com.moongchijang.domain.user.domain.repository.SellerBusinessProfileRepository
+import com.moongchijang.domain.user.domain.repository.SellerSettlementAccountRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -29,6 +33,10 @@ import java.time.LocalDateTime
 class UserServiceTest {
 
     private val userRepository: UserRepository = Mockito.mock(UserRepository::class.java)
+    private val sellerBusinessProfileRepository: SellerBusinessProfileRepository =
+        Mockito.mock(SellerBusinessProfileRepository::class.java)
+    private val sellerSettlementAccountRepository: SellerSettlementAccountRepository =
+        Mockito.mock(SellerSettlementAccountRepository::class.java)
     private val phoneVerificationService: PhoneVerificationService =
         Mockito.mock(PhoneVerificationService::class.java)
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
@@ -36,6 +44,8 @@ class UserServiceTest {
     private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
     private val userService = UserService(
         userRepository,
+        sellerBusinessProfileRepository,
+        sellerSettlementAccountRepository,
         phoneVerificationService,
         participationRepository,
         favoriteRepository,
@@ -390,6 +400,75 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED, exception.errorCode)
+    }
+
+    @Test
+    fun `사장님 사업자 정보 저장할 때 사업자 정보가 저장됨`() {
+        val user = UserFixture.createKakaoUser(id = 101L, providerId = "kakao-101")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(101L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.findByUserId(101L)).thenReturn(null)
+
+        userService.upsertSellerBusinessInfo(
+            request = com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest(
+                businessRegistrationNumber = "111-22-33333",
+                storeName = "뭉치장베이커리",
+                ownerName = "홍길동",
+                storeAddress = "서울시 강남구 테헤란로 123, 2층",
+                phoneNumber = "010-1234-5678",
+            ),
+            userId = 101L,
+        )
+
+        val captor = org.mockito.ArgumentCaptor.forClass(SellerBusinessProfile::class.java)
+        Mockito.verify(sellerBusinessProfileRepository).save(captor.capture())
+        Assertions.assertEquals("1112233333", captor.value.businessRegistrationNumber)
+        Assertions.assertEquals("뭉치장베이커리", captor.value.storeName)
+        Assertions.assertEquals("홍길동", captor.value.ownerName)
+    }
+
+    @Test
+    fun `사장님 정산 정보 저장할 때 SELLER 권한과 가입 완료 상태가 반영됨`() {
+        val user = UserFixture.createKakaoUser(id = 102L, providerId = "kakao-102")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(102L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.existsByUserId(102L)).thenReturn(true)
+        Mockito.`when`(sellerSettlementAccountRepository.findByUserId(102L)).thenReturn(null)
+
+        val response = userService.upsertSellerSettlementInfo(
+            request = com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest(
+                bankCode = "KB국민",
+                accountNumber = "000-000-0000",
+                accountHolderName = "홍길동",
+            ),
+            userId = 102L,
+        )
+
+        val captor = org.mockito.ArgumentCaptor.forClass(SellerSettlementAccount::class.java)
+        Mockito.verify(sellerSettlementAccountRepository).save(captor.capture())
+        Assertions.assertEquals("KOOKMIN", captor.value.bankCode)
+        Assertions.assertEquals(UserRole.SELLER, user.role)
+        Assertions.assertTrue(user.sellerSignupCompleted)
+        Assertions.assertTrue(user.hasRole(UserRole.SELLER))
+        Assertions.assertTrue(response.sellerSignupCompleted)
+    }
+
+    @Test
+    fun `사장님 정산 정보 저장 시 사업자 정보가 없으면 예외`() {
+        val user = UserFixture.createKakaoUser(id = 103L, providerId = "kakao-103")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(103L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.existsByUserId(103L)).thenReturn(false)
+
+        val exception = assertThrows<CustomException> {
+            userService.upsertSellerSettlementInfo(
+                request = com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest(
+                    bankCode = "KB국민",
+                    accountNumber = "000-000-0000",
+                    accountHolderName = "홍길동",
+                ),
+                userId = 103L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED, exception.errorCode)
     }
 
     private fun setAuditFields(user: User, createdAt: LocalDateTime, updatedAt: LocalDateTime) {

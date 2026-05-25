@@ -36,6 +36,9 @@ data class AuthUserResponse(
     @field:Schema(description = "추가정보 입력 완료 여부", example = "false")
     val signupCompleted: Boolean,
 
+    @field:Schema(description = "사장님 가입 완료 여부", example = "false")
+    val sellerSignupCompleted: Boolean,
+
     @field:Schema(description = "삭제 시각(탈퇴 사용자일 때만 값 존재)", example = "2026-04-30T12:30:00")
     val deletedAt: LocalDateTime?,
 
@@ -56,6 +59,7 @@ data class AuthUserResponse(
             role = user.role,
             lastRole = user.lastRole,
             signupCompleted = user.signupCompleted,
+            sellerSignupCompleted = user.sellerSignupCompleted,
             deletedAt = user.deletedAt,
             createdAt = user.createdAt!!,
             updatedAt = user.updatedAt!!,
