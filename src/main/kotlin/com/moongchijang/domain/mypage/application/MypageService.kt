@@ -48,14 +48,21 @@ class MypageService(
             requestCount = groupBuyRequestRepository.countByUserId(userId)
         )
 
-    fun getRefunds(userId: Long): List<MypageRefundResponse> =
-        participationRepository
-            .findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
-                userId = userId,
-                statuses = REFUND_PARTICIPATION_STATUSES,
-                refundPendingStatus = ParticipationStatus.REFUND_PENDING
+    fun getRefunds(userId: Long): List<MypageRefundResponse> {
+        val participations = participationRepository.findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
+            userId = userId,
+            statuses = REFUND_PARTICIPATION_STATUSES,
+            refundPendingStatus = ParticipationStatus.REFUND_PENDING
+        )
+        val paymentInfoByParticipationId = paymentInfoByParticipationId(participations)
+
+        return participations.map {
+            MypageRefundResponse.from(
+                participation = it,
+                paymentInfo = paymentInfoByParticipationId[it.id]
             )
-            .map(MypageRefundResponse::from)
+        }
+    }
 
     fun getParticipations(
         userId: Long,
