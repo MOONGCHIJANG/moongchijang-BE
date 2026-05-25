@@ -83,6 +83,17 @@ ses:
   region: ${SES_REGION}
   from-email: ${SES_FROM_EMAIL}
 
+email:
+  provider: ${EMAIL_PROVIDER:SES}
+
+google:
+  smtp:
+    host: ${GOOGLE_SMTP_HOST:smtp.gmail.com}
+    port: ${GOOGLE_SMTP_PORT:587}
+    username: ${GOOGLE_SMTP_USERNAME:}
+    app-password: ${GOOGLE_SMTP_APP_PASSWORD:}
+    from: ${GOOGLE_SMTP_FROM:}
+
 groupbuy:
   status-transition:
     fixed-delay-ms: ${GROUPBUY_STATUS_TRANSITION_FIXED_DELAY_MS:60000}

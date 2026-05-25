@@ -51,6 +51,17 @@ ses:
   region: ap-northeast-2
   from-email: no-reply@test.com
 
+email:
+  provider: SES
+
+google:
+  smtp:
+    host: smtp.gmail.com
+    port: 587
+    username:
+    app-password:
+    from:
+
 gemini:
   api-key: test-dummy-key
 
