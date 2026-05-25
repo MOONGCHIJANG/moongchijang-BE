@@ -3294,9 +3294,10 @@ components:
           type: array
           items:
             type: object
-            required: [participationId, productName, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, paymentAmount, quantity, refundStatus, cancelReason]
+            required: [participationId, thumbnailUrl, productName, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, paymentAmount, quantity, refundStatus, cancelReason, paymentMethod]
             properties:
               participationId: { type: integer, format: int64 }
+              thumbnailUrl: { type: string, nullable: true, description: 카드 상품 이미지 URL }
               productName: { type: string }
               storeName: { type: string }
               pickupDate: { type: string, format: date, nullable: true }
@@ -3317,6 +3318,7 @@ components:
                 type: string
                 nullable: true
                 description: 취소 상세 사유
+              paymentMethod: { type: string, nullable: true, description: 결제 수단 }
               refundedAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
