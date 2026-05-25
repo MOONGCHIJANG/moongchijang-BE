@@ -56,20 +56,17 @@ class BusinessRegistrationLookupClient(
         )
 
         return BusinessRegistrationLookupResult(
-            status = mapStatus(item.b_stt_cd, item.b_stt),
+            status = mapStatus(item.b_stt_cd),
             storeName = null,
             ownerName = null,
             storeAddress = null,
         )
     }
 
-    private fun mapStatus(statusCode: String?, statusText: String?): BusinessRegistrationStatus {
+    private fun mapStatus(statusCode: String?): BusinessRegistrationStatus {
         return when {
             statusCode == "01" -> BusinessRegistrationStatus.VALID
             statusCode == "02" || statusCode == "03" -> BusinessRegistrationStatus.CLOSED
-            statusText?.contains("계속", ignoreCase = false) == true -> BusinessRegistrationStatus.VALID
-            statusText?.contains("휴업", ignoreCase = false) == true -> BusinessRegistrationStatus.CLOSED
-            statusText?.contains("폐업", ignoreCase = false) == true -> BusinessRegistrationStatus.CLOSED
             else -> BusinessRegistrationStatus.NOT_FOUND
         }
     }
