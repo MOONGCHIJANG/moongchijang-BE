@@ -46,26 +46,33 @@ class MypageServiceTest {
     private lateinit var mypageService: MypageService
 
     @Test
-    fun `summary는 참여중 완료 환불 개설요청 count를 반환한다`() {
+    fun `summary는 Figma 마이페이지 탭 기준 count를 반환한다`() {
         val userId = 1L
         `when`(
             participationRepository.countByUserIdAndStatusInAndPickupStatusIn(
                 userId,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.PAID_WAITING_GOAL),
                 listOf(PickupStatus.NOT_READY, PickupStatus.READY)
             )
         ).thenReturn(2L)
         `when`(
+            participationRepository.countByUserIdAndStatusInAndPickupStatusIn(
+                userId,
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(5L)
+        `when`(
             participationRepository.countByUserIdAndStatusInAndPickupStatus(
                 userId,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.CONFIRMED),
                 PickupStatus.PICKED_UP
             )
         ).thenReturn(3L)
         `when`(
             participationRepository.countByUserIdAndStatusIn(
                 userId,
-                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
+                listOf(ParticipationStatus.CANCELLED, ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
             )
         )
             .thenReturn(1L)
@@ -73,9 +80,10 @@ class MypageServiceTest {
 
         val result = mypageService.getSummary(userId)
 
-        assertEquals(2L, result.activeCount)
-        assertEquals(3L, result.completedCount)
-        assertEquals(1L, result.refundedCount)
+        assertEquals(2L, result.inProgressCount)
+        assertEquals(5L, result.pickupWaitingCount)
+        assertEquals(3L, result.pickupCompletedCount)
+        assertEquals(1L, result.cancelledOrRefundedCount)
         assertEquals(4L, result.requestCount)
     }
 
@@ -125,7 +133,7 @@ class MypageServiceTest {
     }
 
     @Test
-    fun `active participations는 summary와 같은 참여중 조건으로 DTO를 반환한다`() {
+    fun `in-progress participations는 진행 중 조건으로 DTO를 반환한다`() {
         val userId = 1L
         val participation = createParticipation().apply {
             id = 11L
@@ -137,15 +145,19 @@ class MypageServiceTest {
         `when`(
             participationRepository.findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
                 userId,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.PAID_WAITING_GOAL),
                 listOf(PickupStatus.NOT_READY, PickupStatus.READY)
             )
         ).thenReturn(listOf(participation))
         `when`(
-            paymentOrderRepository.findGroupBuyIdsByUserIdAndStatus(userId, PaymentOrderStatus.APPROVED)
+            paymentOrderRepository.findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
+                userId,
+                PaymentOrderStatus.APPROVED,
+                setOf(101L)
+            )
         ).thenReturn(listOf(101L))
 
-        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.ACTIVE)
+        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.IN_PROGRESS)
 
         assertEquals(1, result.size)
         assertEquals(11L, result[0].participationId)
@@ -171,27 +183,28 @@ class MypageServiceTest {
     }
 
     @Test
-    fun `active participations가 비어 있으면 결제 주문을 조회하지 않는다`() {
+    fun `in-progress participations가 비어 있으면 결제 주문을 조회하지 않는다`() {
         val userId = 1L
         `when`(
             participationRepository.findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
                 userId,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.PAID_WAITING_GOAL),
                 listOf(PickupStatus.NOT_READY, PickupStatus.READY)
             )
         ).thenReturn(emptyList())
 
-        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.ACTIVE)
+        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.IN_PROGRESS)
 
         assertEquals(emptyList<Any>(), result)
-        verify(paymentOrderRepository, never()).findGroupBuyIdsByUserIdAndStatus(
+        verify(paymentOrderRepository, never()).findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
             userId,
-            PaymentOrderStatus.APPROVED
+            PaymentOrderStatus.APPROVED,
+            emptyList()
         )
     }
 
     @Test
-    fun `completed participations는 summary와 같은 픽업완료 조건으로 DTO를 반환한다`() {
+    fun `pickup-completed participations는 픽업 완료 조건으로 DTO를 반환한다`() {
         val userId = 1L
         val participation = createParticipation().apply {
             id = 12L
@@ -203,12 +216,12 @@ class MypageServiceTest {
         `when`(
             participationRepository.findByUserIdAndStatusInAndPickupStatusOrderByPickedUpAtDescCreatedAtDesc(
                 userId,
-                listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.CONFIRMED),
                 PickupStatus.PICKED_UP
             )
         ).thenReturn(listOf(participation))
 
-        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.COMPLETED)
+        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.PICKUP_COMPLETED)
 
         assertEquals(1, result.size)
         assertEquals(12L, result[0].participationId)
@@ -232,26 +245,26 @@ class MypageServiceTest {
     }
 
     @Test
-    fun `refunded participations는 환불대기와 환불완료 상태 목록 DTO를 반환한다`() {
+    fun `cancelled-or-refunded participations는 취소 환불 상태 목록 DTO를 반환한다`() {
         val userId = 1L
         val participation = createParticipation().apply {
             id = 13L
             groupBuy.id = 103L
-            status = ParticipationStatus.REFUND_PENDING
+            status = ParticipationStatus.CANCELLED
         }
         `when`(
             participationRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(
                 userId,
-                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
+                listOf(ParticipationStatus.CANCELLED, ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
             )
         ).thenReturn(listOf(participation))
 
-        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.REFUNDED)
+        val result = mypageService.getParticipations(userId, MypageParticipationStatusFilter.CANCELLED_OR_REFUNDED)
 
         assertEquals(1, result.size)
         assertEquals(13L, result[0].participationId)
-        assertEquals(ParticipationStatus.REFUND_PENDING.name, result[0].participationStatus)
-        assertEquals("REFUND_PENDING", result[0].displayStatus)
+        assertEquals(ParticipationStatus.CANCELLED.name, result[0].participationStatus)
+        assertEquals("CANCELLED", result[0].displayStatus)
         assertEquals(false, result[0].canCancel)
     }
 

@@ -51,7 +51,7 @@ class MyPageParticipationQueryServiceTest {
         `when`(
             participationRepository.findInProgressByUserId(
                 userId = userId,
-                statuses = listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                statuses = listOf(ParticipationStatus.PAID_WAITING_GOAL),
                 pageable = pageable
             )
         ).thenReturn(page)
@@ -60,10 +60,7 @@ class MyPageParticipationQueryServiceTest {
 
         verify(participationRepository).findInProgressByUserId(
             userId = userId,
-            statuses = listOf(
-                ParticipationStatus.PAID_WAITING_GOAL,
-                ParticipationStatus.CONFIRMED
-            ),
+            statuses = listOf(ParticipationStatus.PAID_WAITING_GOAL),
             pageable = pageable
         )
 
@@ -99,7 +96,7 @@ class MyPageParticipationQueryServiceTest {
         `when`(
             participationRepository.findInProgressByUserId(
                 userId = userId,
-                statuses = listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED),
+                statuses = listOf(ParticipationStatus.PAID_WAITING_GOAL),
                 pageable = pageable
             )
         ).thenReturn(page)

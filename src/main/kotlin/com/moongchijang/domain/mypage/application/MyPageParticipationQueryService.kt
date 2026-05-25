@@ -77,8 +77,7 @@ class MyPageParticipationQueryService(
 
     companion object {
         private val IN_PROGRESS_STATUSES = listOf(
-            ParticipationStatus.PAID_WAITING_GOAL,
-            ParticipationStatus.CONFIRMED
+            ParticipationStatus.PAID_WAITING_GOAL
         )
         private val PICKUP_WAITING_PARTICIPATION_STATUSES = listOf(
             ParticipationStatus.CONFIRMED

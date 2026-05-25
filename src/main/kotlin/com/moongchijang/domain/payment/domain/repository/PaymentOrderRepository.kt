@@ -37,10 +37,12 @@ interface PaymentOrderRepository : JpaRepository<PaymentOrder, Long> {
         from PaymentOrder po
         where po.user.id = :userId
           and po.status = :status
+          and po.groupBuy.id in :groupBuyIds
         """
     )
-    fun findGroupBuyIdsByUserIdAndStatus(
+    fun findGroupBuyIdsByUserIdAndStatusAndGroupBuyIdIn(
         @Param("userId") userId: Long,
         @Param("status") status: PaymentOrderStatus,
+        @Param("groupBuyIds") groupBuyIds: Collection<Long>,
     ): List<Long>
 }

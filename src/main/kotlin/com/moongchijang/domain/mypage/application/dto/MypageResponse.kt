@@ -10,9 +10,10 @@ import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 
 data class MypageSummaryResponse(
-    val activeCount: Long,
-    val completedCount: Long,
-    val refundedCount: Long,
+    val inProgressCount: Long,
+    val pickupWaitingCount: Long,
+    val pickupCompletedCount: Long,
+    val cancelledOrRefundedCount: Long,
     val requestCount: Long
 )
 

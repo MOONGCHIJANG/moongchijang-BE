@@ -1320,8 +1320,8 @@ paths:
           required: true
           schema:
             type: string
-            enum: [ACTIVE, COMPLETED, REFUNDED]
-          description: ACTIVE=참여중 / COMPLETED=완료 / REFUNDED=환불내역
+            enum: [IN_PROGRESS, PICKUP_WAITING, PICKUP_COMPLETED, CANCELLED_OR_REFUNDED]
+          description: IN_PROGRESS=진행 중 / PICKUP_WAITING=픽업 대기 / PICKUP_COMPLETED=픽업 완료 / CANCELLED_OR_REFUNDED=환불·취소
       responses:
         '200':
           description: 상태별 참여 목록
@@ -1388,7 +1388,7 @@ paths:
     get:
       tags: [MyPage]
       summary: 마이페이지 탭별 건수 조회
-      description: 참여중 · 완료 · 환불내역 · 개설요청 건수를 반환한다 (탭 칩 괄호 숫자용).
+      description: 진행 중 · 픽업 대기 · 픽업 완료 · 환불/취소 · 개설요청 건수를 반환한다 (탭 칩 괄호 숫자용).
       security:
         - bearerAuth: []
       responses:
@@ -1403,7 +1403,7 @@ paths:
     get:
       tags: [MyPage]
       summary: 마이페이지 탭별 건수 조회
-      description: 참여중 · 완료 · 환불내역 · 개설요청 건수를 반환한다.
+      description: 진행 중 · 픽업 대기 · 픽업 완료 · 환불/취소 · 개설요청 건수를 반환한다.
       security:
         - bearerAuth: []
       responses:
@@ -1413,34 +1413,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseTabCounts'
-
-  /api/v1/mypage/participations/active:
-    get:
-      tags: [MyPage]
-      summary: 내 참여중 공구 내역 조회
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 참여중 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseMypageParticipationList'
-
-  /api/v1/mypage/participations/completed:
-    get:
-      tags: [MyPage]
-      summary: 내 완료 공구 내역 조회
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 완료 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseMypageParticipationList'
 
   /api/v1/mypage/refunds:
     get:
@@ -3458,11 +3430,12 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [activeCount, completedCount, refundedCount, requestCount]
+          required: [inProgressCount, pickupWaitingCount, pickupCompletedCount, cancelledOrRefundedCount, requestCount]
           properties:
-            activeCount: { type: integer, description: 참여중 }
-            completedCount: { type: integer, description: 완료 }
-            refundedCount: { type: integer, description: 환불내역 }
+            inProgressCount: { type: integer, description: 진행 중 }
+            pickupWaitingCount: { type: integer, description: 픽업 대기 }
+            pickupCompletedCount: { type: integer, description: 픽업 완료 }
+            cancelledOrRefundedCount: { type: integer, description: 환불/취소 }
             requestCount: { type: integer, description: 개설 요청 내역 }
         error: { nullable: true, example: null }
 

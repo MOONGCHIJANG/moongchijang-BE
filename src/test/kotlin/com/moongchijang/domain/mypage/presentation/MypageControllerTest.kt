@@ -17,36 +17,51 @@ class MypageControllerTest {
     private val controller = MypageController(mypageService)
 
     @Test
-    fun `users me participations는 ACTIVE 상태 필터를 서비스로 전달한다`() {
-        `when`(mypageService.getParticipations(1L, MypageParticipationStatusFilter.ACTIVE)).thenReturn(emptyList())
+    fun `users me participations는 IN_PROGRESS 상태 필터를 서비스로 전달한다`() {
+        `when`(mypageService.getParticipations(1L, MypageParticipationStatusFilter.IN_PROGRESS)).thenReturn(emptyList())
 
-        val result = controller.getUserParticipations(principal(), MypageParticipationStatusFilter.ACTIVE)
+        val result = controller.getUserParticipations(principal(), MypageParticipationStatusFilter.IN_PROGRESS)
 
         assertEquals(emptyList<Any>(), result.body?.data)
-        verify(mypageService).getParticipations(1L, MypageParticipationStatusFilter.ACTIVE)
+        verify(mypageService).getParticipations(1L, MypageParticipationStatusFilter.IN_PROGRESS)
     }
 
     @Test
-    fun `users me participations는 COMPLETED 상태 필터를 서비스로 전달한다`() {
-        `when`(mypageService.getParticipations(1L, MypageParticipationStatusFilter.COMPLETED)).thenReturn(emptyList())
+    fun `users me participations는 PICKUP_WAITING 상태 필터를 서비스로 전달한다`() {
+        `when`(mypageService.getParticipations(1L, MypageParticipationStatusFilter.PICKUP_WAITING)).thenReturn(emptyList())
 
-        controller.getUserParticipations(principal(), MypageParticipationStatusFilter.COMPLETED)
+        controller.getUserParticipations(principal(), MypageParticipationStatusFilter.PICKUP_WAITING)
 
-        verify(mypageService).getParticipations(1L, MypageParticipationStatusFilter.COMPLETED)
+        verify(mypageService).getParticipations(1L, MypageParticipationStatusFilter.PICKUP_WAITING)
     }
 
     @Test
-    fun `users me participations는 REFUNDED 상태 필터를 서비스로 전달한다`() {
-        `when`(mypageService.getParticipations(1L, MypageParticipationStatusFilter.REFUNDED)).thenReturn(emptyList())
+    fun `users me participations는 PICKUP_COMPLETED 상태 필터를 서비스로 전달한다`() {
+        `when`(mypageService.getParticipations(1L, MypageParticipationStatusFilter.PICKUP_COMPLETED)).thenReturn(emptyList())
 
-        controller.getUserParticipations(principal(), MypageParticipationStatusFilter.REFUNDED)
+        controller.getUserParticipations(principal(), MypageParticipationStatusFilter.PICKUP_COMPLETED)
 
-        verify(mypageService).getParticipations(1L, MypageParticipationStatusFilter.REFUNDED)
+        verify(mypageService).getParticipations(1L, MypageParticipationStatusFilter.PICKUP_COMPLETED)
+    }
+
+    @Test
+    fun `users me participations는 CANCELLED_OR_REFUNDED 상태 필터를 서비스로 전달한다`() {
+        `when`(mypageService.getParticipations(1L, MypageParticipationStatusFilter.CANCELLED_OR_REFUNDED)).thenReturn(emptyList())
+
+        controller.getUserParticipations(principal(), MypageParticipationStatusFilter.CANCELLED_OR_REFUNDED)
+
+        verify(mypageService).getParticipations(1L, MypageParticipationStatusFilter.CANCELLED_OR_REFUNDED)
     }
 
     @Test
     fun `users me tabs counts는 summary를 반환한다`() {
-        val summary = MypageSummaryResponse(activeCount = 1, completedCount = 2, refundedCount = 3, requestCount = 4)
+        val summary = MypageSummaryResponse(
+            inProgressCount = 1,
+            pickupWaitingCount = 2,
+            pickupCompletedCount = 3,
+            cancelledOrRefundedCount = 4,
+            requestCount = 5
+        )
         `when`(mypageService.getSummary(1L)).thenReturn(summary)
 
         val result = controller.getUserTabCounts(principal())

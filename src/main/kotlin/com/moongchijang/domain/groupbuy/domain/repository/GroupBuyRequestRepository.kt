@@ -8,10 +8,10 @@ import java.time.LocalDate
 interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
     fun findByUserIdOrderByCreatedAtDesc(userId: Long): List<GroupBuyRequest>
 
+    fun countByUserId(userId: Long): Long
+
     fun findByStatusInAndDesiredPickupDate(
         statuses: Collection<GroupBuyRequestStatus>,
         desiredPickupDate: LocalDate
     ): List<GroupBuyRequest>
-
-    fun countByUserId(userId: Long): Long
 }

@@ -67,20 +67,6 @@ class MypageController(
     ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> =
         ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
 
-    @GetMapping("/mypage/participations/active")
-    @Operation(summary = "내 참여중 공구 내역 조회")
-    fun getActiveParticipations(
-        @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getActiveParticipations(principal.id)))
-
-    @GetMapping("/mypage/participations/completed")
-    @Operation(summary = "내 완료 공구 내역 조회")
-    fun getCompletedParticipations(
-        @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getCompletedParticipations(principal.id)))
-
     @GetMapping("/mypage/group-buy-requests")
     @Operation(summary = "내 공구 개설 요청 내역 조회")
     fun getGroupBuyRequests(
