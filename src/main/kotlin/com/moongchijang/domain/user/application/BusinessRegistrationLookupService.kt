@@ -2,6 +2,7 @@ package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupRequest
 import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupResponse
+import com.moongchijang.domain.user.application.dto.BusinessRegistrationStatus
 import com.moongchijang.domain.user.application.port.BusinessRegistrationLookupPort
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -20,6 +21,7 @@ class BusinessRegistrationLookupService(
         return BusinessRegistrationLookupResponse(
             businessRegistrationNumber = format(businessRegistrationNumber),
             status = result.status,
+            message = result.status.notFoundMessage(),
             storeName = result.storeName?.trim()?.takeIf { it.isNotBlank() },
             ownerName = result.ownerName?.trim()?.takeIf { it.isNotBlank() },
             storeAddress = result.storeAddress?.trim()?.takeIf { it.isNotBlank() },
@@ -41,5 +43,12 @@ class BusinessRegistrationLookupService(
     companion object {
         private val BUSINESS_REGISTRATION_NUMBER_REGEX = Regex("^\\d{10}$")
         private val BUSINESS_REGISTRATION_NUMBER_CAPTURE_REGEX = Regex("^(\\d{3})(\\d{2})(\\d{5})$")
+    }
+}
+
+private fun BusinessRegistrationStatus.notFoundMessage(): String? {
+    return when (this) {
+        BusinessRegistrationStatus.NOT_FOUND -> "사업자등록번호가 조회되지 않아 다시 입력해주세요."
+        else -> null
     }
 }

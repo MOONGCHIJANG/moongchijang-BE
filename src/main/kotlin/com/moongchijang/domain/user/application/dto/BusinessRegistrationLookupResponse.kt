@@ -11,6 +11,9 @@ data class BusinessRegistrationLookupResponse(
     @field:Schema(description = "조회 상태", example = "VALID")
     val status: BusinessRegistrationStatus,
 
+    @field:Schema(description = "조회 결과 안내 문구", example = "사업자등록번호가 조회되지 않아 다시 입력해주세요.")
+    val message: String? = null,
+
     @field:Schema(description = "가게명", example = "뭉치장베이커리")
     val storeName: String? = null,
 
