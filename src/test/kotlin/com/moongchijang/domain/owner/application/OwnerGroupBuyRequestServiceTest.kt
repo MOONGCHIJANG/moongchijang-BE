@@ -19,15 +19,18 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.any
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -48,8 +51,16 @@ class OwnerGroupBuyRequestServiceTest {
     @Mock
     private lateinit var ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository
 
-    @InjectMocks
-    private lateinit var service: OwnerGroupBuyRequestService
+    private val service: OwnerGroupBuyRequestService by lazy {
+        OwnerGroupBuyRequestService(
+            userRepository = userRepository,
+            storeRepository = storeRepository,
+            storeStaffRepository = storeStaffRepository,
+            ownerGroupBuyRequestRepository = ownerGroupBuyRequestRepository,
+            ownerGroupBuyRequestImageRepository = ownerGroupBuyRequestImageRepository,
+            clock = FIXED_CLOCK
+        )
+    }
 
     @Test
     fun `사장님이 본인 매장 공구 개설 요청을 제출하면 PENDING 요청과 이미지를 저장한다`() {
@@ -118,7 +129,7 @@ class OwnerGroupBuyRequestServiceTest {
     @Test
     fun `희망 공구 기간이 7일 미만이면 예외가 발생한다`() {
         val owner = seller()
-        val request = validRequest(deadline = LocalDateTime.now().plusDays(6))
+        val request = validRequest(deadline = FIXED_NOW.plusDays(6))
 
         `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
         `when`(storeRepository.findById(request.storeId)).thenReturn(Optional.of(GroupBuyFixture.createStore()))
@@ -147,14 +158,35 @@ class OwnerGroupBuyRequestServiceTest {
         assertEquals(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_QUANTITY, ex.errorCode)
     }
 
+    @Test
+    fun `픽업일이 공구 마감일과 같으면 예외가 발생한다`() {
+        val owner = seller()
+        val deadline = FIXED_NOW.plusDays(8)
+        val request = validRequest(
+            deadline = deadline,
+            pickupDate = deadline.toLocalDate()
+        )
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeRepository.findById(request.storeId)).thenReturn(Optional.of(GroupBuyFixture.createStore()))
+        `when`(storeStaffRepository.existsByUserIdAndStoreId(owner.id!!, request.storeId)).thenReturn(true)
+
+        val ex = assertThrows<CustomException> {
+            service.create(owner.id!!, request)
+        }
+
+        assertEquals(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_DATE, ex.errorCode)
+    }
+
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {
         role = UserRole.SELLER
     }
 
     private fun validRequest(
-        deadline: LocalDateTime = LocalDateTime.now().plusDays(8),
+        deadline: LocalDateTime = FIXED_NOW.plusDays(8),
         targetQuantity: Int = 20,
-        maxQuantity: Int = 50
+        maxQuantity: Int = 50,
+        pickupDate: LocalDate = deadline.toLocalDate().plusDays(1)
     ) = OwnerGroupBuyRequestCreateRequest(
         storeId = 1L,
         productName = "두쫀쿠 세트",
@@ -166,7 +198,7 @@ class OwnerGroupBuyRequestServiceTest {
         maxQuantity = maxQuantity,
         perUserLimit = 2,
         imageUrls = listOf("https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"),
-        pickupDate = deadline.toLocalDate().plusDays(1),
+        pickupDate = pickupDate,
         pickupTimeStart = LocalTime.of(12, 0),
         pickupTimeEnd = LocalTime.of(18, 0),
         pickupLocation = "서울 성동구 성수이로 1",
@@ -174,4 +206,12 @@ class OwnerGroupBuyRequestServiceTest {
     )
 
     private inline fun <reified T> argumentCaptor() = org.mockito.ArgumentCaptor.forClass(T::class.java)
+
+    private companion object {
+        val FIXED_CLOCK: Clock = Clock.fixed(
+            Instant.parse("2026-05-25T00:00:00Z"),
+            ZoneId.of("Asia/Seoul")
+        )
+        val FIXED_NOW: LocalDateTime = LocalDateTime.now(FIXED_CLOCK)
+    }
 }

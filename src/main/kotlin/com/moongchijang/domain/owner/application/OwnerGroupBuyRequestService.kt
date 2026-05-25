@@ -15,6 +15,7 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
@@ -24,7 +25,8 @@ class OwnerGroupBuyRequestService(
     private val storeRepository: StoreRepository,
     private val storeStaffRepository: StoreStaffRepository,
     private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
-    private val ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository
+    private val ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository,
+    private val clock: Clock
 ) {
 
     fun create(ownerId: Long, request: OwnerGroupBuyRequestCreateRequest): OwnerGroupBuyRequestCreateResponse {
@@ -83,7 +85,7 @@ class OwnerGroupBuyRequestService(
     }
 
     private fun validateRequest(request: OwnerGroupBuyRequestCreateRequest) {
-        if (request.deadline.isBefore(LocalDateTime.now().plusDays(MIN_RECRUITING_DAYS))) {
+        if (request.deadline.isBefore(LocalDateTime.now(clock).plusDays(MIN_RECRUITING_DAYS))) {
             throw CustomException(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_DEADLINE)
         }
 
@@ -99,7 +101,7 @@ class OwnerGroupBuyRequestService(
             throw CustomException(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_TIME)
         }
 
-        if (request.pickupDate.isBefore(request.deadline.toLocalDate())) {
+        if (!request.pickupDate.isAfter(request.deadline.toLocalDate())) {
             throw CustomException(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_DATE)
         }
     }

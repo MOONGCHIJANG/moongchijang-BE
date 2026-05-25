@@ -19,7 +19,7 @@ data class OwnerGroupBuyRequestCreateRequest(
     val productName: String,
 
     @field:NotBlank(message = "상품 설명은 필수입니다")
-    @field:Size(max = 30, message = "상품 설명은 30자 이하이어야 합니다")
+    @field:Size(max = 500, message = "상품 설명은 500자 이하이어야 합니다")
     val productDescription: String,
 
     @field:NotNull(message = "희망 공구 마감일시는 필수입니다")
