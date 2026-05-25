@@ -66,6 +66,9 @@ data class NearestPickupQrResponse(
 data class PickupVerifyResponse(
     val participationId: Long,
     val pickupStatus: PickupStatus,
+    val userName: String?,
+    val productName: String,
+    val quantity: Int,
     val pickedUpAt: LocalDateTime,
     val pickupProcessedByUserId: Long?,
 )

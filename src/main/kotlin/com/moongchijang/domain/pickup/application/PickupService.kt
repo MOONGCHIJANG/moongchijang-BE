@@ -10,6 +10,9 @@ import com.moongchijang.domain.pickup.application.dto.PickupAvailabilityStatus
 import com.moongchijang.domain.pickup.application.dto.PickupGuideResponse
 import com.moongchijang.domain.pickup.application.dto.PickupQrResponse
 import com.moongchijang.domain.pickup.application.dto.PickupVerifyResponse
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
+import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -25,6 +28,7 @@ import java.util.UUID
 class PickupService(
     private val participationRepository: ParticipationRepository,
     private val userRepository: UserRepository,
+    private val storeStaffRepository: StoreStaffRepository,
 ) {
 
     @Transactional(readOnly = true)
@@ -131,17 +135,25 @@ class PickupService(
         if (participation.pickupStatus == PickupStatus.PICKED_UP) {
             throw CustomException(ErrorCode.PICKUP_ALREADY_USED)
         }
+        if (participation.pickupStatus != PickupStatus.READY) {
+            throw CustomException(ErrorCode.PICKUP_NOT_READY)
+        }
 
         val processedBy = userRepository.findByIdAndDeletedAtIsNull(processedByUserId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-        val pickedUpAt = LocalDateTime.now()
+        validatePickupProcessor(processedBy, participation.groupBuy.store.id)
+
+        val pickedUpAt = nowKst()
         participation.markPickedUp(processedBy, pickedUpAt)
 
         return PickupVerifyResponse(
             participationId = participation.id,
             pickupStatus = participation.pickupStatus,
+            userName = participation.user.nickname,
+            productName = participation.groupBuy.productName,
+            quantity = participation.quantity,
             pickedUpAt = pickedUpAt,
-            pickupProcessedByUserId = processedBy?.id,
+            pickupProcessedByUserId = processedBy.id,
         )
     }
 
@@ -180,6 +192,20 @@ class PickupService(
 
     private fun Participation.reservationNumber(): String =
         "MCJ-P%06d".format(id)
+
+    private fun validatePickupProcessor(processedBy: User, storeId: Long) {
+        when (processedBy.role) {
+            UserRole.ADMIN -> return
+            UserRole.SELLER -> {
+                if (storeStaffRepository.existsByUserIdAndStoreId(processedBy.id!!, storeId)) {
+                    return
+                }
+            }
+            UserRole.BUYER -> Unit
+        }
+
+        throw CustomException(ErrorCode.FORBIDDEN)
+    }
 
     private fun todayKst(): LocalDate = LocalDate.now(KST_ZONE)
 

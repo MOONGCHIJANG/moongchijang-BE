@@ -12,7 +12,9 @@ import com.moongchijang.domain.pickup.application.dto.PickupAvailabilityStatus
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.User
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -43,10 +45,14 @@ class PickupServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
+    @Mock
+    private lateinit var storeStaffRepository: StoreStaffRepository
+
     private val service: PickupService by lazy {
         PickupService(
             participationRepository = participationRepository,
             userRepository = userRepository,
+            storeStaffRepository = storeStaffRepository,
         )
     }
 
@@ -281,7 +287,7 @@ class PickupServiceTest {
 
     @Test
     fun `QR 검증 성공은 픽업 완료 처리하고 처리자를 저장한다`() {
-        val processor = UserFixture.createKakaoUser(id = 7L)
+        val processor = seller(id = 7L)
         val participation = createParticipation(
             pickupDate = todayKst(),
             pickupStatus = PickupStatus.READY,
@@ -289,10 +295,14 @@ class PickupServiceTest {
         )
         `when`(participationRepository.findByPickupTokenForUpdate("qr-token")).thenReturn(participation)
         `when`(userRepository.findByIdAndDeletedAtIsNull(7L)).thenReturn(processor)
+        `when`(storeStaffRepository.existsByUserIdAndStoreId(7L, 20L)).thenReturn(true)
 
         val result = service.verifyPickup("qr-token", 7L)
 
         assertEquals(PickupStatus.PICKED_UP, result.pickupStatus)
+        assertEquals("테스트유저", result.userName)
+        assertEquals("두쫀쿠", result.productName)
+        assertEquals(2, result.quantity)
         assertNotNull(result.pickedUpAt)
         assertEquals(7L, result.pickupProcessedByUserId)
         assertEquals(PickupStatus.PICKED_UP, participation.pickupStatus)
@@ -316,6 +326,64 @@ class PickupServiceTest {
 
         assertEquals(ErrorCode.PICKUP_ALREADY_USED, ex.errorCode)
         verify(userRepository, never()).findByIdAndDeletedAtIsNull(7L)
+    }
+
+    @Test
+    fun `픽업 준비 상태가 아닌 QR은 완료 처리할 수 없다`() {
+        val participation = createParticipation(
+            pickupDate = todayKst(),
+            pickupStatus = PickupStatus.NOT_READY,
+            pickupToken = "qr-token",
+        )
+        `when`(participationRepository.findByPickupTokenForUpdate("qr-token")).thenReturn(participation)
+
+        val ex = assertThrows<CustomException> {
+            service.verifyPickup("qr-token", 7L)
+        }
+
+        assertEquals(ErrorCode.PICKUP_NOT_READY, ex.errorCode)
+        verify(userRepository, never()).findByIdAndDeletedAtIsNull(7L)
+    }
+
+    @Test
+    fun `사장님이 본인 매장 공구가 아닌 QR을 스캔하면 거부한다`() {
+        val processor = seller(id = 7L)
+        val participation = createParticipation(
+            pickupDate = todayKst(),
+            pickupStatus = PickupStatus.READY,
+            pickupToken = "qr-token",
+        )
+        `when`(participationRepository.findByPickupTokenForUpdate("qr-token")).thenReturn(participation)
+        `when`(userRepository.findByIdAndDeletedAtIsNull(7L)).thenReturn(processor)
+        `when`(storeStaffRepository.existsByUserIdAndStoreId(7L, 20L)).thenReturn(false)
+
+        val ex = assertThrows<CustomException> {
+            service.verifyPickup("qr-token", 7L)
+        }
+
+        assertEquals(ErrorCode.FORBIDDEN, ex.errorCode)
+        assertEquals(PickupStatus.READY, participation.pickupStatus)
+        assertNull(participation.pickedUpAt)
+    }
+
+    @Test
+    fun `소비자 계정은 QR 픽업 완료 처리를 할 수 없다`() {
+        val processor = UserFixture.createKakaoUser(id = 7L)
+        val participation = createParticipation(
+            pickupDate = todayKst(),
+            pickupStatus = PickupStatus.READY,
+            pickupToken = "qr-token",
+        )
+        `when`(participationRepository.findByPickupTokenForUpdate("qr-token")).thenReturn(participation)
+        `when`(userRepository.findByIdAndDeletedAtIsNull(7L)).thenReturn(processor)
+
+        val ex = assertThrows<CustomException> {
+            service.verifyPickup("qr-token", 7L)
+        }
+
+        assertEquals(ErrorCode.FORBIDDEN, ex.errorCode)
+        assertEquals(PickupStatus.READY, participation.pickupStatus)
+        assertNull(participation.pickedUpAt)
     }
 
     private fun createParticipation(
@@ -391,6 +459,11 @@ class PickupServiceTest {
             desiredQuantity = 50,
             desiredPickupDate = pickupDate,
         ).apply { id = 30L }
+
+    private fun seller(id: Long): User =
+        UserFixture.createKakaoUser(id = id).apply {
+            role = UserRole.SELLER
+        }
 
     private fun todayKst(): LocalDate = LocalDate.now(KST_ZONE)
 

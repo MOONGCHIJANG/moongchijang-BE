@@ -39,6 +39,9 @@ class PickupControllerTest {
         val response = PickupVerifyResponse(
             participationId = 99L,
             pickupStatus = PickupStatus.PICKED_UP,
+            userName = "테스트유저",
+            productName = "두쫀쿠",
+            quantity = 2,
             pickedUpAt = LocalDateTime.now(),
             pickupProcessedByUserId = 7L,
         )
@@ -55,6 +58,9 @@ class PickupControllerTest {
         val response = PickupVerifyResponse(
             participationId = 99L,
             pickupStatus = PickupStatus.PICKED_UP,
+            userName = "테스트유저",
+            productName = "두쫀쿠",
+            quantity = 2,
             pickedUpAt = LocalDateTime.now(),
             pickupProcessedByUserId = 8L,
         )
