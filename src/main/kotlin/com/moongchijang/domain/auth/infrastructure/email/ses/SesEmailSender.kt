@@ -1,6 +1,7 @@
 package com.moongchijang.domain.auth.infrastructure.email.ses
 
 import com.moongchijang.domain.auth.application.port.EmailSender
+import com.moongchijang.domain.auth.infrastructure.email.VerificationEmailTemplateProvider
 import com.moongchijang.global.config.SesProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -22,21 +23,12 @@ import software.amazon.awssdk.services.sesv2.model.SendEmailRequest
 class SesEmailSender(
     private val sesV2Client: SesV2Client,
     private val sesProperties: SesProperties,
+    private val verificationEmailTemplateProvider: VerificationEmailTemplateProvider,
 ) : EmailSender {
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun sendVerificationCode(toEmail: String, code: String, expiresInSeconds: Long) {
-        val expiresMinutes = expiresInSeconds / 60
-
-        val subject = "[뭉치장] 이메일 인증코드를 확인해주세요"
-        val bodyText = """
-            안녕하세요, 뭉치장입니다.
-
-            이메일 인증코드는 아래와 같습니다.
-            $code
-
-            인증코드는 ${expiresMinutes}분간 유효합니다.
-        """.trimIndent()
+        val template = verificationEmailTemplateProvider.build(code, expiresInSeconds)
 
         val request = SendEmailRequest.builder()
             .fromEmailAddress(sesProperties.fromEmail)
@@ -49,10 +41,10 @@ class SesEmailSender(
                 EmailContent.builder()
                     .simple(
                         Message.builder()
-                            .subject(Content.builder().data(subject).charset("UTF-8").build())
+                            .subject(Content.builder().data(template.subject).charset("UTF-8").build())
                             .body(
                                 Body.builder()
-                                    .text(Content.builder().data(bodyText).charset("UTF-8").build())
+                                    .text(Content.builder().data(template.bodyText).charset("UTF-8").build())
                                     .build(),
                             )
                             .build(),

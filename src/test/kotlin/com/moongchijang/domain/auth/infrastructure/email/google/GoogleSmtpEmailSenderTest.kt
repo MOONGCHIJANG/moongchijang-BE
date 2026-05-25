@@ -1,5 +1,6 @@
 package com.moongchijang.domain.auth.infrastructure.email.google
 
+import com.moongchijang.domain.auth.infrastructure.email.VerificationEmailTemplateProvider
 import com.moongchijang.global.config.GoogleSmtpProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -29,7 +30,8 @@ class GoogleSmtpEmailSenderTest {
 
     private val sender = GoogleSmtpEmailSender(
         javaMailSender = javaMailSender,
-        googleSmtpProperties = googleSmtpProperties
+        googleSmtpProperties = googleSmtpProperties,
+        verificationEmailTemplateProvider = VerificationEmailTemplateProvider()
     )
 
     @Test

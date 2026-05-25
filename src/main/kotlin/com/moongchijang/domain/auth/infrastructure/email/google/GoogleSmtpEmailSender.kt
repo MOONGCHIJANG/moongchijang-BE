@@ -1,6 +1,7 @@
 package com.moongchijang.domain.auth.infrastructure.email.google
 
 import com.moongchijang.domain.auth.application.port.EmailSender
+import com.moongchijang.domain.auth.infrastructure.email.VerificationEmailTemplateProvider
 import com.moongchijang.global.config.GoogleSmtpProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -16,26 +17,18 @@ import org.springframework.stereotype.Component
 class GoogleSmtpEmailSender(
     private val javaMailSender: JavaMailSender,
     private val googleSmtpProperties: GoogleSmtpProperties,
+    private val verificationEmailTemplateProvider: VerificationEmailTemplateProvider,
 ) : EmailSender {
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun sendVerificationCode(toEmail: String, code: String, expiresInSeconds: Long) {
-        val expiresMinutes = expiresInSeconds / 60
-        val subject = "[뭉치장] 이메일 인증코드를 확인해주세요"
-        val bodyText = """
-            안녕하세요, 뭉치장입니다.
-
-            이메일 인증코드는 아래와 같습니다.
-            $code
-
-            인증코드는 ${expiresMinutes}분간 유효합니다.
-        """.trimIndent()
+        val template = verificationEmailTemplateProvider.build(code, expiresInSeconds)
 
         val message = SimpleMailMessage().apply {
             from = googleSmtpProperties.from
             setTo(toEmail)
-            this.subject = subject
-            text = bodyText
+            this.subject = template.subject
+            text = template.bodyText
         }
 
         try {
