@@ -346,7 +346,7 @@ class UserServiceTest {
             userId = 53L,
         )
 
-        Mockito.verify(phoneVerificationService).ensureVerified("010-9999-8888")
+        Mockito.verify(phoneVerificationService).ensureVerifiedForUser(53L, "010-9999-8888")
         Assertions.assertEquals("010-9999-8888", user.phoneNumber)
         Assertions.assertEquals(53L, response.id)
         Assertions.assertEquals("010-9999-8888", response.phoneNumber)

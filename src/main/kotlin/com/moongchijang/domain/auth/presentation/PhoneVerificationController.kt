@@ -100,7 +100,7 @@ class PhoneVerificationController(
         @Valid @RequestBody request: PhoneVerificationCodeVerifyRequest,
     ): ApiResponse<PhoneVerificationVerifiedResponse> {
         log.info("[PhoneVerificationController] 내 정보 전화번호 인증코드 검증 요청 수신: userId={}", principal.id)
-        val response = phoneVerificationService.verifyCode(request)
+        val response = phoneVerificationService.verifyCodeForUser(principal.id, request)
         log.info("[PhoneVerificationController] 내 정보 전화번호 인증코드 검증 응답 완료: userId={}", principal.id)
         return ApiResponse.success(response)
     }

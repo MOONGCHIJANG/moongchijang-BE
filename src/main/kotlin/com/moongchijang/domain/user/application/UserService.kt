@@ -208,7 +208,7 @@ class UserService(
     fun updatePhoneNumber(request: PhoneNumberUpdateRequest, userId: Long): PhoneNumberUpdateResponse {
         log.info("[UserService] 전화번호 변경 처리 시작: userId={}", userId)
         validatePhoneNumberFormat(request.phoneNumber)
-        phoneVerificationService.ensureVerified(request.phoneNumber)
+        phoneVerificationService.ensureVerifiedForUser(userId, request.phoneNumber)
 
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
