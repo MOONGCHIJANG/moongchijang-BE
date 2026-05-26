@@ -14,6 +14,8 @@ import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
+import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
+import com.moongchijang.domain.user.application.dto.NicknameUpdateResponse
 import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
@@ -170,6 +172,28 @@ class UserService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
         user.saveLastRole(role)
+    }
+
+    @Transactional
+    fun updateNickname(request: NicknameUpdateRequest, userId: Long): NicknameUpdateResponse {
+        log.info("[UserService] 닉네임 변경 처리 시작: userId={}", userId)
+        validateNicknameFormat(request.nickname)
+
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(request.nickname) &&
+            user.nickname != request.nickname
+        if (duplicated) {
+            throw CustomException(ErrorCode.DUPLICATE_NICKNAME)
+        }
+
+        user.nickname = request.nickname
+        log.info("[UserService] 닉네임 변경 처리 완료: userId={}", userId)
+        return NicknameUpdateResponse(
+            id = userId,
+            nickname = request.nickname,
+        )
     }
 
     @Transactional
