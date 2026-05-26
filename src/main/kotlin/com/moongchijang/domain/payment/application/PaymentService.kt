@@ -755,7 +755,7 @@ class PaymentService(
     private fun validatePerUserLimit(groupBuy: GroupBuy, quantity: Int) {
         val perUserLimit = groupBuy.perUserLimit ?: return
         if (quantity > perUserLimit) {
-            throw CustomException(ErrorCode.PAYMENT_INVALID_QUANTITY)
+            throw CustomException(ErrorCode.PAYMENT_PER_USER_LIMIT_EXCEEDED)
         }
     }
 

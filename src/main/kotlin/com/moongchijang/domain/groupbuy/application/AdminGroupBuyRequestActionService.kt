@@ -17,10 +17,9 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.transaction.support.TransactionSynchronization
-import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.LocalDateTime
 
 @Service
@@ -31,16 +30,16 @@ class AdminGroupBuyRequestActionService(
     private val groupBuyRepository: GroupBuyRepository,
     private val groupBuyImageRepository: GroupBuyImageRepository,
     private val storeRepository: StoreRepository,
-    private val groupBuyOpenRequestService: GroupBuyOpenRequestService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
     fun approve(requestId: Long, request: AdminGroupBuyRequestApproveRequest): AdminGroupBuyRequestActionResponse {
         val groupBuyRequest = findRequest(requestId)
         validateActionable(groupBuyRequest)
-        validateApproveRequest(request)
+        val maxQuantity = request.maxQuantity ?: request.targetQuantity
+        validateApproveRequest(request, maxQuantity)
 
         val store = resolveStore(groupBuyRequest, request)
-        val maxQuantity = request.maxQuantity ?: request.targetQuantity
         val imageUrls = request.imageUrls.map { it.trim() }
 
         val groupBuy = groupBuyRepository.save(
@@ -69,7 +68,7 @@ class AdminGroupBuyRequestActionService(
 
         groupBuyImageRepository.saveAll(imageUrls.map { GroupBuyImage(groupBuy = groupBuy, imageUrl = it) })
         markRequest(groupBuyRequest, GroupBuyRequestStatus.OPENED, openedGroupBuyId = groupBuy.id)
-        notifyOpenedAfterCommit(groupBuy)
+        eventPublisher.publishEvent(AdminGroupBuyOpenedEvent(groupBuy.id))
 
         return AdminGroupBuyRequestActionResponse(
             requestId = groupBuyRequest.id,
@@ -96,7 +95,7 @@ class AdminGroupBuyRequestActionService(
     }
 
     private fun findRequest(requestId: Long): GroupBuyRequest {
-        return groupBuyRequestRepository.findById(requestId)
+        return groupBuyRequestRepository.findWithLockById(requestId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
     }
 
@@ -108,8 +107,7 @@ class AdminGroupBuyRequestActionService(
         }
     }
 
-    private fun validateApproveRequest(request: AdminGroupBuyRequestApproveRequest) {
-        val maxQuantity = request.maxQuantity ?: request.targetQuantity
+    private fun validateApproveRequest(request: AdminGroupBuyRequestApproveRequest, maxQuantity: Int) {
         if (request.originalPrice != null && request.originalPrice < request.price) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_INVALID_PRICE)
         }
@@ -121,7 +119,7 @@ class AdminGroupBuyRequestActionService(
         if (!request.recruitmentStartAt.isBefore(request.deadline)) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_INVALID_PERIOD)
         }
-        if (request.pickupDate.isBefore(request.deadline.toLocalDate()) ||
+        if (!request.pickupDate.isAfter(request.deadline.toLocalDate()) ||
             !request.pickupTimeStart.isBefore(request.pickupTimeEnd)
         ) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_INVALID_PICKUP)
@@ -144,7 +142,11 @@ class AdminGroupBuyRequestActionService(
         val region = request.region ?: throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_STORE_REQUIRED)
         val district = request.district ?: throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_STORE_REQUIRED)
         if (district.region != region) {
-            throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_STORE_REQUIRED)
+            throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_STORE_REGION_MISMATCH)
+        }
+
+        storeRepository.findFirstByNameIgnoreCaseAndAddressIgnoreCase(storeName, storeAddress)?.let {
+            return it
         }
 
         return storeRepository.save(
@@ -178,18 +180,5 @@ class AdminGroupBuyRequestActionService(
         )
     }
 
-    private fun notifyOpenedAfterCommit(groupBuy: GroupBuy) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            groupBuyOpenRequestService.notifyOpened(groupBuy)
-            return
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(
-            object : TransactionSynchronization {
-                override fun afterCommit() {
-                    groupBuyOpenRequestService.notifyOpened(groupBuy)
-                }
-            }
-        )
-    }
+    data class AdminGroupBuyOpenedEvent(val groupBuyId: Long)
 }

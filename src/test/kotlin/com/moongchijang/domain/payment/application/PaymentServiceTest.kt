@@ -148,7 +148,7 @@ class PaymentServiceTest {
             service.getCheckoutInfo(10L, 3)
         }
 
-        assertEquals(ErrorCode.PAYMENT_INVALID_QUANTITY, ex.errorCode)
+        assertEquals(ErrorCode.PAYMENT_PER_USER_LIMIT_EXCEEDED, ex.errorCode)
     }
 
     @Test
@@ -208,7 +208,7 @@ class PaymentServiceTest {
             service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 3))
         }
 
-        assertEquals(ErrorCode.PAYMENT_INVALID_QUANTITY, ex.errorCode)
+        assertEquals(ErrorCode.PAYMENT_PER_USER_LIMIT_EXCEEDED, ex.errorCode)
     }
 
     @Test

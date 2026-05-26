@@ -1,7 +1,6 @@
 package com.moongchijang.domain.groupbuy.service
 
 import com.moongchijang.domain.groupbuy.application.AdminGroupBuyRequestActionService
-import com.moongchijang.domain.groupbuy.application.GroupBuyOpenRequestService
 import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestApproveRequest
 import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestRejectRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
@@ -18,6 +17,7 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.springframework.context.ApplicationEventPublisher
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -54,7 +54,7 @@ class AdminGroupBuyRequestActionServiceTest {
     private lateinit var storeRepository: StoreRepository
 
     @Mock
-    private lateinit var groupBuyOpenRequestService: GroupBuyOpenRequestService
+    private lateinit var eventPublisher: ApplicationEventPublisher
 
     @InjectMocks
     private lateinit var service: AdminGroupBuyRequestActionService
@@ -66,7 +66,13 @@ class AdminGroupBuyRequestActionServiceTest {
         val store = store(id = 20L)
         val approveRequest = approveRequest()
 
-        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(
+            storeRepository.findFirstByNameIgnoreCaseAndAddressIgnoreCase(
+                "뭉치장 베이커리",
+                "서울 성동구 성수이로 1"
+            )
+        ).thenReturn(null)
         `when`(storeRepository.save(any(Store::class.java))).thenReturn(store)
         `when`(groupBuyRepository.save(any(GroupBuy::class.java))).thenAnswer {
             (it.arguments[0] as GroupBuy).apply { id = 30L }
@@ -97,7 +103,7 @@ class AdminGroupBuyRequestActionServiceTest {
         verify(groupBuyImageRepository).saveAll(imageCaptor.capture())
         assertEquals(2, imageCaptor.value.toList().size)
         verify(groupBuyRequestStatusHistoryRepository).save(any())
-        verify(groupBuyOpenRequestService).notifyOpened(groupBuyCaptor.value)
+        verify(eventPublisher).publishEvent(AdminGroupBuyRequestActionService.AdminGroupBuyOpenedEvent(30L))
     }
 
     @Test
@@ -106,7 +112,7 @@ class AdminGroupBuyRequestActionServiceTest {
         val groupBuyRequest = groupBuyRequest(status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
         val store = store(id = 21L)
 
-        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
         `when`(storeRepository.findById(21L)).thenReturn(Optional.of(store))
         `when`(groupBuyRepository.save(any(GroupBuy::class.java))).thenAnswer {
             (it.arguments[0] as GroupBuy).apply { id = 31L }
@@ -119,10 +125,35 @@ class AdminGroupBuyRequestActionServiceTest {
     }
 
     @Test
+    fun `매장 ID가 없어도 같은 이름과 주소의 기존 매장이 있으면 재사용한다`() {
+        val requestId = 15L
+        val groupBuyRequest = groupBuyRequest(status = GroupBuyRequestStatus.IN_REVIEW).apply { id = requestId }
+        val existingStore = store(id = 22L)
+
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(
+            storeRepository.findFirstByNameIgnoreCaseAndAddressIgnoreCase(
+                "뭉치장 베이커리",
+                "서울 성동구 성수이로 1"
+            )
+        ).thenReturn(existingStore)
+        `when`(groupBuyRepository.save(any(GroupBuy::class.java))).thenAnswer {
+            (it.arguments[0] as GroupBuy).apply { id = 32L }
+        }
+
+        service.approve(requestId, approveRequest())
+
+        val groupBuyCaptor = argumentCaptor<GroupBuy>()
+        verify(groupBuyRepository).save(groupBuyCaptor.capture())
+        assertEquals(existingStore, groupBuyCaptor.value.store)
+        verify(storeRepository, never()).save(any(Store::class.java))
+    }
+
+    @Test
     fun `이미 승인된 요청은 다시 승인할 수 없다`() {
         val requestId = 12L
         val groupBuyRequest = groupBuyRequest(status = GroupBuyRequestStatus.OPENED).apply { id = requestId }
-        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
 
         val ex = assertThrows<CustomException> {
             service.approve(requestId, approveRequest())
@@ -136,7 +167,7 @@ class AdminGroupBuyRequestActionServiceTest {
     fun `공구가가 정가보다 크면 승인할 수 없다`() {
         val requestId = 13L
         val groupBuyRequest = groupBuyRequest(status = GroupBuyRequestStatus.IN_REVIEW).apply { id = requestId }
-        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
 
         val ex = assertThrows<CustomException> {
             service.approve(requestId, approveRequest(originalPrice = 9000, price = 9900))
@@ -146,10 +177,43 @@ class AdminGroupBuyRequestActionServiceTest {
     }
 
     @Test
+    fun `픽업일이 모집 마감일과 같으면 승인할 수 없다`() {
+        val requestId = 16L
+        val groupBuyRequest = groupBuyRequest(status = GroupBuyRequestStatus.IN_REVIEW).apply { id = requestId }
+        val deadline = LocalDateTime.now().plusDays(3)
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+
+        val ex = assertThrows<CustomException> {
+            service.approve(
+                requestId,
+                approveRequest(deadline = deadline, pickupDate = deadline.toLocalDate())
+            )
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_REQUEST_APPROVAL_INVALID_PICKUP, ex.errorCode)
+    }
+
+    @Test
+    fun `지역과 세부지역이 맞지 않으면 전용 예외를 던진다`() {
+        val requestId = 17L
+        val groupBuyRequest = groupBuyRequest(status = GroupBuyRequestStatus.IN_REVIEW).apply { id = requestId }
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+
+        val ex = assertThrows<CustomException> {
+            service.approve(
+                requestId,
+                approveRequest(region = RegionType.GYEONGGI, district = DistrictType.SEOUL_SEONGSU_GEONDAE_GWANGJIN)
+            )
+        }
+
+        assertEquals(ErrorCode.GROUPBUY_REQUEST_APPROVAL_STORE_REGION_MISMATCH, ex.errorCode)
+    }
+
+    @Test
     fun `소비자 요청을 반려하면 사유와 REJECTED 상태를 저장한다`() {
         val requestId = 14L
         val groupBuyRequest = groupBuyRequest(status = GroupBuyRequestStatus.IN_REVIEW).apply { id = requestId }
-        `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
+        `when`(groupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(groupBuyRequest))
 
         val result = service.reject(requestId, AdminGroupBuyRequestRejectRequest("  재고 확보 불가  "))
 
@@ -183,15 +247,19 @@ class AdminGroupBuyRequestActionServiceTest {
     private fun approveRequest(
         storeId: Long? = null,
         originalPrice: Int = 12000,
-        price: Int = 9900
+        price: Int = 9900,
+        region: RegionType = RegionType.SEOUL,
+        district: DistrictType = DistrictType.SEOUL_SEONGSU_GEONDAE_GWANGJIN,
+        deadline: LocalDateTime = LocalDateTime.now().plusDays(3),
+        pickupDate: LocalDate = LocalDate.now().plusDays(5),
     ): AdminGroupBuyRequestApproveRequest =
         AdminGroupBuyRequestApproveRequest(
             storeId = storeId,
             storeName = "뭉치장 베이커리",
             storeAddress = "서울 성동구 성수이로 1",
             storePhoneNumber = "01012345678",
-            region = RegionType.SEOUL,
-            district = DistrictType.SEOUL_SEONGSU_GEONDAE_GWANGJIN,
+            region = region,
+            district = district,
             productName = "두쫀쿠 세트",
             productDescription = "소금빵 포함",
             originalPrice = originalPrice,
@@ -201,8 +269,8 @@ class AdminGroupBuyRequestActionServiceTest {
             perUserLimit = 2,
             imageUrls = listOf("https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"),
             recruitmentStartAt = LocalDateTime.now().minusHours(1),
-            deadline = LocalDateTime.now().plusDays(3),
-            pickupDate = LocalDate.now().plusDays(5),
+            deadline = deadline,
+            pickupDate = pickupDate,
             pickupTimeStart = LocalTime.of(12, 0),
             pickupTimeEnd = LocalTime.of(18, 0),
             pickupLocation = "서울 성동구 성수이로 1",

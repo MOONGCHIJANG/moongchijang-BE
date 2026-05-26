@@ -11,4 +11,6 @@ interface StoreRepository : JpaRepository<Store, Long> {
 
     @Query("SELECT s FROM Store s WHERE LOWER(s.address) IN :addresses")
     fun findByNormalizedAddressIn(@Param("addresses") addresses: Collection<String>): List<Store>
+
+    fun findFirstByNameIgnoreCaseAndAddressIgnoreCase(name: String, address: String): Store?
 }
