@@ -3,6 +3,8 @@ package com.moongchijang.domain.owner.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
@@ -142,8 +144,91 @@ class OwnerGroupBuyServiceTest {
         verify(storeStaffRepository, never()).findStoreIdsByUserId(1L)
     }
 
+    @Test
+    fun `소속 매장이 없으면 공구 요약 빈 상태를 반환`() {
+        val owner = seller()
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(emptyList())
+
+        val result = service.getMyGroupBuySummary(owner.id!!)
+
+        assertEquals(0, result.ongoingCount)
+        assertEquals(0, result.achievedCount)
+        assertEquals(0, result.todayPickupUserCount)
+        assertEquals(0L, result.settlementExpectedAmount)
+        assertEquals(true, result.isEmpty)
+        verifyNoInteractions(groupBuyRepository)
+    }
+
+    @Test
+    fun `사장님 공구 요약 정상 집계`() {
+        val owner = seller()
+        val storeIds = listOf(1L, 2L)
+
+        mockSellerAndStoreIds(owner.id!!, owner, storeIds)
+        mockSummaryCounts(storeIds, ongoing = 3L, achieved = 2L, todayPickupUsers = 14L, settlementAmount = 128000L)
+
+        val result = service.getMyGroupBuySummary(owner.id!!)
+
+        assertEquals(3, result.ongoingCount)
+        assertEquals(2, result.achievedCount)
+        assertEquals(14, result.todayPickupUserCount)
+        assertEquals(128000L, result.settlementExpectedAmount)
+        assertEquals(false, result.isEmpty)
+    }
+
+    @Test
+    fun `구매자 계정이면 사장님 공구 요약 조회 불가`() {
+        val buyer = UserFixture.createKakaoUser(id = 1L)
+        `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(buyer)
+
+        val ex = assertThrows<CustomException> {
+            service.getMyGroupBuySummary(1L)
+        }
+
+        assertEquals(ErrorCode.FORBIDDEN, ex.errorCode)
+        verify(storeStaffRepository, never()).findStoreIdsByUserId(1L)
+    }
+
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {
         role = UserRole.SELLER
+    }
+
+    private fun mockSellerAndStoreIds(ownerId: Long, owner: com.moongchijang.domain.user.domain.entity.User, storeIds: List<Long>) {
+        `when`(userRepository.findByIdAndDeletedAtIsNull(ownerId)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(ownerId)).thenReturn(storeIds)
+    }
+
+    private fun mockSummaryCounts(
+        storeIds: List<Long>,
+        ongoing: Long,
+        achieved: Long,
+        todayPickupUsers: Long,
+        settlementAmount: Long
+    ) {
+        `when`(groupBuyRepository.countByStoreIdsAndStatuses(storeIds, listOf(GroupBuyStatus.IN_PROGRESS))).thenReturn(ongoing)
+        `when`(
+            groupBuyRepository.countByStoreIdsAndStatuses(
+                storeIds,
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+            )
+        ).thenReturn(achieved)
+        `when`(
+            groupBuyRepository.countTodayPickupUsersByStoreIds(
+                storeIds = storeIds,
+                pickupDate = LocalDate.now(),
+                participationStatuses = listOf(ParticipationStatus.CONFIRMED),
+                pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+            )
+        ).thenReturn(todayPickupUsers)
+        `when`(
+            groupBuyRepository.sumSettlementExpectedAmountByStoreIds(
+                storeIds = storeIds,
+                participationStatuses = listOf(ParticipationStatus.CONFIRMED),
+                groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+            )
+        ).thenReturn(settlementAmount)
     }
 
     private fun groupBuy(

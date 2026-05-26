@@ -1562,23 +1562,6 @@ paths:
   # ─────────────────────────────────────────────────────────────
   # Owner
   # ─────────────────────────────────────────────────────────────
-  /api/v1/owner/home/summary:
-    get:
-      tags: [Owner]
-      summary: 사장님 홈 요약 정보
-      description: 픽업 대기/완료 건수, 진행 중 공구 수, 다음 픽업 시간을 반환한다.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 홈 요약
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseOwnerSummary'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
   /api/v1/owner/home/pickup-schedule:
     get:
       tags: [Owner]
@@ -1609,6 +1592,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseOwnerGroupBuyList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/group-buys/summary:
+    get:
+      tags: [Owner]
+      summary: 사장님 공구 요약 조회
+      description: |
+        사장님이 소속된 매장 기준으로 공구 요약 정보를 조회한다.
+        - 진행 중 공구 건수
+        - 달성 완료 공구 건수
+        - 오늘 픽업 예정 인원 수
+        - 정산 예정 금액
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 사장님 공구 요약 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuySummary'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3853,6 +3860,22 @@ components:
               status:
                 type: string
                 enum: [IN_PROGRESS, ACHIEVED, FAILED]
+        error: { nullable: true, example: null }
+
+    ApiResponseOwnerGroupBuySummary:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [ongoingCount, achievedCount, todayPickupUserCount, settlementExpectedAmount, isEmpty]
+          properties:
+            ongoingCount: { type: integer, description: 진행 중 공구 건수, example: 3 }
+            achievedCount: { type: integer, description: 달성 완료 공구 건수, example: 2 }
+            todayPickupUserCount: { type: integer, description: 오늘 픽업 예정 인원 수, example: 14 }
+            settlementExpectedAmount: { type: integer, format: int64, description: 정산 예정 금액, example: 128000 }
+            isEmpty: { type: boolean, description: 공구 요약 데이터 비어있는지 여부, example: false }
         error: { nullable: true, example: null }
 
     OwnerGroupBuyRequestCreate:
