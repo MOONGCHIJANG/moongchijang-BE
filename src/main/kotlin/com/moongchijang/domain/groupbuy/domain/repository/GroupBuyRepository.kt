@@ -35,6 +35,11 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         statuses: Collection<GroupBuyStatus>
     ): List<GroupBuy>
 
+    fun existsByStoreIdInAndStatusIn(
+        storeIds: Collection<Long>,
+        statuses: Collection<GroupBuyStatus>
+    ): Boolean
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(
         """
