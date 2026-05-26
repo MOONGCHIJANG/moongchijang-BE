@@ -204,6 +204,10 @@ class OwnerGroupBuyService(
         if (!request.extendedDeadline.isAfter(groupBuy.deadline)) {
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
+        val pickupStartDateTime = java.time.LocalDateTime.of(groupBuy.pickupDate, groupBuy.pickupTimeStart)
+        if (!request.extendedDeadline.isBefore(pickupStartDateTime)) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
 
         groupBuy.deadline = request.extendedDeadline
         groupBuyRepository.save(groupBuy)
