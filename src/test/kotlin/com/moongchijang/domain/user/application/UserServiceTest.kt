@@ -1,6 +1,7 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.participation.domain.entity.Participation
@@ -40,6 +41,7 @@ class UserServiceTest {
         Mockito.mock(SellerSettlementAccountRepository::class.java)
     private val phoneVerificationService: PhoneVerificationService =
         Mockito.mock(PhoneVerificationService::class.java)
+    private val tokenService: TokenService = Mockito.mock(TokenService::class.java)
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
     private val favoriteRepository: FavoriteRepository = Mockito.mock(FavoriteRepository::class.java)
     private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
@@ -49,6 +51,7 @@ class UserServiceTest {
         sellerBusinessProfileRepository,
         sellerSettlementAccountRepository,
         phoneVerificationService,
+        tokenService,
         participationRepository,
         favoriteRepository,
         paymentService,

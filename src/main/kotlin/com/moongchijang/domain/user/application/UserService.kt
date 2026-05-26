@@ -1,6 +1,7 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -49,6 +50,7 @@ class UserService(
     private val sellerBusinessProfileRepository: SellerBusinessProfileRepository,
     private val sellerSettlementAccountRepository: SellerSettlementAccountRepository,
     private val phoneVerificationService: PhoneVerificationService,
+    private val tokenService: TokenService,
     private val participationRepository: ParticipationRepository,
     private val favoriteRepository: FavoriteRepository,
     private val paymentService: PaymentService,
@@ -240,6 +242,7 @@ class UserService(
         )
 
         user.passwordHash = passwordEncoder.encode(request.newPassword)
+        tokenService.deleteByUserId(userId)
         log.info("[UserService] 비밀번호 변경 처리 완료: userId={}", userId)
         return PasswordChangeResponse(changed = true)
     }
