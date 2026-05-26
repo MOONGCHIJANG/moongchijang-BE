@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import org.springframework.security.crypto.password.PasswordEncoder
 import java.time.LocalDateTime
 
 class UserServiceTest {
@@ -42,6 +43,7 @@ class UserServiceTest {
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
     private val favoriteRepository: FavoriteRepository = Mockito.mock(FavoriteRepository::class.java)
     private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
+    private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
     private val userService = UserService(
         userRepository,
         sellerBusinessProfileRepository,
@@ -50,6 +52,7 @@ class UserServiceTest {
         participationRepository,
         favoriteRepository,
         paymentService,
+        passwordEncoder,
     )
 
     @Test

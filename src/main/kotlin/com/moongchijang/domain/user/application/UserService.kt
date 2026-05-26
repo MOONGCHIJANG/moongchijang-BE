@@ -16,6 +16,8 @@ import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
 import com.moongchijang.domain.user.application.dto.NicknameUpdateResponse
+import com.moongchijang.domain.user.application.dto.PasswordChangeRequest
+import com.moongchijang.domain.user.application.dto.PasswordChangeResponse
 import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateRequest
 import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateResponse
 import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
@@ -36,6 +38,7 @@ import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -49,6 +52,7 @@ class UserService(
     private val participationRepository: ParticipationRepository,
     private val favoriteRepository: FavoriteRepository,
     private val paymentService: PaymentService,
+    private val passwordEncoder: PasswordEncoder,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -213,6 +217,31 @@ class UserService(
             id = userId,
             phoneNumber = request.phoneNumber,
         )
+    }
+
+    @Transactional
+    fun changePassword(request: PasswordChangeRequest, userId: Long): PasswordChangeResponse {
+        log.info("[UserService] 비밀번호 변경 처리 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        if (user.provider != AuthProvider.EMAIL) {
+            throw CustomException(ErrorCode.EMAIL_PASSWORD_CHANGE_NOT_ALLOWED)
+        }
+
+        val currentPasswordHash = user.passwordHash ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+        if (!passwordEncoder.matches(request.currentPassword, currentPasswordHash)) {
+            throw CustomException(ErrorCode.PASSWORD_CHANGE_CURRENT_PASSWORD_MISMATCH)
+        }
+
+        validatePasswordPolicyForChange(
+            email = user.email ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS),
+            newPassword = request.newPassword,
+        )
+
+        user.passwordHash = passwordEncoder.encode(request.newPassword)
+        log.info("[UserService] 비밀번호 변경 처리 완료: userId={}", userId)
+        return PasswordChangeResponse(changed = true)
     }
 
     @Transactional
@@ -425,9 +454,21 @@ class UserService(
         }
     }
 
+    private fun validatePasswordPolicyForChange(email: String, newPassword: String) {
+        if (!PASSWORD_REGEX.matches(newPassword)) {
+            throw CustomException(ErrorCode.INVALID_PASSWORD_FORMAT)
+        }
+
+        val emailLocalPart = email.substringBefore("@")
+        if (emailLocalPart.equals(newPassword, ignoreCase = true)) {
+            throw CustomException(ErrorCode.INVALID_PASSWORD_SAME_AS_EMAIL_ID)
+        }
+    }
+
     private fun normalizeEmail(raw: String): String = raw.trim().lowercase()
 
     companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+        private val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$")
     }
 }
