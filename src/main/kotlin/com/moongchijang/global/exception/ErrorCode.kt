@@ -34,6 +34,12 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION(400_011, "허용되지 않는 공구 요청 상태 전이입니다.", 400),
     GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED(400_012, "거절 상태로 변경할 때는 거절 사유가 필요합니다.", 400),
     GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED(400_013, "개설 완료 상태로 변경할 때는 개설된 공구 ID가 필요합니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_STORE_REQUIRED(400_014, "공구 개설에 필요한 매장 정보가 누락되었습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_PRICE(400_015, "공구 가격 조건이 올바르지 않습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_QUANTITY(400_016, "공구 수량 조건이 올바르지 않습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_PERIOD(400_017, "공구 모집 기간이 올바르지 않습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_INVALID_PICKUP(400_018, "공구 픽업 정보가 올바르지 않습니다.", 400),
+    GROUPBUY_REQUEST_APPROVAL_STORE_REGION_MISMATCH(400_019, "매장 지역 정보가 일치하지 않습니다.", 400),
 
     // GroupBuyOpenRequest
     DUPLICATE_OPEN_REQUEST(409_010, "이미 알림 신청한 공구입니다.", 409),
@@ -123,6 +129,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PARTICIPATION_NOT_FOUND(404_356, "참여 정보를 찾을 수 없습니다.", 404),
     PARTICIPATION_CANCEL_NOT_ALLOWED(409_357, "취소할 수 없는 참여 상태입니다.", 409),
     PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED(400_358, "기타 취소 사유를 입력해주세요.", 400),
+    PAYMENT_PER_USER_LIMIT_EXCEEDED(409_359, "1인 구매 제한 수량을 초과했습니다.", 409),
 
     // Pickup(400~449)
     PICKUP_PARTICIPATION_FORBIDDEN(403_400, "본인의 참여 정보만 조회할 수 있습니다.", 403),

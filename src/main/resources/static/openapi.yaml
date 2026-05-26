@@ -1952,6 +1952,58 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /api/v1/admin/group-buy-requests/{requestId}/approve:
+    post:
+      tags: [Admin]
+      summary: 소비자 공구 개설 요청 승인 및 공구 생성
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminGroupBuyRequestApprove'
+      responses:
+        '201':
+          description: 공구 생성 및 요청 승인 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminGroupBuyRequestAction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/group-buy-requests/{requestId}/reject:
+    post:
+      tags: [Admin]
+      summary: 소비자 공구 개설 요청 반려
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminGroupBuyRequestReject'
+      responses:
+        '200':
+          description: 요청 반려 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminGroupBuyRequestAction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/admin/group-buys:
     get:
       tags: [Admin]
@@ -4484,6 +4536,76 @@ components:
           format: int64
           nullable: true
           description: targetStatus=OPENED 시 필수. 실제 개설된 공구 id이며 존재 검증 후 개설 알림 발송에 사용
+
+    AdminGroupBuyRequestApprove:
+      type: object
+      required: [productName, productDescription, price, targetQuantity, imageUrls, recruitmentStartAt, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation]
+      properties:
+        storeId:
+          type: integer
+          format: int64
+          nullable: true
+          description: 기존 등록 매장을 사용할 때 입력. 없으면 매장명/주소/지역 정보로 신규 매장을 생성
+        storeName: { type: string, maxLength: 100, nullable: true }
+        storeAddress: { type: string, maxLength: 200, nullable: true }
+        storePhoneNumber: { type: string, maxLength: 20, nullable: true }
+        region:
+          type: string
+          nullable: true
+          description: 신규 매장 생성 시 필수
+        district:
+          type: string
+          nullable: true
+          description: 신규 매장 생성 시 필수
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+        productName: { type: string, maxLength: 100, description: 공구 제목 }
+        productDescription: { type: string, maxLength: 1000, description: 공구 내용 }
+        originalPrice: { type: integer, minimum: 1, nullable: true, description: 정가 }
+        price: { type: integer, minimum: 1, description: 공구가 }
+        targetQuantity: { type: integer, minimum: 1, description: 목표 수량 }
+        maxQuantity: { type: integer, minimum: 1, nullable: true, description: 최대 수량. 생략 시 목표 수량과 동일하게 저장 }
+        perUserLimit: { type: integer, minimum: 1, nullable: true, description: 1인 구매 제한 }
+        imageUrls:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            type: string
+        recruitmentStartAt: { type: string, format: date-time }
+        deadline: { type: string, format: date-time, description: 모집 마감일시 }
+        pickupDate: { type: string, format: date }
+        pickupTimeStart: { type: string, format: time }
+        pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string, maxLength: 200 }
+        pickupContact: { type: string, maxLength: 20, nullable: true }
+
+    AdminGroupBuyRequestReject:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          maxLength: 200
+
+    ApiResponseAdminGroupBuyRequestAction:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [requestId, status]
+          properties:
+            requestId: { type: integer, format: int64 }
+            status:
+              type: string
+              enum: [OPENED, REJECTED]
+            groupBuyId:
+              type: integer
+              format: int64
+              nullable: true
+        error: { nullable: true, example: null }
 
     ApiResponseAdminGroupBuyList:
       type: object
