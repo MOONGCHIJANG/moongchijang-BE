@@ -375,8 +375,12 @@ class UserService(
         }
     }
 
-    private fun normalizedReasonDetail(request: WithdrawRequest): String? =
-        request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
+    private fun normalizedReasonDetail(request: WithdrawRequest): String? {
+        if (request.reason != WithdrawalReason.OTHER) {
+            return null
+        }
+        return request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
+    }
 
     private fun normalizeBusinessRegistrationNumber(raw: String): String = raw.replace(Regex("[^0-9]"), "")
 

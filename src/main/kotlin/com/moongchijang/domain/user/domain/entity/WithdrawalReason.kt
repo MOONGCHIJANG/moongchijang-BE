@@ -1,9 +1,8 @@
 package com.moongchijang.domain.user.domain.entity
 
 enum class WithdrawalReason {
-    TIME_NOT_AVAILABLE,
-    NO_LONGER_INTERESTED,
-    PREFER_DIRECT_VISIT,
-    BUYING_ELSEWHERE,
+    NO_DESIRED_GROUPBUY,
+    INCONVENIENT_SERVICE,
+    PRIVACY_CONCERN,
     OTHER,
 }
