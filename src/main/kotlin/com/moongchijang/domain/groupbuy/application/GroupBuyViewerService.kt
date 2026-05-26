@@ -59,7 +59,7 @@ class GroupBuyViewerService(
         ensureGroupBuyExists(groupBuyId)
 
         val now = Instant.now().epochSecond
-        val viewerKey = if (userId != null) "user:$userId" else "session:$viewerSessionId"
+        val viewerKey = resolveViewerKey(userId = userId, viewerSessionId = viewerSessionId)
 
         val count = groupBuyViewerCountRepository.touchAndCount(
             groupBuyId = groupBuyId,
@@ -105,4 +105,12 @@ class GroupBuyViewerService(
     }
 
     private fun existsCacheKey(groupBuyId: Long): String = "groupBuy:exists:$groupBuyId"
+
+    private fun resolveViewerKey(userId: Long?, viewerSessionId: String): String {
+        return if (userId != null) {
+            "user:$userId"
+        } else {
+            "session:$viewerSessionId"
+        }
+    }
 }
