@@ -4,6 +4,9 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.QGroupBuy.groupBuy
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.participation.domain.entity.QParticipation.participation
 import com.moongchijang.domain.store.domain.entity.QStore.store
 import com.moongchijang.domain.favorite.domain.entity.QFavorite.favorite
 import com.moongchijang.domain.store.domain.entity.DistrictType
@@ -19,6 +22,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Repository
@@ -151,5 +155,69 @@ class GroupBuyRepositoryImpl(
             .from(groupBuy)
             .where(groupBuy.status.eq(status))
             .fetch()
+    }
+
+    override fun countByStoreIdsAndStatuses(
+        storeIds: Collection<Long>,
+        statuses: Collection<GroupBuyStatus>
+    ): Long {
+        if (storeIds.isEmpty() || statuses.isEmpty()) {
+            return 0L
+        }
+
+        return queryFactory
+            .select(groupBuy.count())
+            .from(groupBuy)
+            .where(
+                groupBuy.store.id.`in`(storeIds),
+                groupBuy.status.`in`(statuses)
+            )
+            .fetchOne() ?: 0L
+    }
+
+    override fun countTodayPickupUsersByStoreIds(
+        storeIds: Collection<Long>,
+        pickupDate: LocalDate,
+        participationStatuses: Collection<ParticipationStatus>,
+        pickupStatuses: Collection<PickupStatus>,
+        groupBuyStatuses: Collection<GroupBuyStatus>
+    ): Long {
+        if (storeIds.isEmpty() || participationStatuses.isEmpty() || pickupStatuses.isEmpty() || groupBuyStatuses.isEmpty()) {
+            return 0L
+        }
+
+        return queryFactory
+            .select(participation.count())
+            .from(participation)
+            .join(participation.groupBuy, groupBuy)
+            .where(
+                groupBuy.store.id.`in`(storeIds),
+                groupBuy.pickupDate.eq(pickupDate),
+                groupBuy.status.`in`(groupBuyStatuses),
+                participation.status.`in`(participationStatuses),
+                participation.pickupStatus.`in`(pickupStatuses)
+            )
+            .fetchOne() ?: 0L
+    }
+
+    override fun sumSettlementExpectedAmountByStoreIds(
+        storeIds: Collection<Long>,
+        participationStatuses: Collection<ParticipationStatus>,
+        groupBuyStatuses: Collection<GroupBuyStatus>
+    ): Long {
+        if (storeIds.isEmpty() || participationStatuses.isEmpty() || groupBuyStatuses.isEmpty()) {
+            return 0L
+        }
+
+        return queryFactory
+            .select(participation.totalAmount.sum().longValue())
+            .from(participation)
+            .join(participation.groupBuy, groupBuy)
+            .where(
+                groupBuy.store.id.`in`(storeIds),
+                groupBuy.status.`in`(groupBuyStatuses),
+                participation.status.`in`(participationStatuses)
+            )
+            .fetchOne() ?: 0L
     }
 }
