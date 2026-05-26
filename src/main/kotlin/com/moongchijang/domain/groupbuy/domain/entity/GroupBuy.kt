@@ -72,6 +72,10 @@ class GroupBuy(
     @Column(name = "close_requested_at")
     var closeRequestedAt: LocalDateTime? = null,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "closed_by_type", length = 20)
+    var closedByType: GroupBuyClosedByType? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
@@ -119,6 +123,7 @@ class GroupBuy(
         closeReason = reason
         closeReasonDetail = reasonDetail
         closeRequestedAt = requestedAt
+        closedByType = GroupBuyClosedByType.OWNER
         transitionToClosed()
     }
 

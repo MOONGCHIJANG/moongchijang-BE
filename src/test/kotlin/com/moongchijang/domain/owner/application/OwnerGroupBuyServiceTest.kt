@@ -2,6 +2,7 @@ package com.moongchijang.domain.owner.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyClosedByType
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseReasonType
@@ -307,6 +308,7 @@ class OwnerGroupBuyServiceTest {
 
         assertEquals(GroupBuyStatus.CLOSED, groupBuy.status)
         assertEquals(GroupBuyCloseReason.STORE_CONDITION, groupBuy.closeReason)
+        assertEquals(GroupBuyClosedByType.OWNER, groupBuy.closedByType)
         assertNull(groupBuy.closeReasonDetail)
         verify(groupBuyRepository).save(groupBuy)
     }
