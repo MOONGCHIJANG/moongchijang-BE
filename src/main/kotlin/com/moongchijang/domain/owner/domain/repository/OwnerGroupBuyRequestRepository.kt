@@ -33,5 +33,21 @@ interface OwnerGroupBuyRequestRepository : JpaRepository<OwnerGroupBuyRequest, L
         pageable: Pageable
     ): Page<OwnerGroupBuyRequest>
 
+    @Query(
+        """
+            SELECT r FROM OwnerGroupBuyRequest r
+            JOIN FETCH r.store
+            WHERE r.owner.id = :ownerId
+              AND r.store.id IN :storeIds
+              AND r.status = :status
+            ORDER BY r.createdAt DESC
+        """
+    )
+    fun findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(
+        @Param("ownerId") ownerId: Long,
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("status") status: OwnerGroupBuyRequestStatus
+    ): List<OwnerGroupBuyRequest>
+
     fun findByStatusOrderByCreatedAtAsc(status: OwnerGroupBuyRequestStatus): List<OwnerGroupBuyRequest>
 }

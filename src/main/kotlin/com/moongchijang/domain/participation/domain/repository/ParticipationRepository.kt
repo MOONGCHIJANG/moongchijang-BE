@@ -255,6 +255,26 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     fun countByUserIdAndStatusIn(userId: Long, statuses: Collection<ParticipationStatus>): Long
 
+    fun countByGroupBuyIdAndStatusIn(groupBuyId: Long, statuses: Collection<ParticipationStatus>): Long
+
+    fun countByGroupBuyIdAndStatusInAndPickupStatus(groupBuyId: Long, statuses: Collection<ParticipationStatus>, pickupStatus: PickupStatus): Long
+
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        where gb.id = :groupBuyId
+          and p.status in :statuses
+        order by p.createdAt asc
+        """
+    )
+    fun findByGroupBuyIdAndStatusInOrderByCreatedAtAsc(
+        @Param("groupBuyId") groupBuyId: Long,
+        @Param("statuses") statuses: Collection<ParticipationStatus>
+    ): List<Participation>
+
     fun existsByPickupToken(pickupToken: String): Boolean
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
