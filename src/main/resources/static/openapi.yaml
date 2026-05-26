@@ -3873,7 +3873,7 @@ components:
             ongoingCount: { type: integer, description: 진행 중 공구 건수, example: 3 }
             achievedCount: { type: integer, description: 달성 완료 공구 건수, example: 2 }
             todayPickupUserCount: { type: integer, description: 오늘 픽업 예정 인원 수, example: 14 }
-            settlementExpectedAmount: { type: integer, description: 정산 예정 금액, example: 128000 }
+            settlementExpectedAmount: { type: integer, format: int64, description: 정산 예정 금액, example: 128000 }
             isEmpty: { type: boolean, description: 공구 요약 데이터 비어있는지 여부, example: false }
         error: { nullable: true, example: null }
 

@@ -82,12 +82,12 @@ class OwnerGroupBuyService(
             storeIds = storeIds,
             participationStatuses = SETTLEMENT_PARTICIPATION_STATUSES,
             groupBuyStatuses = SETTLEMENT_GROUP_BUY_STATUSES
-        ).toInt()
+        )
 
         val isEmpty = ongoingCount == 0 &&
             achievedCount == 0 &&
             todayPickupUserCount == 0 &&
-            settlementExpectedAmount == 0
+            settlementExpectedAmount == 0L
 
         val response = OwnerGroupBuySummaryResponse(
             ongoingCount = ongoingCount,
@@ -123,7 +123,7 @@ class OwnerGroupBuyService(
         ongoingCount = 0,
         achievedCount = 0,
         todayPickupUserCount = 0,
-        settlementExpectedAmount = 0,
+        settlementExpectedAmount = 0L,
         isEmpty = true
     )
 

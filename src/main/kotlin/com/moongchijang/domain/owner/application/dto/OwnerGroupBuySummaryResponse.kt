@@ -15,7 +15,7 @@ data class OwnerGroupBuySummaryResponse(
     val todayPickupUserCount: Int,
 
     @field:Schema(description = "정산 예정 금액", example = "128000")
-    val settlementExpectedAmount: Int,
+    val settlementExpectedAmount: Long,
 
     @field:Schema(description = "공구 요약 데이터 비어있는지 여부", example = "false")
     val isEmpty: Boolean

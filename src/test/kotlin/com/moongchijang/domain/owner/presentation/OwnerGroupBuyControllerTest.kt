@@ -29,7 +29,7 @@ class OwnerGroupBuyControllerTest {
             ongoingCount = 3,
             achievedCount = 2,
             todayPickupUserCount = 14,
-            settlementExpectedAmount = 128000,
+            settlementExpectedAmount = 128000L,
             isEmpty = false
         )
         `when`(ownerGroupBuyService.getMyGroupBuySummary(1L)).thenReturn(response)

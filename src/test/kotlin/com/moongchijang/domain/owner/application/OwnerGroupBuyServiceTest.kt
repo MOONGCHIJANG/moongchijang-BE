@@ -155,7 +155,7 @@ class OwnerGroupBuyServiceTest {
         assertEquals(0, result.ongoingCount)
         assertEquals(0, result.achievedCount)
         assertEquals(0, result.todayPickupUserCount)
-        assertEquals(0, result.settlementExpectedAmount)
+        assertEquals(0L, result.settlementExpectedAmount)
         assertEquals(true, result.isEmpty)
         verifyNoInteractions(groupBuyRepository)
     }
@@ -173,7 +173,7 @@ class OwnerGroupBuyServiceTest {
         assertEquals(3, result.ongoingCount)
         assertEquals(2, result.achievedCount)
         assertEquals(14, result.todayPickupUserCount)
-        assertEquals(128000, result.settlementExpectedAmount)
+        assertEquals(128000L, result.settlementExpectedAmount)
         assertEquals(false, result.isEmpty)
     }
 
