@@ -3,8 +3,13 @@ package com.moongchijang.domain.owner.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
+import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
+import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.domain.repository.PaymentRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
@@ -25,6 +30,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @ExtendWith(MockitoExtension::class)
 class OwnerGroupBuyServiceTest {
@@ -37,6 +43,15 @@ class OwnerGroupBuyServiceTest {
 
     @Mock
     private lateinit var groupBuyRepository: GroupBuyRepository
+
+    @Mock
+    private lateinit var ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository
+
+    @Mock
+    private lateinit var participationRepository: ParticipationRepository
+
+    @Mock
+    private lateinit var paymentRepository: PaymentRepository
 
     @InjectMocks
     private lateinit var service: OwnerGroupBuyService
@@ -190,6 +205,37 @@ class OwnerGroupBuyServiceTest {
         verify(storeStaffRepository, never()).findStoreIdsByUserId(1L)
     }
 
+    @Test
+    fun `사장님 공구 관리 승인대기 목록 조회`() {
+        val owner = seller()
+        val storeIds = listOf(1L)
+        mockSellerAndStoreIds(owner.id!!, owner, storeIds)
+        `when`(
+            ownerGroupBuyRequestRepository.findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(
+                owner.id!!,
+                storeIds,
+                OwnerGroupBuyRequestStatus.PENDING
+            )
+        ).thenReturn(emptyList())
+
+        val result = service.getManageGroupBuys(owner.id!!, OwnerGroupBuyManageFilterType.PENDING_APPROVAL)
+
+        assertEquals(0, result.size)
+    }
+
+    @Test
+    fun `사장님 공구 관리 상세 조회 시 소속 매장이 없으면 권한 예외`() {
+        val owner = seller()
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(emptyList())
+
+        val ex = assertThrows<CustomException> {
+            service.getInProgressGroupBuyDetail(owner.id!!, 10L)
+        }
+
+        assertEquals(ErrorCode.FORBIDDEN, ex.errorCode)
+    }
+
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {
         role = UserRole.SELLER
     }
@@ -216,7 +262,7 @@ class OwnerGroupBuyServiceTest {
         `when`(
             groupBuyRepository.countTodayPickupUsersByStoreIds(
                 storeIds = storeIds,
-                pickupDate = LocalDate.now(),
+                pickupDate = LocalDate.now(ZoneId.of("Asia/Seoul")),
                 participationStatuses = listOf(ParticipationStatus.CONFIRMED),
                 pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
                 groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
