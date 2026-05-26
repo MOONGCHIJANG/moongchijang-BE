@@ -1,5 +1,6 @@
 package com.moongchijang.security.config
 
+import com.moongchijang.global.config.CorsProperties
 import com.moongchijang.security.jwt.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -21,6 +22,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableMethodSecurity
 class SecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val corsProperties: CorsProperties,
 ) {
 
     @Bean
@@ -69,16 +71,10 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
 
-        configuration.allowedOrigins = listOf(
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://43.203.191.30",
-            "https://www.moongchijang.com",
-            "https://api.moongchijang.com"
-        )
-        configuration.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
-        configuration.allowCredentials = true
+        configuration.allowedOrigins = corsProperties.allowedOrigins
+        configuration.allowedMethods = corsProperties.allowedMethods
+        configuration.allowedHeaders = corsProperties.allowedHeaders
+        configuration.allowCredentials = corsProperties.allowCredentials
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", configuration)
