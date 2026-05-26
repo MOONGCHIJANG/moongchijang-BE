@@ -13,6 +13,7 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
         select p
         from Payment p
         join fetch p.paymentOrder po
+        join fetch po.user u
         where po.groupBuy.id = :groupBuyId
           and po.user.id in :userIds
         """

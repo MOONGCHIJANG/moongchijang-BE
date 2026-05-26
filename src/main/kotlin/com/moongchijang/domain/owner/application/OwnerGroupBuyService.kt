@@ -349,7 +349,7 @@ class OwnerGroupBuyService(
             return emptyMap()
         }
         return paymentRepository.findAllByGroupBuyIdAndUserIdIn(groupBuyId, userIds)
-            .associateBy { it.paymentOrder.user.id!! }
+            .associateBy { it.paymentOrder.user.id ?: error("paymentOrder.user.id must not be null") }
     }
 
     private fun toGroupBuyStatuses(filter: OwnerGroupBuyManageFilterType): Collection<GroupBuyStatus> {
