@@ -729,14 +729,10 @@ paths:
       description: |
         공구 상세 화면 진입 시 및 체류 중 일정 주기(예: 20~30초)로 호출한다.
         서버는 세션 TTL을 연장하고 최신 활성 조회자 수를 반환한다.
+        비로그인 사용자는 viewerSessionId 쿠키가 없으면 서버에서 자동 발급한다.
+        로그인 사용자는 userId 기준으로 집계한다.
       parameters:
         - $ref: '#/components/parameters/GroupBuyId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GroupBuyViewerHeartbeatRequest'
       responses:
         '200':
           description: 활성 조회자 수 조회/갱신 결과
@@ -744,8 +740,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseGroupBuyViewerCount'
-        '400':
-          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -3035,17 +3029,6 @@ components:
             isParticipated: { type: boolean }
             canParticipate: { type: boolean }
         error: { nullable: true, example: null }
-
-    GroupBuyViewerHeartbeatRequest:
-      type: object
-      required: [viewerSessionId]
-      properties:
-        viewerSessionId:
-          type: string
-          description: 클라이언트가 생성/보관하는 조회 세션 식별자(UUID 권장)
-          minLength: 8
-          maxLength: 128
-          example: c89f364e-ef03-40f8-905f-f9a4de2d6d5e
 
     ApiResponseGroupBuyViewerCount:
       type: object
