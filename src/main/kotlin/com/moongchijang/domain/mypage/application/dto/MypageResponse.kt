@@ -30,6 +30,7 @@ data class MypageRefundResponse(
     val quantity: Int,
     val cancelReason: String?,
     val cancelReasonDetail: String?,
+    val paidAt: LocalDateTime?,
     val paymentMethod: String?,
     val refundedAt: LocalDateTime?
 ) {
@@ -53,6 +54,7 @@ data class MypageRefundResponse(
                 quantity = participation.quantity,
                 cancelReason = participation.cancelReason?.name,
                 cancelReasonDetail = participation.cancelReasonDetail,
+                paidAt = paymentInfo?.paidAt,
                 paymentMethod = paymentInfo?.paymentMethod,
                 refundedAt = participation.refundedAt
             )
