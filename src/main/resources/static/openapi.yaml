@@ -449,23 +449,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/auth/password/reset-link:
-    post:
-      tags: [Auth]
-      summary: 비밀번호 재설정 링크 발송
-      description: 가입된 이메일로 비밀번호 재설정 링크를 발송한다.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PasswordResetLinkRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/SuccessNoData'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
   /api/v1/users/me/nickname:
     patch:
       tags: [Auth]
@@ -2512,14 +2495,6 @@ components:
           format: email
         password:
           type: string
-
-    PasswordResetLinkRequest:
-      type: object
-      required: [email]
-      properties:
-        email:
-          type: string
-          format: email
 
     NicknameUpdateRequest:
       type: object

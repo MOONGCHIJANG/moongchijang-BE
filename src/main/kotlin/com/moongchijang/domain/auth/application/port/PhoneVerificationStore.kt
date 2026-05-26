@@ -7,4 +7,6 @@ interface PhoneVerificationStore {
 
     fun markVerified(phoneNumber: String, ttlSeconds: Long)
     fun isVerified(phoneNumber: String): Boolean
+    fun markVerifiedForUser(userId: Long, phoneNumber: String, ttlSeconds: Long)
+    fun isVerifiedForUser(userId: Long, phoneNumber: String): Boolean
 }

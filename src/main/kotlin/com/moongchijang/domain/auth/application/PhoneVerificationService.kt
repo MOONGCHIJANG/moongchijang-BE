@@ -60,11 +60,27 @@ class PhoneVerificationService(
         return PhoneVerificationVerifiedResponse(verified = true)
     }
 
+    fun verifyCodeForUser(userId: Long, request: PhoneVerificationCodeVerifyRequest): PhoneVerificationVerifiedResponse {
+        val result = verifyCode(request)
+        val phoneNumber = normalizePhoneNumber(request.phoneNumber)
+        phoneVerificationStore.markVerifiedForUser(userId, phoneNumber, VERIFIED_TTL_SECONDS)
+        return result
+    }
+
     fun ensureVerified(rawPhoneNumber: String) {
         val phoneNumber = normalizePhoneNumber(rawPhoneNumber)
         validatePhoneNumber(phoneNumber)
 
         if (!phoneVerificationStore.isVerified(phoneNumber)) {
+            throw CustomException(ErrorCode.PHONE_VERIFICATION_REQUIRED)
+        }
+    }
+
+    fun ensureVerifiedForUser(userId: Long, rawPhoneNumber: String) {
+        val phoneNumber = normalizePhoneNumber(rawPhoneNumber)
+        validatePhoneNumber(phoneNumber)
+
+        if (!phoneVerificationStore.isVerifiedForUser(userId, phoneNumber)) {
             throw CustomException(ErrorCode.PHONE_VERIFICATION_REQUIRED)
         }
     }
