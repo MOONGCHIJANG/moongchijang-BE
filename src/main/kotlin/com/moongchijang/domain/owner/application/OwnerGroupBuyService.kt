@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.ZoneId
 
 @Service
 @Transactional(readOnly = true)
@@ -71,7 +72,7 @@ class OwnerGroupBuyService(
 
         val todayPickupUserCount = groupBuyRepository.countTodayPickupUsersByStoreIds(
             storeIds = storeIds,
-            pickupDate = LocalDate.now(),
+            pickupDate = LocalDate.now(SEOUL_ZONE_ID),
             participationStatuses = TODAY_PICKUP_PARTICIPATION_STATUSES,
             pickupStatuses = TODAY_PICKUP_PICKUP_STATUSES,
             groupBuyStatuses = TODAY_PICKUP_GROUP_BUY_STATUSES
@@ -141,5 +142,6 @@ class OwnerGroupBuyService(
         val TODAY_PICKUP_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
         val SETTLEMENT_PARTICIPATION_STATUSES = listOf(ParticipationStatus.CONFIRMED)
         val SETTLEMENT_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+        val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }
