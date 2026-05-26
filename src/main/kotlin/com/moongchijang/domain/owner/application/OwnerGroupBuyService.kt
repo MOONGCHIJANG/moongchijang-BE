@@ -235,7 +235,8 @@ class OwnerGroupBuyService(
 
         groupBuy.closeByOwner(
             reason = toGroupBuyCloseReason(request.reason),
-            reasonDetail = request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
+            reasonDetail = request.reasonDetail?.trim()?.takeIf { it.isNotBlank() },
+            requestedAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
         )
         groupBuyRepository.save(groupBuy)
         log.info(
