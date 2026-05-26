@@ -2346,7 +2346,7 @@ components:
           type: string
           nullable: true
           description: 탈퇴 사유(선택)
-          enum: [TIME_NOT_AVAILABLE, NO_LONGER_INTERESTED, PREFER_DIRECT_VISIT, BUYING_ELSEWHERE, OTHER]
+          enum: [NO_DESIRED_GROUPBUY, INCONVENIENT_SERVICE, PRIVACY_CONCERN, OTHER]
         reasonDetail:
           type: string
           nullable: true

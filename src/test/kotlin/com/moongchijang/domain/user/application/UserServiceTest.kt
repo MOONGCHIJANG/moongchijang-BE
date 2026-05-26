@@ -458,7 +458,7 @@ class UserServiceTest {
         userService.withdraw(
             1L,
             WithdrawRequest(
-                reason = WithdrawalReason.NO_LONGER_INTERESTED,
+                reason = WithdrawalReason.NO_DESIRED_GROUPBUY,
                 reasonDetail = null,
             )
         )
@@ -496,7 +496,7 @@ class UserServiceTest {
         userService.withdraw(
             2L,
             WithdrawRequest(
-                reason = WithdrawalReason.TIME_NOT_AVAILABLE,
+                reason = WithdrawalReason.INCONVENIENT_SERVICE,
                 reasonDetail = null,
             )
         )
