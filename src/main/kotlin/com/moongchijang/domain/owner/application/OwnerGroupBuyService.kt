@@ -2,10 +2,21 @@ package com.moongchijang.domain.owner.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageDetailResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageListItemResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageParticipantSummary
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyParticipantItemResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyListItemResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuySummaryResponse
+import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
+import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
+import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.domain.entity.Payment
+import com.moongchijang.domain.payment.domain.repository.PaymentRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
@@ -16,6 +27,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.time.ZoneId
 
 @Service
@@ -23,7 +35,10 @@ import java.time.ZoneId
 class OwnerGroupBuyService(
     private val userRepository: UserRepository,
     private val storeStaffRepository: StoreStaffRepository,
-    private val groupBuyRepository: GroupBuyRepository
+    private val groupBuyRepository: GroupBuyRepository,
+    private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
+    private val participationRepository: ParticipationRepository,
+    private val paymentRepository: PaymentRepository
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -109,6 +124,171 @@ class OwnerGroupBuyService(
         return response
     }
 
+    fun getManageGroupBuys(ownerId: Long, filter: OwnerGroupBuyManageFilterType): List<OwnerGroupBuyManageListItemResponse> {
+        log.info("[OwnerGroupBuyService] 사장님 공구 관리 목록 조회 시작: ownerId={}, filter={}", ownerId, filter)
+        validateSeller(ownerId)
+
+        val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
+        if (storeIds.isEmpty()) {
+            log.info("[OwnerGroupBuyService] 사장님 공구 관리 목록 조회 완료(소속 매장 없음): ownerId={}, filter={}", ownerId, filter)
+            return emptyList()
+        }
+
+        val today = LocalDate.now(SEOUL_ZONE_ID)
+        val response = when (filter) {
+            OwnerGroupBuyManageFilterType.PENDING_APPROVAL -> {
+                ownerGroupBuyRequestRepository
+                    .findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(ownerId, storeIds, OwnerGroupBuyRequestStatus.PENDING)
+                    .map {
+                        OwnerGroupBuyManageListItemResponse(
+                            groupBuyId = it.id,
+                            productName = it.productName,
+                            price = it.price,
+                            pickupDate = it.pickupDate,
+                            status = OwnerGroupBuyManageFilterType.PENDING_APPROVAL
+                        )
+                    }
+            }
+            else -> {
+                val statuses = toGroupBuyStatuses(filter)
+                groupBuyRepository.findByStoreIdInAndStatusInOrderByDeadlineAsc(storeIds, statuses)
+                    .map {
+                        OwnerGroupBuyManageListItemResponse(
+                            groupBuyId = it.id,
+                            productName = it.productName,
+                            price = it.price,
+                            pickupDate = it.pickupDate,
+                            deadlineDday = if (it.status == GroupBuyStatus.IN_PROGRESS) calculateDday(today, it.deadline.toLocalDate()) else null,
+                            achievementRate = ((it.currentQuantity * 100L) / it.targetQuantity.coerceAtLeast(1)).toInt(),
+                            currentParticipants = it.currentQuantity,
+                            targetParticipants = it.targetQuantity,
+                            status = toManageFilterType(it.status)
+                        )
+                    }
+            }
+        }
+
+        log.info(
+            "[OwnerGroupBuyService] 사장님 공구 관리 목록 조회 완료: ownerId={}, filter={}, count={}",
+            ownerId,
+            filter,
+            response.size
+        )
+        return response
+    }
+
+    fun getInProgressGroupBuyDetail(ownerId: Long, groupBuyId: Long): OwnerGroupBuyManageDetailResponse {
+        return getManageGroupBuyDetail(ownerId, groupBuyId, IN_PROGRESS_DETAIL_GROUP_BUY_STATUSES)
+    }
+
+    fun getAchievedGroupBuyDetail(ownerId: Long, groupBuyId: Long): OwnerGroupBuyManageDetailResponse {
+        return getManageGroupBuyDetail(ownerId, groupBuyId, ACHIEVED_DETAIL_GROUP_BUY_STATUSES)
+    }
+
+    private fun getManageGroupBuyDetail(
+        ownerId: Long,
+        groupBuyId: Long,
+        allowedStatuses: Collection<GroupBuyStatus>
+    ): OwnerGroupBuyManageDetailResponse {
+        log.info(
+            "[OwnerGroupBuyService] 사장님 공구 관리 상세 조회 시작: ownerId={}, groupBuyId={}, allowedStatuses={}",
+            ownerId,
+            groupBuyId,
+            allowedStatuses
+        )
+        validateSeller(ownerId)
+        val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
+        if (storeIds.isEmpty()) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+
+        val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+
+        if (groupBuy.store.id !in storeIds || groupBuy.status !in allowedStatuses) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+
+        val participations = participationRepository.findByGroupBuyIdAndStatusInOrderByCreatedAtAsc(
+            groupBuyId = groupBuyId,
+            statuses = DETAIL_PARTICIPATION_STATUSES
+        )
+        val paymentByUserId = mapPaymentsByUserId(groupBuyId, participations)
+        val participants = participations.map {
+            val payment = paymentByUserId[it.user.id!!]
+            OwnerGroupBuyParticipantItemResponse(
+                name = it.user.nickname ?: "",
+                phoneNumber = it.user.phoneNumber ?: "",
+                productName = it.groupBuy.productName,
+                quantity = it.quantity,
+                paymentMethod = payment?.method ?: UNKNOWN_PAYMENT_METHOD,
+                paymentStatus = payment?.status?.name ?: UNKNOWN_PAYMENT_STATUS,
+                pickupTime = it.groupBuy.pickupTimeStart
+            )
+        }
+
+        val completedCount = participationRepository.countByGroupBuyIdAndStatusInAndPickupStatus(
+            groupBuyId = groupBuyId,
+            statuses = DETAIL_PARTICIPATION_STATUSES,
+            pickupStatus = PickupStatus.PICKED_UP
+        ).toInt()
+        val totalCount = participationRepository.countByGroupBuyIdAndStatusIn(
+            groupBuyId = groupBuyId,
+            statuses = DETAIL_PARTICIPATION_STATUSES
+        ).toInt()
+        val waitingCount = totalCount - completedCount
+
+        val response = OwnerGroupBuyManageDetailResponse(
+            groupBuyId = groupBuy.id,
+            status = toManageFilterType(groupBuy.status),
+            participantSummary = OwnerGroupBuyManageParticipantSummary(
+                totalCount = totalCount,
+                completedCount = completedCount,
+                waitingCount = waitingCount
+            ),
+            participants = participants
+        )
+
+        log.info(
+            "[OwnerGroupBuyService] 사장님 공구 관리 상세 조회 완료: ownerId={}, groupBuyId={}, totalCount={}",
+            ownerId,
+            groupBuyId,
+            response.participantSummary.totalCount
+        )
+        return response
+    }
+
+    private fun mapPaymentsByUserId(groupBuyId: Long, participations: List<Participation>): Map<Long, Payment> {
+        val userIds = participations.mapNotNull { it.user.id }.distinct()
+        if (userIds.isEmpty()) {
+            return emptyMap()
+        }
+        return paymentRepository.findAllByGroupBuyIdAndUserIdIn(groupBuyId, userIds)
+            .associateBy { it.paymentOrder.user.id!! }
+    }
+
+    private fun toGroupBuyStatuses(filter: OwnerGroupBuyManageFilterType): Collection<GroupBuyStatus> {
+        return when (filter) {
+            OwnerGroupBuyManageFilterType.ALL -> OWNER_VISIBLE_STATUSES
+            OwnerGroupBuyManageFilterType.IN_PROGRESS -> listOf(GroupBuyStatus.IN_PROGRESS)
+            OwnerGroupBuyManageFilterType.ACHIEVED -> listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+            OwnerGroupBuyManageFilterType.ENDED -> listOf(GroupBuyStatus.FAILED, GroupBuyStatus.CLOSED)
+            OwnerGroupBuyManageFilterType.PENDING_APPROVAL -> emptyList()
+        }
+    }
+
+    private fun toManageFilterType(status: GroupBuyStatus): OwnerGroupBuyManageFilterType {
+        return when (status) {
+            GroupBuyStatus.IN_PROGRESS -> OwnerGroupBuyManageFilterType.IN_PROGRESS
+            GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED -> OwnerGroupBuyManageFilterType.ACHIEVED
+            GroupBuyStatus.FAILED, GroupBuyStatus.CLOSED -> OwnerGroupBuyManageFilterType.ENDED
+        }
+    }
+
+    private fun calculateDday(today: LocalDate, deadlineDate: LocalDate): Int {
+        return ChronoUnit.DAYS.between(today, deadlineDate).toInt()
+    }
+
     private fun validateSeller(ownerId: Long): User {
         val owner = userRepository.findByIdAndDeletedAtIsNull(ownerId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
@@ -142,6 +322,11 @@ class OwnerGroupBuyService(
         val TODAY_PICKUP_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
         val SETTLEMENT_PARTICIPATION_STATUSES = listOf(ParticipationStatus.CONFIRMED)
         val SETTLEMENT_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+        val IN_PROGRESS_DETAIL_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.IN_PROGRESS)
+        val ACHIEVED_DETAIL_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+        val DETAIL_PARTICIPATION_STATUSES = listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED)
+        const val UNKNOWN_PAYMENT_METHOD = "UNKNOWN"
+        const val UNKNOWN_PAYMENT_STATUS = "UNKNOWN"
         val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }
