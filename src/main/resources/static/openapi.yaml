@@ -202,6 +202,89 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
+  /api/v1/users/me/seller/business-registration/lookup:
+    post:
+      tags: [Auth]
+      summary: 사업자등록번호 조회
+      description: |
+        사업자등록번호를 조회해 상태를 반환한다.
+        - `VALID`: 정상 사업자(계속사업자)
+        - `CLOSED`: 휴업/폐업
+        - `NOT_FOUND`: 조회 불가/미확인
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessRegistrationLookupRequest'
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBusinessRegistrationLookup'
+        '400':
+          description: "입력값 검증 실패 (예: INVALID_BUSINESS_REGISTRATION_NUMBER_FORMAT)"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/seller/business-info:
+    patch:
+      tags: [Auth]
+      summary: 사장님 사업자 정보 저장
+      description: 사장님 가입의 사업자 정보를 저장한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerBusinessInfoUpsertRequest'
+      responses:
+        '200':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSellerSignupStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/seller/settlement-info:
+    patch:
+      tags: [Auth]
+      summary: 사장님 정산 정보 저장
+      description: 사장님 정산 정보를 저장하고 사장님 가입 완료 상태를 반영한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellerSettlementInfoUpsertRequest'
+      responses:
+        '200':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSellerSignupStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/v1/auth/email/availability:
     get:
       tags: [Auth]
@@ -366,28 +449,11 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/auth/password/reset-link:
-    post:
-      tags: [Auth]
-      summary: 비밀번호 재설정 링크 발송
-      description: 가입된 이메일로 비밀번호 재설정 링크를 발송한다.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PasswordResetLinkRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/SuccessNoData'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/v1/users/me/profile:
+  /api/v1/users/me/nickname:
     patch:
       tags: [Auth]
-      summary: 프로필 수정
-      description: 닉네임과 전화번호를 수정한다.
+      summary: 닉네임 변경
+      description: 인증된 사용자의 닉네임을 변경한다.
       security:
         - bearerAuth: []
       requestBody:
@@ -395,20 +461,45 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProfileUpdateRequest'
+              $ref: '#/components/schemas/NicknameUpdateRequest'
       responses:
         '200':
-          description: 프로필 수정 완료
+          description: 닉네임 변경 완료
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseProfileUpdated'
+                $ref: '#/components/schemas/ApiResponseNicknameUpdated'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Conflict'
+
+  /api/v1/users/me/phone-number:
+    patch:
+      tags: [Auth]
+      summary: 전화번호 변경
+      description: 인증된 사용자의 전화번호를 변경한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneNumberUpdateRequest'
+      responses:
+        '200':
+          description: 전화번호 변경 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePhoneNumberUpdated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/users/me/phone/verification-codes:
     post:
@@ -460,8 +551,8 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/auth/password/change:
-    post:
+  /api/v1/users/me/password:
+    patch:
       tags: [Auth]
       summary: 비밀번호 변경 (이메일 가입자 전용)
       description: 현재 비밀번호를 확인하고 새 비밀번호로 변경한다. 변경 완료 시 세션을 무효화한다.
@@ -475,7 +566,11 @@ paths:
               $ref: '#/components/schemas/PasswordChangeRequest'
       responses:
         '200':
-          $ref: '#/components/responses/SuccessNoData'
+          description: 비밀번호 변경 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePasswordChanged'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1334,6 +1429,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseMypageParticipationList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /api/v1/users/me/participations/in-progress:
     get:
@@ -1465,23 +1562,6 @@ paths:
   # ─────────────────────────────────────────────────────────────
   # Owner
   # ─────────────────────────────────────────────────────────────
-  /api/v1/owner/home/summary:
-    get:
-      tags: [Owner]
-      summary: 사장님 홈 요약 정보
-      description: 픽업 대기/완료 건수, 진행 중 공구 수, 다음 픽업 시간을 반환한다.
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 홈 요약
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseOwnerSummary'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
   /api/v1/owner/home/pickup-schedule:
     get:
       tags: [Owner]
@@ -1516,6 +1596,173 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/group-buys/summary:
+    get:
+      tags: [Owner]
+      summary: 사장님 공구 요약 조회
+      description: |
+        사장님이 소속된 매장 기준으로 공구 요약 정보를 조회한다.
+        - 진행 중 공구 건수
+        - 달성 완료 공구 건수
+        - 오늘 픽업 예정 인원 수
+        - 정산 예정 금액
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 사장님 공구 요약 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuySummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/group-buys/manage:
+    get:
+      tags: [Owner]
+      summary: 사장님 공구 관리 목록 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          description: 상태 필터 (기본값 ALL)
+          schema:
+            type: string
+            enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
+            default: ALL
+      responses:
+        '200':
+          description: 사장님 공구 관리 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyManageList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/group-buys/{groupBuyId}/manage/in-progress:
+    get:
+      tags: [Owner]
+      summary: 사장님 모집중 공구 상세 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 사장님 모집중 공구 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyManageDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/owner/group-buys/{groupBuyId}/manage/achieved:
+    get:
+      tags: [Owner]
+      summary: 사장님 달성 공구 상세 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 사장님 달성 공구 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyManageDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/owner/group-buys/{groupBuyId}/extension-requests:
+    post:
+      tags: [Owner]
+      summary: 사장님 공구 기간 연장 요청
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerGroupBuyExtensionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessNoData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/owner/group-buys/{groupBuyId}/close-requests:
+    post:
+      tags: [Owner]
+      summary: 사장님 공구 마감 요청
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerGroupBuyCloseRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessNoData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/v1/owner/group-buy-requests:
     get:
@@ -2151,7 +2398,7 @@ components:
           type: string
           nullable: true
           description: 탈퇴 사유(선택)
-          enum: [TIME_NOT_AVAILABLE, NO_LONGER_INTERESTED, PREFER_DIRECT_VISIT, BUYING_ELSEWHERE, OTHER]
+          enum: [NO_DESIRED_GROUPBUY, INCONVENIENT_SERVICE, PRIVACY_CONCERN, OTHER]
         reasonDetail:
           type: string
           nullable: true
@@ -2184,6 +2431,180 @@ components:
             nickname: { type: string }
             phoneNumber: { type: string }
             signupCompleted: { type: boolean, example: true }
+        error: { nullable: true, example: null }
+
+    BusinessRegistrationLookupRequest:
+      type: object
+      required: [businessRegistrationNumber]
+      properties:
+        businessRegistrationNumber:
+          type: string
+          description: 사업자등록번호(하이픈 포함/미포함 모두 허용)
+          pattern: "^\\d{3}-?\\d{2}-?\\d{5}$"
+          example: "111-22-33333"
+
+    ApiResponseBusinessRegistrationLookup:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [businessRegistrationNumber, status]
+          properties:
+            businessRegistrationNumber: { type: string, example: "111-22-33333" }
+            status:
+              type: string
+              enum: [VALID, CLOSED, NOT_FOUND]
+              example: VALID
+            message:
+              type: string
+              nullable: true
+              example: "사업자등록번호가 조회되지 않아 다시 입력해주세요."
+            storeName:
+              type: string
+              nullable: true
+            ownerName:
+              type: string
+              nullable: true
+            storeAddress:
+              type: string
+              nullable: true
+        error: { nullable: true, example: null }
+
+    SellerBusinessInfoUpsertRequest:
+      type: object
+      required: [businessRegistrationNumber, storeName, ownerName, storeAddress, phoneNumber]
+      properties:
+        businessRegistrationNumber:
+          type: string
+          pattern: "^\\d{3}-?\\d{2}-?\\d{5}$"
+          example: "111-22-33333"
+        storeName:
+          type: string
+          maxLength: 100
+          example: "뭉치장베이커리"
+        ownerName:
+          type: string
+          maxLength: 50
+          example: "홍길동"
+        storeAddress:
+          type: string
+          maxLength: 255
+          example: "서울시 강남구 테헤란로 123, 2층"
+        phoneNumber:
+          type: string
+          pattern: "^01[0-9]-[0-9]{3,4}-[0-9]{4}$"
+          example: "010-1234-5678"
+
+    SellerSettlementInfoUpsertRequest:
+      type: object
+      required: [bankCode, accountNumber, accountHolderName]
+      properties:
+        bankCode:
+          type: string
+          maxLength: 80
+          description: |
+            은행/증권사 선택값(라벨 또는 코드).
+            - 서버 저장 시 표준 코드로 정규화된다.
+            - 아래 enum은 저장되는 표준 코드 목록이다.
+            - BANK codes:
+              NONGHYEOP, KAKAOBANK, KOOKMIN, TOSSBANK, SHINHAN, WOORI, IBK, HANA, SAEMAUL, BUSANBANK,
+              DAEGUBANK, KBANK, SHINHYEOP, POST, SC, KYONGNAMBANK, GWANGJUBANK, SUHYEOP, JEONBUKBANK,
+              SAVINGBANK, JEJUBANK, CITI, KDBBANK, SANLIM, BOA, HSBC, ICBC, DEUTSCHE_BANK, JPMORGAN_CHASE,
+              BNP_PARIBAS, CCB, BOC
+            - SECURITIES codes:
+              SAMSUNG_SECURITIES, KB_SECURITIES, NH_INVESTMENT_AND_SECURITIES, YUANTA_SECURITES, DAISHIN_SECURITIES,
+              HANA_INVESTMENT_AND_SECURITIES, HANHWA_INVESTMENT_AND_SECURITIES, EUGENE_INVESTMENT_AND_SECURITIES,
+              HI_INVESTMENT_AND_SECURITIES, KYOBO_SECURITIES, MERITZ_SECURITIES, SK_SECURITIES,
+              LIG_INVESTMENT_AND_SECURITIES, HYUNDAI_MOTOR_SECURITIES, DB_INVESTMENT_AND_SECURITIES,
+              SHINYOUNG_SECURITIES, DAOL_INVESTMENT_AND_SECURITIES, BOOKOOK_SECURITIES, TOSS_SECURITIES,
+              KAKAOPAY_SECURITIES, MIRAE_ASSET_SECURITIES, KIWOOM, KOREA_INVESTMENT_AND_SECURITIES,
+              SHINHAN_SECURITIES, IBK_INVESTMENT_SECURITIES, WOORI_SECURITIES, CAPE_INVESTMENT_SECURITIES,
+              BNK_INVESTMENT_SECURITIES, SANGSANGIN_SECURITIES
+          example: "KB국민"
+          enum:
+            - NONGHYEOP
+            - KAKAOBANK
+            - KOOKMIN
+            - TOSSBANK
+            - SHINHAN
+            - WOORI
+            - IBK
+            - HANA
+            - SAEMAUL
+            - BUSANBANK
+            - DAEGUBANK
+            - KBANK
+            - SHINHYEOP
+            - POST
+            - SC
+            - KYONGNAMBANK
+            - GWANGJUBANK
+            - SUHYEOP
+            - JEONBUKBANK
+            - SAVINGBANK
+            - JEJUBANK
+            - CITI
+            - KDBBANK
+            - SANLIM
+            - BOA
+            - HSBC
+            - SAMSUNG_SECURITIES
+            - KB_SECURITIES
+            - NH_INVESTMENT_AND_SECURITIES
+            - YUANTA_SECURITES
+            - DAISHIN_SECURITIES
+            - HANA_INVESTMENT_AND_SECURITIES
+            - HANHWA_INVESTMENT_AND_SECURITIES
+            - EUGENE_INVESTMENT_AND_SECURITIES
+            - HI_INVESTMENT_AND_SECURITIES
+            - KYOBO_SECURITIES
+            - MERITZ_SECURITIES
+            - SK_SECURITIES
+            - LIG_INVESTMENT_AND_SECURITIES
+            - HYUNDAI_MOTOR_SECURITIES
+            - DB_INVESTMENT_AND_SECURITIES
+            - SHINYOUNG_SECURITIES
+            - DAOL_INVESTMENT_AND_SECURITIES
+            - BOOKOOK_SECURITIES
+            - TOSS_SECURITIES
+            - KAKAOPAY_SECURITIES
+            - MIRAE_ASSET_SECURITIES
+            - KIWOOM
+            - KOREA_INVESTMENT_AND_SECURITIES
+            - SHINHAN_SECURITIES
+            - IBK_INVESTMENT_SECURITIES
+            - WOORI_SECURITIES
+            - CAPE_INVESTMENT_SECURITIES
+            - BNK_INVESTMENT_SECURITIES
+            - SANGSANGIN_SECURITIES
+            - ICBC
+            - DEUTSCHE_BANK
+            - JPMORGAN_CHASE
+            - BNP_PARIBAS
+            - CCB
+            - BOC
+        accountNumber:
+          type: string
+          maxLength: 50
+          example: "000-000-0000"
+        accountHolderName:
+          type: string
+          maxLength: 50
+          example: "홍길동"
+
+    ApiResponseSellerSignupStatus:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [id, sellerSignupCompleted]
+          properties:
+            id: { type: integer, format: int64, example: 1 }
+            sellerSignupCompleted: { type: boolean, example: true }
         error: { nullable: true, example: null }
 
     ApiResponseEmailAvailability:
@@ -2277,40 +2698,48 @@ components:
         password:
           type: string
 
-    PasswordResetLinkRequest:
+    NicknameUpdateRequest:
       type: object
-      required: [email]
-      properties:
-        email:
-          type: string
-          format: email
-
-    ProfileUpdateRequest:
-      type: object
-      required: [nickname, phoneNumber]
+      required: [nickname]
       properties:
         nickname:
           type: string
           minLength: 2
           maxLength: 10
           pattern: "^[A-Za-z0-9가-힣]{2,10}$"
-        phoneNumber:
-          type: string
-          pattern: "^01[0-9]-[0-9]{3,4}-[0-9]{4}$"
 
-    ApiResponseProfileUpdated:
+    ApiResponseNicknameUpdated:
       type: object
       required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [id, nickname, phoneNumber, updatedAt]
+          required: [id, nickname]
           properties:
             id: { type: integer, format: int64 }
             nickname: { type: string }
+        error: { nullable: true, example: null }
+
+    PhoneNumberUpdateRequest:
+      type: object
+      required: [phoneNumber]
+      properties:
+        phoneNumber:
+          type: string
+          pattern: "^01[0-9]-[0-9]{3,4}-[0-9]{4}$"
+
+    ApiResponsePhoneNumberUpdated:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [id, phoneNumber]
+          properties:
+            id: { type: integer, format: int64 }
             phoneNumber: { type: string }
-            updatedAt: { type: string, format: date-time }
         error: { nullable: true, example: null }
 
     PhoneVerificationCodeSendRequest:
@@ -2359,7 +2788,7 @@ components:
 
     PasswordChangeRequest:
       type: object
-      required: [currentPassword, newPassword, newPasswordConfirm]
+      required: [currentPassword, newPassword]
       properties:
         currentPassword:
           type: string
@@ -2368,13 +2797,23 @@ components:
           minLength: 8
           maxLength: 20
           pattern: "^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$"
-          description: 8~20자, 영문+숫자 포함
-        newPasswordConfirm:
-          type: string
+          description: 8~20자, 영문+숫자 포함, 이메일 아이디와 동일값 불가
+
+    ApiResponsePasswordChanged:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [changed]
+          properties:
+            changed: { type: boolean, example: true }
+        error: { nullable: true, example: null }
 
     AuthUser:
       type: object
-      required: [id, provider, role, signupCompleted, createdAt, updatedAt]
+      required: [id, provider, role, signupCompleted, sellerSignupCompleted, createdAt, updatedAt]
       properties:
         id: { type: integer, format: int64 }
         provider:
@@ -2402,6 +2841,7 @@ components:
           nullable: true
           enum: [BUYER, SELLER, ADMIN]
         signupCompleted: { type: boolean }
+        sellerSignupCompleted: { type: boolean }
         deletedAt:
           type: string
           format: date-time
@@ -3086,9 +3526,10 @@ components:
           type: array
           items:
             type: object
-            required: [participationId, productName, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, paymentAmount, quantity, refundStatus, cancelReason]
+            required: [participationId, thumbnailUrl, productName, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, paymentAmount, quantity, refundStatus, cancelReason, paidAt, paymentMethod]
             properties:
               participationId: { type: integer, format: int64 }
+              thumbnailUrl: { type: string, nullable: true, description: 카드 상품 이미지 URL }
               productName: { type: string }
               storeName: { type: string }
               pickupDate: { type: string, format: date, nullable: true }
@@ -3109,6 +3550,8 @@ components:
                 type: string
                 nullable: true
                 description: 취소 상세 사유
+              paidAt: { type: string, format: date-time, nullable: true, description: 결제 일시 }
+              paymentMethod: { type: string, nullable: true, description: 결제 수단 }
               refundedAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
@@ -3614,6 +4057,122 @@ components:
                 enum: [IN_PROGRESS, ACHIEVED, FAILED]
         error: { nullable: true, example: null }
 
+    ApiResponseOwnerGroupBuySummary:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [ongoingCount, achievedCount, todayPickupUserCount, settlementExpectedAmount, isEmpty]
+          properties:
+            ongoingCount: { type: integer, description: 진행 중 공구 건수, example: 3 }
+            achievedCount: { type: integer, description: 달성 완료 공구 건수, example: 2 }
+            todayPickupUserCount: { type: integer, description: 오늘 픽업 예정 인원 수, example: 14 }
+            settlementExpectedAmount: { type: integer, format: int64, description: 정산 예정 금액, example: 128000 }
+            isEmpty: { type: boolean, description: 공구 요약 데이터 비어있는지 여부, example: false }
+        error: { nullable: true, example: null }
+
+    ApiResponseOwnerGroupBuyManageList:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerGroupBuyManageListItem'
+        error: { nullable: true, example: null }
+
+    OwnerGroupBuyManageListItem:
+      type: object
+      required: [groupBuyId, productName, price, pickupDate, status]
+      properties:
+        groupBuyId: { type: integer, format: int64, example: 101 }
+        productName: { type: string, example: 두쫀쿠 세트 }
+        price: { type: integer, example: 9900 }
+        pickupDate: { type: string, format: date, example: "2026-06-01" }
+        deadlineDday: { type: integer, nullable: true, example: 3 }
+        achievementRate: { type: integer, nullable: true, example: 60 }
+        currentQuantity: { type: integer, nullable: true, example: 12 }
+        targetQuantity: { type: integer, nullable: true, example: 20 }
+        status:
+          type: string
+          enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
+          example: IN_PROGRESS
+
+    ApiResponseOwnerGroupBuyManageDetail:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerGroupBuyManageDetail'
+        error: { nullable: true, example: null }
+
+    OwnerGroupBuyManageDetail:
+      type: object
+      required: [groupBuyId, status, participantSummary, participants]
+      properties:
+        groupBuyId: { type: integer, format: int64, example: 101 }
+        status:
+          type: string
+          enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
+          example: IN_PROGRESS
+        participantSummary:
+          $ref: '#/components/schemas/OwnerGroupBuyManageParticipantSummary'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerGroupBuyParticipantItem'
+
+    OwnerGroupBuyManageParticipantSummary:
+      type: object
+      required: [totalCount, completedCount, waitingCount]
+      properties:
+        totalCount: { type: integer, example: 20 }
+        completedCount: { type: integer, example: 8 }
+        waitingCount: { type: integer, example: 12 }
+
+    OwnerGroupBuyParticipantItem:
+      type: object
+      required: [name, phoneNumber, productName, quantity, paymentMethod, paymentStatus, pickupTime]
+      properties:
+        name: { type: string, example: 홍길동 }
+        phoneNumber: { type: string, example: "01012345678" }
+        productName: { type: string, example: 두쫀쿠 세트 }
+        quantity: { type: integer, example: 2 }
+        paymentMethod: { type: string, example: CARD }
+        paymentStatus: { type: string, example: APPROVED }
+        pickupTime: { type: string, format: time, example: "14:00:00" }
+
+    OwnerGroupBuyExtensionRequest:
+      type: object
+      required: [extendedDeadline]
+      properties:
+        extendedDeadline:
+          type: string
+          format: date-time
+          description: 연장 희망 마감일시 (기존 마감일 이후)
+          example: "2026-06-05T23:59:00"
+
+    OwnerGroupBuyCloseReasonType:
+      type: string
+      enum: [SOLD_OUT, STORE_CONDITION, OTHER]
+
+    OwnerGroupBuyCloseRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          $ref: '#/components/schemas/OwnerGroupBuyCloseReasonType'
+        reasonDetail:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: reason이 OTHER일 때 필수
+          example: 재고 수급 이슈로 조기 마감합니다.
+
     OwnerGroupBuyRequestCreate:
       type: object
       required:
@@ -3642,7 +4201,7 @@ components:
           example: 두쫀쿠 세트
         productDescription:
           type: string
-          maxLength: 500
+          maxLength: 30
           description: 상품 설명
           example: 소금빵 포함
         deadline:
@@ -3884,13 +4443,13 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [content, totalElements, totalPages]
+          required: [content, totalElements, totalPages, number, size]
           properties:
             content:
               type: array
               items:
                 type: object
-                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterName, createdAt]
+                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterId, createdAt]
                 properties:
                   requestId: { type: integer, format: int64 }
                   storeName: { type: string }
@@ -3900,10 +4459,13 @@ components:
                   status:
                     type: string
                     enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
-                  requesterName: { type: string }
-                  createdAt: { type: string, format: date-time }
-            totalElements: { type: integer }
+                  requesterId: { type: integer, format: int64 }
+                  requesterName: { type: string, nullable: true }
+                  createdAt: { type: string, format: date-time, nullable: true }
+            totalElements: { type: integer, format: int64 }
             totalPages: { type: integer }
+            number: { type: integer }
+            size: { type: integer }
         error: { nullable: true, example: null }
 
     ApiResponseAdminRequestDetail:
@@ -3913,10 +4475,28 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, additionalNote, status, rejectionReason, requesterName, createdAt]
+          required: [requestId, requester, storeName, productName, desiredQuantity, desiredPickupDate, status, statusHistory, createdAt]
           properties:
             requestId: { type: integer, format: int64 }
+            requester:
+              type: object
+              required: [userId]
+              properties:
+                userId: { type: integer, format: int64 }
+                nickname: { type: string, nullable: true }
+                phoneNumber: { type: string, nullable: true }
+                email: { type: string, nullable: true }
+                provider:
+                  type: string
+                  nullable: true
+                  enum: [KAKAO, EMAIL]
             storeName: { type: string }
+            storeAddress: { type: string, nullable: true }
+            placeId: { type: string, nullable: true }
+            roadAddress: { type: string, nullable: true }
+            lotAddress: { type: string, nullable: true }
+            latitude: { type: number, format: double, nullable: true }
+            longitude: { type: number, format: double, nullable: true }
             productName: { type: string }
             desiredQuantity: { type: integer }
             desiredPickupDate: { type: string, format: date }
@@ -3925,8 +4505,18 @@ components:
               type: string
               enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
             rejectionReason: { type: string, nullable: true }
-            requesterName: { type: string }
-            createdAt: { type: string, format: date-time }
+            openedGroupBuyId: { type: integer, format: int64, nullable: true }
+            statusHistory:
+              type: array
+              items:
+                type: object
+                required: [status, changedAt]
+                properties:
+                  status:
+                    type: string
+                    enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+                  changedAt: { type: string, format: date-time }
+            createdAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
 
     AdminRequestStatusUpdate:

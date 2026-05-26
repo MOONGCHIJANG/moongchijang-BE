@@ -1,6 +1,7 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.participation.domain.entity.Participation
@@ -11,11 +12,18 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
+import com.moongchijang.domain.user.application.dto.PasswordChangeRequest
+import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateRequest
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.entity.WithdrawalReason
+import com.moongchijang.domain.user.domain.entity.SellerBusinessProfile
+import com.moongchijang.domain.user.domain.entity.SellerSettlementAccount
+import com.moongchijang.domain.user.domain.repository.SellerBusinessProfileRepository
+import com.moongchijang.domain.user.domain.repository.SellerSettlementAccountRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -24,22 +32,33 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import org.springframework.security.crypto.password.PasswordEncoder
 import java.time.LocalDateTime
 
 class UserServiceTest {
 
     private val userRepository: UserRepository = Mockito.mock(UserRepository::class.java)
+    private val sellerBusinessProfileRepository: SellerBusinessProfileRepository =
+        Mockito.mock(SellerBusinessProfileRepository::class.java)
+    private val sellerSettlementAccountRepository: SellerSettlementAccountRepository =
+        Mockito.mock(SellerSettlementAccountRepository::class.java)
     private val phoneVerificationService: PhoneVerificationService =
         Mockito.mock(PhoneVerificationService::class.java)
+    private val tokenService: TokenService = Mockito.mock(TokenService::class.java)
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
     private val favoriteRepository: FavoriteRepository = Mockito.mock(FavoriteRepository::class.java)
     private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
+    private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
     private val userService = UserService(
         userRepository,
+        sellerBusinessProfileRepository,
+        sellerSettlementAccountRepository,
         phoneVerificationService,
+        tokenService,
         participationRepository,
         favoriteRepository,
         paymentService,
+        passwordEncoder,
     )
 
     @Test
@@ -286,6 +305,119 @@ class UserServiceTest {
     }
 
     @Test
+    fun `닉네임 변경할 때 정상 요청이면 닉네임이 변경됨`() {
+        val user = UserFixture.createKakaoUser(id = 51L, providerId = "kakao-51", nickname = "기존닉네임")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(51L)).thenReturn(user)
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("새닉네임")).thenReturn(false)
+
+        val response = userService.updateNickname(
+            request = NicknameUpdateRequest(nickname = "새닉네임"),
+            userId = 51L,
+        )
+
+        Assertions.assertEquals("새닉네임", user.nickname)
+        Assertions.assertEquals(51L, response.id)
+        Assertions.assertEquals("새닉네임", response.nickname)
+    }
+
+    @Test
+    fun `닉네임 변경할 때 중복 닉네임이면 예외`() {
+        val user = UserFixture.createKakaoUser(id = 52L, providerId = "kakao-52", nickname = "기존닉네임")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(52L)).thenReturn(user)
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("중복닉네임")).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            userService.updateNickname(
+                request = NicknameUpdateRequest(nickname = "중복닉네임"),
+                userId = 52L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.DUPLICATE_NICKNAME, exception.errorCode)
+    }
+
+    @Test
+    fun `전화번호 변경할 때 인증 완료 번호면 전화번호가 변경됨`() {
+        val user = UserFixture.createKakaoUser(id = 53L, providerId = "kakao-53", nickname = "유저")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(53L)).thenReturn(user)
+
+        val response = userService.updatePhoneNumber(
+            request = PhoneNumberUpdateRequest(phoneNumber = "010-9999-8888"),
+            userId = 53L,
+        )
+
+        Mockito.verify(phoneVerificationService).ensureVerifiedForUser(53L, "010-9999-8888")
+        Assertions.assertEquals("010-9999-8888", user.phoneNumber)
+        Assertions.assertEquals(53L, response.id)
+        Assertions.assertEquals("010-9999-8888", response.phoneNumber)
+    }
+
+    @Test
+    fun `비밀번호 변경할 때 이메일 사용자가 아니면 예외`() {
+        val user = UserFixture.createKakaoUser(id = 54L, providerId = "kakao-54", nickname = "유저")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(54L)).thenReturn(user)
+
+        val exception = assertThrows<CustomException> {
+            userService.changePassword(
+                request = PasswordChangeRequest(
+                    currentPassword = "oldPassword1",
+                    newPassword = "newPassword1",
+                ),
+                userId = 54L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.EMAIL_PASSWORD_CHANGE_NOT_ALLOWED, exception.errorCode)
+    }
+
+    @Test
+    fun `비밀번호 변경할 때 현재 비밀번호가 다르면 예외`() {
+        val user = UserFixture.createEmailUser(
+            id = 55L,
+            email = "login@example.com",
+            passwordHash = "encoded-old",
+        )
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(55L)).thenReturn(user)
+        Mockito.`when`(passwordEncoder.matches("wrongPassword1", "encoded-old")).thenReturn(false)
+
+        val exception = assertThrows<CustomException> {
+            userService.changePassword(
+                request = PasswordChangeRequest(
+                    currentPassword = "wrongPassword1",
+                    newPassword = "newPassword1",
+                ),
+                userId = 55L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.PASSWORD_CHANGE_CURRENT_PASSWORD_MISMATCH, exception.errorCode)
+    }
+
+    @Test
+    fun `비밀번호 변경할 때 정책을 만족하면 비밀번호가 변경되고 토큰이 제거됨`() {
+        val user = UserFixture.createEmailUser(
+            id = 56L,
+            email = "login@example.com",
+            passwordHash = "encoded-old",
+        )
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(56L)).thenReturn(user)
+        Mockito.`when`(passwordEncoder.matches("oldPassword1", "encoded-old")).thenReturn(true)
+        Mockito.`when`(passwordEncoder.encode("newPassword1")).thenReturn("encoded-new")
+
+        val response = userService.changePassword(
+            request = PasswordChangeRequest(
+                currentPassword = "oldPassword1",
+                newPassword = "newPassword1",
+            ),
+            userId = 56L,
+        )
+
+        Assertions.assertEquals("encoded-new", user.passwordHash)
+        Assertions.assertTrue(response.changed)
+        Mockito.verify(tokenService).deleteByUserId(56L)
+    }
+
+    @Test
     fun `회원탈퇴 불가 예외`() {
         Mockito.`when`(
             participationRepository.existsPendingPickupForWithdrawal(
@@ -326,7 +458,7 @@ class UserServiceTest {
         userService.withdraw(
             1L,
             WithdrawRequest(
-                reason = WithdrawalReason.NO_LONGER_INTERESTED,
+                reason = WithdrawalReason.NO_DESIRED_GROUPBUY,
                 reasonDetail = null,
             )
         )
@@ -364,7 +496,7 @@ class UserServiceTest {
         userService.withdraw(
             2L,
             WithdrawRequest(
-                reason = WithdrawalReason.TIME_NOT_AVAILABLE,
+                reason = WithdrawalReason.INCONVENIENT_SERVICE,
                 reasonDetail = null,
             )
         )
@@ -390,6 +522,75 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED, exception.errorCode)
+    }
+
+    @Test
+    fun `사장님 사업자 정보 저장할 때 사업자 정보가 저장됨`() {
+        val user = UserFixture.createKakaoUser(id = 101L, providerId = "kakao-101")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(101L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.findByUserId(101L)).thenReturn(null)
+
+        userService.upsertSellerBusinessInfo(
+            request = com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest(
+                businessRegistrationNumber = "111-22-33333",
+                storeName = "뭉치장베이커리",
+                ownerName = "홍길동",
+                storeAddress = "서울시 강남구 테헤란로 123, 2층",
+                phoneNumber = "010-1234-5678",
+            ),
+            userId = 101L,
+        )
+
+        val captor = org.mockito.ArgumentCaptor.forClass(SellerBusinessProfile::class.java)
+        Mockito.verify(sellerBusinessProfileRepository).save(captor.capture())
+        Assertions.assertEquals("1112233333", captor.value.businessRegistrationNumber)
+        Assertions.assertEquals("뭉치장베이커리", captor.value.storeName)
+        Assertions.assertEquals("홍길동", captor.value.ownerName)
+    }
+
+    @Test
+    fun `사장님 정산 정보 저장할 때 SELLER 권한과 가입 완료 상태가 반영됨`() {
+        val user = UserFixture.createKakaoUser(id = 102L, providerId = "kakao-102")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(102L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.existsByUserId(102L)).thenReturn(true)
+        Mockito.`when`(sellerSettlementAccountRepository.findByUserId(102L)).thenReturn(null)
+
+        val response = userService.upsertSellerSettlementInfo(
+            request = com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest(
+                bankCode = "KB국민",
+                accountNumber = "000-000-0000",
+                accountHolderName = "홍길동",
+            ),
+            userId = 102L,
+        )
+
+        val captor = org.mockito.ArgumentCaptor.forClass(SellerSettlementAccount::class.java)
+        Mockito.verify(sellerSettlementAccountRepository).save(captor.capture())
+        Assertions.assertEquals("KOOKMIN", captor.value.bankCode)
+        Assertions.assertEquals(UserRole.SELLER, user.role)
+        Assertions.assertTrue(user.sellerSignupCompleted)
+        Assertions.assertTrue(user.hasRole(UserRole.SELLER))
+        Assertions.assertTrue(response.sellerSignupCompleted)
+    }
+
+    @Test
+    fun `사장님 정산 정보 저장 시 사업자 정보가 없으면 예외`() {
+        val user = UserFixture.createKakaoUser(id = 103L, providerId = "kakao-103")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(103L)).thenReturn(user)
+        Mockito.`when`(sellerBusinessProfileRepository.existsByUserId(103L)).thenReturn(false)
+
+        val exception = assertThrows<CustomException> {
+            userService.upsertSellerSettlementInfo(
+                request = com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest(
+                    bankCode = "KB국민",
+                    accountNumber = "000-000-0000",
+                    accountHolderName = "홍길동",
+                ),
+                userId = 103L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED, exception.errorCode)
     }
 
     private fun setAuditFields(user: User, createdAt: LocalDateTime, updatedAt: LocalDateTime) {

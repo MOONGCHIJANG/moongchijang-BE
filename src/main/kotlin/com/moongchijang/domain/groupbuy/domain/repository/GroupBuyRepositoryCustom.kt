@@ -3,9 +3,12 @@ package com.moongchijang.domain.groupbuy.domain.repository
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 interface GroupBuyRepositoryCustom {
@@ -32,4 +35,23 @@ interface GroupBuyRepositoryCustom {
     fun findDistinctRegions(status: GroupBuyStatus): List<String>
 
     fun findDistinctProductNames(status: GroupBuyStatus): List<String>
+
+    fun countByStoreIdsAndStatuses(
+        storeIds: Collection<Long>,
+        statuses: Collection<GroupBuyStatus>
+    ): Long
+
+    fun countTodayPickupUsersByStoreIds(
+        storeIds: Collection<Long>,
+        pickupDate: LocalDate,
+        participationStatuses: Collection<ParticipationStatus>,
+        pickupStatuses: Collection<PickupStatus>,
+        groupBuyStatuses: Collection<GroupBuyStatus>
+    ): Long
+
+    fun sumSettlementExpectedAmountByStoreIds(
+        storeIds: Collection<Long>,
+        participationStatuses: Collection<ParticipationStatus>,
+        groupBuyStatuses: Collection<GroupBuyStatus>
+    ): Long
 }

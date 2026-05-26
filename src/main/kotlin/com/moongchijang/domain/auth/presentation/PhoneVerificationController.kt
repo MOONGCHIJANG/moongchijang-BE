@@ -14,20 +14,23 @@ import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.Valid
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import org.slf4j.LoggerFactory
+import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import com.moongchijang.security.principal.CustomUserPrincipal
 
 @RestController
-@RequestMapping("/api/v1/auth/phone/verification-codes")
+@RequestMapping("/api/v1")
 @Tag(name = "Auth", description = "인증 API")
 class PhoneVerificationController(
     private val phoneVerificationService: PhoneVerificationService
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @PostMapping
+    @PostMapping("/auth/phone/verification-codes")
     @Operation(summary = "전화번호 인증코드 발송", description = "입력한 전화번호로 6자리 인증코드를 발송합니다.")
     @ApiResponses(
         value = [
@@ -45,7 +48,7 @@ class PhoneVerificationController(
         return ApiResponse.success(response)
     }
 
-    @PostMapping("/verify")
+    @PostMapping("/auth/phone/verification-codes/verify")
     @Operation(summary = "전화번호 인증코드 확인", description = "전화번호와 인증코드를 검증해 인증 완료 상태를 처리합니다.")
     @ApiResponses(
         value = [
@@ -59,6 +62,46 @@ class PhoneVerificationController(
         log.info("[PhoneVerificationController] 전화번호 인증코드 검증 요청 수신")
         val response = phoneVerificationService.verifyCode(request)
         log.info("[PhoneVerificationController] 전화번호 인증코드 검증 응답 완료")
+        return ApiResponse.success(response)
+    }
+
+    @PostMapping("/users/me/phone/verification-codes")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "전화번호 변경 인증코드 발송", description = "로그인 사용자의 전화번호 변경을 위한 인증코드를 발송합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "인증코드 발송 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun sendVerificationCodeForMe(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: PhoneVerificationCodeSendRequest,
+    ): ApiResponse<PhoneVerificationCodeSentResponse> {
+        log.info("[PhoneVerificationController] 내 정보 전화번호 인증코드 발송 요청 수신: userId={}", principal.id)
+        val response = phoneVerificationService.sendVerificationCode(request)
+        log.info("[PhoneVerificationController] 내 정보 전화번호 인증코드 발송 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PostMapping("/users/me/phone/verification-codes/verify")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "전화번호 변경 인증코드 확인", description = "로그인 사용자의 전화번호 변경을 위한 인증코드를 검증합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "인증코드 확인 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "인증코드 불일치/만료", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun verifyCodeForMe(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: PhoneVerificationCodeVerifyRequest,
+    ): ApiResponse<PhoneVerificationVerifiedResponse> {
+        log.info("[PhoneVerificationController] 내 정보 전화번호 인증코드 검증 요청 수신: userId={}", principal.id)
+        val response = phoneVerificationService.verifyCodeForUser(principal.id, request)
+        log.info("[PhoneVerificationController] 내 정보 전화번호 인증코드 검증 응답 완료: userId={}", principal.id)
         return ApiResponse.success(response)
     }
 }

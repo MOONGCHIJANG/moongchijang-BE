@@ -19,6 +19,7 @@ data class MypageSummaryResponse(
 
 data class MypageRefundResponse(
     val participationId: Long,
+    val thumbnailUrl: String?,
     val productName: String,
     val refundStatus: String,
     val storeName: String,
@@ -29,14 +30,20 @@ data class MypageRefundResponse(
     val quantity: Int,
     val cancelReason: String?,
     val cancelReasonDetail: String?,
+    val paidAt: LocalDateTime?,
+    val paymentMethod: String?,
     val refundedAt: LocalDateTime?
 ) {
     companion object {
-        fun from(participation: Participation): MypageRefundResponse {
+        fun from(
+            participation: Participation,
+            paymentInfo: MypageParticipationPaymentInfo? = null
+        ): MypageRefundResponse {
             val groupBuy = participation.groupBuy
 
             return MypageRefundResponse(
                 participationId = participation.id,
+                thumbnailUrl = groupBuy.thumbnailUrl,
                 productName = groupBuy.productName,
                 refundStatus = refundStatus(participation),
                 storeName = groupBuy.store.name,
@@ -47,6 +54,8 @@ data class MypageRefundResponse(
                 quantity = participation.quantity,
                 cancelReason = participation.cancelReason?.name,
                 cancelReasonDetail = participation.cancelReasonDetail,
+                paidAt = paymentInfo?.paidAt,
+                paymentMethod = paymentInfo?.paymentMethod,
                 refundedAt = participation.refundedAt
             )
         }

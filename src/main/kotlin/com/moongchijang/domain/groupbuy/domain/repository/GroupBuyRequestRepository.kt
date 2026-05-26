@@ -3,6 +3,8 @@ package com.moongchijang.domain.groupbuy.domain.repository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import jakarta.persistence.LockModeType
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
 import java.time.LocalDate
@@ -10,6 +12,13 @@ import java.util.Optional
 
 interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
     fun findByUserIdOrderByCreatedAtDesc(userId: Long): List<GroupBuyRequest>
+
+    fun findAllByOrderByCreatedAtDesc(pageable: Pageable): Page<GroupBuyRequest>
+
+    fun findByStatusOrderByCreatedAtDesc(
+        status: GroupBuyRequestStatus,
+        pageable: Pageable
+    ): Page<GroupBuyRequest>
 
     fun countByUserId(userId: Long): Long
 

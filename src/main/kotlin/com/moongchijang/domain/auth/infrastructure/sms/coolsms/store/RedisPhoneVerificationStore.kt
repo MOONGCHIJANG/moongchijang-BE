@@ -30,8 +30,17 @@ class RedisPhoneVerificationStore(
         return redisTemplate.opsForValue().get(verifiedKey(phoneNumber)) == VERIFIED_VALUE
     }
 
+    override fun markVerifiedForUser(userId: Long, phoneNumber: String, ttlSeconds: Long) {
+        redisTemplate.opsForValue().set(verifiedForUserKey(userId, phoneNumber), VERIFIED_VALUE, Duration.ofSeconds(ttlSeconds))
+    }
+
+    override fun isVerifiedForUser(userId: Long, phoneNumber: String): Boolean {
+        return redisTemplate.opsForValue().get(verifiedForUserKey(userId, phoneNumber)) == VERIFIED_VALUE
+    }
+
     private fun codeKey(phoneNumber: String): String = "$KEY_PREFIX:code:$phoneNumber"
     private fun verifiedKey(phoneNumber: String): String = "$KEY_PREFIX:verified:$phoneNumber"
+    private fun verifiedForUserKey(userId: Long, phoneNumber: String): String = "$KEY_PREFIX:verified:$userId:$phoneNumber"
 
     companion object {
         private const val KEY_PREFIX = "auth:phone"

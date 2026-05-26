@@ -28,6 +28,11 @@ app:
     prefix: local
   share:
     base-url: ${APP_SHARE_BASE_URL:http://localhost:3000}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
 
 oauth:
   kakao:
@@ -45,7 +50,7 @@ coolsms:
 jwt:
   secret: jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret
   access-token:
-    expiration-minutes: 60
+    expiration-minutes: ${AUTH_ACCESS_EXPIRATION_MINUTES:60}
 
 auth:
   refresh:
@@ -95,3 +100,10 @@ groupbuy:
     lock:
       wait-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_WAIT_MS:100}
       lease-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_LEASE_MS:55000}
+
+business-registration:
+  api:
+    enabled: ${BUSINESS_REGISTRATION_API_ENABLED:true}
+    base-url: ${BUSINESS_REGISTRATION_API_BASE_URL:https://api.odcloud.kr}
+    status-path: ${BUSINESS_REGISTRATION_API_STATUS_PATH:/api/nts-businessman/v1/status}
+    service-key: ${BUSINESS_REGISTRATION_API_SERVICE_KEY:}

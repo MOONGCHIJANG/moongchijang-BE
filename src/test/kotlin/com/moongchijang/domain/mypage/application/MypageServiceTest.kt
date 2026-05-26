@@ -112,11 +112,32 @@ class MypageServiceTest {
                 ParticipationStatus.REFUND_PENDING
             )
         ).thenReturn(listOf(pending, completed))
+        `when`(
+            paymentOrderRepository.findPaymentSummariesByParticipationIdIn(listOf(9L, 10L))
+        ).thenReturn(
+            listOf(
+                paymentSummary(
+                    participationId = 9L,
+                    groupBuyId = 100L,
+                    orderStatus = PaymentOrderStatus.APPROVED,
+                    paidAt = LocalDateTime.of(2026, 5, 18, 9, 0),
+                    paymentMethod = "CARD"
+                ),
+                paymentSummary(
+                    participationId = 10L,
+                    groupBuyId = 100L,
+                    orderStatus = PaymentOrderStatus.APPROVED,
+                    paidAt = LocalDateTime.of(2026, 5, 19, 9, 0),
+                    paymentMethod = "KAKAOPAY"
+                )
+            )
+        )
 
         val result = mypageService.getRefunds(userId)
 
         assertEquals(2, result.size)
         assertEquals(9L, result[0].participationId)
+        assertEquals("https://example.com/cake.jpg", result[0].thumbnailUrl)
         assertEquals("초코 케이크", result[0].productName)
         assertEquals("PENDING", result[0].refundStatus)
         assertEquals("문치 베이커리", result[0].storeName)
@@ -127,9 +148,14 @@ class MypageServiceTest {
         assertEquals(2, result[0].quantity)
         assertEquals(ParticipationCancelReason.TIME_UNAVAILABLE.name, result[0].cancelReason)
         assertEquals("마감 전 직접 취소", result[0].cancelReasonDetail)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0), result[0].paidAt)
+        assertEquals("CARD", result[0].paymentMethod)
         assertEquals(null, result[0].refundedAt)
         assertEquals(10L, result[1].participationId)
+        assertEquals("https://example.com/cake.jpg", result[1].thumbnailUrl)
         assertEquals("COMPLETED", result[1].refundStatus)
+        assertEquals(LocalDateTime.of(2026, 5, 19, 9, 0), result[1].paidAt)
+        assertEquals("KAKAOPAY", result[1].paymentMethod)
         assertEquals(LocalDateTime.of(2026, 5, 20, 10, 0), result[1].refundedAt)
     }
 
