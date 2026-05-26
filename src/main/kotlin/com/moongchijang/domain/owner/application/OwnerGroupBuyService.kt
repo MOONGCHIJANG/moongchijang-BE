@@ -164,8 +164,8 @@ class OwnerGroupBuyService(
                             pickupDate = it.pickupDate,
                             deadlineDday = if (it.status == GroupBuyStatus.IN_PROGRESS) calculateDday(today, it.deadline.toLocalDate()) else null,
                             achievementRate = ((it.currentQuantity * 100L) / it.targetQuantity.coerceAtLeast(1)).toInt(),
-                            currentParticipants = it.currentQuantity,
-                            targetParticipants = it.targetQuantity,
+                            currentQuantity = it.currentQuantity,
+                            targetQuantity = it.targetQuantity,
                             status = toManageFilterType(it.status)
                         )
                     }

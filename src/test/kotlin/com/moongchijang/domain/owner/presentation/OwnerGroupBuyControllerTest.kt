@@ -87,8 +87,8 @@ class OwnerGroupBuyControllerTest {
                 pickupDate = LocalDate.of(2026, 6, 1),
                 deadlineDday = 3,
                 achievementRate = 60,
-                currentParticipants = 12,
-                targetParticipants = 20,
+                currentQuantity = 12,
+                targetQuantity = 20,
                 status = OwnerGroupBuyManageFilterType.IN_PROGRESS
             )
         )

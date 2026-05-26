@@ -23,11 +23,11 @@ data class OwnerGroupBuyManageListItemResponse(
     @field:Schema(description = "달성률(%)", example = "60", nullable = true)
     val achievementRate: Int? = null,
 
-    @field:Schema(description = "현재 참여 인원", example = "12", nullable = true)
-    val currentParticipants: Int? = null,
+    @field:Schema(description = "현재 참여 수량", example = "12", nullable = true)
+    val currentQuantity: Int? = null,
 
-    @field:Schema(description = "목표 인원", example = "20", nullable = true)
-    val targetParticipants: Int? = null,
+    @field:Schema(description = "목표 수량", example = "20", nullable = true)
+    val targetQuantity: Int? = null,
 
     @field:Schema(description = "공구 상태", example = "IN_PROGRESS")
     val status: OwnerGroupBuyManageFilterType

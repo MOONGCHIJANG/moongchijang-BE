@@ -4042,8 +4042,8 @@ components:
         pickupDate: { type: string, format: date, example: "2026-06-01" }
         deadlineDday: { type: integer, nullable: true, example: 3 }
         achievementRate: { type: integer, nullable: true, example: 60 }
-        currentParticipants: { type: integer, nullable: true, example: 12 }
-        targetParticipants: { type: integer, nullable: true, example: 20 }
+        currentQuantity: { type: integer, nullable: true, example: 12 }
+        targetQuantity: { type: integer, nullable: true, example: 20 }
         status:
           type: string
           enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
