@@ -51,6 +51,11 @@ class SecurityConfig(
                     "/api/v1/group-buys/*",
                     "/api/v1/group-buys/progress",
                     "/api/v1/group-buys/*/progress",
+                    "/api/v1/group-buys/*/share",
+                ).permitAll()
+                it.requestMatchers(
+                    HttpMethod.POST,
+                    "/api/v1/group-buys/*/viewers/heartbeat",
                 ).permitAll()
                 it.requestMatchers(
                     HttpMethod.POST,
