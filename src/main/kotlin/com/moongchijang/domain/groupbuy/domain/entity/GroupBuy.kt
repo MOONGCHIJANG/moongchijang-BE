@@ -62,6 +62,20 @@ class GroupBuy(
     @Column(nullable = false)
     var shareCount: Int = 0,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "close_reason", length = 30)
+    var closeReason: GroupBuyCloseReason? = null,
+
+    @Column(name = "close_reason_detail", length = 100)
+    var closeReasonDetail: String? = null,
+
+    @Column(name = "close_requested_at")
+    var closeRequestedAt: LocalDateTime? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "closed_by_type", length = 20)
+    var closedByType: GroupBuyClosedByType? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
@@ -99,6 +113,18 @@ class GroupBuy(
             "CLOSED 는 IN_PROGRESS 또는 ACHIEVED 상태에서만 전이할 수 있습니다."
         }
         status = GroupBuyStatus.CLOSED
+    }
+
+    fun closeByOwner(
+        reason: GroupBuyCloseReason,
+        reasonDetail: String?,
+        requestedAt: LocalDateTime = LocalDateTime.now()
+    ) {
+        closeReason = reason
+        closeReasonDetail = reasonDetail
+        closeRequestedAt = requestedAt
+        closedByType = GroupBuyClosedByType.OWNER
+        transitionToClosed()
     }
 
     fun isTerminalStatus(): Boolean {

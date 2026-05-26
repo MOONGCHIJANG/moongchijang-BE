@@ -1621,6 +1621,149 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/owner/group-buys/manage:
+    get:
+      tags: [Owner]
+      summary: 사장님 공구 관리 목록 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          description: 상태 필터 (기본값 ALL)
+          schema:
+            type: string
+            enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
+            default: ALL
+      responses:
+        '200':
+          description: 사장님 공구 관리 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyManageList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/group-buys/{groupBuyId}/manage/in-progress:
+    get:
+      tags: [Owner]
+      summary: 사장님 모집중 공구 상세 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 사장님 모집중 공구 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyManageDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/owner/group-buys/{groupBuyId}/manage/achieved:
+    get:
+      tags: [Owner]
+      summary: 사장님 달성 공구 상세 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 사장님 달성 공구 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerGroupBuyManageDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/owner/group-buys/{groupBuyId}/extension-requests:
+    post:
+      tags: [Owner]
+      summary: 사장님 공구 기간 연장 요청
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerGroupBuyExtensionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessNoData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/owner/group-buys/{groupBuyId}/close-requests:
+    post:
+      tags: [Owner]
+      summary: 사장님 공구 마감 요청
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerGroupBuyCloseRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessNoData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/owner/group-buy-requests:
     get:
       tags: [Owner]
@@ -3877,6 +4020,106 @@ components:
             settlementExpectedAmount: { type: integer, format: int64, description: 정산 예정 금액, example: 128000 }
             isEmpty: { type: boolean, description: 공구 요약 데이터 비어있는지 여부, example: false }
         error: { nullable: true, example: null }
+
+    ApiResponseOwnerGroupBuyManageList:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerGroupBuyManageListItem'
+        error: { nullable: true, example: null }
+
+    OwnerGroupBuyManageListItem:
+      type: object
+      required: [groupBuyId, productName, price, pickupDate, status]
+      properties:
+        groupBuyId: { type: integer, format: int64, example: 101 }
+        productName: { type: string, example: 두쫀쿠 세트 }
+        price: { type: integer, example: 9900 }
+        pickupDate: { type: string, format: date, example: "2026-06-01" }
+        deadlineDday: { type: integer, nullable: true, example: 3 }
+        achievementRate: { type: integer, nullable: true, example: 60 }
+        currentQuantity: { type: integer, nullable: true, example: 12 }
+        targetQuantity: { type: integer, nullable: true, example: 20 }
+        status:
+          type: string
+          enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
+          example: IN_PROGRESS
+
+    ApiResponseOwnerGroupBuyManageDetail:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerGroupBuyManageDetail'
+        error: { nullable: true, example: null }
+
+    OwnerGroupBuyManageDetail:
+      type: object
+      required: [groupBuyId, status, participantSummary, participants]
+      properties:
+        groupBuyId: { type: integer, format: int64, example: 101 }
+        status:
+          type: string
+          enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
+          example: IN_PROGRESS
+        participantSummary:
+          $ref: '#/components/schemas/OwnerGroupBuyManageParticipantSummary'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerGroupBuyParticipantItem'
+
+    OwnerGroupBuyManageParticipantSummary:
+      type: object
+      required: [totalCount, completedCount, waitingCount]
+      properties:
+        totalCount: { type: integer, example: 20 }
+        completedCount: { type: integer, example: 8 }
+        waitingCount: { type: integer, example: 12 }
+
+    OwnerGroupBuyParticipantItem:
+      type: object
+      required: [name, phoneNumber, productName, quantity, paymentMethod, paymentStatus, pickupTime]
+      properties:
+        name: { type: string, example: 홍길동 }
+        phoneNumber: { type: string, example: "01012345678" }
+        productName: { type: string, example: 두쫀쿠 세트 }
+        quantity: { type: integer, example: 2 }
+        paymentMethod: { type: string, example: CARD }
+        paymentStatus: { type: string, example: APPROVED }
+        pickupTime: { type: string, format: time, example: "14:00:00" }
+
+    OwnerGroupBuyExtensionRequest:
+      type: object
+      required: [extendedDeadline]
+      properties:
+        extendedDeadline:
+          type: string
+          format: date-time
+          description: 연장 희망 마감일시 (기존 마감일 이후)
+          example: "2026-06-05T23:59:00"
+
+    OwnerGroupBuyCloseReasonType:
+      type: string
+      enum: [SOLD_OUT, STORE_CONDITION, OTHER]
+
+    OwnerGroupBuyCloseRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          $ref: '#/components/schemas/OwnerGroupBuyCloseReasonType'
+        reasonDetail:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: reason이 OTHER일 때 필수
+          example: 재고 수급 이슈로 조기 마감합니다.
 
     OwnerGroupBuyRequestCreate:
       type: object
