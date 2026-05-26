@@ -253,6 +253,7 @@ class OwnerGroupBuyServiceTest {
             targetQuantity = 20,
             price = 9900
         )
+        groupBuy.pickupDate = groupBuy.deadline.toLocalDate().plusDays(3)
         val request = OwnerGroupBuyExtensionRequest(extendedDeadline = groupBuy.deadline.plusDays(2))
 
         `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
