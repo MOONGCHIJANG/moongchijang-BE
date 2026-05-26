@@ -22,7 +22,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -200,20 +199,19 @@ class GroupBuyController(
         @PathVariable groupBuyId: Long,
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
         request: HttpServletRequest,
-        response: HttpServletResponse,
     ): ResponseEntity<ApiResponse<GroupBuyViewerCountResponse>> {
-        val viewerSessionId = resolveViewerSessionId(principal?.id, request, response)
+        val resolvedViewerSession = resolveViewerSessionId(principal?.id, request)
         log.info(
             "[GroupBuyController] 조회자 heartbeat 요청 수신: groupBuyId={}, userId={}, viewerSessionId={}",
             groupBuyId,
             principal?.id,
-            viewerSessionId
+            resolvedViewerSession.viewerSessionId
         )
 
         val viewerResponse = groupBuyViewerService.heartbeat(
             groupBuyId = groupBuyId,
             userId = principal?.id,
-            viewerSessionId = viewerSessionId
+            viewerSessionId = resolvedViewerSession.viewerSessionId
         )
 
         log.info(
@@ -221,14 +219,15 @@ class GroupBuyController(
             groupBuyId,
             viewerResponse.activeViewerCount
         )
-        return ResponseEntity.ok(ApiResponse.success(viewerResponse))
+        val responseEntity = ResponseEntity.ok()
+        resolvedViewerSession.cookie?.let { responseEntity.header("Set-Cookie", it.toString()) }
+        return responseEntity.body(ApiResponse.success(viewerResponse))
     }
 
     private fun resolveViewerSessionId(
         userId: Long?,
         request: HttpServletRequest,
-        response: HttpServletResponse,
-    ): String {
+    ): ResolvedViewerSession {
         val cookieValue = request.cookies
             ?.firstOrNull { it.name == VIEWER_SESSION_COOKIE_NAME }
             ?.value
@@ -236,24 +235,32 @@ class GroupBuyController(
             ?.takeIf { it.isNotBlank() }
 
         if (cookieValue != null) {
-            return cookieValue
+            return ResolvedViewerSession(
+                viewerSessionId = cookieValue,
+                cookie = null,
+            )
+        }
+
+        if (userId != null) {
+            return ResolvedViewerSession(
+                viewerSessionId = LOGGED_IN_VIEWER_SESSION_PLACEHOLDER,
+                cookie = null,
+            )
         }
 
         val newSessionId = UUID.randomUUID().toString()
-        if (userId == null) {
-            response.addHeader(
-                "Set-Cookie",
-                ResponseCookie.from(VIEWER_SESSION_COOKIE_NAME, newSessionId)
-                    .path("/")
-                    .maxAge(VIEWER_SESSION_MAX_AGE_SECONDS)
-                    .sameSite("Lax")
-                    .httpOnly(true)
-                    .secure(request.isSecure)
-                    .build()
-                    .toString()
-            )
-        }
-        return newSessionId
+        val cookie = ResponseCookie.from(VIEWER_SESSION_COOKIE_NAME, newSessionId)
+            .path("/")
+            .maxAge(VIEWER_SESSION_MAX_AGE_SECONDS)
+            .sameSite("Lax")
+            .httpOnly(true)
+            .secure(request.isSecure)
+            .build()
+
+        return ResolvedViewerSession(
+            viewerSessionId = newSessionId,
+            cookie = cookie,
+        )
     }
 
     private fun validateProgressIds(ids: List<Long>) {
@@ -266,5 +273,11 @@ class GroupBuyController(
         private const val MAX_PROGRESS_IDS = 20
         private const val VIEWER_SESSION_COOKIE_NAME = "viewerSessionId"
         private const val VIEWER_SESSION_MAX_AGE_SECONDS = 60L * 60L * 24L * 30L
+        private const val LOGGED_IN_VIEWER_SESSION_PLACEHOLDER = "user-session-not-used"
     }
+
+    private data class ResolvedViewerSession(
+        val viewerSessionId: String,
+        val cookie: ResponseCookie?,
+    )
 }
