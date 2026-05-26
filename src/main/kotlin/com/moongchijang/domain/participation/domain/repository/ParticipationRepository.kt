@@ -39,6 +39,23 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
 
+    @Query(
+        """
+        select case when count(p) > 0 then true else false end
+        from Participation p
+        join p.groupBuy gb
+        where gb.store.id in :storeIds
+          and gb.status in :groupBuyStatuses
+          and p.status in :participationStatuses
+          and p.pickupStatus <> com.moongchijang.domain.participation.domain.entity.PickupStatus.PICKED_UP
+        """
+    )
+    fun existsUnpickedParticipationByStoreIdsAndGroupBuyStatuses(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+    ): Boolean
+
     fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Participation?
 
     @Query(

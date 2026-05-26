@@ -66,6 +66,13 @@ class User(
     @Column(name = "withdrawal_reason_detail", length = 500)
     var withdrawalReasonDetail: String? = null,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "owner_withdrawal_reason", length = 50)
+    var ownerWithdrawalReason: OwnerWithdrawalReason? = null,
+
+    @Column(name = "owner_withdrawal_reason_detail", length = 500)
+    var ownerWithdrawalReasonDetail: String? = null,
+
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
     var roleAssignments: MutableSet<UserRoleAssignment> = mutableSetOf(),
 
@@ -99,6 +106,16 @@ class User(
     ) {
         this.withdrawalReason = reason
         this.withdrawalReasonDetail = reasonDetail
+        this.deletedAt = now
+    }
+
+    fun withdrawAsOwner(
+        reason: OwnerWithdrawalReason?,
+        reasonDetail: String?,
+        now: LocalDateTime = LocalDateTime.now(),
+    ) {
+        this.ownerWithdrawalReason = reason
+        this.ownerWithdrawalReasonDetail = reasonDetail
         this.deletedAt = now
     }
 
