@@ -148,11 +148,13 @@ class MypageServiceTest {
         assertEquals(2, result[0].quantity)
         assertEquals(ParticipationCancelReason.TIME_UNAVAILABLE.name, result[0].cancelReason)
         assertEquals("마감 전 직접 취소", result[0].cancelReasonDetail)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0), result[0].paidAt)
         assertEquals("CARD", result[0].paymentMethod)
         assertEquals(null, result[0].refundedAt)
         assertEquals(10L, result[1].participationId)
         assertEquals("https://example.com/cake.jpg", result[1].thumbnailUrl)
         assertEquals("COMPLETED", result[1].refundStatus)
+        assertEquals(LocalDateTime.of(2026, 5, 19, 9, 0), result[1].paidAt)
         assertEquals("KAKAOPAY", result[1].paymentMethod)
         assertEquals(LocalDateTime.of(2026, 5, 20, 10, 0), result[1].refundedAt)
     }
