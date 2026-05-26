@@ -3,6 +3,7 @@ package com.moongchijang.domain.user.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.application.dto.OwnerWithdrawRequest
@@ -46,6 +47,16 @@ class OwnerWithdrawService(
     }
 
     fun validateWithdrawable(ownerId: Long) {
+        val hasPendingPickupAsConsumer = participationRepository.existsPendingPickupForWithdrawal(
+            userId = ownerId,
+            participationStatus = ParticipationStatus.CONFIRMED,
+            pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+            groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+        )
+        if (hasPendingPickupAsConsumer) {
+            throw CustomException(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP)
+        }
+
         val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
         if (storeIds.isEmpty()) {
             return

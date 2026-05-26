@@ -3,6 +3,7 @@ package com.moongchijang.domain.user.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.application.dto.OwnerWithdrawRequest
@@ -84,6 +85,31 @@ class OwnerWithdrawServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.OWNER_WITHDRAWAL_BLOCKED_PENDING_CUSTOMER_PICKUP, exception.errorCode)
+    }
+
+    @Test
+    fun `사장님 회원탈퇴 소비자 미픽업 존재 예외`() {
+        val owner = UserFixture.createKakaoUser(id = 14L, providerId = "owner-14").apply {
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
+        }
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(14L)).thenReturn(owner)
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                userId = 14L,
+                participationStatus = ParticipationStatus.CONFIRMED,
+                pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            ownerWithdrawService.withdraw(
+                14L,
+                OwnerWithdrawRequest(reason = OwnerWithdrawalReason.INCONVENIENT_SERVICE),
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP, exception.errorCode)
     }
 
     @Test
