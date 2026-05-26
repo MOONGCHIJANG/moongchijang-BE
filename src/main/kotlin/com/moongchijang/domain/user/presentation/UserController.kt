@@ -2,12 +2,19 @@ package com.moongchijang.domain.user.presentation
 
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.application.BusinessRegistrationLookupService
+import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupRequest
 import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
+import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
+import com.moongchijang.domain.user.application.dto.NicknameUpdateResponse
+import com.moongchijang.domain.user.application.dto.PasswordChangeRequest
+import com.moongchijang.domain.user.application.dto.PasswordChangeResponse
+import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateRequest
+import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateResponse
 import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
@@ -20,6 +27,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -41,6 +49,7 @@ import org.slf4j.LoggerFactory
 class UserController(
     private val userService: UserService,
     private val businessRegistrationLookupService: BusinessRegistrationLookupService,
+    private val tokenService: TokenService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -95,6 +104,64 @@ class UserController(
     ): ApiResponse<AdditionalInfoUpdatedResponse> {
         val response = userService.updateAdditionalInfo(request, principal.id)
         return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/nickname")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "닉네임 변경", description = "인증된 사용자의 닉네임을 변경합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "변경 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "409", description = "닉네임 중복", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun updateNickname(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: NicknameUpdateRequest,
+    ): ApiResponse<NicknameUpdateResponse> {
+        val response = userService.updateNickname(request, principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/phone-number")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "전화번호 변경", description = "인증된 사용자의 전화번호를 변경합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "변경 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun updatePhoneNumber(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: PhoneNumberUpdateRequest,
+    ): ApiResponse<PhoneNumberUpdateResponse> {
+        val response = userService.updatePhoneNumber(request, principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/password")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "비밀번호 변경", description = "이메일 로그인 사용자의 비밀번호를 변경하고 세션을 무효화합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "변경 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "이메일 사용자만 변경 가능", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun changePassword(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: PasswordChangeRequest,
+        response: HttpServletResponse,
+    ): ApiResponse<PasswordChangeResponse> {
+        val changed = userService.changePassword(request, principal.id)
+        tokenService.clearRefreshTokenCookie(response)
+        return ApiResponse.success(changed)
     }
 
     @PostMapping("/me/seller/business-registration/lookup")

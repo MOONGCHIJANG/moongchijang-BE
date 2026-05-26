@@ -50,6 +50,8 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     EMAIL_VERIFICATION_RESEND_COOLDOWN(400_106, "인증코드 재발송은 잠시 후 다시 시도해주세요.", 400),
     INVALID_PASSWORD_FORMAT(400_107, "8자 이상, 영문+숫자를 포함해주세요.", 400),
     INVALID_PASSWORD_SAME_AS_EMAIL_ID(400_108, "이메일 아이디와 동일한 비밀번호는 사용할 수 없습니다.", 400),
+    EMAIL_PASSWORD_CHANGE_NOT_ALLOWED(403_109, "이메일 로그인 사용자만 비밀번호를 변경할 수 있습니다.", 403),
+    PASSWORD_CHANGE_CURRENT_PASSWORD_MISMATCH(401_109, "현재 비밀번호가 일치하지 않습니다.", 401),
     INVALID_BUSINESS_REGISTRATION_NUMBER_FORMAT(400_110, "올바른 사업자등록번호를 입력해주세요.", 400),
     SELLER_BUSINESS_INFO_REQUIRED(400_111, "사장님 사업자 정보를 먼저 입력해주세요.", 400),
     EMAIL_VERIFICATION_DAILY_LIMIT_EXCEEDED(429_101, "내일 다시 시도해주세요.", 429),

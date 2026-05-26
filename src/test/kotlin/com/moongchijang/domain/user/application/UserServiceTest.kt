@@ -1,6 +1,7 @@
 package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
+import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.participation.domain.entity.Participation
@@ -11,6 +12,9 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
+import com.moongchijang.domain.user.application.dto.PasswordChangeRequest
+import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateRequest
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
@@ -28,6 +32,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import org.springframework.security.crypto.password.PasswordEncoder
 import java.time.LocalDateTime
 
 class UserServiceTest {
@@ -39,17 +44,21 @@ class UserServiceTest {
         Mockito.mock(SellerSettlementAccountRepository::class.java)
     private val phoneVerificationService: PhoneVerificationService =
         Mockito.mock(PhoneVerificationService::class.java)
+    private val tokenService: TokenService = Mockito.mock(TokenService::class.java)
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
     private val favoriteRepository: FavoriteRepository = Mockito.mock(FavoriteRepository::class.java)
     private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
+    private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
     private val userService = UserService(
         userRepository,
         sellerBusinessProfileRepository,
         sellerSettlementAccountRepository,
         phoneVerificationService,
+        tokenService,
         participationRepository,
         favoriteRepository,
         paymentService,
+        passwordEncoder,
     )
 
     @Test
@@ -293,6 +302,119 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
+    fun `닉네임 변경할 때 정상 요청이면 닉네임이 변경됨`() {
+        val user = UserFixture.createKakaoUser(id = 51L, providerId = "kakao-51", nickname = "기존닉네임")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(51L)).thenReturn(user)
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("새닉네임")).thenReturn(false)
+
+        val response = userService.updateNickname(
+            request = NicknameUpdateRequest(nickname = "새닉네임"),
+            userId = 51L,
+        )
+
+        Assertions.assertEquals("새닉네임", user.nickname)
+        Assertions.assertEquals(51L, response.id)
+        Assertions.assertEquals("새닉네임", response.nickname)
+    }
+
+    @Test
+    fun `닉네임 변경할 때 중복 닉네임이면 예외`() {
+        val user = UserFixture.createKakaoUser(id = 52L, providerId = "kakao-52", nickname = "기존닉네임")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(52L)).thenReturn(user)
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("중복닉네임")).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            userService.updateNickname(
+                request = NicknameUpdateRequest(nickname = "중복닉네임"),
+                userId = 52L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.DUPLICATE_NICKNAME, exception.errorCode)
+    }
+
+    @Test
+    fun `전화번호 변경할 때 인증 완료 번호면 전화번호가 변경됨`() {
+        val user = UserFixture.createKakaoUser(id = 53L, providerId = "kakao-53", nickname = "유저")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(53L)).thenReturn(user)
+
+        val response = userService.updatePhoneNumber(
+            request = PhoneNumberUpdateRequest(phoneNumber = "010-9999-8888"),
+            userId = 53L,
+        )
+
+        Mockito.verify(phoneVerificationService).ensureVerified("010-9999-8888")
+        Assertions.assertEquals("010-9999-8888", user.phoneNumber)
+        Assertions.assertEquals(53L, response.id)
+        Assertions.assertEquals("010-9999-8888", response.phoneNumber)
+    }
+
+    @Test
+    fun `비밀번호 변경할 때 이메일 사용자가 아니면 예외`() {
+        val user = UserFixture.createKakaoUser(id = 54L, providerId = "kakao-54", nickname = "유저")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(54L)).thenReturn(user)
+
+        val exception = assertThrows<CustomException> {
+            userService.changePassword(
+                request = PasswordChangeRequest(
+                    currentPassword = "oldPassword1",
+                    newPassword = "newPassword1",
+                ),
+                userId = 54L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.EMAIL_PASSWORD_CHANGE_NOT_ALLOWED, exception.errorCode)
+    }
+
+    @Test
+    fun `비밀번호 변경할 때 현재 비밀번호가 다르면 예외`() {
+        val user = UserFixture.createEmailUser(
+            id = 55L,
+            email = "login@example.com",
+            passwordHash = "encoded-old",
+        )
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(55L)).thenReturn(user)
+        Mockito.`when`(passwordEncoder.matches("wrongPassword1", "encoded-old")).thenReturn(false)
+
+        val exception = assertThrows<CustomException> {
+            userService.changePassword(
+                request = PasswordChangeRequest(
+                    currentPassword = "wrongPassword1",
+                    newPassword = "newPassword1",
+                ),
+                userId = 55L,
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.PASSWORD_CHANGE_CURRENT_PASSWORD_MISMATCH, exception.errorCode)
+    }
+
+    @Test
+    fun `비밀번호 변경할 때 정책을 만족하면 비밀번호가 변경되고 토큰이 제거됨`() {
+        val user = UserFixture.createEmailUser(
+            id = 56L,
+            email = "login@example.com",
+            passwordHash = "encoded-old",
+        )
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(56L)).thenReturn(user)
+        Mockito.`when`(passwordEncoder.matches("oldPassword1", "encoded-old")).thenReturn(true)
+        Mockito.`when`(passwordEncoder.encode("newPassword1")).thenReturn("encoded-new")
+
+        val response = userService.changePassword(
+            request = PasswordChangeRequest(
+                currentPassword = "oldPassword1",
+                newPassword = "newPassword1",
+            ),
+            userId = 56L,
+        )
+
+        Assertions.assertEquals("encoded-new", user.passwordHash)
+        Assertions.assertTrue(response.changed)
+        Mockito.verify(tokenService).deleteByUserId(56L)
     }
 
     @Test
