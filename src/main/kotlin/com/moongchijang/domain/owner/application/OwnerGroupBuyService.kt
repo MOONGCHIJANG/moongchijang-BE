@@ -289,15 +289,8 @@ class OwnerGroupBuyService(
             )
         }
 
-        val completedCount = participationRepository.countByGroupBuyIdAndStatusInAndPickupStatus(
-            groupBuyId = groupBuyId,
-            statuses = DETAIL_PARTICIPATION_STATUSES,
-            pickupStatus = PickupStatus.PICKED_UP
-        ).toInt()
-        val totalCount = participationRepository.countByGroupBuyIdAndStatusIn(
-            groupBuyId = groupBuyId,
-            statuses = DETAIL_PARTICIPATION_STATUSES
-        ).toInt()
+        val totalCount = participations.size
+        val completedCount = participations.count { it.pickupStatus == PickupStatus.PICKED_UP }
         val waitingCount = totalCount - completedCount
 
         val response = OwnerGroupBuyManageDetailResponse(
