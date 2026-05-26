@@ -466,11 +466,11 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/users/me/profile:
+  /api/v1/users/me/nickname:
     patch:
       tags: [Auth]
-      summary: 프로필 수정
-      description: 닉네임과 전화번호를 수정한다.
+      summary: 닉네임 변경
+      description: 인증된 사용자의 닉네임을 변경한다.
       security:
         - bearerAuth: []
       requestBody:
@@ -478,20 +478,45 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProfileUpdateRequest'
+              $ref: '#/components/schemas/NicknameUpdateRequest'
       responses:
         '200':
-          description: 프로필 수정 완료
+          description: 닉네임 변경 완료
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseProfileUpdated'
+                $ref: '#/components/schemas/ApiResponseNicknameUpdated'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Conflict'
+
+  /api/v1/users/me/phone-number:
+    patch:
+      tags: [Auth]
+      summary: 전화번호 변경
+      description: 인증된 사용자의 전화번호를 변경한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneNumberUpdateRequest'
+      responses:
+        '200':
+          description: 전화번호 변경 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePhoneNumberUpdated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/users/me/phone/verification-codes:
     post:
@@ -543,8 +568,8 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/auth/password/change:
-    post:
+  /api/v1/users/me/password:
+    patch:
       tags: [Auth]
       summary: 비밀번호 변경 (이메일 가입자 전용)
       description: 현재 비밀번호를 확인하고 새 비밀번호로 변경한다. 변경 완료 시 세션을 무효화한다.
@@ -558,7 +583,11 @@ paths:
               $ref: '#/components/schemas/PasswordChangeRequest'
       responses:
         '200':
-          $ref: '#/components/responses/SuccessNoData'
+          description: 비밀번호 변경 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePasswordChanged'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2492,32 +2521,48 @@ components:
           type: string
           format: email
 
-    ProfileUpdateRequest:
+    NicknameUpdateRequest:
       type: object
-      required: [nickname, phoneNumber]
+      required: [nickname]
       properties:
         nickname:
           type: string
           minLength: 2
           maxLength: 10
           pattern: "^[A-Za-z0-9가-힣]{2,10}$"
-        phoneNumber:
-          type: string
-          pattern: "^01[0-9]-[0-9]{3,4}-[0-9]{4}$"
 
-    ApiResponseProfileUpdated:
+    ApiResponseNicknameUpdated:
       type: object
       required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [id, nickname, phoneNumber, updatedAt]
+          required: [id, nickname]
           properties:
             id: { type: integer, format: int64 }
             nickname: { type: string }
+        error: { nullable: true, example: null }
+
+    PhoneNumberUpdateRequest:
+      type: object
+      required: [phoneNumber]
+      properties:
+        phoneNumber:
+          type: string
+          pattern: "^01[0-9]-?\\d{3,4}-?\\d{4}$"
+
+    ApiResponsePhoneNumberUpdated:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [id, phoneNumber]
+          properties:
+            id: { type: integer, format: int64 }
             phoneNumber: { type: string }
-            updatedAt: { type: string, format: date-time }
         error: { nullable: true, example: null }
 
     PhoneVerificationCodeSendRequest:
@@ -2566,7 +2611,7 @@ components:
 
     PasswordChangeRequest:
       type: object
-      required: [currentPassword, newPassword, newPasswordConfirm]
+      required: [currentPassword, newPassword]
       properties:
         currentPassword:
           type: string
@@ -2575,9 +2620,19 @@ components:
           minLength: 8
           maxLength: 20
           pattern: "^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$"
-          description: 8~20자, 영문+숫자 포함
-        newPasswordConfirm:
-          type: string
+          description: 8~20자, 영문+숫자 포함, 이메일 아이디와 동일값 불가
+
+    ApiResponsePasswordChanged:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [changed]
+          properties:
+            changed: { type: boolean, example: true }
+        error: { nullable: true, example: null }
 
     AuthUser:
       type: object
