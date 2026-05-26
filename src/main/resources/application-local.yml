@@ -50,7 +50,7 @@ coolsms:
 jwt:
   secret: jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret
   access-token:
-    expiration-minutes: 60
+    expiration-minutes: ${AUTH_ACCESS_EXPIRATION_MINUTES:60}
 
 auth:
   refresh:
