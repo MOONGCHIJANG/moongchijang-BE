@@ -16,6 +16,8 @@ import com.moongchijang.domain.user.application.dto.EmailAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
 import com.moongchijang.domain.user.application.dto.NicknameUpdateResponse
+import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateRequest
+import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateResponse
 import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
@@ -193,6 +195,23 @@ class UserService(
         return NicknameUpdateResponse(
             id = userId,
             nickname = request.nickname,
+        )
+    }
+
+    @Transactional
+    fun updatePhoneNumber(request: PhoneNumberUpdateRequest, userId: Long): PhoneNumberUpdateResponse {
+        log.info("[UserService] 전화번호 변경 처리 시작: userId={}", userId)
+        validatePhoneNumberFormat(request.phoneNumber)
+        phoneVerificationService.ensureVerified(request.phoneNumber)
+
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        user.phoneNumber = request.phoneNumber
+        log.info("[UserService] 전화번호 변경 처리 완료: userId={}", userId)
+        return PhoneNumberUpdateResponse(
+            id = userId,
+            phoneNumber = request.phoneNumber,
         )
     }
 
