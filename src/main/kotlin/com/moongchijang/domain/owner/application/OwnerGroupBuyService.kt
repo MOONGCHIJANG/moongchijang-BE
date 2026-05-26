@@ -7,6 +7,9 @@ import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterTy
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageListItemResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageParticipantSummary
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyParticipantItemResponse
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseReasonType
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseRequest
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyExtensionRequest
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyListItemResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuySummaryResponse
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
@@ -185,6 +188,57 @@ class OwnerGroupBuyService(
         return getManageGroupBuyDetail(ownerId, groupBuyId, ACHIEVED_DETAIL_GROUP_BUY_STATUSES)
     }
 
+    @Transactional
+    fun requestGroupBuyExtension(ownerId: Long, groupBuyId: Long, request: OwnerGroupBuyExtensionRequest) {
+        log.info(
+            "[OwnerGroupBuyService] 사장님 공구 기간 연장 요청 시작: ownerId={}, groupBuyId={}, extendedDeadline={}",
+            ownerId,
+            groupBuyId,
+            request.extendedDeadline
+        )
+        val groupBuy = findOwnedGroupBuy(ownerId, groupBuyId)
+        if (groupBuy.status != GroupBuyStatus.IN_PROGRESS) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+        if (!request.extendedDeadline.isAfter(groupBuy.deadline)) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+
+        groupBuy.deadline = request.extendedDeadline
+        groupBuyRepository.save(groupBuy)
+        log.info(
+            "[OwnerGroupBuyService] 사장님 공구 기간 연장 요청 완료: ownerId={}, groupBuyId={}, newDeadline={}",
+            ownerId,
+            groupBuyId,
+            groupBuy.deadline
+        )
+    }
+
+    @Transactional
+    fun requestGroupBuyClose(ownerId: Long, groupBuyId: Long, request: OwnerGroupBuyCloseRequest) {
+        log.info(
+            "[OwnerGroupBuyService] 사장님 공구 마감 요청 시작: ownerId={}, groupBuyId={}, reason={}",
+            ownerId,
+            groupBuyId,
+            request.reason
+        )
+        val groupBuy = findOwnedGroupBuy(ownerId, groupBuyId)
+        if (groupBuy.status !in CLOSE_ALLOWED_STATUSES) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+        validateCloseReason(request)
+
+        groupBuy.transitionToClosed()
+        groupBuyRepository.save(groupBuy)
+        log.info(
+            "[OwnerGroupBuyService] 사장님 공구 마감 요청 완료: ownerId={}, groupBuyId={}, reason={}, reasonDetail={}",
+            ownerId,
+            groupBuyId,
+            request.reason,
+            request.reasonDetail
+        )
+    }
+
     private fun getManageGroupBuyDetail(
         ownerId: Long,
         groupBuyId: Long,
@@ -258,6 +312,28 @@ class OwnerGroupBuyService(
         return response
     }
 
+    private fun findOwnedGroupBuy(ownerId: Long, groupBuyId: Long): com.moongchijang.domain.groupbuy.domain.entity.GroupBuy {
+        validateSeller(ownerId)
+        val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
+        if (storeIds.isEmpty()) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+
+        val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId)
+            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+
+        if (groupBuy.store.id !in storeIds) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+        return groupBuy
+    }
+
+    private fun validateCloseReason(request: OwnerGroupBuyCloseRequest) {
+        if (request.reason == OwnerGroupBuyCloseReasonType.OTHER && request.reasonDetail.isNullOrBlank()) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+    }
+
     private fun mapPaymentsByUserId(groupBuyId: Long, participations: List<Participation>): Map<Long, Payment> {
         val userIds = participations.mapNotNull { it.user.id }.distinct()
         if (userIds.isEmpty()) {
@@ -324,6 +400,7 @@ class OwnerGroupBuyService(
         val SETTLEMENT_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
         val IN_PROGRESS_DETAIL_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.IN_PROGRESS)
         val ACHIEVED_DETAIL_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
+        val CLOSE_ALLOWED_STATUSES = listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED)
         val DETAIL_PARTICIPATION_STATUSES = listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED)
         const val UNKNOWN_PAYMENT_METHOD = "UNKNOWN"
         const val UNKNOWN_PAYMENT_STATUS = "UNKNOWN"
