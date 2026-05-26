@@ -10,7 +10,6 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressItem
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressResponse
 import com.moongchijang.domain.groupbuy.application.dto.ShareMetaResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
-import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerHeartbeatRequest
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -22,18 +21,20 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
-import jakarta.validation.Valid
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
+import org.springframework.http.ResponseCookie
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/v1/group-buys")
@@ -189,11 +190,6 @@ class GroupBuyController(
         value = [
             SwaggerApiResponse(responseCode = "200", description = "조회자 heartbeat 조회/갱신 성공"),
             SwaggerApiResponse(
-                responseCode = "400",
-                description = "잘못된 요청 (viewerSessionId 누락/형식 오류)",
-                content = [Content(schema = Schema(implementation = ApiResponse::class))]
-            ),
-            SwaggerApiResponse(
                 responseCode = "404",
                 description = "공구를 찾을 수 없음",
                 content = [Content(schema = Schema(implementation = ApiResponse::class))]
@@ -203,27 +199,61 @@ class GroupBuyController(
     fun heartbeatViewer(
         @PathVariable groupBuyId: Long,
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
-        @Valid @RequestBody request: GroupBuyViewerHeartbeatRequest
+        request: HttpServletRequest,
+        response: HttpServletResponse,
     ): ResponseEntity<ApiResponse<GroupBuyViewerCountResponse>> {
+        val viewerSessionId = resolveViewerSessionId(principal?.id, request, response)
         log.info(
             "[GroupBuyController] 조회자 heartbeat 요청 수신: groupBuyId={}, userId={}, viewerSessionId={}",
             groupBuyId,
             principal?.id,
-            request.viewerSessionId
+            viewerSessionId
         )
 
-        val response = groupBuyViewerService.heartbeat(
+        val viewerResponse = groupBuyViewerService.heartbeat(
             groupBuyId = groupBuyId,
             userId = principal?.id,
-            viewerSessionId = request.viewerSessionId
+            viewerSessionId = viewerSessionId
         )
 
         log.info(
             "[GroupBuyController] 조회자 heartbeat 응답 완료: groupBuyId={}, activeViewerCount={}",
             groupBuyId,
-            response.activeViewerCount
+            viewerResponse.activeViewerCount
         )
-        return ResponseEntity.ok(ApiResponse.success(response))
+        return ResponseEntity.ok(ApiResponse.success(viewerResponse))
+    }
+
+    private fun resolveViewerSessionId(
+        userId: Long?,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ): String {
+        val cookieValue = request.cookies
+            ?.firstOrNull { it.name == VIEWER_SESSION_COOKIE_NAME }
+            ?.value
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+
+        if (cookieValue != null) {
+            return cookieValue
+        }
+
+        val newSessionId = UUID.randomUUID().toString()
+        if (userId == null) {
+            response.addHeader(
+                "Set-Cookie",
+                ResponseCookie.from(VIEWER_SESSION_COOKIE_NAME, newSessionId)
+                    .path("/")
+                    .maxAge(VIEWER_SESSION_MAX_AGE_SECONDS)
+                    .sameSite("Lax")
+                    .httpOnly(true)
+                    .secure(request.isSecure)
+                    .build()
+                    .toString()
+            )
+        }
+        return newSessionId
     }
 
     private fun validateProgressIds(ids: List<Long>) {
@@ -234,5 +264,7 @@ class GroupBuyController(
 
     companion object {
         private const val MAX_PROGRESS_IDS = 20
+        private const val VIEWER_SESSION_COOKIE_NAME = "viewerSessionId"
+        private const val VIEWER_SESSION_MAX_AGE_SECONDS = 60L * 60L * 24L * 30L
     }
 }
