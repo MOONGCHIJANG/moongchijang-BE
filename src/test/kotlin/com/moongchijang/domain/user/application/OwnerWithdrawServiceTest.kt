@@ -73,7 +73,6 @@ class OwnerWithdrawServiceTest {
                 storeIds = listOf(201L),
                 groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
                 participationStatuses = listOf(ParticipationStatus.CONFIRMED),
-                pickedUpStatus = com.moongchijang.domain.participation.domain.entity.PickupStatus.PICKED_UP,
             )
         ).thenReturn(true)
 
@@ -125,7 +124,6 @@ class OwnerWithdrawServiceTest {
                 storeIds = listOf(301L),
                 groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
                 participationStatuses = listOf(ParticipationStatus.CONFIRMED),
-                pickedUpStatus = com.moongchijang.domain.participation.domain.entity.PickupStatus.PICKED_UP,
             )
         ).thenReturn(false)
 

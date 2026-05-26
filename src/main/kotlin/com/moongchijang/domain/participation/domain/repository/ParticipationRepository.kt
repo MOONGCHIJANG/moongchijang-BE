@@ -47,14 +47,13 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         where gb.store.id in :storeIds
           and gb.status in :groupBuyStatuses
           and p.status in :participationStatuses
-          and p.pickupStatus <> :pickedUpStatus
+          and p.pickupStatus <> com.moongchijang.domain.participation.domain.entity.PickupStatus.PICKED_UP
         """
     )
     fun existsUnpickedParticipationByStoreIdsAndGroupBuyStatuses(
         @Param("storeIds") storeIds: Collection<Long>,
-        @Param("groupBuyStatuses") groupBuyStatuses: Collection<com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus>,
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
         @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
-        @Param("pickedUpStatus") pickedUpStatus: PickupStatus = PickupStatus.PICKED_UP,
     ): Boolean
 
     fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Participation?
