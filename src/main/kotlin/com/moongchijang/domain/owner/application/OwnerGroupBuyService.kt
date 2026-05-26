@@ -1,6 +1,7 @@
 package com.moongchijang.domain.owner.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageDetailResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
@@ -228,7 +229,10 @@ class OwnerGroupBuyService(
         }
         validateCloseReason(request)
 
-        groupBuy.transitionToClosed()
+        groupBuy.closeByOwner(
+            reason = toGroupBuyCloseReason(request.reason),
+            reasonDetail = request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
+        )
         groupBuyRepository.save(groupBuy)
         log.info(
             "[OwnerGroupBuyService] 사장님 공구 마감 요청 완료: ownerId={}, groupBuyId={}, reason={}, reasonDetail={}",
@@ -331,6 +335,14 @@ class OwnerGroupBuyService(
     private fun validateCloseReason(request: OwnerGroupBuyCloseRequest) {
         if (request.reason == OwnerGroupBuyCloseReasonType.OTHER && request.reasonDetail.isNullOrBlank()) {
             throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+    }
+
+    private fun toGroupBuyCloseReason(reasonType: OwnerGroupBuyCloseReasonType): GroupBuyCloseReason {
+        return when (reasonType) {
+            OwnerGroupBuyCloseReasonType.SOLD_OUT -> GroupBuyCloseReason.SOLD_OUT
+            OwnerGroupBuyCloseReasonType.STORE_CONDITION -> GroupBuyCloseReason.STORE_CONDITION
+            OwnerGroupBuyCloseReasonType.OTHER -> GroupBuyCloseReason.OTHER
         }
     }
 

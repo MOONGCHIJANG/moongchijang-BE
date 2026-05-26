@@ -1,6 +1,7 @@
 package com.moongchijang.domain.owner.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseReasonType
@@ -21,6 +22,7 @@ import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
@@ -304,6 +306,8 @@ class OwnerGroupBuyServiceTest {
         service.requestGroupBuyClose(owner.id!!, groupBuy.id, request)
 
         assertEquals(GroupBuyStatus.CLOSED, groupBuy.status)
+        assertEquals(GroupBuyCloseReason.STORE_CONDITION, groupBuy.closeReason)
+        assertNull(groupBuy.closeReasonDetail)
         verify(groupBuyRepository).save(groupBuy)
     }
 
