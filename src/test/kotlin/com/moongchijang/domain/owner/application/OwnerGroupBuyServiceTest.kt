@@ -3,6 +3,9 @@ package com.moongchijang.domain.owner.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseReasonType
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseRequest
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyExtensionRequest
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
@@ -31,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
 class OwnerGroupBuyServiceTest {
@@ -234,6 +238,99 @@ class OwnerGroupBuyServiceTest {
         }
 
         assertEquals(ErrorCode.FORBIDDEN, ex.errorCode)
+    }
+
+    @Test
+    fun `사장님 공구 기간 연장 요청 성공`() {
+        val owner = seller()
+        val groupBuy = groupBuy(
+            id = 10L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            currentQuantity = 12,
+            targetQuantity = 20,
+            price = 9900
+        )
+        val request = OwnerGroupBuyExtensionRequest(extendedDeadline = groupBuy.deadline.plusDays(2))
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(groupBuyRepository.findWithStoreById(groupBuy.id)).thenReturn(Optional.of(groupBuy))
+
+        service.requestGroupBuyExtension(owner.id!!, groupBuy.id, request)
+
+        assertEquals(request.extendedDeadline, groupBuy.deadline)
+        verify(groupBuyRepository).save(groupBuy)
+    }
+
+    @Test
+    fun `사장님 공구 기간 연장 요청 시 기존 마감 이전 날짜는 실패`() {
+        val owner = seller()
+        val groupBuy = groupBuy(
+            id = 11L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            currentQuantity = 12,
+            targetQuantity = 20,
+            price = 9900
+        )
+        val request = OwnerGroupBuyExtensionRequest(extendedDeadline = groupBuy.deadline.minusDays(1))
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(groupBuyRepository.findWithStoreById(groupBuy.id)).thenReturn(Optional.of(groupBuy))
+
+        val ex = assertThrows<CustomException> {
+            service.requestGroupBuyExtension(owner.id!!, groupBuy.id, request)
+        }
+
+        assertEquals(ErrorCode.INVALID_INPUT, ex.errorCode)
+    }
+
+    @Test
+    fun `사장님 공구 마감 요청 성공`() {
+        val owner = seller()
+        val groupBuy = groupBuy(
+            id = 12L,
+            status = GroupBuyStatus.ACHIEVED,
+            currentQuantity = 20,
+            targetQuantity = 20,
+            price = 9900
+        )
+        val request = OwnerGroupBuyCloseRequest(reason = OwnerGroupBuyCloseReasonType.STORE_CONDITION)
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(groupBuyRepository.findWithStoreById(groupBuy.id)).thenReturn(Optional.of(groupBuy))
+
+        service.requestGroupBuyClose(owner.id!!, groupBuy.id, request)
+
+        assertEquals(GroupBuyStatus.CLOSED, groupBuy.status)
+        verify(groupBuyRepository).save(groupBuy)
+    }
+
+    @Test
+    fun `사장님 공구 마감 요청에서 기타 사유 상세 누락 시 실패`() {
+        val owner = seller()
+        val groupBuy = groupBuy(
+            id = 13L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            currentQuantity = 12,
+            targetQuantity = 20,
+            price = 9900
+        )
+        val request = OwnerGroupBuyCloseRequest(
+            reason = OwnerGroupBuyCloseReasonType.OTHER,
+            reasonDetail = "   "
+        )
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(groupBuyRepository.findWithStoreById(groupBuy.id)).thenReturn(Optional.of(groupBuy))
+
+        val ex = assertThrows<CustomException> {
+            service.requestGroupBuyClose(owner.id!!, groupBuy.id, request)
+        }
+
+        assertEquals(ErrorCode.INVALID_INPUT, ex.errorCode)
     }
 
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {

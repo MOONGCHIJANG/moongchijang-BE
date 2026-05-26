@@ -1,6 +1,9 @@
 package com.moongchijang.domain.owner.presentation
 
 import com.moongchijang.domain.owner.application.OwnerGroupBuyService
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseReasonType
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyCloseRequest
+import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyExtensionRequest
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyListItemResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageDetailResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
@@ -11,11 +14,13 @@ import com.moongchijang.domain.owner.application.dto.OwnerGroupBuySummaryRespons
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 class OwnerGroupBuyControllerTest {
 
@@ -127,5 +132,34 @@ class OwnerGroupBuyControllerTest {
 
         assertEquals(response, result.body?.data)
         verify(ownerGroupBuyService).getAchievedGroupBuyDetail(1L, 102L)
+    }
+
+    @Test
+    fun `사장님 공구 기간 연장 요청을 한다`() {
+        val principal = CustomUserPrincipal(id = 1L, email = "seller@example.com", role = UserRole.SELLER)
+        val request = OwnerGroupBuyExtensionRequest(
+            extendedDeadline = LocalDateTime.of(2026, 6, 10, 23, 59)
+        )
+
+        val result = controller.requestGroupBuyExtension(principal, 101L, request)
+
+        assertEquals(true, result.body?.success)
+        assertNull(result.body?.data)
+        verify(ownerGroupBuyService).requestGroupBuyExtension(1L, 101L, request)
+    }
+
+    @Test
+    fun `사장님 공구 마감 요청을 한다`() {
+        val principal = CustomUserPrincipal(id = 1L, email = "seller@example.com", role = UserRole.SELLER)
+        val request = OwnerGroupBuyCloseRequest(
+            reason = OwnerGroupBuyCloseReasonType.OTHER,
+            reasonDetail = "재고 수급 이슈로 조기 마감합니다."
+        )
+
+        val result = controller.requestGroupBuyClose(principal, 101L, request)
+
+        assertEquals(true, result.body?.success)
+        assertNull(result.body?.data)
+        verify(ownerGroupBuyService).requestGroupBuyClose(1L, 101L, request)
     }
 }
