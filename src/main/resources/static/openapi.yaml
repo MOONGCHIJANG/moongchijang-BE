@@ -2309,7 +2309,7 @@ components:
           example: "서울시 강남구 테헤란로 123, 2층"
         phoneNumber:
           type: string
-          pattern: "^01[0-9]-?\\d{3,4}-?\\d{4}$"
+          pattern: "^01[0-9]-[0-9]{3,4}-[0-9]{4}$"
           example: "010-1234-5678"
 
     SellerSettlementInfoUpsertRequest:
@@ -2550,7 +2550,7 @@ components:
       properties:
         phoneNumber:
           type: string
-          pattern: "^01[0-9]-?\\d{3,4}-?\\d{4}$"
+          pattern: "^01[0-9]-[0-9]{3,4}-[0-9]{4}$"
 
     ApiResponsePhoneNumberUpdated:
       type: object
