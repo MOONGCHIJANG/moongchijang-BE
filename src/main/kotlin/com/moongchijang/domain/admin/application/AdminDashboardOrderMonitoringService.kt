@@ -44,10 +44,7 @@ class AdminDashboardOrderMonitoringService(
         return AdminDashboardUnconfirmedOrderResponse.from(
             page = page,
             pendingRefundCountsByGroupBuyId = pendingRefundCountsByGroupBuyId,
-            totalUnconfirmedCount = groupBuyRepository.countByStatusAndOrderStatus(
-                status = GroupBuyStatus.ACHIEVED,
-                orderStatus = GroupBuyOrderStatus.PENDING
-            ),
+            totalUnconfirmedCount = page.totalElements,
             overdueCount = overdueCount,
             now = now,
             overdueBefore = overdueBefore

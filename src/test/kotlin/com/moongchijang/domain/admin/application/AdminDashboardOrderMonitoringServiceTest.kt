@@ -33,7 +33,7 @@ class AdminDashboardOrderMonitoringServiceTest {
 
     @Test
     fun `대시보드 발주 미확정 모니터링 목록과 요약을 조회한다`() {
-        val pageable = PageRequest.of(0, 5)
+        val pageable = PageRequest.of(0, 1)
         val now = LocalDateTime.of(2026, 5, 27, 13, 0)
         val overdueBefore = now.minusHours(48)
         val groupBuy = GroupBuyFixture.createGroupBuy(
@@ -53,7 +53,7 @@ class AdminDashboardOrderMonitoringServiceTest {
                 null,
                 pageable
             )
-        ).thenReturn(PageImpl(listOf(groupBuy), pageable, 1))
+        ).thenReturn(PageImpl(listOf(groupBuy), pageable, 3))
         `when`(participationRepository.countPendingRefundsByGroupBuyIdIn(listOf(41L)))
             .thenReturn(listOf(pendingRefundCount(41L, 2L)))
         `when`(
@@ -63,9 +63,6 @@ class AdminDashboardOrderMonitoringServiceTest {
                 overdueBefore
             )
         ).thenReturn(1L)
-        `when`(groupBuyRepository.countByStatusAndOrderStatus(GroupBuyStatus.ACHIEVED, GroupBuyOrderStatus.PENDING))
-            .thenReturn(3L)
-
         val result = service.getUnconfirmedOrders(pageable)
 
         assertEquals(3L, result.totalUnconfirmedCount)
@@ -100,9 +97,6 @@ class AdminDashboardOrderMonitoringServiceTest {
                 overdueBefore
             )
         ).thenReturn(0L)
-        `when`(groupBuyRepository.countByStatusAndOrderStatus(GroupBuyStatus.ACHIEVED, GroupBuyOrderStatus.PENDING))
-            .thenReturn(0L)
-
         val result = service.getUnconfirmedOrders(pageable)
 
         assertTrue(result.content.isEmpty())

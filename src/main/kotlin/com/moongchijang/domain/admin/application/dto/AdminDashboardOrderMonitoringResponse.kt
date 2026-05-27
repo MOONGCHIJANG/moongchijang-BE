@@ -67,7 +67,7 @@ data class AdminDashboardUnconfirmedOrderItemResponse(
             now: LocalDateTime,
             overdueBefore: LocalDateTime,
         ): AdminDashboardUnconfirmedOrderItemResponse {
-            val achievedAt = groupBuy.orderAchievedAt()
+            val achievedAt = groupBuy.achievedAt
             return AdminDashboardUnconfirmedOrderItemResponse(
                 orderId = groupBuy.id,
                 groupBuyId = groupBuy.id,
