@@ -279,6 +279,75 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
+        select coalesce(sum(p.totalAmount), 0)
+        from Participation p
+        join p.groupBuy gb
+        where gb.store.id in :storeIds
+          and gb.status in :groupBuyStatuses
+          and p.status in :participationStatuses
+          and year(gb.pickupDate) = :year
+          and month(gb.pickupDate) = :month
+        """
+    )
+    fun sumTotalAmountByStoreIdsAndStatusesAndYearMonth(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+        @Param("year") year: Int,
+        @Param("month") month: Int,
+    ): Long
+
+    @Query(
+        """
+        select coalesce(sum(p.feeAmount), 0)
+        from Participation p
+        join p.groupBuy gb
+        where gb.store.id in :storeIds
+          and p.status in :refundStatuses
+          and year(gb.pickupDate) = :year
+          and month(gb.pickupDate) = :month
+        """
+    )
+    fun sumRefundFeeAmountByStoreIdsAndYearMonth(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("refundStatuses") refundStatuses: Collection<ParticipationStatus>,
+        @Param("year") year: Int,
+        @Param("month") month: Int,
+    ): Long
+
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where gb.store.id in :storeIds
+          and p.status in :statuses
+        order by p.cancelledAt desc, p.createdAt desc
+        """
+    )
+    fun findRefundRequestsByStoreIdsAndStatuses(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("statuses") statuses: Collection<ParticipationStatus>,
+    ): List<Participation>
+
+    @Query(
+        """
+        select count(p)
+        from Participation p
+        join p.groupBuy gb
+        where gb.store.id in :storeIds
+          and p.status = :status
+        """
+    )
+    fun countRefundRequestsByStoreIdsAndStatus(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("status") status: ParticipationStatus,
+    ): Long
+
+    @Query(
+        """
         select p
         from Participation p
         join fetch p.user

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
 
@@ -106,4 +107,18 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
 
     @Query("SELECT DISTINCT gb.store.id FROM GroupBuy gb WHERE gb.store.id IN :storeIds")
     fun findStoreIdsWithGroupBuyHistory(@Param("storeIds") storeIds: Collection<Long>): List<Long>
+
+    @Query(
+        """
+        select distinct gb.pickupDate
+        from GroupBuy gb
+        where gb.store.id in :storeIds
+          and gb.status in :statuses
+        order by gb.pickupDate desc
+        """
+    )
+    fun findDistinctPickupDatesByStoreIdsAndStatuses(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("statuses") statuses: Collection<GroupBuyStatus>,
+    ): List<LocalDate>
 }
