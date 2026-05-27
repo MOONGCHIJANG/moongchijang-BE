@@ -7,6 +7,9 @@ import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestLi
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestListResponse
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestStatus
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestTab
+import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewActionType
+import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitRequest
+import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthChipListResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthChipResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthlySummaryResponse
@@ -176,6 +179,48 @@ class OwnerSettlementService(
         )
     }
 
+    @Transactional
+    fun submitRefundReview(
+        ownerId: Long,
+        participationId: Long,
+        request: OwnerRefundReviewSubmitRequest,
+    ): OwnerRefundReviewSubmitResponse {
+        log.info(
+            "[OwnerSettlementService] 환불 요청 검토 제출 시작: ownerId={}, participationId={}, action={}",
+            ownerId,
+            participationId,
+            request.action,
+        )
+        validateSeller(ownerId)
+        validateRefundReviewRequest(request)
+
+        val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
+        if (storeIds.isEmpty()) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+
+        val participation = participationRepository.findById(participationId).orElseThrow {
+            CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
+        }
+        if (participation.groupBuy.store.id !in storeIds) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+        if (participation.status != ParticipationStatus.REFUND_PENDING) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+
+        log.info(
+            "[OwnerSettlementService] 환불 요청 검토 제출 완료: ownerId={}, participationId={}, action={}",
+            ownerId,
+            participationId,
+            request.action,
+        )
+        return OwnerRefundReviewSubmitResponse(
+            participationId = participation.id,
+            processed = true,
+        )
+    }
+
     private fun toRefundListItem(participation: Participation): OwnerRefundRequestListItemResponse {
         val requestedAt = participation.cancelledAt ?: participation.createdAt!!
         return OwnerRefundRequestListItemResponse(
@@ -212,6 +257,12 @@ class OwnerSettlementService(
         }
     }
 
+    private fun validateRefundReviewRequest(request: OwnerRefundReviewSubmitRequest) {
+        if (request.action == OwnerRefundReviewActionType.DISPUTE && request.disputeReason.isNullOrBlank()) {
+            throw CustomException(ErrorCode.INVALID_INPUT)
+        }
+    }
+
     private fun validateYearMonth(year: Int, month: Int) {
         if (year !in 2000..2100 || month !in 1..12) {
             throw CustomException(ErrorCode.INVALID_INPUT)
@@ -237,4 +288,3 @@ class OwnerSettlementService(
         val REFUND_STATUSES = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
     }
 }
-

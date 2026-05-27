@@ -4,6 +4,8 @@ import com.moongchijang.domain.owner.application.OwnerSettlementService
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestDetailResponse
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestListResponse
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestTab
+import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitRequest
+import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthChipListResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthlySummaryResponse
 import com.moongchijang.global.response.ApiResponse
@@ -19,9 +21,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/api/v1/owner/settlements")
@@ -108,5 +113,36 @@ class OwnerSettlementController(
         log.info("[OwnerSettlementController] 환불 요청 상세 조회 응답 완료: ownerId={}, participationId={}", principal.id, participationId)
         return ResponseEntity.ok(ApiResponse.success(response))
     }
-}
 
+    @PostMapping("/refund-requests/{participationId}/review-submissions")
+    @Operation(summary = "사장님 환불 요청 검토 제출")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "제출 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "요청값/상태 오류", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "사장님 권한 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "404", description = "대상 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun submitRefundReview(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @PathVariable participationId: Long,
+        @Valid @RequestBody request: OwnerRefundReviewSubmitRequest,
+    ): ResponseEntity<ApiResponse<OwnerRefundReviewSubmitResponse>> {
+        log.info(
+            "[OwnerSettlementController] 환불 요청 검토 제출 요청 수신: ownerId={}, participationId={}, action={}",
+            principal.id,
+            participationId,
+            request.action,
+        )
+        val response = ownerSettlementService.submitRefundReview(principal.id, participationId, request)
+        log.info(
+            "[OwnerSettlementController] 환불 요청 검토 제출 응답 완료: ownerId={}, participationId={}, action={}",
+            principal.id,
+            participationId,
+            request.action,
+        )
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+}
