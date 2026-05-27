@@ -281,7 +281,9 @@ class UserServiceTest {
     @Test
     fun `내 정보 조회 성공`() {
         val user = UserFixture.createKakaoUser(id = 41L, providerId = "kakao-41", nickname = "조회유저").apply {
+            role = UserRole.SELLER
             lastRole = UserRole.SELLER
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
         }
         setAuditFields(user, LocalDateTime.now(), LocalDateTime.now())
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(41L)).thenReturn(user)
@@ -291,6 +293,9 @@ class UserServiceTest {
         Assertions.assertEquals(41L, response.id)
         Assertions.assertEquals(user.role, response.role)
         Assertions.assertEquals(user.lastRole, response.lastRole)
+        Assertions.assertTrue(response.hasSellerRole)
+        Assertions.assertTrue(response.canSwitchToBuyer)
+        Assertions.assertFalse(response.canSwitchToSeller)
     }
 
     @Test
@@ -637,6 +642,91 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED, exception.errorCode)
+    }
+
+    @Test
+    fun `마이페이지 역할 전환 성공`() {
+        val sellerUser = UserFixture.createKakaoUser(id = 200L, providerId = "kakao-200", nickname = "겸용유저").apply {
+            role = UserRole.BUYER
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
+        }
+        setAuditFields(sellerUser, LocalDateTime.now(), LocalDateTime.now())
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(200L)).thenReturn(sellerUser)
+
+        val response = userService.switchMyPageRole(200L, UserRole.SELLER)
+
+        Assertions.assertEquals(UserRole.SELLER, response.role)
+        Assertions.assertEquals(UserRole.SELLER, response.lastRole)
+        Assertions.assertTrue(response.hasSellerRole)
+        Assertions.assertTrue(response.canSwitchToBuyer)
+        Assertions.assertFalse(response.canSwitchToSeller)
+    }
+
+    @Test
+    fun `마이페이지 역할 전환 사장님 권한 없음 예외`() {
+        val buyerUser = UserFixture.createKakaoUser(id = 201L, providerId = "kakao-201", nickname = "소비자")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(201L)).thenReturn(buyerUser)
+
+        val exception = assertThrows<CustomException> {
+            userService.switchMyPageRole(201L, UserRole.SELLER)
+        }
+
+        Assertions.assertEquals(ErrorCode.FORBIDDEN, exception.errorCode)
+    }
+
+    @Test
+    fun `사장님 입금 계좌 조회 성공`() {
+        val sellerUser = UserFixture.createKakaoUser(id = 202L, providerId = "kakao-202").apply {
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
+        }
+        val account = SellerSettlementAccount(
+            user = sellerUser,
+            bankCode = "KOOKMIN",
+            accountNumber = "000-000-0000",
+            accountHolderName = "홍길동",
+        )
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(202L)).thenReturn(sellerUser)
+        Mockito.`when`(sellerSettlementAccountRepository.findByUserId(202L)).thenReturn(account)
+
+        val response = userService.getSellerSettlementAccount(202L)
+
+        Assertions.assertEquals("KOOKMIN", response.bankCode)
+        Assertions.assertEquals("000-000-0000", response.accountNumber)
+        Assertions.assertEquals("홍길동", response.accountHolderName)
+    }
+
+    @Test
+    fun `사장님 사업자 정보 변경 성공`() {
+        val sellerUser = UserFixture.createKakaoUser(id = 203L, providerId = "kakao-203").apply {
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
+        }
+        val profile = SellerBusinessProfile(
+            user = sellerUser,
+            businessRegistrationNumber = "1112233333",
+            storeName = "기존상호",
+            ownerName = "기존대표",
+            storeAddress = "기존주소",
+            phoneNumber = "010-0000-0000",
+        )
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(203L)).thenReturn(sellerUser)
+        Mockito.`when`(sellerBusinessProfileRepository.findByUserId(203L)).thenReturn(profile)
+
+        val response = userService.updateSellerBusinessProfile(
+            request = com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest(
+                businessRegistrationNumber = "999-88-77777",
+                storeName = "새상호",
+                ownerName = "새대표",
+                storeAddress = "새주소",
+                phoneNumber = "010-1111-2222",
+            ),
+            userId = 203L,
+        )
+
+        Assertions.assertEquals("9998877777", response.businessRegistrationNumber)
+        Assertions.assertEquals("새상호", response.storeName)
+        Assertions.assertEquals("새대표", response.ownerName)
+        Assertions.assertEquals("새주소", response.storeAddress)
+        Assertions.assertEquals("010-1111-2222", response.phoneNumber)
     }
 
     private fun setAuditFields(user: User, createdAt: LocalDateTime, updatedAt: LocalDateTime) {
