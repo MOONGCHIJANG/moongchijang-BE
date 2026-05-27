@@ -78,6 +78,9 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
     @EntityGraph(attributePaths = ["store"])
     fun findWithStoreById(id: Long): Optional<GroupBuy>
 
+    @Query("select gb from GroupBuy gb join fetch gb.store where gb.id = :id")
+    fun findAdminOrderDetailById(@Param("id") id: Long): Optional<GroupBuy>
+
     fun findByStoreIdInAndStatusInOrderByDeadlineAsc(
         storeIds: Collection<Long>,
         statuses: Collection<GroupBuyStatus>

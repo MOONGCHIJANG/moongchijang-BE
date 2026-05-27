@@ -1283,6 +1283,119 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/admin/orders/{orderId}:
+    get:
+      tags: [Admin]
+      summary: 발주 관리 상세 조회 (운영자)
+      description: 발주 관리 목록에서 선택한 달성 공구의 상세 정보와 처리 상태를 조회한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: 발주 관리 식별자. 현재는 groupBuyId와 동일
+      responses:
+        '200':
+          description: 발주 관리 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminOrderDetail'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/orders/{orderId}/owner-contact:
+    post:
+      tags: [Admin]
+      summary: 발주 사장님 연락 완료 기록 (운영자)
+      description: 확정 대기 발주 건에 사장님 연락 완료 시각을 기록한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 사장님 연락 완료 기록 후 발주 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminOrderDetail'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/orders/{orderId}/confirm:
+    post:
+      tags: [Admin]
+      summary: 발주 확정 처리 (운영자)
+      description: 확정 대기 발주 건을 확정 완료 상태로 변경한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 발주 확정 처리 후 발주 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminOrderDetail'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/orders/{orderId}/cancel:
+    post:
+      tags: [Admin]
+      summary: 발주 취소 처리 (운영자)
+      description: 확정 대기 발주 건을 취소 상태로 변경한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 발주 취소 처리 후 발주 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminOrderDetail'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
   /api/v1/group-buys/{groupBuyId}/checkout:
     get:
       tags: [Participation]
@@ -2343,104 +2456,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
-
-  /api/v1/admin/group-buys:
-    get:
-      tags: [Admin]
-      summary: 진행 중인 공구 현황 목록 (운영자)
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [ALL, IN_PROGRESS, ACHIEVED]
-            default: ALL
-      responses:
-        '200':
-          description: 공구 현황 목록
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseAdminGroupBuyList'
-    post:
-      tags: [Admin]
-      summary: 공구 개설 (운영자)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdminGroupBuyCreate'
-      responses:
-        '201':
-          description: 공구 개설 완료
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseGroupBuyId'
-
-  /api/v1/admin/group-buys/{groupBuyId}:
-    get:
-      tags: [Admin]
-      summary: 공구 상세 조회 (운영자)
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/GroupBuyId'
-      responses:
-        '200':
-          description: 공구 상세
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseAdminGroupBuyDetail'
-    patch:
-      tags: [Admin]
-      summary: 공구 정보 수정 (운영자)
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/GroupBuyId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdminGroupBuyUpdate'
-      responses:
-        '200':
-          $ref: '#/components/responses/SuccessNoData'
-
-  /api/v1/admin/group-buys/{groupBuyId}/order-confirm:
-    post:
-      tags: [Admin]
-      summary: 발주 확정 처리
-      description: ACHIEVED 상태 공구에 대해 발주를 확정한다.
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/GroupBuyId'
-      responses:
-        '200':
-          $ref: '#/components/responses/SuccessNoData'
-        '409':
-          $ref: '#/components/responses/Conflict'
-
-  /api/v1/admin/group-buys/{groupBuyId}/order-sheet:
-    post:
-      tags: [Admin]
-      summary: 발주서 발송
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/GroupBuyId'
-      responses:
-        '200':
-          $ref: '#/components/responses/SuccessNoData'
 
   /api/v1/admin/refunds:
     get:
@@ -5001,7 +5016,7 @@ components:
             targetQuantity: { type: integer, example: 20 }
             maxQuantity: { type: integer, example: 50 }
             perUserLimit: { type: integer, nullable: true, example: 2 }
-            thumbnailUrl: { type: string, example: https://cdn.example.com/owner-requests/1.jpg }
+            thumbnailUrl: { type: string, example: "https://cdn.example.com/owner-requests/1.jpg" }
             imageUrls:
               type: array
               items:
@@ -5164,6 +5179,79 @@ components:
           format: date-time
           nullable: true
         orderConfirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+        actionable:
+          type: boolean
+          description: 발주 확정/연락 등 운영 작업 가능 여부
+
+    ApiResponseAdminOrderDetail:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/AdminOrderDetail'
+        error: { nullable: true, example: null }
+
+    AdminOrderDetail:
+      type: object
+      required: [orderId, groupBuyId, productName, productDescription, storeName, storeAddress, finalQuantity, targetQuantity, pendingRefundCount, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, elapsedHours, progressRate, orderStatus, actionable]
+      properties:
+        orderId:
+          type: integer
+          format: int64
+          description: 발주 관리 식별자. 현재는 groupBuyId와 동일
+        groupBuyId: { type: integer, format: int64 }
+        productName: { type: string }
+        productDescription: { type: string }
+        storeName: { type: string }
+        storeAddress: { type: string }
+        storePhoneNumber:
+          type: string
+          nullable: true
+        achievedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 공구 달성 일시
+        finalQuantity:
+          type: integer
+          description: 최종 참여 수량
+        targetQuantity:
+          type: integer
+          description: 목표 수량
+        pendingRefundCount:
+          type: integer
+          format: int64
+          description: 해당 공구의 환불 대기 건수
+        pickupDate: { type: string, format: date }
+        pickupTimeStart: { type: string, format: time }
+        pickupTimeEnd: { type: string, format: time }
+        pickupLocation: { type: string }
+        pickupContact:
+          type: string
+          nullable: true
+        elapsedHours:
+          type: integer
+          format: int64
+          description: 달성 후 경과 시간
+        progressRate:
+          type: integer
+          description: 목표 수량 대비 달성률(%)
+        orderStatus:
+          type: string
+          enum: [PENDING, CONFIRMED, CANCELLED]
+        ownerContactedAt:
+          type: string
+          format: date-time
+          nullable: true
+        orderConfirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+        orderCancelledAt:
           type: string
           format: date-time
           nullable: true
@@ -5356,114 +5444,6 @@ components:
               type: integer
               format: int64
               nullable: true
-        error: { nullable: true, example: null }
-
-    ApiResponseAdminGroupBuyList:
-      type: object
-      required: [success, data, error]
-      properties:
-        success: { type: boolean, example: true }
-        data:
-          type: array
-          items:
-            type: object
-            required: [groupBuyId, storeName, productName, status, deadline, achievementRate, currentQuantity, targetQuantity, remainingQuantity, isOrderConfirmed, isOrderSheetSent]
-            properties:
-              groupBuyId: { type: integer, format: int64 }
-              storeName: { type: string }
-              productName: { type: string }
-              status:
-                type: string
-                enum: [IN_PROGRESS, ACHIEVED]
-              deadline: { type: string, format: date }
-              achievementRate: { type: integer }
-              currentQuantity: { type: integer }
-              targetQuantity: { type: integer }
-              remainingQuantity: { type: integer }
-              isOrderConfirmed: { type: boolean }
-              isOrderSheetSent: { type: boolean }
-        error: { nullable: true, example: null }
-
-    AdminGroupBuyCreate:
-      type: object
-      required: [ storeId, productName, productDescription, price, targetQuantity, maxQuantity, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation ]
-      properties:
-        requestId: { type: integer, format: int64, nullable: true }
-        storeId: { type: integer, format: int64 }
-        productName: { type: string, maxLength: 100 }
-        productDescription: { type: string }
-        price: { type: integer, minimum: 1 }
-        targetQuantity: { type: integer, minimum: 1, description: 목표 수량 }
-        maxQuantity: { type: integer, minimum: 1, description: 최대 수량 (선착순 마감 기준) }
-        notice: { type: string, nullable: true, description: 유의사항 }
-        deadline: { type: string, format: date-time }
-        pickupDate: { type: string, format: date }
-        pickupTimeStart: { type: string, format: time }
-        pickupTimeEnd: { type: string, format: time }
-        pickupLocation: { type: string }
-        pickupAddress: { type: string, nullable: true, description: "픽업 장소 주소 (매장 주소와 다를 경우 입력)" }
-
-    AdminGroupBuyUpdate:
-      type: object
-      properties:
-        productName: { type: string }
-        productDescription: { type: string }
-        price: { type: integer, minimum: 1 }
-        targetQuantity: { type: integer, minimum: 1 }
-        maxQuantity: { type: integer, minimum: 1 }
-        deadline: { type: string, format: date-time }
-        pickupDate: { type: string, format: date }
-        pickupTimeStart: { type: string, format: time }
-        pickupTimeEnd: { type: string, format: time }
-        pickupLocation: { type: string }
-        
-    AdminGroupBuyDetail:
-      type: object
-      required: [groupBuyId, requestId, storeId, storeName, productName, productDescription, price, targetQuantity, maxQuantity, currentQuantity, remainingQuantity, achievementRate, notice, status, deadline, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, isOrderConfirmed, isOrderSheetSent]
-      properties:
-        groupBuyId: { type: integer, format: int64 }
-        requestId: { type: integer, format: int64, nullable: true }
-        storeId: { type: integer, format: int64 }
-        storeName: { type: string }
-        productName: { type: string }
-        productDescription: { type: string }
-        price: { type: integer }
-        targetQuantity: { type: integer }
-        maxQuantity: { type: integer, nullable: true }
-        currentQuantity: { type: integer }
-        remainingQuantity: { type: integer }
-        achievementRate: { type: integer }
-        notice: { type: string, nullable: true }
-        status:
-          type: string
-          enum: [IN_PROGRESS, ACHIEVED, FAILED]
-        deadline: { type: string, format: date-time }
-        pickupDate: { type: string, format: date }
-        pickupTimeStart: { type: string, format: time }
-        pickupTimeEnd: { type: string, format: time }
-        pickupLocation: { type: string }
-        isOrderConfirmed: { type: boolean }
-        isOrderSheetSent: { type: boolean }
-
-    ApiResponseGroupBuyId:
-      type: object
-      required: [success, data, error]
-      properties:
-        success: { type: boolean, example: true }
-        data:
-          type: object
-          required: [groupBuyId]
-          properties:
-            groupBuyId: { type: integer, format: int64 }
-        error: { nullable: true, example: null }
-
-    ApiResponseAdminGroupBuyDetail:
-      type: object
-      required: [success, data, error]
-      properties:
-        success: { type: boolean, example: true }
-        data:
-          $ref: '#/components/schemas/AdminGroupBuyDetail'
         error: { nullable: true, example: null }
 
     ApiResponseAdminRefundPage:
