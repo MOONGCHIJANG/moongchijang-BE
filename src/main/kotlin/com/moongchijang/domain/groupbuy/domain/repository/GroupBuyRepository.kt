@@ -37,15 +37,15 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
             join fetch gb.store
             where gb.status = :groupBuyStatus
               and gb.orderStatus in :orderStatuses
-              and (:overdueBefore is null or coalesce(gb.achievedAt, gb.updatedAt, gb.createdAt) < :overdueBefore)
-            order by coalesce(gb.achievedAt, gb.updatedAt, gb.createdAt) asc, gb.id asc
+              and (:overdueBefore is null or gb.achievedAt < :overdueBefore)
+            order by gb.achievedAt asc, gb.id asc
         """,
         countQuery = """
             select count(gb)
             from GroupBuy gb
             where gb.status = :groupBuyStatus
               and gb.orderStatus in :orderStatuses
-              and (:overdueBefore is null or coalesce(gb.achievedAt, gb.updatedAt, gb.createdAt) < :overdueBefore)
+              and (:overdueBefore is null or gb.achievedAt < :overdueBefore)
         """
     )
     fun findAdminOrderPage(
@@ -66,7 +66,7 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         from GroupBuy gb
         where gb.status = :status
           and gb.orderStatus = :orderStatus
-          and coalesce(gb.achievedAt, gb.updatedAt, gb.createdAt) < :overdueBefore
+          and gb.achievedAt < :overdueBefore
         """
     )
     fun countOverdueAdminOrders(
