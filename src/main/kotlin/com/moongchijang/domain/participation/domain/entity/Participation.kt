@@ -85,6 +85,16 @@ class Participation(
     @Column(name = "refunded_at")
     var refundedAt: LocalDateTime? = null,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "owner_refund_review_status", length = 30)
+    var ownerRefundReviewStatus: OwnerRefundReviewStatus? = null,
+
+    @Column(name = "owner_refund_dispute_reason", length = 500)
+    var ownerRefundDisputeReason: String? = null,
+
+    @Column(name = "owner_refund_reviewed_at")
+    var ownerRefundReviewedAt: LocalDateTime? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L

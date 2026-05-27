@@ -1929,6 +1929,148 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/owner/settlements/monthly-summary:
+    get:
+      tags: [Owner]
+      summary: 사장님 월별 정산 예정 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 2026
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 5
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerSettlementMonthlySummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/settlements/month-chips:
+    get:
+      tags: [Owner]
+      summary: 사장님 정산 월 칩 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerSettlementMonthChipList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/settlements/refund-requests:
+    get:
+      tags: [Owner]
+      summary: 사장님 환불 요청 목록 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tab
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ALL, PENDING, COMPLETED]
+            default: ALL
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerRefundRequestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/settlements/refund-requests/{participationId}:
+    get:
+      tags: [Owner]
+      summary: 사장님 환불 요청 상세 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: participationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerRefundRequestDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/owner/settlements/refund-requests/{participationId}/review-submissions:
+    post:
+      tags: [Owner]
+      summary: 사장님 환불 요청 검토 제출
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: participationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerRefundReviewSubmitRequest'
+      responses:
+        '200':
+          description: 제출 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerRefundReviewSubmit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/owner/group-buy-requests:
     get:
       tags: [Owner]
@@ -4502,6 +4644,151 @@ components:
           maxLength: 100
           description: reason이 OTHER일 때 필수
           example: 재고 수급 이슈로 조기 마감합니다.
+
+    ApiResponseOwnerSettlementMonthlySummary:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerSettlementMonthlySummary'
+        error: { nullable: true, example: null }
+
+    OwnerSettlementMonthlySummary:
+      type: object
+      required: [year, month, settlementExpectedAmount, grossRevenueAmount, refundFeeAmount]
+      properties:
+        year: { type: integer, example: 2026 }
+        month: { type: integer, example: 5 }
+        settlementExpectedAmount: { type: integer, format: int64, example: 216000 }
+        grossRevenueAmount: { type: integer, format: int64, example: 240000 }
+        refundFeeAmount: { type: integer, format: int64, example: 24000 }
+
+    ApiResponseOwnerSettlementMonthChipList:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerSettlementMonthChipList'
+        error: { nullable: true, example: null }
+
+    OwnerSettlementMonthChipList:
+      type: object
+      required: [chips]
+      properties:
+        chips:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerSettlementMonthChip'
+
+    OwnerSettlementMonthChip:
+      type: object
+      required: [year, month, label]
+      properties:
+        year: { type: integer, example: 2026 }
+        month: { type: integer, example: 5 }
+        label: { type: string, example: "2026년 5월" }
+
+    ApiResponseOwnerRefundRequestList:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerRefundRequestList'
+        error: { nullable: true, example: null }
+
+    OwnerRefundRequestList:
+      type: object
+      required: [pendingCount, completedCount, hasPendingItems, items]
+      properties:
+        pendingCount: { type: integer, example: 1 }
+        completedCount: { type: integer, example: 2 }
+        hasPendingItems: { type: boolean, example: true }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerRefundRequestListItem'
+
+    OwnerRefundRequestListItem:
+      type: object
+      required: [participationId, groupBuyId, productName, paymentAmount, requesterName, requesterCode, refundReasonLabel, requestedDate, status, exceeded24Hours]
+      properties:
+        participationId: { type: integer, format: int64, example: 1001 }
+        groupBuyId: { type: integer, format: int64, example: 901001 }
+        productName: { type: string, example: "초코 크루아상&소금빵 세트" }
+        paymentAmount: { type: integer, example: 24000 }
+        requesterName: { type: string, example: "김민지" }
+        requesterCode: { type: string, example: "P001" }
+        refundReasonLabel: { type: string, example: "픽업 불가" }
+        requestedDate: { type: string, format: date, example: "2026-05-02" }
+        status:
+          type: string
+          enum: [PENDING, COMPLETED]
+        exceeded24Hours: { type: boolean, example: true }
+
+    ApiResponseOwnerRefundRequestDetail:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerRefundRequestDetail'
+        error: { nullable: true, example: null }
+
+    OwnerRefundRequestDetail:
+      type: object
+      required: [participationId, groupBuyId, productName, requesterName, requestedDate, paymentAmount, penaltyAmount, refundExpectedAmount, status]
+      properties:
+        participationId: { type: integer, format: int64, example: 1001 }
+        groupBuyId: { type: integer, format: int64, example: 901001 }
+        productName: { type: string, example: "초코 크루아상&소금빵 세트" }
+        requesterName: { type: string, example: "김민지" }
+        requestedDate: { type: string, format: date, example: "2026-04-29" }
+        paymentAmount: { type: integer, example: 24000 }
+        penaltyAmount: { type: integer, example: 2400 }
+        refundExpectedAmount: { type: integer, example: 21600 }
+        refundReasonDetail:
+          type: string
+          nullable: true
+          example: "일정 변경으로 픽업이 어려워졌어요. 환불 부탁드립니다"
+        status:
+          type: string
+          enum: [PENDING, COMPLETED]
+
+    OwnerRefundReviewActionType:
+      type: string
+      enum: [APPROVE, DISPUTE]
+
+    OwnerRefundReviewSubmitRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: '#/components/schemas/OwnerRefundReviewActionType'
+        disputeReason:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: action이 DISPUTE일 때 입력
+          example: "픽업 요청 시간 변경이 선행되어야 합니다."
+
+    ApiResponseOwnerRefundReviewSubmit:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerRefundReviewSubmitResponse'
+        error: { nullable: true, example: null }
+
+    OwnerRefundReviewSubmitResponse:
+      type: object
+      required: [participationId, processed]
+      properties:
+        participationId: { type: integer, format: int64, example: 1001 }
+        processed: { type: boolean, example: true }
 
     OwnerGroupBuyRequestCreate:
       type: object

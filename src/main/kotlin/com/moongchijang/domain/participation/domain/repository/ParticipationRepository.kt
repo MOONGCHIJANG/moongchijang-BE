@@ -279,6 +279,63 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
+        select coalesce(sum(p.totalAmount), 0)
+        from Participation p
+        join p.groupBuy gb
+        where gb.store.id in :storeIds
+          and gb.status in :groupBuyStatuses
+          and p.status in :participationStatuses
+          and year(gb.pickupDate) = :year
+          and month(gb.pickupDate) = :month
+        """
+    )
+    fun sumTotalAmountByStoreIdsAndStatusesAndYearMonth(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+        @Param("participationStatuses") participationStatuses: Collection<ParticipationStatus>,
+        @Param("year") year: Int,
+        @Param("month") month: Int,
+    ): Long
+
+    @Query(
+        """
+        select coalesce(sum(p.feeAmount), 0)
+        from Participation p
+        join p.groupBuy gb
+        where gb.store.id in :storeIds
+          and p.status in :refundStatuses
+          and year(gb.pickupDate) = :year
+          and month(gb.pickupDate) = :month
+        """
+    )
+    fun sumRefundFeeAmountByStoreIdsAndYearMonth(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("refundStatuses") refundStatuses: Collection<ParticipationStatus>,
+        @Param("year") year: Int,
+        @Param("month") month: Int,
+    ): Long
+
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where gb.store.id in :storeIds
+          and p.status in :statuses
+          and coalesce(p.cancelledAt, p.createdAt) >= :fromDateTime
+        order by p.cancelledAt desc, p.createdAt desc
+        """
+    )
+    fun findRefundRequestsByStoreIdsAndStatuses(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("statuses") statuses: Collection<ParticipationStatus>,
+        @Param("fromDateTime") fromDateTime: LocalDateTime,
+    ): List<Participation>
+
+    @Query(
+        """
         select p
         from Participation p
         join fetch p.user
