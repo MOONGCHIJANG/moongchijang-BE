@@ -153,9 +153,8 @@ class OwnerSettlementService(
             throw CustomException(ErrorCode.FORBIDDEN)
         }
 
-        val participation = participationRepository.findById(participationId).orElseThrow {
-            CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
-        }
+        val participation = participationRepository.findPickupDetailById(participationId)
+            ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
         if (participation.groupBuy.store.id !in storeIds || participation.status !in REFUND_STATUSES) {
             throw CustomException(ErrorCode.FORBIDDEN)
         }
