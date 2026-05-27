@@ -308,11 +308,11 @@ class GroupBuyRequestServiceTest {
             desiredPickupDate = LocalDate.now().plusDays(5)
         ).apply { id = 10L }
 
-        `when`(groupBuyRequestRepository.findAllByOrderByCreatedAtDesc(pageable))
+        `when`(groupBuyRequestRepository.searchAdminRequests(null, null, null, pageable))
             .thenReturn(PageImpl(listOf(request), pageable, 1))
         `when`(userRepository.findAllById(listOf(1L))).thenReturn(listOf(requester))
 
-        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, pageable)
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, null, pageable)
 
         assertEquals(1, result.content.size)
         assertEquals(1, result.totalElements)
@@ -326,6 +326,8 @@ class GroupBuyRequestServiceTest {
         assertEquals(GroupBuyRequestStatus.IN_REVIEW, result.content[0].status)
         assertEquals(1L, result.content[0].requesterId)
         assertEquals("은서", result.content[0].requesterName)
+        assertNull(result.content[0].price)
+        assertTrue(result.content[0].actionable)
     }
 
     @Test
@@ -340,11 +342,11 @@ class GroupBuyRequestServiceTest {
             status = GroupBuyRequestStatus.REJECTED
         ).apply { id = 11L }
 
-        `when`(groupBuyRequestRepository.findByStatusOrderByCreatedAtDesc(GroupBuyRequestStatus.REJECTED, pageable))
+        `when`(groupBuyRequestRepository.searchAdminRequests(GroupBuyRequestStatus.REJECTED, null, null, pageable))
             .thenReturn(PageImpl(listOf(request), pageable, 11))
         `when`(userRepository.findAllById(listOf(2L))).thenReturn(emptyList())
 
-        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.REJECTED, pageable)
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.REJECTED, null, pageable)
 
         assertEquals(1, result.content.size)
         assertEquals(11, result.totalElements)
@@ -354,20 +356,55 @@ class GroupBuyRequestServiceTest {
         assertEquals(GroupBuyRequestStatus.REJECTED, result.content[0].status)
         assertEquals(2L, result.content[0].requesterId)
         assertNull(result.content[0].requesterName)
-        verify(groupBuyRequestRepository).findByStatusOrderByCreatedAtDesc(GroupBuyRequestStatus.REJECTED, pageable)
+        assertFalse(result.content[0].actionable)
+        verify(groupBuyRequestRepository).searchAdminRequests(GroupBuyRequestStatus.REJECTED, null, null, pageable)
     }
 
     @Test
     fun `운영자 공구 요청 목록이 비어있으면 사용자 조회를 생략한다`() {
         val pageable = PageRequest.of(0, 20)
-        `when`(groupBuyRequestRepository.findAllByOrderByCreatedAtDesc(pageable))
+        `when`(groupBuyRequestRepository.searchAdminRequests(null, null, null, pageable))
             .thenReturn(PageImpl(emptyList(), pageable, 0))
 
-        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, pageable)
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, null, pageable)
 
         assertTrue(result.content.isEmpty())
         assertEquals(0, result.totalElements)
         verify(userRepository, never()).findAllById(anyList())
+    }
+
+    @Test
+    fun `운영자 공구 요청 목록은 검색어와 승인 공구 가격을 반영한다`() {
+        val pageable = PageRequest.of(0, 20)
+        val request = GroupBuyRequest(
+            userId = 1L,
+            storeName = "성심당",
+            productName = "튀김소보로",
+            desiredQuantity = 20,
+            desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.OPENED,
+            openedGroupBuyId = 30L
+        ).apply { id = 10L }
+        val groupBuy = GroupBuyFixture.createGroupBuy(
+            id = 30L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            price = 9_900
+        ).apply {
+            originalPrice = 12_000
+        }
+
+        `when`(groupBuyRequestRepository.searchAdminRequests(null, "10", 10L, pageable))
+            .thenReturn(PageImpl(listOf(request), pageable, 1))
+        `when`(userRepository.findAllById(listOf(1L))).thenReturn(emptyList())
+        `when`(groupBuyRepository.findAllById(listOf(30L))).thenReturn(listOf(groupBuy))
+
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, " 10 ", pageable)
+
+        assertEquals(1, result.content.size)
+        assertEquals(12_000, result.content[0].originalPrice)
+        assertEquals(9_900, result.content[0].price)
+        assertFalse(result.content[0].actionable)
+        verify(groupBuyRequestRepository).searchAdminRequests(null, "10", 10L, pageable)
     }
 
     @Test

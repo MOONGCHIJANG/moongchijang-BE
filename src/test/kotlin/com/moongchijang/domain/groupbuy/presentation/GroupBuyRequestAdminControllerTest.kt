@@ -31,13 +31,13 @@ class GroupBuyRequestAdminControllerTest {
             number = 0,
             size = 20
         )
-        `when`(groupBuyRequestService.getAdminRequests(AdminGroupBuyRequestStatusFilter.IN_REVIEW, pageable))
+        `when`(groupBuyRequestService.getAdminRequests(AdminGroupBuyRequestStatusFilter.IN_REVIEW, "성심당", pageable))
             .thenReturn(response)
 
-        val result = controller.getRequests(AdminGroupBuyRequestStatusFilter.IN_REVIEW, pageable)
+        val result = controller.getRequests(AdminGroupBuyRequestStatusFilter.IN_REVIEW, "성심당", pageable)
 
         assertEquals(response, result.body?.data)
-        verify(groupBuyRequestService).getAdminRequests(AdminGroupBuyRequestStatusFilter.IN_REVIEW, pageable)
+        verify(groupBuyRequestService).getAdminRequests(AdminGroupBuyRequestStatusFilter.IN_REVIEW, "성심당", pageable)
     }
 
     @Test

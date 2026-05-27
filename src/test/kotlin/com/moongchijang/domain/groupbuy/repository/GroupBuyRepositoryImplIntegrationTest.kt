@@ -4,9 +4,11 @@ import com.moongchijang.domain.favorite.domain.entity.Favorite
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.FeedSortMode
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
@@ -33,6 +35,9 @@ class GroupBuyRepositoryImplIntegrationTest {
 
     @Autowired
     private lateinit var groupBuyRepository: GroupBuyRepository
+
+    @Autowired
+    private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
 
     @Autowired
     private lateinit var em: EntityManager
@@ -127,6 +132,48 @@ class GroupBuyRepositoryImplIntegrationTest {
             sameAchievementEarlyDeadline.id,
             sameAchievementLateDeadline.id
         )
+    }
+
+    @Test
+    fun `운영자 공구 요청 검색은 상태와 요청자 키워드를 함께 적용한다`() {
+        val requester = User(
+            provider = AuthProvider.EMAIL,
+            email = "eunseo@example.com",
+            passwordHash = "pw",
+            nickname = "은서",
+            role = UserRole.BUYER,
+            signupCompleted = true
+        )
+        em.persist(requester)
+        val matched = GroupBuyRequest(
+            userId = requester.id!!,
+            storeName = "성심당",
+            productName = "튀김소보로",
+            desiredQuantity = 20,
+            desiredPickupDate = LocalDate.now().plusDays(3),
+            status = GroupBuyRequestStatus.IN_REVIEW
+        )
+        em.persist(matched)
+        em.persist(
+            GroupBuyRequest(
+                userId = requester.id!!,
+                storeName = "다른 매장",
+                productName = "단팥빵",
+                desiredQuantity = 10,
+                desiredPickupDate = LocalDate.now().plusDays(3),
+                status = GroupBuyRequestStatus.REJECTED
+            )
+        )
+        flushAndClear()
+
+        val result = groupBuyRequestRepository.searchAdminRequests(
+            status = GroupBuyRequestStatus.IN_REVIEW,
+            keyword = "은서",
+            requestIdKeyword = null,
+            pageable = pageable
+        )
+
+        assertThat(result.content.map { it.id }).containsExactly(matched.id)
     }
 
     private fun searchFeed(
