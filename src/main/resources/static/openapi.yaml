@@ -143,7 +143,24 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Conflict'
-
+  /api/v1/users/me/withdrawal-context:
+    get:
+      tags: [Auth]
+      summary: 탈퇴 진입 컨텍스트 조회
+      description: 소비자/사장님 탈퇴 가능 상태와 권장 탈퇴 화면 정보를 조회한다.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 탈퇴 진입 컨텍스트 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseWithdrawalContext'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/v1/users/nickname/availability:
     get:
       tags: [Auth]
@@ -2397,6 +2414,15 @@ components:
           $ref: '#/components/schemas/AuthUser'
         error: { nullable: true, example: null }
 
+    ApiResponseWithdrawalContext:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/WithdrawalContextResponse'
+        error: { nullable: true, example: null }
+
     AdditionalInfoUpsertRequest:
       type: object
       required: [nickname, phoneNumber]
@@ -2425,6 +2451,76 @@ components:
           nullable: true
           maxLength: 500
           description: 탈퇴 상세 사유 (reason=OTHER 일 때 입력)
+
+    WithdrawalContextResponse:
+      type: object
+      required: [currentRole, buyer, seller, recommendedScreen, forceRedirect]
+      properties:
+        currentRole:
+          type: string
+          enum: [BUYER, SELLER, ADMIN]
+          description: 현재 사용자 활성 역할
+        buyer:
+          $ref: '#/components/schemas/BuyerWithdrawalContext'
+        seller:
+          $ref: '#/components/schemas/SellerWithdrawalContext'
+        recommendedScreen:
+          $ref: '#/components/schemas/WithdrawalScreenType'
+        forceRedirect:
+          type: boolean
+          description: 현재 역할 화면에서 강제 이동 필요 여부
+        forceRedirectTarget:
+          allOf:
+            - $ref: '#/components/schemas/WithdrawalScreenType'
+          nullable: true
+          description: 강제 이동 대상 화면 타입(forceRedirect=true일 때만 존재)
+
+    BuyerWithdrawalContext:
+      type: object
+      required: [canProceed, hasPendingPickup, hasActiveParticipation, blockingReason]
+      properties:
+        canProceed:
+          type: boolean
+          description: 소비자 탈퇴 진행 가능 여부
+        hasPendingPickup:
+          type: boolean
+          description: 수령 예정 공구 존재 여부
+        hasActiveParticipation:
+          type: boolean
+          description: 참여 중 공구(PAID_WAITING_GOAL) 존재 여부
+        blockingReason:
+          $ref: '#/components/schemas/BuyerWithdrawalBlockingReason'
+
+    SellerWithdrawalContext:
+      type: object
+      required: [canProceed, hasOpenGroupBuy, hasPendingCustomerPickup, blockingReason]
+      properties:
+        canProceed:
+          type: boolean
+          description: 사장님 탈퇴 진행 가능 여부
+        hasOpenGroupBuy:
+          type: boolean
+          description: 개설된 진행중 공구 존재 여부
+        hasPendingCustomerPickup:
+          type: boolean
+          description: 달성/완료 공구 고객 미픽업 존재 여부
+        blockingReason:
+          $ref: '#/components/schemas/SellerWithdrawalBlockingReason'
+
+    WithdrawalScreenType:
+      type: string
+      description: 탈퇴 화면 타입
+      enum: [BUYER_WITHDRAWAL, SELLER_WITHDRAWAL]
+
+    BuyerWithdrawalBlockingReason:
+      type: string
+      description: 소비자 탈퇴 차단 사유
+      enum: [NONE, PENDING_PICKUP]
+
+    SellerWithdrawalBlockingReason:
+      type: string
+      description: 사장님 탈퇴 차단 사유
+      enum: [NONE, OPEN_GROUPBUY, PENDING_CUSTOMER_PICKUP]
 
     OwnerWithdrawRequest:
       type: object
