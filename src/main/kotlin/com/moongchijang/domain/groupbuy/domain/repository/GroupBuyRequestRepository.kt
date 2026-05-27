@@ -67,10 +67,19 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
 
     fun countByStatusIn(statuses: Collection<GroupBuyRequestStatus>): Long
 
+    @Query(
+        """
+        select count(request)
+        from GroupBuyRequest request
+        where request.status in :statuses
+          and request.createdAt >= :from
+          and request.createdAt < :to
+        """
+    )
     fun countByStatusInAndCreatedAtBetween(
-        statuses: Collection<GroupBuyRequestStatus>,
-        from: LocalDateTime,
-        to: LocalDateTime
+        @Param("statuses") statuses: Collection<GroupBuyRequestStatus>,
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime
     ): Long
 
     @Query(

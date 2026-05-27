@@ -62,12 +62,12 @@ class AdminDashboardSummaryService(
             ),
             unconfirmedOrderCount = 0,
             unconfirmedOrderOver48hCount = 0,
-            todayCompletedRefundCount = participationRepository.countByStatusAndRefundedAtBetween(
+            todayCompletedRefundCount = participationRepository.countByStatusAndRefundedAtFromUntil(
                 status = ParticipationStatus.REFUNDED,
                 from = todayRange.start,
                 to = todayRange.end
             ),
-            todayCompletedApprovalCount = groupBuyRequestStatusHistoryRepository.countByStatusInAndChangedAtBetween(
+            todayCompletedApprovalCount = groupBuyRequestStatusHistoryRepository.countByStatusInAndChangedAtFromUntil(
                 statuses = completedApprovalStatuses,
                 from = todayRange.start,
                 to = todayRange.end

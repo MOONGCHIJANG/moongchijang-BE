@@ -271,10 +271,19 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     fun countByUserIdAndStatus(userId: Long, status: ParticipationStatus): Long
 
-    fun countByStatusAndRefundedAtBetween(
-        status: ParticipationStatus,
-        from: LocalDateTime,
-        to: LocalDateTime
+    @Query(
+        """
+        select count(p)
+        from Participation p
+        where p.status = :status
+          and p.refundedAt >= :from
+          and p.refundedAt < :to
+        """
+    )
+    fun countByStatusAndRefundedAtFromUntil(
+        @Param("status") status: ParticipationStatus,
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime
     ): Long
 
     @Query(

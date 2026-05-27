@@ -63,14 +63,14 @@ class AdminDashboardSummaryServiceTest {
         `when`(groupBuyRequestRepository.countByStatusInAndCreatedAtBetween(pendingStatuses, yesterdayStart, todayStart))
             .thenReturn(2L)
         `when`(
-            participationRepository.countByStatusAndRefundedAtBetween(
+            participationRepository.countByStatusAndRefundedAtFromUntil(
                 ParticipationStatus.REFUNDED,
                 todayStart,
                 tomorrowStart
             )
         ).thenReturn(5L)
         `when`(
-            groupBuyRequestStatusHistoryRepository.countByStatusInAndChangedAtBetween(
+            groupBuyRequestStatusHistoryRepository.countByStatusInAndChangedAtFromUntil(
                 completedStatuses,
                 todayStart,
                 tomorrowStart
@@ -126,7 +126,7 @@ class AdminDashboardSummaryServiceTest {
         assertEquals(100.0, result.pendingRefundAmountChangeRate)
         assertEquals(0.0, result.pendingApprovalChangeRate)
         assertEquals(0L, result.averageReviewMinutes)
-        verify(participationRepository).countByStatusAndRefundedAtBetween(
+        verify(participationRepository).countByStatusAndRefundedAtFromUntil(
             ParticipationStatus.REFUNDED,
             todayStart,
             tomorrowStart
