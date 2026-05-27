@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.Optional
 
 interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
@@ -63,6 +64,33 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
     ): Page<GroupBuyRequest>
 
     fun countByUserId(userId: Long): Long
+
+    fun countByStatusIn(statuses: Collection<GroupBuyRequestStatus>): Long
+
+    @Query(
+        """
+        select count(request)
+        from GroupBuyRequest request
+        where request.status in :statuses
+          and request.createdAt >= :from
+          and request.createdAt < :to
+        """
+    )
+    fun countByStatusInAndCreatedAtBetween(
+        @Param("statuses") statuses: Collection<GroupBuyRequestStatus>,
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime
+    ): Long
+
+    @Query(
+        """
+        select request.createdAt
+        from GroupBuyRequest request
+        where request.status in :statuses
+          and request.createdAt is not null
+        """
+    )
+    fun findCreatedAtByStatusIn(@Param("statuses") statuses: Collection<GroupBuyRequestStatus>): List<LocalDateTime>
 
     fun findByStatusInAndDesiredPickupDate(
         statuses: Collection<GroupBuyRequestStatus>,
