@@ -105,11 +105,17 @@ class GroupBuyRequestService(
     @Transactional(readOnly = true)
     fun getAdminRequests(
         status: AdminGroupBuyRequestStatusFilter,
+        keyword: String?,
         pageable: Pageable
     ): AdminGroupBuyRequestPageResponse {
-        val page = status.toStatus()
-            ?.let { groupBuyRequestRepository.findByStatusOrderByCreatedAtDesc(it, pageable) }
-            ?: groupBuyRequestRepository.findAllByOrderByCreatedAtDesc(pageable)
+        val normalizedKeyword = keyword?.trim()?.takeIf { it.isNotBlank() }
+        val requestIdKeyword = normalizedKeyword?.toLongOrNull()
+        val page = groupBuyRequestRepository.searchAdminRequests(
+            status = status.toStatus(),
+            keyword = normalizedKeyword,
+            requestIdKeyword = requestIdKeyword,
+            pageable = pageable
+        )
 
         val userIds = page.content.map { it.userId }.distinct()
         val usersById = if (userIds.isEmpty()) {
@@ -119,8 +125,9 @@ class GroupBuyRequestService(
                 .mapNotNull { user -> user.id?.let { it to user } }
                 .toMap()
         }
+        val groupBuysById = findOpenedGroupBuys(page.content)
 
-        return AdminGroupBuyRequestPageResponse.from(page, usersById)
+        return AdminGroupBuyRequestPageResponse.from(page, usersById, groupBuysById, LocalDateTime.now())
     }
 
     @Transactional(readOnly = true)
@@ -215,5 +222,14 @@ class GroupBuyRequestService(
                 }
             }
         )
+    }
+
+    private fun findOpenedGroupBuys(requests: List<GroupBuyRequest>): Map<Long, GroupBuy> {
+        val openedGroupBuyIds = requests.mapNotNull { it.openedGroupBuyId }.distinct()
+        if (openedGroupBuyIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        return groupBuyRepository.findAllById(openedGroupBuyIds).associateBy { it.id }
     }
 }
