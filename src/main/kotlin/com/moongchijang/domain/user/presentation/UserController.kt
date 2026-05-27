@@ -3,6 +3,7 @@ package com.moongchijang.domain.user.presentation
 import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.application.OwnerWithdrawService
 import com.moongchijang.domain.user.application.BusinessRegistrationLookupService
+import com.moongchijang.domain.user.application.WithdrawalContextService
 import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
@@ -21,6 +22,7 @@ import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRe
 import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
 import com.moongchijang.domain.user.application.dto.OwnerWithdrawRequest
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
+import com.moongchijang.domain.user.application.dto.WithdrawalContextResponse
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -51,6 +53,7 @@ import org.slf4j.LoggerFactory
 class UserController(
     private val userService: UserService,
     private val ownerWithdrawService: OwnerWithdrawService,
+    private val withdrawalContextService: WithdrawalContextService,
     private val businessRegistrationLookupService: BusinessRegistrationLookupService,
     private val tokenService: TokenService,
 ) {
@@ -87,6 +90,25 @@ class UserController(
         log.info("[UserController] 내 정보 조회 요청 수신: userId={}", principal.id)
         val response = userService.getMyInfo(principal.id)
         log.info("[UserController] 내 정보 조회 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @GetMapping("/me/withdrawal-context")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "탈퇴 진입 컨텍스트 조회", description = "소비자/사장님 탈퇴 가능 상태와 권장 진입 화면을 조회합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "404", description = "사용자 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun getWithdrawalContext(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+    ): ApiResponse<WithdrawalContextResponse> {
+        log.info("[UserController] 탈퇴 컨텍스트 조회 요청 수신: userId={}", principal.id)
+        val response = withdrawalContextService.getContext(principal.id)
+        log.info("[UserController] 탈퇴 컨텍스트 조회 응답 완료: userId={}", principal.id)
         return ApiResponse.success(response)
     }
 
