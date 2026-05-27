@@ -166,4 +166,36 @@ class OwnerWithdrawServiceTest {
         Assertions.assertEquals(null, owner.ownerWithdrawalReasonDetail)
         Assertions.assertEquals(true, owner.deletedAt != null)
     }
+
+    @Test
+    fun `사장님 회원탈퇴 컨텍스트 가능 이후 실행 시점 차단 예외`() {
+        val owner = UserFixture.createKakaoUser(id = 15L, providerId = "owner-15").apply {
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
+        }
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(15L)).thenReturn(owner)
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                userId = 15L,
+                participationStatus = ParticipationStatus.CONFIRMED,
+                pickupStatuses = listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                groupBuyStatuses = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(false)
+        Mockito.`when`(storeStaffRepository.findStoreIdsByUserId(15L)).thenReturn(listOf(401L))
+        Mockito.`when`(
+            groupBuyRepository.existsByStoreIdInAndStatusIn(
+                listOf(401L),
+                listOf(GroupBuyStatus.IN_PROGRESS),
+            )
+        ).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            ownerWithdrawService.withdraw(
+                15L,
+                OwnerWithdrawRequest(reason = OwnerWithdrawalReason.INCONVENIENT_SERVICE),
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.OWNER_WITHDRAWAL_BLOCKED_OPEN_GROUPBUY, exception.errorCode)
+    }
 }
