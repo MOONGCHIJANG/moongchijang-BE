@@ -3,9 +3,11 @@ package com.moongchijang.domain.groupbuy.application.dto
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import org.springframework.data.domain.Page
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -36,10 +38,19 @@ data class AdminGroupBuyRequestPageResponse(
     companion object {
         fun from(
             page: Page<GroupBuyRequest>,
-            usersById: Map<Long, User>
+            usersById: Map<Long, User>,
+            groupBuysById: Map<Long, GroupBuy>,
+            now: LocalDateTime
         ): AdminGroupBuyRequestPageResponse =
             AdminGroupBuyRequestPageResponse(
-                content = page.content.map { AdminGroupBuyRequestListItemResponse.from(it, usersById[it.userId]) },
+                content = page.content.map {
+                    AdminGroupBuyRequestListItemResponse.from(
+                        request = it,
+                        requester = usersById[it.userId],
+                        groupBuy = it.openedGroupBuyId?.let(groupBuysById::get),
+                        now = now
+                    )
+                },
                 totalElements = page.totalElements,
                 totalPages = page.totalPages,
                 number = page.number,
@@ -57,12 +68,18 @@ data class AdminGroupBuyRequestListItemResponse(
     val status: GroupBuyRequestStatus,
     val requesterId: Long,
     val requesterName: String?,
+    val originalPrice: Int?,
+    val price: Int?,
+    val reviewElapsedMinutes: Long?,
+    val actionable: Boolean,
     val createdAt: LocalDateTime?
 ) {
     companion object {
         fun from(
             request: GroupBuyRequest,
-            requester: User?
+            requester: User?,
+            groupBuy: GroupBuy?,
+            now: LocalDateTime
         ): AdminGroupBuyRequestListItemResponse =
             AdminGroupBuyRequestListItemResponse(
                 requestId = request.id,
@@ -73,6 +90,11 @@ data class AdminGroupBuyRequestListItemResponse(
                 status = request.status,
                 requesterId = request.userId,
                 requesterName = requester?.nickname,
+                originalPrice = groupBuy?.originalPrice,
+                price = groupBuy?.price,
+                reviewElapsedMinutes = request.createdAt?.let { Duration.between(it, now).toMinutes().coerceAtLeast(0) },
+                actionable = request.status == GroupBuyRequestStatus.IN_REVIEW ||
+                    request.status == GroupBuyRequestStatus.IN_CONTACT,
                 createdAt = request.createdAt
             )
     }

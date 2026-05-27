@@ -31,9 +31,10 @@ class GroupBuyRequestAdminController(
     @Operation(summary = "운영자 공구 개설 요청 목록 조회")
     fun getRequests(
         @RequestParam(defaultValue = "ALL") status: AdminGroupBuyRequestStatusFilter,
+        @RequestParam(required = false) keyword: String?,
         pageable: Pageable
     ): ResponseEntity<ApiResponse<AdminGroupBuyRequestPageResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getAdminRequests(status, pageable)))
+        return ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getAdminRequests(status, keyword, pageable)))
     }
 
     @GetMapping("/{requestId}")

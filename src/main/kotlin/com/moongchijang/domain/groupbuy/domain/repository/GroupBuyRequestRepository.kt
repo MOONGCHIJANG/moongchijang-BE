@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.time.LocalDate
 import java.util.Optional
 
@@ -17,6 +19,46 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
 
     fun findByStatusOrderByCreatedAtDesc(
         status: GroupBuyRequestStatus,
+        pageable: Pageable
+    ): Page<GroupBuyRequest>
+
+    @Query(
+        value = """
+            SELECT request
+            FROM GroupBuyRequest request
+            LEFT JOIN User requester ON requester.id = request.userId
+            WHERE (:status IS NULL OR request.status = :status)
+              AND (
+                :keyword IS NULL
+                OR (:requestIdKeyword IS NOT NULL AND request.id = :requestIdKeyword)
+                OR LOWER(request.productName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(request.storeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(requester.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(requester.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR requester.phoneNumber LIKE CONCAT('%', :keyword, '%')
+              )
+            ORDER BY request.createdAt DESC
+        """,
+        countQuery = """
+            SELECT COUNT(request)
+            FROM GroupBuyRequest request
+            LEFT JOIN User requester ON requester.id = request.userId
+            WHERE (:status IS NULL OR request.status = :status)
+              AND (
+                :keyword IS NULL
+                OR (:requestIdKeyword IS NOT NULL AND request.id = :requestIdKeyword)
+                OR LOWER(request.productName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(request.storeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(requester.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(requester.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR requester.phoneNumber LIKE CONCAT('%', :keyword, '%')
+              )
+        """
+    )
+    fun searchAdminRequests(
+        @Param("status") status: GroupBuyRequestStatus?,
+        @Param("keyword") keyword: String?,
+        @Param("requestIdKeyword") requestIdKeyword: Long?,
         pageable: Pageable
     ): Page<GroupBuyRequest>
 
