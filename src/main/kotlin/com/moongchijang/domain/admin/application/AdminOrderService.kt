@@ -51,7 +51,6 @@ class AdminOrderService(
         val now = LocalDateTime.now(clock)
         val groupBuy = groupBuyRepository.findAdminOrderDetailById(orderId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
-        validateAdminOrder(groupBuy)
 
         return AdminOrderDetailResponse.from(
             groupBuy = groupBuy,

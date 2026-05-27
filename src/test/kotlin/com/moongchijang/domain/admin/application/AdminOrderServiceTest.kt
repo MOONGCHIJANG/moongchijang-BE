@@ -126,6 +126,30 @@ class AdminOrderServiceTest {
     }
 
     @Test
+    fun `완료된 공구도 발주 상세를 조회할 수 있고 작업은 비활성화된다`() {
+        val groupBuy = GroupBuyFixture.createGroupBuy(
+            id = 35L,
+            status = GroupBuyStatus.COMPLETED,
+            targetQuantity = 10,
+            currentQuantity = 10
+        ).apply {
+            orderStatus = GroupBuyOrderStatus.PENDING
+        }
+        `when`(groupBuyRepository.findAdminOrderDetailById(35L)).thenReturn(Optional.of(groupBuy))
+        `when`(
+            participationRepository.countByGroupBuyIdAndStatusIn(
+                35L,
+                listOf(ParticipationStatus.REFUND_PENDING)
+            )
+        ).thenReturn(0L)
+
+        val result = service.getOrderDetail(35L)
+
+        assertEquals(35L, result.orderId)
+        assertFalse(result.actionable)
+    }
+
+    @Test
     fun `사장님 연락 완료를 기록한다`() {
         val now = LocalDateTime.of(2026, 5, 27, 13, 0)
         val groupBuy = GroupBuyFixture.createGroupBuy(

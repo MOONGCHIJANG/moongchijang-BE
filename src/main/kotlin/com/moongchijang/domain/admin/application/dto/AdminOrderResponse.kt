@@ -2,6 +2,7 @@ package com.moongchijang.domain.admin.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import org.springframework.data.domain.Page
 import java.time.Duration
 import java.time.LocalDate
@@ -80,7 +81,7 @@ data class AdminOrderListItemResponse(
                 orderStatus = groupBuy.orderStatus,
                 ownerContactedAt = groupBuy.orderOwnerContactedAt,
                 orderConfirmedAt = groupBuy.orderConfirmedAt,
-                actionable = groupBuy.orderStatus == GroupBuyOrderStatus.PENDING
+                actionable = groupBuy.isAdminOrderActionable()
             )
         }
     }
@@ -141,7 +142,7 @@ data class AdminOrderDetailResponse(
                 ownerContactedAt = groupBuy.orderOwnerContactedAt,
                 orderConfirmedAt = groupBuy.orderConfirmedAt,
                 orderCancelledAt = groupBuy.orderCancelledAt,
-                actionable = groupBuy.orderStatus == GroupBuyOrderStatus.PENDING
+                actionable = groupBuy.isAdminOrderActionable()
             )
         }
     }
@@ -157,3 +158,6 @@ private fun calculateAchievementRate(groupBuy: GroupBuy): Int {
 
     return groupBuy.currentQuantity * 100 / groupBuy.targetQuantity
 }
+
+private fun GroupBuy.isAdminOrderActionable(): Boolean =
+    status == GroupBuyStatus.ACHIEVED && orderStatus == GroupBuyOrderStatus.PENDING
