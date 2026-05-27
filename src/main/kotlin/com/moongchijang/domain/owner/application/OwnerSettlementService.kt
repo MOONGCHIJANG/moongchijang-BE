@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 
 @Service
 @Transactional(readOnly = true)
@@ -285,7 +286,7 @@ class OwnerSettlementService(
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
         val requested = YearMonth.of(year, month)
-        if (requested.isAfter(YearMonth.from(LocalDate.now()))) {
+        if (requested.isAfter(YearMonth.from(LocalDate.now(SEOUL_ZONE_ID)))) {
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
     }
@@ -303,5 +304,6 @@ class OwnerSettlementService(
         val SETTLEMENT_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
         val SETTLEMENT_PARTICIPATION_STATUSES = listOf(ParticipationStatus.CONFIRMED)
         val REFUND_STATUSES = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
+        val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }
