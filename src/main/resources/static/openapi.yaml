@@ -1123,7 +1123,7 @@ paths:
     get:
       tags: [Admin]
       summary: 운영자 대시보드 요약 정보
-      description: 헤더에 항상 노출되는 대기중 요청 / 진행 중 공구 / 달성률 / 대기 환불 요약을 반환한다.
+      description: 운영 관리 요약 영역에 노출되는 환불 금액, 개설승인 대기, 발주 미확정, 오늘 처리 완료 요약을 반환한다.
       security:
         - bearerAuth: []
       responses:
@@ -4552,21 +4552,47 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [pendingRequestCount, activeGroupBuyCount, achievementRate, pendingRefundCount]
+          required: [pendingRefundAmount, pendingRefundAmountChangeRate, pendingApprovalCount, averageReviewMinutes, pendingApprovalChangeRate, unconfirmedOrderCount, unconfirmedOrderOver48hCount, todayCompletedRefundCount, todayCompletedApprovalCount, hasOrderOver48h]
           properties:
-            pendingRequestCount:
+            pendingRefundAmount:
               type: integer
-              description: 대기중 요청 건수 (처리 필요)
-            activeGroupBuyCount:
-              type: integer
-              description: 진행 중 공구 개수
-            achievementRate:
+              format: int64
+              description: 검토 대기 환불 총 금액. 현재는 REFUND_PENDING 참여의 결제 주문 총액 기준
+            pendingRefundAmountChangeRate:
               type: number
               format: double
-              description: 최근 30일 공구 달성률 (%). 달성완료 / 마감된 전체 공구 기준
-            pendingRefundCount:
+              description: 전일 대비 검토 대기 환불 금액 증감률(%)
+            pendingApprovalCount:
               type: integer
-              description: 대기 환불 건수 (처리 필요)
+              format: int64
+              description: 개설승인 대기 건수
+            averageReviewMinutes:
+              type: integer
+              format: int64
+              description: 개설승인 대기 요청의 평균 검토 시간(분)
+            pendingApprovalChangeRate:
+              type: number
+              format: double
+              description: 전일 대비 개설승인 대기 요청 생성 건수 증감률(%)
+            unconfirmedOrderCount:
+              type: integer
+              format: int64
+              description: 발주 미확정 건수. 발주 도메인 구현 전까지 0 반환
+            unconfirmedOrderOver48hCount:
+              type: integer
+              format: int64
+              description: 발주 미확정 48시간 초과 건수. 발주 도메인 구현 전까지 0 반환
+            todayCompletedRefundCount:
+              type: integer
+              format: int64
+              description: 오늘 환불 처리 완료 건수
+            todayCompletedApprovalCount:
+              type: integer
+              format: int64
+              description: 오늘 개설 승인/반려 처리 완료 건수
+            hasOrderOver48h:
+              type: boolean
+              description: 48시간 초과 발주 미확정 경고 노출 여부
         error: { nullable: true, example: null }
 
     ApiResponseAdminRequestPage:
