@@ -19,7 +19,6 @@ class JwtAuthenticationFilter(
 
     private val whitelist = listOf(
         "/health",
-        "/metrics",
         "/swagger-ui",
         "/v3/api-docs",
         "/api/v1/auth/kakao",
