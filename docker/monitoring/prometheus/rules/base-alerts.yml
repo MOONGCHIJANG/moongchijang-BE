@@ -1,4 +1,149 @@
 groups:
   - name: base-alerts
-    rules: []
+    rules:
+      - alert: AppTargetDown
+        expr: up{job="app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "App target is down"
+          description: "Prometheus cannot scrape app-prod:8080/metrics for over 2 minutes."
 
+      - alert: Http5xxErrorRateWarning
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="app",status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="app"}[5m]))
+          ) > 0.01
+          and
+          sum(rate(http_server_requests_seconds_count{job="app"}[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "5xx error rate warning"
+          description: "HTTP 5xx ratio is above 1% for 10 minutes."
+
+      - alert: Http5xxErrorRateCritical
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="app",status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="app"}[5m]))
+          ) > 0.05
+          and
+          sum(rate(http_server_requests_seconds_count{job="app"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "5xx error rate critical"
+          description: "HTTP 5xx ratio is above 5% for 5 minutes."
+
+      - alert: HttpLatencyP95Warning
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(http_server_requests_seconds_bucket{job="app"}[5m]))
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "HTTP p95 latency warning"
+          description: "HTTP p95 latency is above 500ms for 10 minutes."
+
+      - alert: HttpLatencyP99Critical
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(http_server_requests_seconds_bucket{job="app"}[5m]))
+          ) > 1.5
+        for: 5m
+        labels:
+          severity: critical
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "HTTP p99 latency critical"
+          description: "HTTP p99 latency is above 1.5s for 5 minutes."
+
+      - alert: HighCpuWarning
+        expr: process_cpu_usage{job="app"} > 0.80
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "CPU usage warning"
+          description: "Process CPU usage is above 80% for 10 minutes."
+
+      - alert: HighCpuCritical
+        expr: process_cpu_usage{job="app"} > 0.90
+        for: 5m
+        labels:
+          severity: critical
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "CPU usage critical"
+          description: "Process CPU usage is above 90% for 5 minutes."
+
+      - alert: HighJvmHeapMemoryWarning
+        expr: |
+          (
+            sum(jvm_memory_used_bytes{job="app",area="heap"})
+            /
+            sum(jvm_memory_max_bytes{job="app",area="heap"})
+          ) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "JVM heap usage warning"
+          description: "JVM heap usage is above 85% for 10 minutes."
+
+      - alert: LowDiskSpaceCritical
+        expr: |
+          (
+            (disk_free_bytes{job="app"} / disk_total_bytes{job="app"}) < 0.10
+          )
+        for: 10m
+        labels:
+          severity: critical
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "Low disk space critical"
+          description: "Less than 10% disk free space remains for 10 minutes."
+
+      - alert: HighGcPauseWarning
+        expr: |
+          (
+            rate(jvm_gc_pause_seconds_sum{job="app"}[5m])
+            /
+            rate(jvm_gc_pause_seconds_count{job="app"}[5m])
+          ) > 0.2
+          and
+          rate(jvm_gc_pause_seconds_count{job="app"}[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+        annotations:
+          summary: "GC pause warning"
+          description: "Average JVM GC pause exceeds 200ms for 10 minutes."
