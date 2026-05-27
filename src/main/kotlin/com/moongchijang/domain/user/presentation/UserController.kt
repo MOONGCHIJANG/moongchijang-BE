@@ -10,6 +10,7 @@ import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpdatedResponse
 import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupRequest
 import com.moongchijang.domain.user.application.dto.BusinessRegistrationLookupResponse
+import com.moongchijang.domain.user.application.dto.MyPageRoleSwitchRequest
 import com.moongchijang.domain.user.application.dto.NicknameAvailabilityResponse
 import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
 import com.moongchijang.domain.user.application.dto.NicknameUpdateResponse
@@ -17,7 +18,9 @@ import com.moongchijang.domain.user.application.dto.PasswordChangeRequest
 import com.moongchijang.domain.user.application.dto.PasswordChangeResponse
 import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateRequest
 import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateResponse
+import com.moongchijang.domain.user.application.dto.SellerBusinessProfileResponse
 import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.SellerSettlementAccountResponse
 import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
 import com.moongchijang.domain.user.application.dto.OwnerWithdrawRequest
@@ -90,6 +93,27 @@ class UserController(
         log.info("[UserController] 내 정보 조회 요청 수신: userId={}", principal.id)
         val response = userService.getMyInfo(principal.id)
         log.info("[UserController] 내 정보 조회 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/role")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "마이페이지 역할 전환", description = "소비자/사장님 모드를 전환합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "전환 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "사장님 모드 전환 권한 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun switchMyPageRole(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: MyPageRoleSwitchRequest,
+    ): ApiResponse<AuthUserResponse> {
+        log.info("[UserController] 마이페이지 역할 전환 요청 수신: userId={}, targetRole={}", principal.id, request.role)
+        val response = userService.switchMyPageRole(principal.id, request.role)
+        log.info("[UserController] 마이페이지 역할 전환 응답 완료: userId={}, targetRole={}", principal.id, request.role)
         return ApiResponse.success(response)
     }
 
@@ -246,6 +270,90 @@ class UserController(
         log.info("[UserController] 사장님 정산 정보 저장 요청 수신: userId={}", principal.id)
         val response = userService.upsertSellerSettlementInfo(request, principal.id)
         log.info("[UserController] 사장님 정산 정보 저장 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @GetMapping("/me/seller/settlement-account")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "사장님 입금 계좌 조회", description = "사장님의 현재 입금 계좌 정보를 조회합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "사장님 권한 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "404", description = "계좌 정보 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun getSellerSettlementAccount(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+    ): ApiResponse<SellerSettlementAccountResponse> {
+        log.info("[UserController] 사장님 입금 계좌 조회 요청 수신: userId={}", principal.id)
+        val response = userService.getSellerSettlementAccount(principal.id)
+        log.info("[UserController] 사장님 입금 계좌 조회 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/seller/settlement-account")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "사장님 입금 계좌 변경", description = "사장님의 입금 계좌 정보를 변경합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "변경 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "사장님 권한 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "404", description = "계좌 정보 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun updateSellerSettlementAccount(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: SellerSettlementInfoUpsertRequest,
+    ): ApiResponse<SellerSettlementAccountResponse> {
+        log.info("[UserController] 사장님 입금 계좌 변경 요청 수신: userId={}", principal.id)
+        val response = userService.updateSellerSettlementAccount(request, principal.id)
+        log.info("[UserController] 사장님 입금 계좌 변경 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @GetMapping("/me/seller/business-profile")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "사장님 사업자 정보 조회", description = "사장님의 현재 사업자 정보를 조회합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "사장님 권한 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "404", description = "사업자 정보 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun getSellerBusinessProfile(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+    ): ApiResponse<SellerBusinessProfileResponse> {
+        log.info("[UserController] 사장님 사업자 정보 조회 요청 수신: userId={}", principal.id)
+        val response = userService.getSellerBusinessProfile(principal.id)
+        log.info("[UserController] 사장님 사업자 정보 조회 응답 완료: userId={}", principal.id)
+        return ApiResponse.success(response)
+    }
+
+    @PatchMapping("/me/seller/business-profile")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "사장님 사업자 정보 변경", description = "사장님의 사업자 정보를 변경합니다.")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "변경 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "입력값 검증 실패", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "사장님 권한 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "404", description = "사업자 정보 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun updateSellerBusinessProfile(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: SellerBusinessInfoUpsertRequest,
+    ): ApiResponse<SellerBusinessProfileResponse> {
+        log.info("[UserController] 사장님 사업자 정보 변경 요청 수신: userId={}", principal.id)
+        val response = userService.updateSellerBusinessProfile(request, principal.id)
+        log.info("[UserController] 사장님 사업자 정보 변경 응답 완료: userId={}", principal.id)
         return ApiResponse.success(response)
     }
 
