@@ -232,7 +232,7 @@ class OwnerSettlementService(
     }
 
     private fun toRefundListItem(participation: Participation): OwnerRefundRequestListItemResponse {
-        val requestedAt = participation.cancelledAt ?: participation.createdAt!!
+        val requestedAt = participation.cancelledAt ?: participation.createdAt ?: java.time.LocalDateTime.now()
         return OwnerRefundRequestListItemResponse(
             participationId = participation.id,
             groupBuyId = participation.groupBuy.id,
