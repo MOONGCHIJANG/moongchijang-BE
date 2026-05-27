@@ -324,12 +324,14 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         join fetch gb.store
         where gb.store.id in :storeIds
           and p.status in :statuses
+          and coalesce(p.cancelledAt, p.createdAt) >= :fromDateTime
         order by p.cancelledAt desc, p.createdAt desc
         """
     )
     fun findRefundRequestsByStoreIdsAndStatuses(
         @Param("storeIds") storeIds: Collection<Long>,
         @Param("statuses") statuses: Collection<ParticipationStatus>,
+        @Param("fromDateTime") fromDateTime: LocalDateTime,
     ): List<Participation>
 
     @Query(

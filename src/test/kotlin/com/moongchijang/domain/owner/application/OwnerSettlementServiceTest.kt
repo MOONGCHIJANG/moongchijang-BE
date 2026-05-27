@@ -31,6 +31,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -115,6 +116,7 @@ class OwnerSettlementServiceTest {
             participationRepository.findRefundRequestsByStoreIdsAndStatuses(
                 defaultStoreIds(),
                 listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                LocalDate.now(ZoneId.of("Asia/Seoul")).minusMonths(6).atStartOfDay(),
             )
         ).thenReturn(
             listOf(

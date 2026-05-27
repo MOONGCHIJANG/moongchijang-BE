@@ -124,6 +124,7 @@ class OwnerSettlementService(
         val allRequests = participationRepository.findRefundRequestsByStoreIdsAndStatuses(
             storeIds = storeIds,
             statuses = REFUND_STATUSES,
+            fromDateTime = LocalDate.now(SEOUL_ZONE_ID).minusMonths(REFUND_LIST_LOOKBACK_MONTHS).atStartOfDay(),
         )
 
         val pendingCount = allRequests.count { request -> isReviewPending(request) }
@@ -305,5 +306,6 @@ class OwnerSettlementService(
         val SETTLEMENT_PARTICIPATION_STATUSES = listOf(ParticipationStatus.CONFIRMED)
         val REFUND_STATUSES = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
         val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
+        const val REFUND_LIST_LOOKBACK_MONTHS: Long = 6
     }
 }
