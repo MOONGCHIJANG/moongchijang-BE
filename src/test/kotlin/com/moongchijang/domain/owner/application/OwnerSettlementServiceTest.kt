@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestTab
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewActionType
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitRequest
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -121,9 +122,6 @@ class OwnerSettlementServiceTest {
                 refundParticipation(id = 1002L, status = ParticipationStatus.REFUNDED),
             )
         )
-        `when`(participationRepository.countRefundRequestsByStoreIdsAndStatus(defaultStoreIds(), ParticipationStatus.REFUND_PENDING)).thenReturn(1L)
-        `when`(participationRepository.countRefundRequestsByStoreIdsAndStatus(defaultStoreIds(), ParticipationStatus.REFUNDED)).thenReturn(1L)
-
         val pendingOnly = service.getRefundRequests(owner.id!!, OwnerRefundRequestTab.PENDING)
         val all = service.getRefundRequests(owner.id!!, OwnerRefundRequestTab.ALL)
 
@@ -165,7 +163,7 @@ class OwnerSettlementServiceTest {
         val owner = seller()
         val participation = refundParticipation(id = 1020L, status = ParticipationStatus.REFUND_PENDING)
         stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
-        `when`(participationRepository.findById(1020L)).thenReturn(Optional.of(participation))
+        `when`(participationRepository.findByIdForUpdate(1020L)).thenReturn(Optional.of(participation))
 
         val response = service.submitRefundReview(
             ownerId = owner.id!!,
@@ -194,6 +192,27 @@ class OwnerSettlementServiceTest {
         }
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.errorCode)
+    }
+
+    @Test
+    fun `이미 처리된 환불 요청은 재처리할 수 없다`() {
+        val owner = seller()
+        val participation = refundParticipation(id = 1022L, status = ParticipationStatus.REFUND_PENDING).apply {
+            ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED
+            ownerRefundReviewedAt = LocalDateTime.now().minusMinutes(3)
+        }
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
+        `when`(participationRepository.findByIdForUpdate(1022L)).thenReturn(Optional.of(participation))
+
+        val exception = assertThrows<CustomException> {
+            service.submitRefundReview(
+                ownerId = owner.id!!,
+                participationId = 1022L,
+                request = OwnerRefundReviewSubmitRequest(action = OwnerRefundReviewActionType.APPROVE),
+            )
+        }
+
+        assertEquals(ErrorCode.OWNER_REFUND_REVIEW_ALREADY_PROCESSED, exception.errorCode)
     }
 
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {
