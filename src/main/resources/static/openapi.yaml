@@ -1945,6 +1945,12 @@ paths:
             type: string
             enum: [ALL, IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
             default: ALL
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 요청 ID, 상품명, 가게명, 요청자 닉네임/이메일/전화번호 검색어
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
       responses:
@@ -4576,7 +4582,7 @@ components:
               type: array
               items:
                 type: object
-                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterId, createdAt]
+                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterId, actionable, createdAt]
                 properties:
                   requestId: { type: integer, format: int64 }
                   storeName: { type: string }
@@ -4588,6 +4594,22 @@ components:
                     enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
                   requesterId: { type: integer, format: int64 }
                   requesterName: { type: string, nullable: true }
+                  originalPrice:
+                    type: integer
+                    nullable: true
+                    description: 승인 후 생성된 공구 정가. 승인 전 요청은 null
+                  price:
+                    type: integer
+                    nullable: true
+                    description: 승인 후 생성된 공구가. 승인 전 요청은 null
+                  reviewElapsedMinutes:
+                    type: integer
+                    format: int64
+                    nullable: true
+                    description: 요청 생성 후 경과한 검토 시간(분)
+                  actionable:
+                    type: boolean
+                    description: 운영자가 승인/반려 등 후속 작업을 할 수 있는 상태 여부
                   createdAt: { type: string, format: date-time, nullable: true }
             totalElements: { type: integer, format: int64 }
             totalPages: { type: integer }
