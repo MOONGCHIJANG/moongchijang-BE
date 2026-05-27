@@ -140,6 +140,26 @@ class WithdrawalContextServiceTest {
 
         val result = withdrawalContextService.getContext(105L)
 
+        assertEquals(WithdrawalScreenType.SELLER_WITHDRAWAL, result.recommendedScreen)
+        assertFalse(result.forceRedirect)
+        assertEquals(null, result.forceRedirectTarget)
+        assertEquals(SellerWithdrawalBlockingReason.OPEN_GROUPBUY, result.seller.blockingReason)
+    }
+
+    @Test
+    fun `탈퇴 컨텍스트 사장님 경로 진입 시 본인 수령예정은 소비자 화면 강제 이동`() {
+        val user = sellerUser(id = 106L)
+        stubBuyerContext(
+            user = user,
+            hasPendingPickup = true,
+            hasActiveParticipation = false,
+        )
+        Mockito.`when`(storeStaffRepository.findStoreIdsByUserId(106L)).thenReturn(emptyList())
+
+        val result = withdrawalContextService.getContext(106L)
+
+        assertTrue(result.seller.canProceed)
+        assertEquals(SellerWithdrawalBlockingReason.NONE, result.seller.blockingReason)
         assertEquals(WithdrawalScreenType.BUYER_WITHDRAWAL, result.recommendedScreen)
         assertTrue(result.forceRedirect)
         assertEquals(WithdrawalScreenType.BUYER_WITHDRAWAL, result.forceRedirectTarget)

@@ -40,6 +40,7 @@ class WithdrawalContextService(
 
         val recommended = decideRecommendedScreen(
             currentRole = user.role,
+            hasSellerRole = user.hasRole(UserRole.SELLER),
             buyerCanProceed = buyer.canProceed,
             sellerCanProceed = seller.canProceed,
         )
@@ -101,10 +102,10 @@ class WithdrawalContextService(
         val storeIds = storeStaffRepository.findStoreIdsByUserId(userId)
         if (storeIds.isEmpty()) {
             return SellerWithdrawalContext(
-                canProceed = !hasPendingPickupAsBuyer,
+                canProceed = true,
                 hasOpenGroupBuy = false,
                 hasPendingCustomerPickup = false,
-                blockingReason = if (hasPendingPickupAsBuyer) SellerWithdrawalBlockingReason.PENDING_CUSTOMER_PICKUP else SellerWithdrawalBlockingReason.NONE,
+                blockingReason = SellerWithdrawalBlockingReason.NONE,
             )
         }
 
@@ -119,12 +120,12 @@ class WithdrawalContextService(
         )
         val blockingReason = when {
             hasOpenGroupBuy -> SellerWithdrawalBlockingReason.OPEN_GROUPBUY
-            hasPendingCustomerPickup || hasPendingPickupAsBuyer -> SellerWithdrawalBlockingReason.PENDING_CUSTOMER_PICKUP
+            hasPendingCustomerPickup -> SellerWithdrawalBlockingReason.PENDING_CUSTOMER_PICKUP
             else -> SellerWithdrawalBlockingReason.NONE
         }
 
         return SellerWithdrawalContext(
-            canProceed = !hasOpenGroupBuy && !hasPendingCustomerPickup && !hasPendingPickupAsBuyer,
+            canProceed = !hasOpenGroupBuy && !hasPendingCustomerPickup,
             hasOpenGroupBuy = hasOpenGroupBuy,
             hasPendingCustomerPickup = hasPendingCustomerPickup,
             blockingReason = blockingReason,
@@ -133,12 +134,16 @@ class WithdrawalContextService(
 
     private fun decideRecommendedScreen(
         currentRole: UserRole,
+        hasSellerRole: Boolean,
         buyerCanProceed: Boolean,
         sellerCanProceed: Boolean,
     ): WithdrawalScreenType {
+        val hasBuyerIssue = !buyerCanProceed
+        val hasSellerIssue = hasSellerRole && !sellerCanProceed
+
         return when {
-            buyerCanProceed && !sellerCanProceed -> WithdrawalScreenType.BUYER_WITHDRAWAL
-            !buyerCanProceed && sellerCanProceed -> WithdrawalScreenType.SELLER_WITHDRAWAL
+            hasBuyerIssue && !hasSellerIssue -> WithdrawalScreenType.BUYER_WITHDRAWAL
+            !hasBuyerIssue && hasSellerIssue -> WithdrawalScreenType.SELLER_WITHDRAWAL
             currentRole == UserRole.SELLER -> WithdrawalScreenType.SELLER_WITHDRAWAL
             else -> WithdrawalScreenType.BUYER_WITHDRAWAL
         }
