@@ -33,9 +33,9 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
                 OR (:requestIdKeyword IS NOT NULL AND request.id = :requestIdKeyword)
                 OR LOWER(request.productName) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(request.storeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(COALESCE(requester.nickname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(COALESCE(requester.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR COALESCE(requester.phoneNumber, '') LIKE CONCAT('%', :keyword, '%')
+                OR LOWER(requester.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(requester.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR requester.phoneNumber LIKE CONCAT('%', :keyword, '%')
               )
             ORDER BY request.createdAt DESC
         """,
@@ -49,9 +49,9 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
                 OR (:requestIdKeyword IS NOT NULL AND request.id = :requestIdKeyword)
                 OR LOWER(request.productName) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(request.storeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(COALESCE(requester.nickname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(COALESCE(requester.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR COALESCE(requester.phoneNumber, '') LIKE CONCAT('%', :keyword, '%')
+                OR LOWER(requester.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(requester.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR requester.phoneNumber LIKE CONCAT('%', :keyword, '%')
               )
         """
     )

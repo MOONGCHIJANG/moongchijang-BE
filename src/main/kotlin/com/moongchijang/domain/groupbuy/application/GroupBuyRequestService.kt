@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -33,6 +34,7 @@ class GroupBuyRequestService(
     private val groupBuyRepository: GroupBuyRepository,
     private val groupBuyOpenRequestService: GroupBuyOpenRequestService,
     private val userRepository: UserRepository,
+    private val clock: Clock,
 ) {
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
@@ -127,7 +129,7 @@ class GroupBuyRequestService(
         }
         val groupBuysById = findOpenedGroupBuys(page.content)
 
-        return AdminGroupBuyRequestPageResponse.from(page, usersById, groupBuysById, LocalDateTime.now())
+        return AdminGroupBuyRequestPageResponse.from(page, usersById, groupBuysById, LocalDateTime.now(clock))
     }
 
     @Transactional(readOnly = true)

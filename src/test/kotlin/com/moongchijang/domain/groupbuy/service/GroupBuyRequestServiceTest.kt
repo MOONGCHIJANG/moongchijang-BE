@@ -18,6 +18,7 @@ import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.GroupBuyRequestFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
@@ -27,8 +28,11 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -49,8 +53,17 @@ class GroupBuyRequestServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
+    @Mock
+    private lateinit var clock: Clock
+
     @InjectMocks
     private lateinit var service: GroupBuyRequestService
+
+    @BeforeEach
+    fun setUpClock() {
+        lenient().`when`(clock.instant()).thenReturn(Instant.parse("2026-05-27T04:00:00Z"))
+        lenient().`when`(clock.zone).thenReturn(ZoneId.of("Asia/Seoul"))
+    }
 
     @Test
     fun `유효한 입력으로 요청 시 requestId 반환`() {
