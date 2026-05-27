@@ -271,6 +271,38 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     fun countByUserIdAndStatus(userId: Long, status: ParticipationStatus): Long
 
+    fun countByStatusAndRefundedAtBetween(
+        status: ParticipationStatus,
+        from: LocalDateTime,
+        to: LocalDateTime
+    ): Long
+
+    @Query(
+        """
+        select coalesce(sum(po.totalAmount), 0)
+        from Participation p
+        join PaymentOrder po on po.user = p.user and po.groupBuy = p.groupBuy
+        where p.status = :status
+        """
+    )
+    fun sumPaymentOrderAmountByStatus(@Param("status") status: ParticipationStatus): Long
+
+    @Query(
+        """
+        select coalesce(sum(po.totalAmount), 0)
+        from Participation p
+        join PaymentOrder po on po.user = p.user and po.groupBuy = p.groupBuy
+        where p.status = :status
+          and p.cancelledAt >= :from
+          and p.cancelledAt < :to
+        """
+    )
+    fun sumPaymentOrderAmountByStatusAndCancelledAtBetween(
+        @Param("status") status: ParticipationStatus,
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime
+    ): Long
+
     fun countByUserIdAndStatusIn(userId: Long, statuses: Collection<ParticipationStatus>): Long
 
     fun countByGroupBuyIdAndStatusIn(groupBuyId: Long, statuses: Collection<ParticipationStatus>): Long
