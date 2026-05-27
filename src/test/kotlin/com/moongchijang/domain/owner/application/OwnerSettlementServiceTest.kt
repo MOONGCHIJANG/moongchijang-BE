@@ -3,6 +3,8 @@ package com.moongchijang.domain.owner.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestTab
+import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewActionType
+import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitRequest
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -162,6 +164,43 @@ class OwnerSettlementServiceTest {
         verifyNoInteractions(storeStaffRepository)
     }
 
+    @Test
+    fun `환불 요청 검토 제출 성공`() {
+        val owner = seller()
+        val participation = refundParticipation(id = 1020L, status = ParticipationStatus.REFUND_PENDING)
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(participationRepository.findById(1020L)).thenReturn(Optional.of(participation))
+
+        val response = service.submitRefundReview(
+            ownerId = owner.id!!,
+            participationId = 1020L,
+            request = OwnerRefundReviewSubmitRequest(action = OwnerRefundReviewActionType.APPROVE),
+        )
+
+        assertEquals(1020L, response.participationId)
+        assertTrue(response.processed)
+    }
+
+    @Test
+    fun `환불 요청 검토 제출 시 이의제기 사유 누락 예외`() {
+        val owner = seller()
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+
+        val exception = assertThrows<CustomException> {
+            service.submitRefundReview(
+                ownerId = owner.id!!,
+                participationId = 1021L,
+                request = OwnerRefundReviewSubmitRequest(
+                    action = OwnerRefundReviewActionType.DISPUTE,
+                    disputeReason = " ",
+                ),
+            )
+        }
+
+        assertEquals(ErrorCode.INVALID_INPUT, exception.errorCode)
+    }
+
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {
         role = UserRole.SELLER
     }
@@ -206,4 +245,3 @@ class OwnerSettlementServiceTest {
         updatedAtField.set(entity, updatedAt)
     }
 }
-
