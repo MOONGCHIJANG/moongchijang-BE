@@ -22,6 +22,8 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
 class AuthService(
@@ -64,7 +66,7 @@ class AuthService(
                 user.id,
                 isNewUser,
             )
-            authMetricsRecorder.recordLogin(provider = "kakao", result = "success")
+            recordAfterCommit { authMetricsRecorder.recordLogin(provider = "kakao", result = "success") }
 
             AuthLoginResult(
                 response = response,
@@ -98,7 +100,7 @@ class AuthService(
             )
 
             log.info("[AuthService] 액세스 토큰 재발급 처리 완료: userId={}", userId)
-            authMetricsRecorder.recordTokenReissue(result = "success")
+            recordAfterCommit { authMetricsRecorder.recordTokenReissue(result = "success") }
 
             AccessTokenReissueResult(
                 response = response,
@@ -153,7 +155,7 @@ class AuthService(
             )
 
             log.info("[AuthService] 이메일 회원가입 처리 완료: userId={}", user.id)
-            authMetricsRecorder.recordSignup(method = "email", result = "success")
+            recordAfterCommit { authMetricsRecorder.recordSignup(method = "email", result = "success") }
 
             AuthLoginResult(
                 response = response,
@@ -203,7 +205,7 @@ class AuthService(
             )
 
             log.info("[AuthService] 이메일 로그인 처리 완료: userId={}", user.id)
-            authMetricsRecorder.recordLogin(provider = "email", result = "success")
+            recordAfterCommit { authMetricsRecorder.recordLogin(provider = "email", result = "success") }
 
             AuthLoginResult(
                 response = response,
@@ -217,5 +219,20 @@ class AuthService(
 
     companion object {
         private val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$")
+    }
+
+    private fun recordAfterCommit(action: () -> Unit) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            action()
+            return
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    action()
+                }
+            },
+        )
     }
 }
