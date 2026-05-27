@@ -283,6 +283,7 @@ class UserServiceTest {
         val user = UserFixture.createKakaoUser(id = 41L, providerId = "kakao-41", nickname = "조회유저").apply {
             role = UserRole.SELLER
             lastRole = UserRole.SELLER
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.BUYER))
             roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
         }
         setAuditFields(user, LocalDateTime.now(), LocalDateTime.now())
@@ -648,6 +649,7 @@ class UserServiceTest {
     fun `마이페이지 역할 전환 성공`() {
         val sellerUser = UserFixture.createKakaoUser(id = 200L, providerId = "kakao-200", nickname = "겸용유저").apply {
             role = UserRole.BUYER
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.BUYER))
             roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
         }
         setAuditFields(sellerUser, LocalDateTime.now(), LocalDateTime.now())

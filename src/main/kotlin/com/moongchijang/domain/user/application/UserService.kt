@@ -190,7 +190,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        if (targetRole != UserRole.BUYER && !user.hasRole(targetRole)) {
+        if (!user.hasRole(targetRole)) {
             throw CustomException(ErrorCode.FORBIDDEN)
         }
 
