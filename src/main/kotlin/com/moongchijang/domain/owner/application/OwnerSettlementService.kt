@@ -166,7 +166,7 @@ class OwnerSettlementService(
             groupBuyId = participation.groupBuy.id,
             productName = participation.groupBuy.productName,
             requesterName = participation.user.nickname ?: "",
-            requestedDate = (participation.cancelledAt ?: participation.createdAt!!).toLocalDate(),
+            requestedDate = (participation.cancelledAt ?: participation.createdAt ?: java.time.LocalDateTime.now()).toLocalDate(),
             paymentAmount = participation.totalAmount,
             penaltyAmount = penaltyAmount,
             refundExpectedAmount = refundExpectedAmount,
