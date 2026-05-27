@@ -15,6 +15,7 @@ import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementM
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthlySummaryResponse
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
@@ -124,19 +125,13 @@ class OwnerSettlementService(
             statuses = REFUND_STATUSES,
         )
 
-        val pendingCount = participationRepository.countRefundRequestsByStoreIdsAndStatus(
-            storeIds = storeIds,
-            status = ParticipationStatus.REFUND_PENDING,
-        ).toInt()
-        val completedCount = participationRepository.countRefundRequestsByStoreIdsAndStatus(
-            storeIds = storeIds,
-            status = ParticipationStatus.REFUNDED,
-        ).toInt()
+        val pendingCount = allRequests.count { request -> isReviewPending(request) }
+        val completedCount = allRequests.count { request -> isReviewCompleted(request) }
 
         val filtered = when (tab) {
             OwnerRefundRequestTab.ALL -> allRequests
-            OwnerRefundRequestTab.PENDING -> allRequests.filter { it.status == ParticipationStatus.REFUND_PENDING }
-            OwnerRefundRequestTab.COMPLETED -> allRequests.filter { it.status == ParticipationStatus.REFUNDED }
+            OwnerRefundRequestTab.PENDING -> allRequests.filter { request -> isReviewPending(request) }
+            OwnerRefundRequestTab.COMPLETED -> allRequests.filter { request -> isReviewCompleted(request) }
         }
 
         return OwnerRefundRequestListResponse(
@@ -199,7 +194,7 @@ class OwnerSettlementService(
             throw CustomException(ErrorCode.FORBIDDEN)
         }
 
-        val participation = participationRepository.findById(participationId).orElseThrow {
+        val participation = participationRepository.findByIdForUpdate(participationId).orElseThrow {
             CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
         }
         if (participation.groupBuy.store.id !in storeIds) {
@@ -208,6 +203,16 @@ class OwnerSettlementService(
         if (participation.status != ParticipationStatus.REFUND_PENDING) {
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
+        if (isReviewCompleted(participation)) {
+            throw CustomException(ErrorCode.OWNER_REFUND_REVIEW_ALREADY_PROCESSED)
+        }
+
+        participation.ownerRefundReviewStatus = when (request.action) {
+            OwnerRefundReviewActionType.APPROVE -> OwnerRefundReviewStatus.APPROVED
+            OwnerRefundReviewActionType.DISPUTE -> OwnerRefundReviewStatus.DISPUTED
+        }
+        participation.ownerRefundDisputeReason = request.disputeReason?.trim()?.takeIf { it.isNotBlank() }
+        participation.ownerRefundReviewedAt = java.time.LocalDateTime.now()
 
         log.info(
             "[OwnerSettlementService] 환불 요청 검토 제출 완료: ownerId={}, participationId={}, action={}",
@@ -239,10 +244,10 @@ class OwnerSettlementService(
     }
 
     private fun toRefundStatus(status: ParticipationStatus): OwnerRefundRequestStatus {
-        return when (status) {
-            ParticipationStatus.REFUND_PENDING -> OwnerRefundRequestStatus.PENDING
-            ParticipationStatus.REFUNDED -> OwnerRefundRequestStatus.COMPLETED
-            else -> throw CustomException(ErrorCode.INVALID_INPUT)
+        return if (status == ParticipationStatus.REFUNDED) {
+            OwnerRefundRequestStatus.COMPLETED
+        } else {
+            OwnerRefundRequestStatus.PENDING
         }
     }
 
@@ -261,6 +266,18 @@ class OwnerSettlementService(
         if (request.action == OwnerRefundReviewActionType.DISPUTE && request.disputeReason.isNullOrBlank()) {
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
+    }
+
+    private fun isReviewPending(participation: Participation): Boolean {
+        return participation.status == ParticipationStatus.REFUND_PENDING &&
+            participation.ownerRefundReviewStatus != OwnerRefundReviewStatus.APPROVED &&
+            participation.ownerRefundReviewStatus != OwnerRefundReviewStatus.DISPUTED
+    }
+
+    private fun isReviewCompleted(participation: Participation): Boolean {
+        return participation.ownerRefundReviewStatus == OwnerRefundReviewStatus.APPROVED ||
+            participation.ownerRefundReviewStatus == OwnerRefundReviewStatus.DISPUTED ||
+            participation.status == ParticipationStatus.REFUNDED
     }
 
     private fun validateYearMonth(year: Int, month: Int) {

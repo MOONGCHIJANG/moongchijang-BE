@@ -63,6 +63,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     OWNER_WITHDRAWAL_REASON_DETAIL_REQUIRED(400_112, "기타 탈퇴 사유를 입력해주세요.", 400),
     OWNER_WITHDRAWAL_BLOCKED_OPEN_GROUPBUY(409_105, "개설된 공구가 있어 탈퇴할 수 없어요.", 409),
     OWNER_WITHDRAWAL_BLOCKED_PENDING_CUSTOMER_PICKUP(409_106, "달성 완료 공구의 픽업이 모두 완료된 후 탈퇴할 수 있어요.", 409),
+    OWNER_REFUND_REVIEW_ALREADY_PROCESSED(409_107, "이미 처리된 환불 요청입니다.", 409),
     EMAIL_VERIFICATION_DAILY_LIMIT_EXCEEDED(429_101, "내일 다시 시도해주세요.", 429),
     INVALID_SIGNUP_TOKEN(401_107, "회원가입 인증정보가 유효하지 않습니다. 이메일 인증을 다시 진행해주세요.", 401),
     KAKAO_TOKEN_REQUEST_INVALID(401_101, "카카오 토큰 요청 파라미터가 올바르지 않습니다.", 401),

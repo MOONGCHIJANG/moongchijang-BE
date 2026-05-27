@@ -9,6 +9,7 @@ import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
@@ -657,6 +658,10 @@ class PaymentService(
         val participation = participationRepository.findByIdForUpdate(participationId)
             .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
         if (participation.status != ParticipationStatus.REFUND_PENDING) {
+            return null
+        }
+        // 사용자 환불 요청(cancelReason 존재)은 사장님 동의(APPROVED) 이후에만 환불 처리 대상으로 잡는다.
+        if (participation.cancelReason != null && participation.ownerRefundReviewStatus != OwnerRefundReviewStatus.APPROVED) {
             return null
         }
 
