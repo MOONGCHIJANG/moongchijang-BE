@@ -108,9 +108,24 @@ services:
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
+    environment:
+      ALERT_ENV: ${ALERT_ENV:-prod}
+      ALERT_SERVICE: ${ALERT_SERVICE:-moongchijang-be}
+      DISCORD_WEBHOOK_MONITORING_CRITICAL: ${DISCORD_WEBHOOK_MONITORING_CRITICAL:-https://discord.com/api/webhooks/placeholder/critical}
+      DISCORD_WEBHOOK_MONITORING_WARNING: ${DISCORD_WEBHOOK_MONITORING_WARNING:-https://discord.com/api/webhooks/placeholder/warning}
     command:
-      - --config.file=/etc/alertmanager/alertmanager.yml
-      - --storage.path=/alertmanager
+      - /bin/sh
+      - -c
+      - |
+        sed \
+          -e "s|__ALERT_ENV__|$${ALERT_ENV}|g" \
+          -e "s|__ALERT_SERVICE__|$${ALERT_SERVICE}|g" \
+          -e "s|__DISCORD_WEBHOOK_MONITORING_CRITICAL__|$${DISCORD_WEBHOOK_MONITORING_CRITICAL}|g" \
+          -e "s|__DISCORD_WEBHOOK_MONITORING_WARNING__|$${DISCORD_WEBHOOK_MONITORING_WARNING}|g" \
+          /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.generated.yml
+        exec /bin/alertmanager \
+          --config.file=/tmp/alertmanager.generated.yml \
+          --storage.path=/alertmanager
     restart: unless-stopped
     networks:
       - monitoring
