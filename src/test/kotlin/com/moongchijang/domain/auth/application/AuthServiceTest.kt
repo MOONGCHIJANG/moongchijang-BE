@@ -29,6 +29,7 @@ class AuthServiceTest {
     private val tokenService: TokenService = Mockito.mock(TokenService::class.java)
     private val jwtTokenProvider: JwtTokenProvider = Mockito.mock(JwtTokenProvider::class.java)
     private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
+    private val authMetricsRecorder: AuthMetricsRecorder = Mockito.mock(AuthMetricsRecorder::class.java)
 
     private val authService = AuthService(
         kakaoAuthService = kakaoAuthService,
@@ -37,6 +38,7 @@ class AuthServiceTest {
         tokenService = tokenService,
         jwtTokenProvider = jwtTokenProvider,
         passwordEncoder = passwordEncoder,
+        authMetricsRecorder = authMetricsRecorder,
     )
 
     @Test
