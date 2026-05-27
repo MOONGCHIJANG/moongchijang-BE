@@ -9,8 +9,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "App target is down"
-          description: "Prometheus cannot scrape app-prod:8080/metrics for over 2 minutes."
+          summary: "[prod][critical] 애플리케이션 메트릭 수집 실패"
+          description: "2분 이상 app-prod:8080/metrics 스크랩에 실패했습니다."
 
       - alert: Http5xxErrorRateWarning
         expr: |
@@ -27,8 +27,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "5xx error rate warning"
-          description: "HTTP 5xx ratio is above 1% for 10 minutes."
+          summary: "[prod][warning] HTTP 5xx 에러율 증가"
+          description: "10분 동안 HTTP 5xx 비율이 1%를 초과했습니다."
 
       - alert: Http5xxErrorRateCritical
         expr: |
@@ -45,8 +45,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "5xx error rate critical"
-          description: "HTTP 5xx ratio is above 5% for 5 minutes."
+          summary: "[prod][critical] HTTP 5xx 에러율 급증"
+          description: "5분 동안 HTTP 5xx 비율이 5%를 초과했습니다."
 
       - alert: HttpLatencyP95Warning
         expr: |
@@ -60,8 +60,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "HTTP p95 latency warning"
-          description: "HTTP p95 latency is above 500ms for 10 minutes."
+          summary: "[prod][warning] HTTP p95 지연시간 증가"
+          description: "10분 동안 HTTP p95 지연시간이 500ms를 초과했습니다."
 
       - alert: HttpLatencyP99Critical
         expr: |
@@ -75,8 +75,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "HTTP p99 latency critical"
-          description: "HTTP p99 latency is above 1.5s for 5 minutes."
+          summary: "[prod][critical] HTTP p99 지연시간 급증"
+          description: "5분 동안 HTTP p99 지연시간이 1.5초를 초과했습니다."
 
       - alert: HighCpuWarning
         expr: process_cpu_usage{job="app"} > 0.80
@@ -86,8 +86,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "CPU usage warning"
-          description: "Process CPU usage is above 80% for 10 minutes."
+          summary: "[prod][warning] CPU 사용률 증가"
+          description: "10분 동안 프로세스 CPU 사용률이 80%를 초과했습니다."
 
       - alert: HighCpuCritical
         expr: process_cpu_usage{job="app"} > 0.90
@@ -97,8 +97,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "CPU usage critical"
-          description: "Process CPU usage is above 90% for 5 minutes."
+          summary: "[prod][critical] CPU 사용률 과다"
+          description: "5분 동안 프로세스 CPU 사용률이 90%를 초과했습니다."
 
       - alert: HighJvmHeapMemoryWarning
         expr: |
@@ -113,8 +113,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "JVM heap usage warning"
-          description: "JVM heap usage is above 85% for 10 minutes."
+          summary: "[prod][warning] JVM 힙 메모리 사용률 증가"
+          description: "10분 동안 JVM 힙 메모리 사용률이 85%를 초과했습니다."
 
       - alert: LowDiskSpaceCritical
         expr: |
@@ -127,8 +127,8 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "Low disk space critical"
-          description: "Less than 10% disk free space remains for 10 minutes."
+          summary: "[prod][critical] 디스크 여유 공간 부족"
+          description: "10분 동안 디스크 여유 공간이 10% 미만입니다."
 
       - alert: HighGcPauseWarning
         expr: |
@@ -145,5 +145,5 @@ groups:
           service: moongchijang-be
           env: prod
         annotations:
-          summary: "GC pause warning"
-          description: "Average JVM GC pause exceeds 200ms for 10 minutes."
+          summary: "[prod][warning] GC 일시정지 시간 증가"
+          description: "10분 동안 JVM 평균 GC pause 시간이 200ms를 초과했습니다."
