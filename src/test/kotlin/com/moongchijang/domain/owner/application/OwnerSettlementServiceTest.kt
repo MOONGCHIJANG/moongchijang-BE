@@ -81,7 +81,7 @@ class OwnerSettlementServiceTest {
         assertEquals(5, result.month)
         assertEquals(240000L, result.grossRevenueAmount)
         assertEquals(24000L, result.refundFeeAmount)
-        assertEquals(216000L, result.settlementExpectedAmount)
+        assertEquals(264000L, result.settlementExpectedAmount)
     }
 
     @Test
@@ -137,7 +137,7 @@ class OwnerSettlementServiceTest {
         val owner = seller()
         val participation = refundParticipation(id = 1010L, status = ParticipationStatus.REFUND_PENDING)
         stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
-        `when`(participationRepository.findById(1010L)).thenReturn(Optional.of(participation))
+        `when`(participationRepository.findPickupDetailById(1010L)).thenReturn(participation)
 
         val detail = service.getRefundRequestDetail(owner.id!!, 1010L)
 

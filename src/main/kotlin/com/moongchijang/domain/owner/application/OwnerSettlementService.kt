@@ -69,7 +69,7 @@ class OwnerSettlementService(
             year = year,
             month = month,
         )
-        val settlementExpectedAmount = (grossRevenueAmount - refundFeeAmount).coerceAtLeast(0L)
+        val settlementExpectedAmount = (grossRevenueAmount + refundFeeAmount).coerceAtLeast(0L)
 
         return OwnerSettlementMonthlySummaryResponse(
             year = year,
