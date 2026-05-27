@@ -53,9 +53,8 @@ class OwnerSettlementServiceTest {
     @Test
     fun `월별 정산 예정 금액을 조회한다`() {
         val owner = seller()
-        val storeIds = listOf(1L)
-        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
-        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(storeIds)
+        val storeIds = defaultStoreIds()
+        stubSellerAndStoreIds(owner.id!!, owner, storeIds)
         `when`(
             participationRepository.sumTotalAmountByStoreIdsAndStatusesAndYearMonth(
                 storeIds,
@@ -86,11 +85,10 @@ class OwnerSettlementServiceTest {
     @Test
     fun `정산 월 칩을 연월 기준으로 중복 없이 반환한다`() {
         val owner = seller()
-        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
-        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
         `when`(
             groupBuyRepository.findDistinctPickupDatesByStoreIdsAndStatuses(
-                listOf(1L),
+                defaultStoreIds(),
                 listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
             )
         ).thenReturn(
@@ -111,11 +109,10 @@ class OwnerSettlementServiceTest {
     @Test
     fun `환불 요청 목록 탭 필터를 적용한다`() {
         val owner = seller()
-        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
-        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
         `when`(
             participationRepository.findRefundRequestsByStoreIdsAndStatuses(
-                listOf(1L),
+                defaultStoreIds(),
                 listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
             )
         ).thenReturn(
@@ -124,8 +121,8 @@ class OwnerSettlementServiceTest {
                 refundParticipation(id = 1002L, status = ParticipationStatus.REFUNDED),
             )
         )
-        `when`(participationRepository.countRefundRequestsByStoreIdsAndStatus(listOf(1L), ParticipationStatus.REFUND_PENDING)).thenReturn(1L)
-        `when`(participationRepository.countRefundRequestsByStoreIdsAndStatus(listOf(1L), ParticipationStatus.REFUNDED)).thenReturn(1L)
+        `when`(participationRepository.countRefundRequestsByStoreIdsAndStatus(defaultStoreIds(), ParticipationStatus.REFUND_PENDING)).thenReturn(1L)
+        `when`(participationRepository.countRefundRequestsByStoreIdsAndStatus(defaultStoreIds(), ParticipationStatus.REFUNDED)).thenReturn(1L)
 
         val pendingOnly = service.getRefundRequests(owner.id!!, OwnerRefundRequestTab.PENDING)
         val all = service.getRefundRequests(owner.id!!, OwnerRefundRequestTab.ALL)
@@ -139,8 +136,7 @@ class OwnerSettlementServiceTest {
     fun `환불 요청 상세를 조회한다`() {
         val owner = seller()
         val participation = refundParticipation(id = 1010L, status = ParticipationStatus.REFUND_PENDING)
-        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
-        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
         `when`(participationRepository.findById(1010L)).thenReturn(Optional.of(participation))
 
         val detail = service.getRefundRequestDetail(owner.id!!, 1010L)
@@ -168,8 +164,7 @@ class OwnerSettlementServiceTest {
     fun `환불 요청 검토 제출 성공`() {
         val owner = seller()
         val participation = refundParticipation(id = 1020L, status = ParticipationStatus.REFUND_PENDING)
-        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
-        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
         `when`(participationRepository.findById(1020L)).thenReturn(Optional.of(participation))
 
         val response = service.submitRefundReview(
@@ -203,6 +198,17 @@ class OwnerSettlementServiceTest {
 
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {
         role = UserRole.SELLER
+    }
+
+    private fun defaultStoreIds(): List<Long> = listOf(1L)
+
+    private fun stubSellerAndStoreIds(
+        ownerId: Long,
+        owner: com.moongchijang.domain.user.domain.entity.User,
+        storeIds: List<Long>,
+    ) {
+        `when`(userRepository.findByIdAndDeletedAtIsNull(ownerId)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(ownerId)).thenReturn(storeIds)
     }
 
     private fun refundParticipation(id: Long, status: ParticipationStatus): Participation {
