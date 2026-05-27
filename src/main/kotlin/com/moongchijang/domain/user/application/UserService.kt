@@ -21,7 +21,9 @@ import com.moongchijang.domain.user.application.dto.PasswordChangeRequest
 import com.moongchijang.domain.user.application.dto.PasswordChangeResponse
 import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateRequest
 import com.moongchijang.domain.user.application.dto.PhoneNumberUpdateResponse
+import com.moongchijang.domain.user.application.dto.SellerBusinessProfileResponse
 import com.moongchijang.domain.user.application.dto.SellerBusinessInfoUpsertRequest
+import com.moongchijang.domain.user.application.dto.SellerSettlementAccountResponse
 import com.moongchijang.domain.user.application.dto.SellerSettlementInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
@@ -180,6 +182,113 @@ class UserService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
         user.saveLastRole(role)
+    }
+
+    @Transactional
+    fun switchMyPageRole(userId: Long, targetRole: UserRole): AuthUserResponse {
+        log.info("[UserService] 마이페이지 역할 전환 시작: userId={}, targetRole={}", userId, targetRole)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+        if (targetRole == UserRole.SELLER && !user.hasRole(UserRole.SELLER)) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+
+        user.role = targetRole
+        user.saveLastRole(targetRole)
+        log.info("[UserService] 마이페이지 역할 전환 완료: userId={}, targetRole={}", userId, targetRole)
+        return AuthUserResponse.from(user)
+    }
+
+    @Transactional(readOnly = true)
+    fun getSellerSettlementAccount(userId: Long): SellerSettlementAccountResponse {
+        log.info("[UserService] 사장님 입금 계좌 조회 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        ensureSellerRole(user)
+
+        val account = sellerSettlementAccountRepository.findByUserId(userId)
+            ?: throw CustomException(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED)
+        log.info("[UserService] 사장님 입금 계좌 조회 완료: userId={}", userId)
+        return SellerSettlementAccountResponse(
+            bankCode = account.bankCode,
+            accountNumber = account.accountNumber,
+            accountHolderName = account.accountHolderName,
+        )
+    }
+
+    @Transactional
+    fun updateSellerSettlementAccount(
+        request: SellerSettlementInfoUpsertRequest,
+        userId: Long,
+    ): SellerSettlementAccountResponse {
+        log.info("[UserService] 사장님 입금 계좌 변경 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        ensureSellerRole(user)
+
+        val account = sellerSettlementAccountRepository.findByUserId(userId)
+            ?: throw CustomException(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED)
+        account.bankCode = SettlementInstitutionCodeMapper.toCode(request.bankCode)
+        account.accountNumber = request.accountNumber.trim()
+        account.accountHolderName = request.accountHolderName.trim()
+        sellerSettlementAccountRepository.save(account)
+
+        log.info("[UserService] 사장님 입금 계좌 변경 완료: userId={}", userId)
+        return SellerSettlementAccountResponse(
+            bankCode = account.bankCode,
+            accountNumber = account.accountNumber,
+            accountHolderName = account.accountHolderName,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getSellerBusinessProfile(userId: Long): SellerBusinessProfileResponse {
+        log.info("[UserService] 사장님 사업자 정보 조회 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        ensureSellerRole(user)
+
+        val profile = sellerBusinessProfileRepository.findByUserId(userId)
+            ?: throw CustomException(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED)
+        log.info("[UserService] 사장님 사업자 정보 조회 완료: userId={}", userId)
+        return SellerBusinessProfileResponse(
+            businessRegistrationNumber = profile.businessRegistrationNumber,
+            storeName = profile.storeName,
+            ownerName = profile.ownerName,
+            storeAddress = profile.storeAddress,
+            phoneNumber = profile.phoneNumber,
+        )
+    }
+
+    @Transactional
+    fun updateSellerBusinessProfile(
+        request: SellerBusinessInfoUpsertRequest,
+        userId: Long,
+    ): SellerBusinessProfileResponse {
+        log.info("[UserService] 사장님 사업자 정보 변경 시작: userId={}", userId)
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        ensureSellerRole(user)
+
+        val profile = sellerBusinessProfileRepository.findByUserId(userId)
+            ?: throw CustomException(ErrorCode.SELLER_BUSINESS_INFO_REQUIRED)
+
+        profile.businessRegistrationNumber = normalizeBusinessRegistrationNumber(request.businessRegistrationNumber)
+        profile.storeName = request.storeName.trim()
+        profile.ownerName = request.ownerName.trim()
+        profile.storeAddress = request.storeAddress.trim()
+        profile.phoneNumber = request.phoneNumber.trim()
+        sellerBusinessProfileRepository.save(profile)
+
+        log.info("[UserService] 사장님 사업자 정보 변경 완료: userId={}", userId)
+        return SellerBusinessProfileResponse(
+            businessRegistrationNumber = profile.businessRegistrationNumber,
+            storeName = profile.storeName,
+            ownerName = profile.ownerName,
+            storeAddress = profile.storeAddress,
+            phoneNumber = profile.phoneNumber,
+        )
     }
 
     @Transactional
@@ -388,6 +497,12 @@ class UserService(
     }
 
     private fun normalizeBusinessRegistrationNumber(raw: String): String = raw.replace(Regex("[^0-9]"), "")
+
+    private fun ensureSellerRole(user: User) {
+        if (!user.hasRole(UserRole.SELLER)) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
+    }
 
     private fun findActiveKakaoUser(providerId: String): User? {
         return userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(
