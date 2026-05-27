@@ -33,6 +33,18 @@ data class AuthUserResponse(
     @field:Schema(description = "마지막 사용 역할", example = "SELLER")
     val lastRole: UserRole?,
 
+    @field:Schema(description = "소비자 역할 보유 여부", example = "true")
+    val hasBuyerRole: Boolean,
+
+    @field:Schema(description = "사장님 역할 보유 여부", example = "true")
+    val hasSellerRole: Boolean,
+
+    @field:Schema(description = "소비자 모드 전환 가능 여부", example = "true")
+    val canSwitchToBuyer: Boolean,
+
+    @field:Schema(description = "사장님 모드 전환 가능 여부", example = "true")
+    val canSwitchToSeller: Boolean,
+
     @field:Schema(description = "추가정보 입력 완료 여부", example = "false")
     val signupCompleted: Boolean,
 
@@ -58,6 +70,10 @@ data class AuthUserResponse(
             phoneNumber = user.phoneNumber,
             role = user.role,
             lastRole = user.lastRole,
+            hasBuyerRole = user.hasRole(UserRole.BUYER),
+            hasSellerRole = user.hasRole(UserRole.SELLER),
+            canSwitchToBuyer = user.hasRole(UserRole.BUYER) && user.role != UserRole.BUYER,
+            canSwitchToSeller = user.hasRole(UserRole.SELLER) && user.role != UserRole.SELLER,
             signupCompleted = user.signupCompleted,
             sellerSignupCompleted = user.sellerSignupCompleted,
             deletedAt = user.deletedAt,
