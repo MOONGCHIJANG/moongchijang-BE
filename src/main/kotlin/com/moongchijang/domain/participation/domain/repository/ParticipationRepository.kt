@@ -320,6 +320,21 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
+        select p.groupBuy.id as groupBuyId,
+               count(p) as pendingRefundCount
+        from Participation p
+        where p.groupBuy.id in :groupBuyIds
+          and p.status = :status
+        group by p.groupBuy.id
+        """
+    )
+    fun countPendingRefundsByGroupBuyIdIn(
+        @Param("groupBuyIds") groupBuyIds: Collection<Long>,
+        @Param("status") status: ParticipationStatus = ParticipationStatus.REFUND_PENDING
+    ): List<GroupBuyPendingRefundCount>
+
+    @Query(
+        """
         select coalesce(sum(p.totalAmount), 0)
         from Participation p
         join p.groupBuy gb
@@ -409,4 +424,9 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participation p join fetch p.groupBuy where p.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): Optional<Participation>
+}
+
+interface GroupBuyPendingRefundCount {
+    val groupBuyId: Long
+    val pendingRefundCount: Long
 }

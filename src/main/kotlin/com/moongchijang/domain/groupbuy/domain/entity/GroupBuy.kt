@@ -88,15 +88,51 @@ class GroupBuy(
     @Column(name = "closed_by_type", length = 20)
     var closedByType: GroupBuyClosedByType? = null,
 
+    @Column(name = "achieved_at")
+    var achievedAt: LocalDateTime? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_status", nullable = false, length = 30)
+    var orderStatus: GroupBuyOrderStatus = GroupBuyOrderStatus.PENDING,
+
+    @Column(name = "order_owner_contacted_at")
+    var orderOwnerContactedAt: LocalDateTime? = null,
+
+    @Column(name = "order_confirmed_at")
+    var orderConfirmedAt: LocalDateTime? = null,
+
+    @Column(name = "order_cancelled_at")
+    var orderCancelledAt: LocalDateTime? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
 
 ) : BaseEntity()
 {
-    fun transitionToAchieved() {
+    fun transitionToAchieved(achievedAt: LocalDateTime = LocalDateTime.now()) {
         requireStatus(GroupBuyStatus.IN_PROGRESS)
         status = GroupBuyStatus.ACHIEVED
+        this.achievedAt = achievedAt
+    }
+
+    fun markOrderOwnerContacted(contactedAt: LocalDateTime = LocalDateTime.now()) {
+        requireStatus(GroupBuyStatus.ACHIEVED)
+        orderOwnerContactedAt = contactedAt
+    }
+
+    fun confirmOrder(confirmedAt: LocalDateTime = LocalDateTime.now()) {
+        requireStatus(GroupBuyStatus.ACHIEVED)
+        orderStatus = GroupBuyOrderStatus.CONFIRMED
+        orderConfirmedAt = confirmedAt
+        orderCancelledAt = null
+    }
+
+    fun cancelOrder(cancelledAt: LocalDateTime = LocalDateTime.now()) {
+        requireStatus(GroupBuyStatus.ACHIEVED)
+        orderStatus = GroupBuyOrderStatus.CANCELLED
+        orderCancelledAt = cancelledAt
+        orderConfirmedAt = null
     }
 
     fun transitionToCompletedByDeadline(now: LocalDateTime) {

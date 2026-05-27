@@ -1,12 +1,15 @@
 package com.moongchijang.domain.admin.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
@@ -21,11 +24,13 @@ class AdminDashboardSummaryServiceTest {
     private val groupBuyRequestRepository: GroupBuyRequestRepository = mock(GroupBuyRequestRepository::class.java)
     private val groupBuyRequestStatusHistoryRepository: GroupBuyRequestStatusHistoryRepository =
         mock(GroupBuyRequestStatusHistoryRepository::class.java)
+    private val groupBuyRepository: GroupBuyRepository = mock(GroupBuyRepository::class.java)
     private val participationRepository: ParticipationRepository = mock(ParticipationRepository::class.java)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneId.of("Asia/Seoul"))
     private val service = AdminDashboardSummaryService(
         groupBuyRequestRepository = groupBuyRequestRepository,
         groupBuyRequestStatusHistoryRepository = groupBuyRequestStatusHistoryRepository,
+        groupBuyRepository = groupBuyRepository,
         participationRepository = participationRepository,
         clock = clock
     )
@@ -38,7 +43,15 @@ class AdminDashboardSummaryServiceTest {
         val now = LocalDateTime.of(2026, 5, 27, 13, 0)
         val pendingStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
         val completedStatuses = listOf(GroupBuyRequestStatus.OPENED, GroupBuyRequestStatus.REJECTED)
+        val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 13, 0)
 
+        `when`(
+            groupBuyRepository.countOverdueAdminOrders(
+                GroupBuyStatus.ACHIEVED,
+                GroupBuyOrderStatus.PENDING,
+                orderOverdueBefore
+            )
+        ).thenReturn(2L)
         `when`(participationRepository.sumPaymentOrderAmountByStatus(ParticipationStatus.REFUND_PENDING))
             .thenReturn(30_000L)
         `when`(
@@ -58,6 +71,8 @@ class AdminDashboardSummaryServiceTest {
         `when`(groupBuyRequestRepository.findCreatedAtByStatusIn(pendingStatuses))
             .thenReturn(listOf(now.minusMinutes(30), now.minusMinutes(90)))
         `when`(groupBuyRequestRepository.countByStatusIn(pendingStatuses)).thenReturn(4L)
+        `when`(groupBuyRepository.countByStatusAndOrderStatus(GroupBuyStatus.ACHIEVED, GroupBuyOrderStatus.PENDING))
+            .thenReturn(7L)
         `when`(groupBuyRequestRepository.countByStatusInAndCreatedAtBetween(pendingStatuses, todayStart, tomorrowStart))
             .thenReturn(3L)
         `when`(groupBuyRequestRepository.countByStatusInAndCreatedAtBetween(pendingStatuses, yesterdayStart, todayStart))
@@ -84,11 +99,11 @@ class AdminDashboardSummaryServiceTest {
         assertEquals(4L, result.pendingApprovalCount)
         assertEquals(60L, result.averageReviewMinutes)
         assertEquals(50.0, result.pendingApprovalChangeRate)
-        assertEquals(0L, result.unconfirmedOrderCount)
-        assertEquals(0L, result.unconfirmedOrderOver48hCount)
+        assertEquals(7L, result.unconfirmedOrderCount)
+        assertEquals(2L, result.unconfirmedOrderOver48hCount)
         assertEquals(5L, result.todayCompletedRefundCount)
         assertEquals(6L, result.todayCompletedApprovalCount)
-        assertFalse(result.hasOrderOver48h)
+        assertTrue(result.hasOrderOver48h)
     }
 
     @Test
@@ -97,7 +112,15 @@ class AdminDashboardSummaryServiceTest {
         val tomorrowStart = LocalDateTime.of(2026, 5, 28, 0, 0)
         val yesterdayStart = LocalDateTime.of(2026, 5, 26, 0, 0)
         val pendingStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
+        val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 13, 0)
 
+        `when`(
+            groupBuyRepository.countOverdueAdminOrders(
+                GroupBuyStatus.ACHIEVED,
+                GroupBuyOrderStatus.PENDING,
+                orderOverdueBefore
+            )
+        ).thenReturn(0L)
         `when`(participationRepository.sumPaymentOrderAmountByStatus(ParticipationStatus.REFUND_PENDING))
             .thenReturn(0L)
         `when`(

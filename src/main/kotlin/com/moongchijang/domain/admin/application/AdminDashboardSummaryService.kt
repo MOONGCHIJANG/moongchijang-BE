@@ -2,6 +2,9 @@ package com.moongchijang.domain.admin.application
 
 import com.moongchijang.domain.admin.application.dto.AdminDashboardSummaryResponse
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -18,6 +21,7 @@ import java.time.LocalDateTime
 class AdminDashboardSummaryService(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val groupBuyRequestStatusHistoryRepository: GroupBuyRequestStatusHistoryRepository,
+    private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
@@ -29,6 +33,12 @@ class AdminDashboardSummaryService(
         val yesterdayRange = today.minusDays(1).toRange()
         val pendingApprovalStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
         val completedApprovalStatuses = listOf(GroupBuyRequestStatus.OPENED, GroupBuyRequestStatus.REJECTED)
+        val orderOverdueBefore = now.minusHours(48)
+        val unconfirmedOrderOver48hCount = groupBuyRepository.countOverdueAdminOrders(
+            status = GroupBuyStatus.ACHIEVED,
+            orderStatus = GroupBuyOrderStatus.PENDING,
+            overdueBefore = orderOverdueBefore
+        )
 
         val pendingRefundAmount = participationRepository.sumPaymentOrderAmountByStatus(ParticipationStatus.REFUND_PENDING)
         val todayPendingRefundAmount = participationRepository.sumPaymentOrderAmountByStatusAndCancelledAtBetween(
@@ -60,8 +70,11 @@ class AdminDashboardSummaryService(
                     to = yesterdayRange.end
                 )
             ),
-            unconfirmedOrderCount = 0,
-            unconfirmedOrderOver48hCount = 0,
+            unconfirmedOrderCount = groupBuyRepository.countByStatusAndOrderStatus(
+                status = GroupBuyStatus.ACHIEVED,
+                orderStatus = GroupBuyOrderStatus.PENDING
+            ),
+            unconfirmedOrderOver48hCount = unconfirmedOrderOver48hCount,
             todayCompletedRefundCount = participationRepository.countByStatusAndRefundedAtFromUntil(
                 status = ParticipationStatus.REFUNDED,
                 from = todayRange.start,
@@ -72,7 +85,7 @@ class AdminDashboardSummaryService(
                 from = todayRange.start,
                 to = todayRange.end
             ),
-            hasOrderOver48h = false
+            hasOrderOver48h = unconfirmedOrderOver48hCount > 0
         )
     }
 

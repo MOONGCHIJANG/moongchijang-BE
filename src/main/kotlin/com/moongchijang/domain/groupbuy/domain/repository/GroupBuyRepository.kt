@@ -1,7 +1,9 @@
 package com.moongchijang.domain.groupbuy.domain.repository
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import org.springframework.data.domain.Page
 import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
@@ -27,6 +29,51 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         deadlineFrom: LocalDateTime,
         deadlineTo: LocalDateTime
     ): List<GroupBuy>
+
+    @Query(
+        value = """
+            select gb
+            from GroupBuy gb
+            join fetch gb.store
+            where gb.status = :groupBuyStatus
+              and gb.orderStatus in :orderStatuses
+              and (:overdueBefore is null or gb.achievedAt < :overdueBefore)
+            order by gb.achievedAt asc, gb.id asc
+        """,
+        countQuery = """
+            select count(gb)
+            from GroupBuy gb
+            where gb.status = :groupBuyStatus
+              and gb.orderStatus in :orderStatuses
+              and (:overdueBefore is null or gb.achievedAt < :overdueBefore)
+        """
+    )
+    fun findAdminOrderPage(
+        @Param("groupBuyStatus") groupBuyStatus: GroupBuyStatus,
+        @Param("orderStatuses") orderStatuses: Collection<GroupBuyOrderStatus>,
+        @Param("overdueBefore") overdueBefore: LocalDateTime?,
+        pageable: Pageable
+    ): Page<GroupBuy>
+
+    fun countByStatusAndOrderStatus(
+        status: GroupBuyStatus,
+        orderStatus: GroupBuyOrderStatus
+    ): Long
+
+    @Query(
+        """
+        select count(gb)
+        from GroupBuy gb
+        where gb.status = :status
+          and gb.orderStatus = :orderStatus
+          and gb.achievedAt < :overdueBefore
+        """
+    )
+    fun countOverdueAdminOrders(
+        @Param("status") status: GroupBuyStatus,
+        @Param("orderStatus") orderStatus: GroupBuyOrderStatus,
+        @Param("overdueBefore") overdueBefore: LocalDateTime
+    ): Long
 
     @EntityGraph(attributePaths = ["store"])
     fun findWithStoreById(id: Long): Optional<GroupBuy>
