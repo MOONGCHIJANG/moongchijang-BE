@@ -316,6 +316,9 @@ class UserService(
         log.info("[UserService] 회원탈퇴 처리 시작: userId={}", userId)
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        if (user.hasRole(UserRole.SELLER)) {
+            throw CustomException(ErrorCode.FORBIDDEN)
+        }
 
         validateWithdrawalReason(request)
         validateWithdrawable(userId)

@@ -38,6 +38,7 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     ): Boolean
 
     fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
+    fun existsByUserIdAndStatus(userId: Long, status: ParticipationStatus): Boolean
 
     @Query(
         """

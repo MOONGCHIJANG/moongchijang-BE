@@ -525,6 +525,52 @@ class UserServiceTest {
     }
 
     @Test
+    fun `회원탈퇴 컨텍스트 가능 이후 실행 시점 차단 예외`() {
+        val user = UserFixture.createKakaoUser(id = 55L, providerId = "kakao-55", nickname = "경합유저")
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(55L)).thenReturn(user)
+        Mockito.`when`(
+            participationRepository.existsPendingPickupForWithdrawal(
+                55L,
+                ParticipationStatus.CONFIRMED,
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+            )
+        ).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            userService.withdraw(
+                55L,
+                WithdrawRequest(
+                    reason = WithdrawalReason.INCONVENIENT_SERVICE,
+                    reasonDetail = null,
+                )
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.WITHDRAWAL_BLOCKED_PENDING_PICKUP, exception.errorCode)
+    }
+
+    @Test
+    fun `회원탈퇴 사장님 권한 사용자 차단 예외`() {
+        val sellerUser = UserFixture.createKakaoUser(id = 56L, providerId = "kakao-56", nickname = "사장님").apply {
+            roleAssignments.add(com.moongchijang.domain.user.domain.entity.UserRoleAssignment(user = this, role = UserRole.SELLER))
+        }
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(56L)).thenReturn(sellerUser)
+
+        val exception = assertThrows<CustomException> {
+            userService.withdraw(
+                56L,
+                WithdrawRequest(
+                    reason = WithdrawalReason.INCONVENIENT_SERVICE,
+                    reasonDetail = null,
+                )
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.FORBIDDEN, exception.errorCode)
+    }
+
+    @Test
     fun `사장님 사업자 정보 저장할 때 사업자 정보가 저장됨`() {
         val user = UserFixture.createKakaoUser(id = 101L, providerId = "kakao-101")
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(101L)).thenReturn(user)
