@@ -336,20 +336,6 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
-        select count(p)
-        from Participation p
-        join p.groupBuy gb
-        where gb.store.id in :storeIds
-          and p.status = :status
-        """
-    )
-    fun countRefundRequestsByStoreIdsAndStatus(
-        @Param("storeIds") storeIds: Collection<Long>,
-        @Param("status") status: ParticipationStatus,
-    ): Long
-
-    @Query(
-        """
         select p
         from Participation p
         join fetch p.user
