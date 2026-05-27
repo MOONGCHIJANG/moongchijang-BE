@@ -3167,15 +3167,19 @@ components:
           enum: [BUYER, SELLER, ADMIN]
         hasBuyerRole:
           type: boolean
+          description: BUYER 역할 assignment 보유 여부
           example: true
         hasSellerRole:
           type: boolean
+          description: SELLER 역할 assignment 보유 여부
           example: true
         canSwitchToBuyer:
           type: boolean
+          description: BUYER 역할 assignment를 보유했고 현재 역할이 BUYER가 아닐 때 true
           example: false
         canSwitchToSeller:
           type: boolean
+          description: SELLER 역할 assignment를 보유했고 현재 역할이 SELLER가 아닐 때 true
           example: true
         signupCompleted: { type: boolean }
         sellerSignupCompleted: { type: boolean }
