@@ -22,6 +22,8 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
 class AuthService(
@@ -31,70 +33,83 @@ class AuthService(
     private val tokenService: TokenService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val passwordEncoder: PasswordEncoder,
+    private val authMetricsRecorder: AuthMetricsRecorder,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun loginWithKakao(request: KakaoLoginRequest): AuthLoginResult {
-        log.info("[AuthService] 카카오 로그인 처리 시작")
-        val kakaoUser: KakaoAuthUser = kakaoAuthService.getKakaoUser(request.authorizationCode)
+        return runCatching {
+            log.info("[AuthService] 카카오 로그인 처리 시작")
+            val kakaoUser: KakaoAuthUser = kakaoAuthService.getKakaoUser(request.authorizationCode)
 
-        val (user, isNewUser) = userService.findOrCreateKakaoUser(
-            providerId = kakaoUser.providerId,
-            email = kakaoUser.email,
-            nickname = kakaoUser.nickname,
-        )
+            val (user, isNewUser) = userService.findOrCreateKakaoUser(
+                providerId = kakaoUser.providerId,
+                email = kakaoUser.email,
+                nickname = kakaoUser.nickname,
+            )
 
-        val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
-        val refreshToken = tokenService.issueRefreshToken(user.id!!)
-        val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
+            val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
+            val refreshToken = tokenService.issueRefreshToken(user.id!!)
+            val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
 
-        val response = AuthLoginResponse(
-            accessToken = accessToken,
-            tokenType = "Bearer",
-            expiresIn = expiresIn,
-            isNewUser = isNewUser,
-            user = AuthUserResponse.from(user),
-        )
+            val response = AuthLoginResponse(
+                accessToken = accessToken,
+                tokenType = "Bearer",
+                expiresIn = expiresIn,
+                isNewUser = isNewUser,
+                user = AuthUserResponse.from(user),
+            )
 
-        log.info(
-            "[AuthService] 카카오 로그인 처리 완료: userId={}, isNewUser={}",
-            user.id,
-            isNewUser,
-        )
+            log.info(
+                "[AuthService] 카카오 로그인 처리 완료: userId={}, isNewUser={}",
+                user.id,
+                isNewUser,
+            )
+            recordAfterCommit { authMetricsRecorder.recordLogin(provider = "kakao", result = "success") }
 
-        return AuthLoginResult(
-            response = response,
-            refreshToken = refreshToken,
-        )
+            AuthLoginResult(
+                response = response,
+                refreshToken = refreshToken,
+            )
+        }.getOrElse { throwable ->
+            authMetricsRecorder.recordLogin(provider = "kakao", result = "failure")
+            throw throwable
+        }
     }
 
     @Transactional
     fun reissueAccessToken(request: HttpServletRequest): AccessTokenReissueResult {
-        log.info("[AuthService] 액세스 토큰 재발급 처리 시작")
+        return runCatching {
+            log.info("[AuthService] 액세스 토큰 재발급 처리 시작")
 
-        val refreshToken = tokenService.extractRefreshToken(request)
-            ?: throw CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND)
+            val refreshToken = tokenService.extractRefreshToken(request)
+                ?: throw CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND)
 
-        val userId = tokenService.getUserIdByRefreshToken(refreshToken)
-            ?: throw CustomException(ErrorCode.INVALID_REFRESH_TOKEN)
+            val userId = tokenService.getUserIdByRefreshToken(refreshToken)
+                ?: throw CustomException(ErrorCode.INVALID_REFRESH_TOKEN)
 
-        val newRefreshToken = tokenService.reissueRefreshToken(userId, refreshToken)
-        val accessToken = jwtTokenProvider.generateAccessToken(userId)
-        val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
+            val newRefreshToken = tokenService.reissueRefreshToken(userId, refreshToken)
+            val accessToken = jwtTokenProvider.generateAccessToken(userId)
+            val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
 
-        val response = AccessTokenResponse(
-            accessToken = accessToken,
-            tokenType = "Bearer",
-            expiresIn = expiresIn,
-        )
+            val response = AccessTokenResponse(
+                accessToken = accessToken,
+                tokenType = "Bearer",
+                expiresIn = expiresIn,
+            )
 
-        log.info("[AuthService] 액세스 토큰 재발급 처리 완료: userId={}", userId)
+            log.info("[AuthService] 액세스 토큰 재발급 처리 완료: userId={}", userId)
+            recordAfterCommit { authMetricsRecorder.recordTokenReissue(result = "success") }
 
-        return AccessTokenReissueResult(
-            response = response,
-            refreshToken = newRefreshToken,
-        )
+            AccessTokenReissueResult(
+                response = response,
+                refreshToken = newRefreshToken,
+            )
+        }.getOrElse { throwable ->
+            authMetricsRecorder.recordTokenReissue(result = "failure")
+            throw throwable
+        }
     }
 
     @Transactional
@@ -113,36 +128,43 @@ class AuthService(
 
     @Transactional
     fun signupWithEmail(request: EmailSignupRequest): AuthLoginResult {
-        val normalizedEmail = request.email.trim().lowercase()
-        log.info("[AuthService] 이메일 회원가입 처리 시작: email={}", normalizedEmail)
+        return runCatching {
+            val normalizedEmail = request.email.trim().lowercase()
+            log.info("[AuthService] 이메일 회원가입 처리 시작: email={}", normalizedEmail)
 
-        validateSignupTokenForNormalizedEmail(normalizedEmail, request.signupToken)
-        validatePasswordPolicy(normalizedEmail, request.password)
+            validateSignupTokenForNormalizedEmail(normalizedEmail, request.signupToken)
+            validatePasswordPolicy(normalizedEmail, request.password)
 
-        val passwordHash = requireNotNull(passwordEncoder.encode(request.password)) {
-            "Password hash must not be null"
+            val passwordHash = requireNotNull(passwordEncoder.encode(request.password)) {
+                "Password hash must not be null"
+            }
+            val user: User = userService.createEmailUser(normalizedEmail, passwordHash)
+
+            emailSignupTokenStore.delete(normalizedEmail)
+
+            val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
+            val refreshToken = tokenService.issueRefreshToken(user.id!!)
+            val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
+
+            val response = AuthLoginResponse(
+                accessToken = accessToken,
+                tokenType = "Bearer",
+                expiresIn = expiresIn,
+                isNewUser = true,
+                user = AuthUserResponse.from(user),
+            )
+
+            log.info("[AuthService] 이메일 회원가입 처리 완료: userId={}", user.id)
+            recordAfterCommit { authMetricsRecorder.recordSignup(method = "email", result = "success") }
+
+            AuthLoginResult(
+                response = response,
+                refreshToken = refreshToken,
+            )
+        }.getOrElse { throwable ->
+            authMetricsRecorder.recordSignup(method = "email", result = "failure")
+            throw throwable
         }
-        val user: User = userService.createEmailUser(normalizedEmail, passwordHash)
-
-        emailSignupTokenStore.delete(normalizedEmail)
-
-        val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
-        val refreshToken = tokenService.issueRefreshToken(user.id!!)
-        val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
-
-        val response = AuthLoginResponse(
-            accessToken = accessToken,
-            tokenType = "Bearer",
-            expiresIn = expiresIn,
-            isNewUser = true,
-            user = AuthUserResponse.from(user),
-        )
-
-        log.info("[AuthService] 이메일 회원가입 처리 완료: userId={}", user.id)
-        return AuthLoginResult(
-            response = response,
-            refreshToken = refreshToken,
-        )
     }
 
     private fun validatePasswordPolicy(email: String, password: String) {
@@ -158,38 +180,59 @@ class AuthService(
 
     @Transactional
     fun loginWithEmail(request: EmailLoginRequest): AuthLoginResult {
-        val normalizedEmail = request.email.trim().lowercase()
-        log.info("[AuthService] 이메일 로그인 처리 시작: email={}", maskEmail(normalizedEmail))
+        return runCatching {
+            val normalizedEmail = request.email.trim().lowercase()
+            log.info("[AuthService] 이메일 로그인 처리 시작: email={}", maskEmail(normalizedEmail))
 
-        val user = userService.findActiveEmailUser(normalizedEmail)
-            ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+            val user = userService.findActiveEmailUser(normalizedEmail)
+                ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
 
-        val passwordHash = user.passwordHash ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
-        if (!passwordEncoder.matches(request.password, passwordHash)) {
-            throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+            val passwordHash = user.passwordHash ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+            if (!passwordEncoder.matches(request.password, passwordHash)) {
+                throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+            }
+
+            val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
+            val refreshToken = tokenService.issueRefreshToken(user.id!!)
+            val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
+
+            val response = AuthLoginResponse(
+                accessToken = accessToken,
+                tokenType = "Bearer",
+                expiresIn = expiresIn,
+                isNewUser = false,
+                user = AuthUserResponse.from(user),
+            )
+
+            log.info("[AuthService] 이메일 로그인 처리 완료: userId={}", user.id)
+            recordAfterCommit { authMetricsRecorder.recordLogin(provider = "email", result = "success") }
+
+            AuthLoginResult(
+                response = response,
+                refreshToken = refreshToken,
+            )
+        }.getOrElse { throwable ->
+            authMetricsRecorder.recordLogin(provider = "email", result = "failure")
+            throw throwable
         }
-
-        val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
-        val refreshToken = tokenService.issueRefreshToken(user.id!!)
-        val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
-
-        val response = AuthLoginResponse(
-            accessToken = accessToken,
-            tokenType = "Bearer",
-            expiresIn = expiresIn,
-            isNewUser = false,
-            user = AuthUserResponse.from(user),
-        )
-
-        log.info("[AuthService] 이메일 로그인 처리 완료: userId={}", user.id)
-
-        return AuthLoginResult(
-            response = response,
-            refreshToken = refreshToken,
-        )
     }
 
     companion object {
         private val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$")
+    }
+
+    private fun recordAfterCommit(action: () -> Unit) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            action()
+            return
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    action()
+                }
+            },
+        )
     }
 }

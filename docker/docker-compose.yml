@@ -38,6 +38,8 @@ services:
     env_file:
       - ../.env.dev
     restart: unless-stopped
+    networks:
+      - monitoring
 
   app-prod:
     # main 태그 이미지를 사용하는 prod 애플리케이션
@@ -47,6 +49,8 @@ services:
     env_file:
       - ../.env.prod
     restart: unless-stopped
+    networks:
+      - monitoring
 
   nginx:
     # 공용 리버스 프록시. prod는 /, dev는 /dev/ 경로로 라우팅
@@ -60,6 +64,8 @@ services:
       - ./certbot/www:/var/www/certbot:ro
       - ./certbot/conf:/etc/letsencrypt:ro
     restart: unless-stopped
+    networks:
+      - monitoring
 
   qdrant:
     # 벡터 검색 평가용. search-eval 프로필에서만 기동
@@ -73,7 +79,88 @@ services:
       - qdrant-storage:/qdrant/storage
     restart: unless-stopped
 
+  prometheus:
+    # 모니터링 스택의 메트릭 수집기
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.55.1
+    container_name: moongchijang-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  alertmanager:
+    # 모니터링 스택의 알림 라우터
+    profiles: ["monitoring"]
+    image: prom/alertmanager:v0.27.0
+    container_name: moongchijang-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    environment:
+      ALERT_ENV: ${ALERT_ENV:-prod}
+      ALERT_SERVICE: ${ALERT_SERVICE:-moongchijang-be}
+      DISCORD_WEBHOOK_MONITORING_CRITICAL: ${DISCORD_WEBHOOK_MONITORING_CRITICAL:-https://discord.com/api/webhooks/placeholder/critical}
+      DISCORD_WEBHOOK_MONITORING_WARNING: ${DISCORD_WEBHOOK_MONITORING_WARNING:-https://discord.com/api/webhooks/placeholder/warning}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        sed \
+          -e "s|__ALERT_ENV__|$${ALERT_ENV}|g" \
+          -e "s|__ALERT_SERVICE__|$${ALERT_SERVICE}|g" \
+          -e "s|__DISCORD_WEBHOOK_MONITORING_CRITICAL__|$${DISCORD_WEBHOOK_MONITORING_CRITICAL}|g" \
+          -e "s|__DISCORD_WEBHOOK_MONITORING_WARNING__|$${DISCORD_WEBHOOK_MONITORING_WARNING}|g" \
+          /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.generated.yml
+        exec /bin/alertmanager \
+          --config.file=/tmp/alertmanager.generated.yml \
+          --storage.path=/alertmanager
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  grafana:
+    # 모니터링 스택의 시각화 대시보드
+    profiles: ["monitoring"]
+    image: grafana/grafana:11.2.0
+    container_name: moongchijang-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_DOMAIN: ${GRAFANA_SERVER_DOMAIN:-localhost}
+      GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL:-http://localhost:3000}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+
 volumes:
   mysql-local-data:
   redis-local-data:
   qdrant-storage:
+  prometheus-data:
+  alertmanager-data:
+  grafana-data:
+
+networks:
+  monitoring:
+    name: moongchijang-monitoring
