@@ -2034,6 +2034,40 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/v1/owner/settlements/refund-requests/{participationId}/review-submissions:
+    post:
+      tags: [Owner]
+      summary: 사장님 환불 요청 검토 제출
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: participationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerRefundReviewSubmitRequest'
+      responses:
+        '200':
+          description: 제출 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerRefundReviewSubmit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/v1/owner/group-buy-requests:
     get:
@@ -4720,6 +4754,39 @@ components:
         status:
           type: string
           enum: [PENDING, COMPLETED]
+
+    OwnerRefundReviewActionType:
+      type: string
+      enum: [APPROVE, DISPUTE]
+
+    OwnerRefundReviewSubmitRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: '#/components/schemas/OwnerRefundReviewActionType'
+        disputeReason:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: action이 DISPUTE일 때 입력
+          example: "픽업 요청 시간 변경이 선행되어야 합니다."
+
+    ApiResponseOwnerRefundReviewSubmit:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerRefundReviewSubmitResponse'
+        error: { nullable: true, example: null }
+
+    OwnerRefundReviewSubmitResponse:
+      type: object
+      required: [participationId, processed]
+      properties:
+        participationId: { type: integer, format: int64, example: 1001 }
+        processed: { type: boolean, example: true }
 
     OwnerGroupBuyRequestCreate:
       type: object
