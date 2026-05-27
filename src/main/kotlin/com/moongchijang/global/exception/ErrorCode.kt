@@ -115,6 +115,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     GROUPBUY_ALREADY_PARTICIPATED(409_306, "이미 참여한 공구예요.", 409),
     GROUPBUY_LOCK_ACQUISITION_FAILED(409_300, "요청이 많아 잠시 처리 지연 중입니다. 잠시 후 다시 시도해주세요.", 409),
     GROUPBUY_LOCK_INTERRUPTED(500_300, "요청 처리 중 일시적인 오류가 발생했습니다.", 500),
+    GROUPBUY_ORDER_INVALID_STATUS(409_307, "처리할 수 없는 발주 상태입니다.", 409),
 
     // Payment(350~399)
     PAYMENT_INVALID_QUANTITY(400_350, "참여 수량이 올바르지 않습니다.", 400),
