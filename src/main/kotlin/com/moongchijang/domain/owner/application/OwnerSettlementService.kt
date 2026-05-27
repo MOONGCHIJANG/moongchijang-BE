@@ -212,7 +212,11 @@ class OwnerSettlementService(
             OwnerRefundReviewActionType.APPROVE -> OwnerRefundReviewStatus.APPROVED
             OwnerRefundReviewActionType.DISPUTE -> OwnerRefundReviewStatus.DISPUTED
         }
-        participation.ownerRefundDisputeReason = request.disputeReason?.trim()?.takeIf { it.isNotBlank() }
+        participation.ownerRefundDisputeReason = if (request.action == OwnerRefundReviewActionType.DISPUTE) {
+            request.disputeReason?.trim()?.takeIf { it.isNotBlank() }
+        } else {
+            null
+        }
         participation.ownerRefundReviewedAt = java.time.LocalDateTime.now()
 
         log.info(
