@@ -15,12 +15,12 @@ groups:
       - alert: Http5xxErrorRateWarning
         expr: |
           (
-            sum(rate(http_server_requests_seconds_count{job="app",status=~"5.."}[5m]))
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",status=~"5.."}[5m]))
             /
-            sum(rate(http_server_requests_seconds_count{job="app"}[5m]))
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app"}[5m]))
           ) > 0.01
           and
-          sum(rate(http_server_requests_seconds_count{job="app"}[5m])) > 0
+          sum by (instance) (rate(http_server_requests_seconds_count{job="app"}[5m])) > 0
         for: 10m
         labels:
           severity: warning
@@ -33,12 +33,12 @@ groups:
       - alert: Http5xxErrorRateCritical
         expr: |
           (
-            sum(rate(http_server_requests_seconds_count{job="app",status=~"5.."}[5m]))
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",status=~"5.."}[5m]))
             /
-            sum(rate(http_server_requests_seconds_count{job="app"}[5m]))
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app"}[5m]))
           ) > 0.05
           and
-          sum(rate(http_server_requests_seconds_count{job="app"}[5m])) > 0
+          sum by (instance) (rate(http_server_requests_seconds_count{job="app"}[5m])) > 0
         for: 5m
         labels:
           severity: critical
@@ -52,7 +52,7 @@ groups:
         expr: |
           histogram_quantile(
             0.95,
-            sum by (le) (rate(http_server_requests_seconds_bucket{job="app"}[5m]))
+            sum by (instance, le) (rate(http_server_requests_seconds_bucket{job="app"}[5m]))
           ) > 0.5
         for: 10m
         labels:
@@ -67,7 +67,7 @@ groups:
         expr: |
           histogram_quantile(
             0.99,
-            sum by (le) (rate(http_server_requests_seconds_bucket{job="app"}[5m]))
+            sum by (instance, le) (rate(http_server_requests_seconds_bucket{job="app"}[5m]))
           ) > 1.5
         for: 5m
         labels:
@@ -103,9 +103,9 @@ groups:
       - alert: HighJvmHeapMemoryWarning
         expr: |
           (
-            sum(jvm_memory_used_bytes{job="app",area="heap"})
+            sum by (instance) (jvm_memory_used_bytes{job="app",area="heap"})
             /
-            sum(jvm_memory_max_bytes{job="app",area="heap"})
+            sum by (instance) (jvm_memory_max_bytes{job="app",area="heap"})
           ) > 0.85
         for: 10m
         labels:
