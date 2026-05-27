@@ -1256,6 +1256,33 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/admin/orders:
+    get:
+      tags: [Admin]
+      summary: 발주 관리 목록 조회 (운영자)
+      description: 달성된 공구의 발주 확정 대기, 48시간 초과, 확정 완료, 전체 목록을 조회한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OVERDUE_48H, PENDING, CONFIRMED, ALL]
+            default: ALL
+          description: OVERDUE_48H=48시간 초과, PENDING=확정 대기, CONFIRMED=확정 완료, ALL=전체
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 발주 관리 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminOrderPage'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /api/v1/group-buys/{groupBuyId}/checkout:
     get:
       tags: [Participation]
@@ -5061,11 +5088,11 @@ components:
             unconfirmedOrderCount:
               type: integer
               format: int64
-              description: 발주 미확정 건수. 발주 도메인 구현 전까지 0 반환
+              description: 달성된 공구 중 발주 확정 대기 건수
             unconfirmedOrderOver48hCount:
               type: integer
               format: int64
-              description: 발주 미확정 48시간 초과 건수. 발주 도메인 구현 전까지 0 반환
+              description: 달성 후 48시간을 초과한 발주 확정 대기 건수
             todayCompletedRefundCount:
               type: integer
               format: int64
@@ -5078,6 +5105,71 @@ components:
               type: boolean
               description: 48시간 초과 발주 미확정 경고 노출 여부
         error: { nullable: true, example: null }
+
+    ApiResponseAdminOrderPage:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [content, totalElements, totalPages, number, size]
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/AdminOrderListItem'
+            totalElements: { type: integer, format: int64 }
+            totalPages: { type: integer }
+            number: { type: integer }
+            size: { type: integer }
+        error: { nullable: true, example: null }
+
+    AdminOrderListItem:
+      type: object
+      required: [orderId, groupBuyId, productName, storeName, finalQuantity, pendingRefundCount, pickupDate, elapsedHours, progressRate, orderStatus, actionable]
+      properties:
+        orderId:
+          type: integer
+          format: int64
+          description: 발주 관리 식별자. 현재는 groupBuyId와 동일
+        groupBuyId: { type: integer, format: int64 }
+        productName: { type: string }
+        storeName: { type: string }
+        achievedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 공구 달성 일시
+        finalQuantity:
+          type: integer
+          description: 최종 참여 수량
+        pendingRefundCount:
+          type: integer
+          format: int64
+          description: 해당 공구의 환불 대기 건수
+        pickupDate: { type: string, format: date }
+        elapsedHours:
+          type: integer
+          format: int64
+          description: 달성 후 경과 시간
+        progressRate:
+          type: integer
+          description: 목표 수량 대비 달성률(%)
+        orderStatus:
+          type: string
+          enum: [PENDING, CONFIRMED, CANCELLED]
+        ownerContactedAt:
+          type: string
+          format: date-time
+          nullable: true
+        orderConfirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+        actionable:
+          type: boolean
+          description: 발주 확정/연락 등 운영 작업 가능 여부
 
     ApiResponseAdminRequestPage:
       type: object
