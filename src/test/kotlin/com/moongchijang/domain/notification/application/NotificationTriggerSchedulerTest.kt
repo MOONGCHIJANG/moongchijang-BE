@@ -317,6 +317,69 @@ class NotificationTriggerSchedulerTest {
             "UH_7967",
         )
     }
+
+    @Test
+    fun `수령일 당일 트리거 시 알림톡을 발송한다`() {
+        val now = LocalDateTime.of(2026, 5, 23, 7, 0)
+        val participation = ParticipationFixture.createParticipation(
+            participationId = 61L,
+            groupBuyId = 61L,
+            quantity = 1,
+            totalAmount = 1000,
+            currentQuantity = 10,
+            targetQuantity = 20,
+            deadline = now.plusDays(1),
+            pickupDate = now.toLocalDate(),
+            pickupTimeStart = LocalTime.of(12, 0),
+            createdAt = now.minusDays(1),
+            participationStatus = ParticipationStatus.CONFIRMED,
+            pickupStatus = PickupStatus.NOT_READY
+        ).apply {
+            user.phoneNumber = "01099998888"
+        }
+
+        `when`(
+            participationRepository.findForPickupReminderByPickupDate(
+                now.toLocalDate(),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(listOf(participation))
+        `when`(
+            participationRepository.findForPickupReminderByPickupDate(
+                now.toLocalDate().plusDays(1),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(emptyList())
+        `when`(aligoProperties.templateCodePickupDayReminder).thenReturn("UH_7968")
+
+        scheduler.triggerPickupMorningNotificationsAt(now)
+
+        val expectedMessage = """
+            테스터님, 오늘 픽업 당일이에요!
+            
+            - 상품명: 두쫀쿠 오리지널 1개
+            - 픽업 장소: 서울 강남구 OO길 1
+            - 픽업 일시: 2026.05.23 12:00 ~ 16:00
+            
+            자정부터 QR 픽업 코드가 발급되어 있어요.
+            뭉치장 웹(www.moongchijang.com)에서 확인 후 매장을 방문해 주세요.
+            
+            ※ 미수령 시 환불이 불가합니다.
+            
+            언제나 감사드려요 ♥️
+            늘 노력하는 뭉치장 되겠습니다.
+            
+            - 팀 뭉치장 드림
+        """.trimIndent()
+
+        verify(aligoAlimtalkClient).send(
+            "01099998888",
+            expectedMessage,
+            "UH_7968",
+        )
+    }
 }
 
 private fun notificationTarget(groupBuyId: Long, userId: Long): FavoriteNotificationTargetProjection {

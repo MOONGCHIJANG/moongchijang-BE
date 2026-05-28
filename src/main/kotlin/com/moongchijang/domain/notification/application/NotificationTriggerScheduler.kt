@@ -155,6 +155,9 @@ class NotificationTriggerScheduler(
                 scheduleKey = "$scheduleKeyPrefix:${participation.id}:$pickupDate",
                 occurredAt = occurredAt
             )
+            if (triggerType == NotificationTriggerType.PICKUP_SAME_DAY_MORNING) {
+                sendPickupDayAlimtalk(participation)
+            }
             if (triggerType == NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING) {
                 sendPickupD1Alimtalk(participation)
             }
@@ -247,6 +250,54 @@ class NotificationTriggerScheduler(
         }.onFailure { e ->
             log.error(
                 "[NotificationTriggerScheduler] 수령일 D-1 알림톡 발송 실패: participationId={}, userId={}",
+                participation.id,
+                participation.user.id,
+                e,
+            )
+        }
+    }
+
+    private fun sendPickupDayAlimtalk(participation: com.moongchijang.domain.participation.domain.entity.Participation) {
+        runCatching {
+            val receiverPhone = participation.user.phoneNumber?.trim().orEmpty()
+            if (receiverPhone.isBlank()) {
+                log.warn(
+                    "[NotificationTriggerScheduler] 수령일 당일 알림톡 스킵(전화번호 없음): participationId={}, userId={}",
+                    participation.id,
+                    participation.user.id,
+                )
+                return
+            }
+            val nickname = participation.user.nickname ?: "고객"
+            val groupBuy = participation.groupBuy
+            val pickupDateTime =
+                "${groupBuy.pickupDate.format(PICKUP_DATE_FORMATTER)} ${groupBuy.pickupTimeStart.format(PICKUP_TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(PICKUP_TIME_FORMATTER)}"
+            val message = """
+                ${nickname}님, 오늘 픽업 당일이에요!
+                
+                - 상품명: ${groupBuy.productName}
+                - 픽업 장소: ${groupBuy.store.address}
+                - 픽업 일시: ${pickupDateTime}
+                
+                자정부터 QR 픽업 코드가 발급되어 있어요.
+                뭉치장 웹(www.moongchijang.com)에서 확인 후 매장을 방문해 주세요.
+                
+                ※ 미수령 시 환불이 불가합니다.
+                
+                언제나 감사드려요 ♥️
+                늘 노력하는 뭉치장 되겠습니다.
+                
+                - 팀 뭉치장 드림
+            """.trimIndent()
+
+            aligoAlimtalkClient.send(
+                receiverPhone = receiverPhone,
+                message = message,
+                templateCode = aligoProperties.templateCodePickupDayReminder,
+            )
+        }.onFailure { e ->
+            log.error(
+                "[NotificationTriggerScheduler] 수령일 당일 알림톡 발송 실패: participationId={}, userId={}",
                 participation.id,
                 participation.user.id,
                 e,
