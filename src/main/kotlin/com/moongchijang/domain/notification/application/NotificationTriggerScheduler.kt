@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -226,21 +227,12 @@ class NotificationTriggerScheduler(
             val groupBuy = participation.groupBuy
             val pickupDateTime =
                 "${groupBuy.pickupDate.format(PICKUP_DATE_FORMATTER)} ${groupBuy.pickupTimeStart.format(PICKUP_TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(PICKUP_TIME_FORMATTER)}"
-            val message = """
-                ${nickname}님, 내일 기다리던 픽업 날이에요!
-                
-                - 상품명: ${groupBuy.productName}
-                - 픽업 장소: ${groupBuy.store.address}
-                - 픽업 일시: ${pickupDateTime}
-                
-                QR 픽업 코드는 내일 00시에
-                뭉치장 앱에서 자동 발급됩니다.
-                
-                ※ 픽업 미수령 시 환불이 불가하오니
-                일정을 꼭 확인해 주세요.
-                
-                - 팀 뭉치장 드림
-            """.trimIndent()
+            val message = AligoMessageFormatter.pickupD1Reminder(
+                nickname = nickname,
+                productName = groupBuy.productName,
+                pickupPlace = groupBuy.store.address,
+                pickupDateTime = pickupDateTime,
+            )
 
             aligoAlimtalkClient.send(
                 receiverPhone = receiverPhone,
@@ -272,23 +264,12 @@ class NotificationTriggerScheduler(
             val groupBuy = participation.groupBuy
             val pickupDateTime =
                 "${groupBuy.pickupDate.format(PICKUP_DATE_FORMATTER)} ${groupBuy.pickupTimeStart.format(PICKUP_TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(PICKUP_TIME_FORMATTER)}"
-            val message = """
-                ${nickname}님, 오늘 픽업 당일이에요!
-                
-                - 상품명: ${groupBuy.productName}
-                - 픽업 장소: ${groupBuy.store.address}
-                - 픽업 일시: ${pickupDateTime}
-                
-                자정부터 QR 픽업 코드가 발급되어 있어요.
-                뭉치장 웹(www.moongchijang.com)에서 확인 후 매장을 방문해 주세요.
-                
-                ※ 미수령 시 환불이 불가합니다.
-                
-                언제나 감사드려요 ♥️
-                늘 노력하는 뭉치장 되겠습니다.
-                
-                - 팀 뭉치장 드림
-            """.trimIndent()
+            val message = AligoMessageFormatter.pickupDayReminder(
+                nickname = nickname,
+                productName = groupBuy.productName,
+                pickupPlace = groupBuy.store.address,
+                pickupDateTime = pickupDateTime,
+            )
 
             aligoAlimtalkClient.send(
                 receiverPhone = receiverPhone,

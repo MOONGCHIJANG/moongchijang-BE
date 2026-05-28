@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestReposit
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
@@ -76,22 +77,12 @@ class GroupBuyRequestStatusCommandService(
             val nickname = user.nickname ?: "고객"
             val pickupPlace = request.roadAddress ?: request.storeAddress ?: request.storeName
             val pickupDate = request.desiredPickupDate.format(PICKUP_DATE_FORMATTER)
-            val message = """
-                ${nickname}님, 공구 요청 심사 결과가 나왔어요.
-                
-                요청하신 공구를 개설하기 위해 뭉치장이 꼼꼼히 확인했어요.
-                심사결과를 안내드려요.
-                
-                <요청하신 내역>
-                - 상품명: ${request.productName}
-                - 픽업 장소: ${pickupPlace}
-                - 픽업 일시: ${pickupDate}
-                
-                
-                ※ 뭉치장은 늘 행복한 디저트를 웨이팅없이 맛보실 수 있도록 최선을 다하겠습니다.
-                
-                - 팀 뭉치장 드림
-            """.trimIndent()
+            val message = AligoMessageFormatter.groupBuyOpenFailed(
+                nickname = nickname,
+                productName = request.productName,
+                pickupPlace = pickupPlace,
+                pickupDate = pickupDate,
+            )
 
             aligoAlimtalkClient.send(
                 receiverPhone = receiverPhone,
