@@ -1,6 +1,7 @@
 package com.moongchijang.domain.participation.domain.repository
 
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
@@ -520,74 +521,60 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         value = """
         select p
         from Participation p
-        join fetch p.user
+        join fetch p.user u
         join fetch p.groupBuy gb
         join fetch gb.store
         where p.cancelReason is not null
           and p.status in :statuses
+          and (
+            :useReviewStatusFilter = false
+            or p.ownerRefundReviewStatus in :reviewStatuses
+            or (:includeNullReviewStatus = true and p.ownerRefundReviewStatus is null)
+          )
+          and (
+            :useCaseFilter = false
+            or p.cancelReason in :cancelReasons
+          )
+          and (
+            :keyword is null
+            or str(p.id) = :keyword
+            or lower(u.nickname) like lower(concat('%', :keyword, '%'))
+            or lower(gb.productName) like lower(concat('%', :keyword, '%'))
+          )
         order by p.cancelledAt desc, p.createdAt desc
         """,
         countQuery = """
         select count(p)
         from Participation p
+        join p.user u
+        join p.groupBuy gb
         where p.cancelReason is not null
           and p.status in :statuses
+          and (
+            :useReviewStatusFilter = false
+            or p.ownerRefundReviewStatus in :reviewStatuses
+            or (:includeNullReviewStatus = true and p.ownerRefundReviewStatus is null)
+          )
+          and (
+            :useCaseFilter = false
+            or p.cancelReason in :cancelReasons
+          )
+          and (
+            :keyword is null
+            or str(p.id) = :keyword
+            or lower(u.nickname) like lower(concat('%', :keyword, '%'))
+            or lower(gb.productName) like lower(concat('%', :keyword, '%'))
+          )
         """
     )
-    fun findAdminRefundRequestsAll(
+    fun findAdminRefundRequests(
         @Param("statuses") statuses: Collection<ParticipationStatus>,
-        pageable: Pageable,
-    ): Page<Participation>
-
-    @Query(
-        value = """
-        select p
-        from Participation p
-        join fetch p.user
-        join fetch p.groupBuy gb
-        join fetch gb.store
-        where p.cancelReason is not null
-          and p.status = :status
-          and p.ownerRefundReviewStatus = :reviewStatus
-        order by p.cancelledAt desc, p.createdAt desc
-        """,
-        countQuery = """
-        select count(p)
-        from Participation p
-        where p.cancelReason is not null
-          and p.status = :status
-          and p.ownerRefundReviewStatus = :reviewStatus
-        """
-    )
-    fun findAdminRefundRequestsByReviewStatus(
-        @Param("status") status: ParticipationStatus,
-        @Param("reviewStatus") reviewStatus: OwnerRefundReviewStatus,
-        pageable: Pageable,
-    ): Page<Participation>
-
-    @Query(
-        value = """
-        select p
-        from Participation p
-        join fetch p.user
-        join fetch p.groupBuy gb
-        join fetch gb.store
-        where p.cancelReason is not null
-          and p.status = :status
-          and (p.ownerRefundReviewStatus is null or p.ownerRefundReviewStatus = :reviewStatus)
-        order by p.cancelledAt desc, p.createdAt desc
-        """,
-        countQuery = """
-        select count(p)
-        from Participation p
-        where p.cancelReason is not null
-          and p.status = :status
-          and (p.ownerRefundReviewStatus is null or p.ownerRefundReviewStatus = :reviewStatus)
-        """
-    )
-    fun findAdminRefundRequestsByReviewStatusIncludingNull(
-        @Param("status") status: ParticipationStatus,
-        @Param("reviewStatus") reviewStatus: OwnerRefundReviewStatus,
+        @Param("useReviewStatusFilter") useReviewStatusFilter: Boolean,
+        @Param("reviewStatuses") reviewStatuses: Collection<OwnerRefundReviewStatus>,
+        @Param("includeNullReviewStatus") includeNullReviewStatus: Boolean,
+        @Param("useCaseFilter") useCaseFilter: Boolean,
+        @Param("cancelReasons") cancelReasons: Collection<ParticipationCancelReason>,
+        @Param("keyword") keyword: String?,
         pageable: Pageable,
     ): Page<Participation>
 

@@ -1,6 +1,7 @@
 package com.moongchijang.domain.admin.presentation
 
 import com.moongchijang.domain.admin.application.AdminRefundRequestService
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestCaseFilter
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
 import com.moongchijang.global.response.ApiResponse
@@ -36,12 +37,23 @@ class AdminRefundRequestController(
     )
     fun getRefundRequests(
         @RequestParam(defaultValue = "ALL") tab: AdminRefundRequestTab,
+        @RequestParam(defaultValue = "ALL") caseFilter: AdminRefundRequestCaseFilter,
+        @RequestParam(required = false) keyword: String?,
         pageable: Pageable,
     ): ResponseEntity<ApiResponse<AdminRefundRequestPageResponse>> {
         log.info(
-            "[AdminRefundRequestController] 환불 요청 목록 조회 요청: tab={}, page={}, size={}",
-            tab, pageable.pageNumber, pageable.pageSize
+            "[AdminRefundRequestController] 환불 요청 목록 조회 요청: tab={}, caseFilter={}, keyword={}, page={}, size={}",
+            tab, caseFilter, keyword, pageable.pageNumber, pageable.pageSize
         )
-        return ResponseEntity.ok(ApiResponse.success(adminRefundRequestService.getRefundRequests(tab, pageable)))
+        return ResponseEntity.ok(
+            ApiResponse.success(
+                adminRefundRequestService.getRefundRequests(
+                    tab = tab,
+                    caseFilter = caseFilter,
+                    keyword = keyword,
+                    pageable = pageable,
+                )
+            )
+        )
     }
 }

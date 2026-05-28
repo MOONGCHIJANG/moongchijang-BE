@@ -28,45 +28,33 @@ class AdminRefundRequestService(
 
     fun getRefundRequests(
         tab: AdminRefundRequestTab,
+        caseFilter: AdminRefundRequestCaseFilter,
+        keyword: String?,
         pageable: Pageable,
     ): AdminRefundRequestPageResponse {
         val now = LocalDateTime.now(clock)
+        val normalizedKeyword = keyword?.trim()?.takeIf { it.isNotBlank() }
+        val statuses = tab.toParticipationStatuses()
+        val reviewStatuses = tab.toOwnerReviewStatuses()
+        val includeNullReviewStatus = tab == AdminRefundRequestTab.REVIEW_PENDING
+        val cancelReasons = caseFilter.toCancelReasons()
         log.info(
-            "[AdminRefundRequestService] 환불 요청 목록 조회 시작: tab={}, page={}, size={}",
-            tab, pageable.pageNumber, pageable.pageSize
+            "[AdminRefundRequestService] 환불 요청 목록 조회 시작: tab={}, caseFilter={}, keyword={}, page={}, size={}",
+            tab, caseFilter, normalizedKeyword, pageable.pageNumber, pageable.pageSize
         )
-        val page = when (tab) {
-            AdminRefundRequestTab.ALL -> participationRepository.findAdminRefundRequestsAll(
-                statuses = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
-                pageable = pageable,
-            )
-
-            AdminRefundRequestTab.REVIEW_PENDING -> participationRepository.findAdminRefundRequestsByReviewStatusIncludingNull(
-                status = ParticipationStatus.REFUND_PENDING,
-                reviewStatus = OwnerRefundReviewStatus.PENDING,
-                pageable = pageable,
-            )
-
-            AdminRefundRequestTab.IN_PROGRESS -> participationRepository.findAdminRefundRequestsByReviewStatus(
-                status = ParticipationStatus.REFUND_PENDING,
-                reviewStatus = OwnerRefundReviewStatus.APPROVED,
-                pageable = pageable,
-            )
-
-            AdminRefundRequestTab.APPROVED -> participationRepository.findAdminRefundRequestsAll(
-                statuses = listOf(ParticipationStatus.REFUNDED),
-                pageable = pageable,
-            )
-
-            AdminRefundRequestTab.REJECTED -> participationRepository.findAdminRefundRequestsByReviewStatus(
-                status = ParticipationStatus.REFUND_PENDING,
-                reviewStatus = OwnerRefundReviewStatus.DISPUTED,
-                pageable = pageable,
-            )
-        }
+        val page = participationRepository.findAdminRefundRequests(
+            statuses = statuses,
+            useReviewStatusFilter = reviewStatuses.isNotEmpty() || includeNullReviewStatus,
+            reviewStatuses = reviewStatuses.ifEmpty { listOf(OwnerRefundReviewStatus.PENDING) },
+            includeNullReviewStatus = includeNullReviewStatus,
+            useCaseFilter = cancelReasons.isNotEmpty(),
+            cancelReasons = cancelReasons.ifEmpty { listOf(ParticipationCancelReason.OTHER) },
+            keyword = normalizedKeyword,
+            pageable = pageable,
+        )
         log.info(
-            "[AdminRefundRequestService] 환불 요청 목록 조회 완료: tab={}, page={}, size={}, totalElements={}",
-            tab, pageable.pageNumber, pageable.pageSize, page.totalElements
+            "[AdminRefundRequestService] 환불 요청 목록 조회 완료: tab={}, caseFilter={}, keyword={}, page={}, size={}, totalElements={}",
+            tab, caseFilter, normalizedKeyword, pageable.pageNumber, pageable.pageSize, page.totalElements
         )
 
         return AdminRefundRequestPageResponse(
@@ -116,6 +104,41 @@ class AdminRefundRequestService(
             ParticipationCancelReason.BOUGHT_ELSEWHERE -> AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL
             ParticipationCancelReason.OTHER -> AdminRefundRequestCaseFilter.DISPUTE_OR_DROPOUT_REFUND
             null -> AdminRefundRequestCaseFilter.ALL
+        }
+    }
+
+    private fun AdminRefundRequestTab.toParticipationStatuses(): List<ParticipationStatus> {
+        return when (this) {
+            AdminRefundRequestTab.ALL -> listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
+            AdminRefundRequestTab.REVIEW_PENDING,
+            AdminRefundRequestTab.IN_PROGRESS,
+            AdminRefundRequestTab.REJECTED -> listOf(ParticipationStatus.REFUND_PENDING)
+            AdminRefundRequestTab.APPROVED -> listOf(ParticipationStatus.REFUNDED)
+        }
+    }
+
+    private fun AdminRefundRequestTab.toOwnerReviewStatuses(): List<OwnerRefundReviewStatus> {
+        return when (this) {
+            AdminRefundRequestTab.ALL,
+            AdminRefundRequestTab.APPROVED -> emptyList()
+            AdminRefundRequestTab.REVIEW_PENDING -> listOf(OwnerRefundReviewStatus.PENDING)
+            AdminRefundRequestTab.IN_PROGRESS -> listOf(OwnerRefundReviewStatus.APPROVED)
+            AdminRefundRequestTab.REJECTED -> listOf(OwnerRefundReviewStatus.DISPUTED)
+        }
+    }
+
+    private fun AdminRefundRequestCaseFilter.toCancelReasons(): List<ParticipationCancelReason> {
+        return when (this) {
+            AdminRefundRequestCaseFilter.ALL -> emptyList()
+            AdminRefundRequestCaseFilter.PRE_ACHIEVEMENT_FREE_CANCEL -> listOf(ParticipationCancelReason.NO_LONGER_WANTED)
+            AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL -> listOf(
+                ParticipationCancelReason.PREFER_DIRECT_VISIT,
+                ParticipationCancelReason.BOUGHT_ELSEWHERE,
+            )
+            AdminRefundRequestCaseFilter.PICKUP_PERIOD_NO_SHOW -> listOf(ParticipationCancelReason.TIME_UNAVAILABLE)
+            AdminRefundRequestCaseFilter.OWNER_FAULT_CANCEL -> emptyList()
+            AdminRefundRequestCaseFilter.TARGET_NOT_MET -> emptyList()
+            AdminRefundRequestCaseFilter.DISPUTE_OR_DROPOUT_REFUND -> listOf(ParticipationCancelReason.OTHER)
         }
     }
 }
