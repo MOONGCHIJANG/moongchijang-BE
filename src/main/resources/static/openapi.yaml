@@ -2611,53 +2611,88 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
-  /api/v1/admin/settlements:
+  /api/v1/admin/settlements/dashboard:
     get:
       tags: [Admin]
-      summary: 정산 내역 목록 (운영자)
+      summary: 정산 현황 대시보드 조회 (운영자)
+      description: 선택한 연월의 정산 완료 금액, 정산 예정 금액, 플랫폼 수수료, 총 거래액을 조회한다.
       security:
         - bearerAuth: []
       parameters:
-        - name: escrowStatus
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 2026
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 5
+      responses:
+        '200':
+          description: 정산 대시보드
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminSettlementDashboard'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/settlements:
+    get:
+      tags: [Admin]
+      summary: 정산 현황 목록 조회 (운영자)
+      description: 선택한 연월의 정산 예정, 정산 완료, 전체 목록을 조회한다. 현재 settlementId는 groupBuyId와 동일하다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 2026
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 5
+        - name: status
           in: query
           schema:
             type: string
-            enum: [ALL, HOLDING, RELEASED]
+            enum: [SCHEDULED, COMPLETED, ALL]
             default: ALL
+          description: SCHEDULED=정산 예정, COMPLETED=정산 완료, ALL=전체
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
       responses:
         '200':
-          description: 정산 목록
+          description: 정산 현황 목록
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseSettlementPage'
-    post:
-      tags: [Admin]
-      summary: 정산 생성 및 처리
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdminSettlementCreate'
-      responses:
-        '201':
-          description: 정산 생성 완료
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseSettlementId'
-        '409':
-          $ref: '#/components/responses/Conflict'
+                $ref: '#/components/schemas/ApiResponseAdminSettlementPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
-  /api/v1/admin/settlements/{settlementId}/release:
-    post:
+  /api/v1/admin/settlements/{settlementId}:
+    get:
       tags: [Admin]
-      summary: 에스크로 해제
+      summary: 정산 현황 상세 조회 (운영자)
+      description: 목록에서 선택한 정산 건의 상세 팝업용 정보를 조회한다. 현재 settlementId는 groupBuyId와 동일하다.
       security:
         - bearerAuth: []
       parameters:
@@ -2669,9 +2704,15 @@ paths:
             format: int64
       responses:
         '200':
-          $ref: '#/components/responses/SuccessNoData'
-        '409':
-          $ref: '#/components/responses/Conflict'
+          description: 정산 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminSettlementDetail'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 # ─────────────────────────────────────────────────────────────────
 # Components
@@ -5852,61 +5893,112 @@ components:
           maxLength: 100
           nullable: true
 
-    ApiResponseSettlementPage:
+    ApiResponseAdminSettlementDashboard:
       type: object
       required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [content, totalElements, totalPages]
+          required: [year, month, completedSettlementAmount, scheduledSettlementAmount, platformFeeAmount, totalTransactionAmount]
+          properties:
+            year: { type: integer, example: 2026 }
+            month: { type: integer, example: 5 }
+            completedSettlementAmount:
+              type: integer
+              format: int64
+              description: 정산 완료 금액 합계
+            scheduledSettlementAmount:
+              type: integer
+              format: int64
+              description: 정산 예정 금액 합계
+            platformFeeAmount:
+              type: integer
+              format: int64
+              description: 플랫폼 수수료 합계
+            totalTransactionAmount:
+              type: integer
+              format: int64
+              description: 총 거래액 합계
+        error: { nullable: true, example: null }
+
+    ApiResponseAdminSettlementPage:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [content, totalElements, totalPages, number, size]
           properties:
             content:
               type: array
               items:
-                type: object
-                required: [settlementId, storeName, productName, totalAmount, escrowStatus, scheduledPaymentDate, settlementMethod, memo, createdAt]
-                properties:
-                  settlementId: { type: integer, format: int64 }
-                  storeName: { type: string }
-                  productName: { type: string }
-                  totalAmount: { type: integer }
-                  escrowStatus:
-                    type: string
-                    enum: [HOLDING, RELEASED]
-                  scheduledPaymentDate: { type: string, format: date, nullable: true }
-                  settlementMethod: { type: string, nullable: true }
-                  memo: { type: string, nullable: true }
-                  createdAt: { type: string, format: date-time }
-            totalElements: { type: integer }
+                $ref: '#/components/schemas/AdminSettlementListItem'
+            totalElements: { type: integer, format: int64 }
             totalPages: { type: integer }
+            number: { type: integer }
+            size: { type: integer }
         error: { nullable: true, example: null }
 
-    AdminSettlementCreate:
+    AdminSettlementListItem:
       type: object
-      required: [groupBuyId, scheduledPaymentDate, settlementMethod]
+      required: [settlementId, groupBuyId, storeName, productName, pickupCompletedDate, participantCount, totalPaymentAmount, refundDeductionAmount, platformFeeAmount, settlementAmount, scheduledSettlementDate, status, actionable]
       properties:
+        settlementId:
+          type: integer
+          format: int64
+          description: 정산 식별자. 현재는 groupBuyId와 동일
         groupBuyId: { type: integer, format: int64 }
-        scheduledPaymentDate: { type: string, format: date }
-        settlementMethod:
+        storeName: { type: string }
+        productName: { type: string }
+        pickupCompletedDate:
           type: string
-          enum: [BANK_TRANSFER, ESCROW_AUTO]
-        memo:
+          format: date
+          description: 픽업 완료 기준일. 현재는 공구 pickupDate 기준
+        participantCount:
+          type: integer
+          format: int64
+          description: 정산 대상 참여 인원
+        totalPaymentAmount:
+          type: integer
+          format: int64
+          description: 총 결제액
+        refundDeductionAmount:
+          type: integer
+          format: int64
+          description: 환불 차감액
+        platformFeeAmount:
+          type: integer
+          format: int64
+          description: 플랫폼 수수료
+        settlementAmount:
+          type: integer
+          format: int64
+          description: 총 결제액 - 환불 차감액 - 플랫폼 수수료
+        scheduledSettlementDate:
           type: string
-          maxLength: 100
-          nullable: true
+          format: date
+          description: 정산 예정일. 현재 정책은 pickupCompletedDate + 3일
+        status:
+          type: string
+          enum: [SCHEDULED, COMPLETED]
+        actionable:
+          type: boolean
+          description: 운영 작업 가능 여부
 
-    ApiResponseSettlementId:
+    ApiResponseAdminSettlementDetail:
       type: object
       required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
-          type: object
-          required: [settlementId]
-          properties:
-            settlementId: { type: integer, format: int64 }
+          $ref: '#/components/schemas/AdminSettlementDetail'
         error: { nullable: true, example: null }
+
+    AdminSettlementDetail:
+      allOf:
+        - $ref: '#/components/schemas/AdminSettlementListItem'
 
     ApiResponseSearchAnalysis:
       type: object
