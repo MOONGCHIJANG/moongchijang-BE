@@ -391,6 +391,94 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     ): List<Participation>
 
     @Query(
+        value = """
+        select gb.id as groupBuyId,
+               gb.store.name as storeName,
+               gb.productName as productName,
+               gb.pickupDate as pickupCompletedDate,
+               coalesce(sum(case when p.status in :revenueStatuses then 1 else 0 end), 0) as participantCount,
+               coalesce(sum(case when p.status in :transactionStatuses then p.totalAmount else 0 end), 0) as totalPaymentAmount,
+               coalesce(sum(case when p.status in :refundStatuses then p.totalAmount else 0 end), 0) as refundDeductionAmount,
+               coalesce(sum(case when p.status in :transactionStatuses then p.feeAmount else 0 end), 0) as platformFeeAmount
+        from GroupBuy gb
+        left join Participation p on p.groupBuy = gb
+        where gb.status in :groupBuyStatuses
+          and gb.pickupDate >= :pickupDateFrom
+          and gb.pickupDate < :pickupDateTo
+        group by gb.id, gb.store.name, gb.productName, gb.pickupDate
+        order by gb.pickupDate desc, gb.id desc
+        """,
+        countQuery = """
+        select count(gb)
+        from GroupBuy gb
+        where gb.status in :groupBuyStatuses
+          and gb.pickupDate >= :pickupDateFrom
+          and gb.pickupDate < :pickupDateTo
+        """
+    )
+    fun findAdminSettlementPage(
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+        @Param("transactionStatuses") transactionStatuses: Collection<ParticipationStatus>,
+        @Param("revenueStatuses") revenueStatuses: Collection<ParticipationStatus>,
+        @Param("refundStatuses") refundStatuses: Collection<ParticipationStatus>,
+        @Param("pickupDateFrom") pickupDateFrom: LocalDate,
+        @Param("pickupDateTo") pickupDateTo: LocalDate,
+        pageable: Pageable,
+    ): Page<AdminSettlementAggregation>
+
+    @Query(
+        """
+        select gb.id as groupBuyId,
+               gb.store.name as storeName,
+               gb.productName as productName,
+               gb.pickupDate as pickupCompletedDate,
+               coalesce(sum(case when p.status in :revenueStatuses then 1 else 0 end), 0) as participantCount,
+               coalesce(sum(case when p.status in :transactionStatuses then p.totalAmount else 0 end), 0) as totalPaymentAmount,
+               coalesce(sum(case when p.status in :refundStatuses then p.totalAmount else 0 end), 0) as refundDeductionAmount,
+               coalesce(sum(case when p.status in :transactionStatuses then p.feeAmount else 0 end), 0) as platformFeeAmount
+        from GroupBuy gb
+        left join Participation p on p.groupBuy = gb
+        where gb.status in :groupBuyStatuses
+          and gb.pickupDate >= :pickupDateFrom
+          and gb.pickupDate < :pickupDateTo
+        group by gb.id, gb.store.name, gb.productName, gb.pickupDate
+        """
+    )
+    fun findAdminSettlementAggregations(
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+        @Param("transactionStatuses") transactionStatuses: Collection<ParticipationStatus>,
+        @Param("revenueStatuses") revenueStatuses: Collection<ParticipationStatus>,
+        @Param("refundStatuses") refundStatuses: Collection<ParticipationStatus>,
+        @Param("pickupDateFrom") pickupDateFrom: LocalDate,
+        @Param("pickupDateTo") pickupDateTo: LocalDate,
+    ): List<AdminSettlementAggregation>
+
+    @Query(
+        """
+        select gb.id as groupBuyId,
+               gb.store.name as storeName,
+               gb.productName as productName,
+               gb.pickupDate as pickupCompletedDate,
+               coalesce(sum(case when p.status in :revenueStatuses then 1 else 0 end), 0) as participantCount,
+               coalesce(sum(case when p.status in :transactionStatuses then p.totalAmount else 0 end), 0) as totalPaymentAmount,
+               coalesce(sum(case when p.status in :refundStatuses then p.totalAmount else 0 end), 0) as refundDeductionAmount,
+               coalesce(sum(case when p.status in :transactionStatuses then p.feeAmount else 0 end), 0) as platformFeeAmount
+        from GroupBuy gb
+        left join Participation p on p.groupBuy = gb
+        where gb.id = :groupBuyId
+          and gb.status in :groupBuyStatuses
+        group by gb.id, gb.store.name, gb.productName, gb.pickupDate
+        """
+    )
+    fun findAdminSettlementDetail(
+        @Param("groupBuyId") groupBuyId: Long,
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+        @Param("transactionStatuses") transactionStatuses: Collection<ParticipationStatus>,
+        @Param("revenueStatuses") revenueStatuses: Collection<ParticipationStatus>,
+        @Param("refundStatuses") refundStatuses: Collection<ParticipationStatus>,
+    ): AdminSettlementAggregation?
+
+    @Query(
         """
         select p
         from Participation p
@@ -429,4 +517,15 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 interface GroupBuyPendingRefundCount {
     val groupBuyId: Long
     val pendingRefundCount: Long
+}
+
+interface AdminSettlementAggregation {
+    val groupBuyId: Long
+    val storeName: String
+    val productName: String
+    val pickupCompletedDate: LocalDate
+    val participantCount: Long
+    val totalPaymentAmount: Long
+    val refundDeductionAmount: Long
+    val platformFeeAmount: Long
 }
