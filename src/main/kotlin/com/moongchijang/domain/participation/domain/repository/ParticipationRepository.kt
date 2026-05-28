@@ -1,6 +1,7 @@
 package com.moongchijang.domain.participation.domain.repository
 
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -514,6 +515,81 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participation p join fetch p.groupBuy where p.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): Optional<Participation>
+
+    @Query(
+        value = """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.cancelReason is not null
+          and p.status in :statuses
+        order by p.cancelledAt desc, p.createdAt desc
+        """,
+        countQuery = """
+        select count(p)
+        from Participation p
+        where p.cancelReason is not null
+          and p.status in :statuses
+        """
+    )
+    fun findAdminRefundRequestsAll(
+        @Param("statuses") statuses: Collection<ParticipationStatus>,
+        pageable: Pageable,
+    ): Page<Participation>
+
+    @Query(
+        value = """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.cancelReason is not null
+          and p.status = :status
+          and p.ownerRefundReviewStatus = :reviewStatus
+        order by p.cancelledAt desc, p.createdAt desc
+        """,
+        countQuery = """
+        select count(p)
+        from Participation p
+        where p.cancelReason is not null
+          and p.status = :status
+          and p.ownerRefundReviewStatus = :reviewStatus
+        """
+    )
+    fun findAdminRefundRequestsByReviewStatus(
+        @Param("status") status: ParticipationStatus,
+        @Param("reviewStatus") reviewStatus: OwnerRefundReviewStatus,
+        pageable: Pageable,
+    ): Page<Participation>
+
+    @Query(
+        value = """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.cancelReason is not null
+          and p.status = :status
+          and (p.ownerRefundReviewStatus is null or p.ownerRefundReviewStatus = :reviewStatus)
+        order by p.cancelledAt desc, p.createdAt desc
+        """,
+        countQuery = """
+        select count(p)
+        from Participation p
+        where p.cancelReason is not null
+          and p.status = :status
+          and (p.ownerRefundReviewStatus is null or p.ownerRefundReviewStatus = :reviewStatus)
+        """
+    )
+    fun findAdminRefundRequestsByReviewStatusIncludingNull(
+        @Param("status") status: ParticipationStatus,
+        @Param("reviewStatus") reviewStatus: OwnerRefundReviewStatus,
+        pageable: Pageable,
+    ): Page<Participation>
 
     @Query(
         """
