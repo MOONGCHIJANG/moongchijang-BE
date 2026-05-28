@@ -121,9 +121,6 @@ class AdminRefundRequestService(
             to = AdminRefundRequestStatus.IN_PROGRESS,
         )
 
-        if (request.refundAmount > participation.totalAmount) {
-            throw CustomException(ErrorCode.INVALID_INPUT, "refundAmount는 결제 금액을 초과할 수 없습니다.")
-        }
         val maxRefundAmount = if (participation.cancelReason == null) {
             participation.totalAmount
         } else {
