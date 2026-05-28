@@ -11,6 +11,7 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationCancelRe
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
@@ -48,6 +49,9 @@ class OwnerSettlementServiceTest {
 
     @Mock
     private lateinit var participationRepository: ParticipationRepository
+
+    @Mock
+    private lateinit var refundRequestSyncService: RefundRequestSyncService
 
     @InjectMocks
     private lateinit var service: OwnerSettlementService

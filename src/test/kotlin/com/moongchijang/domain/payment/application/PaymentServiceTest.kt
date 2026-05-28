@@ -23,6 +23,7 @@ import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.entity.PaymentStatus
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentRepository
+import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
@@ -92,6 +93,9 @@ class PaymentServiceTest {
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
+    @Mock
+    private lateinit var refundRequestSyncService: RefundRequestSyncService
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
@@ -111,6 +115,7 @@ class PaymentServiceTest {
             transactionManager = transactionManager,
             redisLockUtil = redisLockUtil,
             notificationEventPublisher = notificationEventPublisher,
+            refundRequestSyncService = refundRequestSyncService
         )
     }
 
@@ -680,7 +685,7 @@ class PaymentServiceTest {
         `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(1L, 10L)).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate(order.orderId)).thenReturn(order)
         `when`(paymentRepository.findByPaymentOrderOrderId(order.orderId)).thenReturn(payment)
-        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET"))
+        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET", 12_000))
             .thenReturn(
                 PortOnePaymentResult(
                     paymentId = "portone-payment-id",
@@ -739,7 +744,7 @@ class PaymentServiceTest {
         `when`(participationRepository.findByIdForUpdate(89L)).thenReturn(Optional.of(participation))
         `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(1L, 10L)).thenReturn(order)
         `when`(paymentRepository.findByPaymentOrderOrderId(order.orderId)).thenReturn(payment)
-        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET"))
+        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET", 12_000))
             .thenReturn(
                 PortOnePaymentResult(
                     paymentId = "portone-payment-id",
@@ -811,7 +816,7 @@ class PaymentServiceTest {
         `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(2L, 10L)).thenReturn(secondOrder)
         `when`(paymentOrderRepository.findByOrderIdForUpdate(secondOrder.orderId)).thenReturn(secondOrder)
         `when`(paymentRepository.findByPaymentOrderOrderId(secondOrder.orderId)).thenReturn(secondPayment)
-        `when`(portOnePaymentPort.cancelPayment("second-portone-payment-id", "MINIMUM_QUANTITY_NOT_MET"))
+        `when`(portOnePaymentPort.cancelPayment("second-portone-payment-id", "MINIMUM_QUANTITY_NOT_MET", 6_000))
             .thenReturn(
                 PortOnePaymentResult(
                     paymentId = "second-portone-payment-id",

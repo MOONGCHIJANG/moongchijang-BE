@@ -1,6 +1,8 @@
 package com.moongchijang.domain.participation.domain.repository
 
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -514,6 +516,91 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participation p join fetch p.groupBuy where p.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): Optional<Participation>
+
+    @Query(
+        value = """
+        select p
+        from Participation p
+        join fetch p.user u
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.status in :statuses
+          and (
+            :useReviewStatusFilter = false
+            or p.ownerRefundReviewStatus in :reviewStatuses
+            or (:includeNullReviewStatus = true and p.ownerRefundReviewStatus is null)
+          )
+          and (
+            :caseFilter = 'ALL'
+            or (
+              :caseFilter = 'TARGET_NOT_MET'
+              and p.cancelReason is null
+              and gb.status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter = 'OWNER_FAULT_CANCEL'
+              and p.cancelReason is null
+              and gb.status <> com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter not in ('ALL', 'TARGET_NOT_MET', 'OWNER_FAULT_CANCEL')
+              and p.cancelReason in :cancelReasons
+            )
+          )
+          and (
+            :keyword is null
+            or str(p.id) = :keyword
+            or lower(u.nickname) like lower(concat('%', :keyword, '%'))
+            or lower(gb.productName) like lower(concat('%', :keyword, '%'))
+          )
+        order by p.cancelledAt desc, p.createdAt desc
+        """,
+        countQuery = """
+        select count(p)
+        from Participation p
+        join p.user u
+        join p.groupBuy gb
+        where p.status in :statuses
+          and (
+            :useReviewStatusFilter = false
+            or p.ownerRefundReviewStatus in :reviewStatuses
+            or (:includeNullReviewStatus = true and p.ownerRefundReviewStatus is null)
+          )
+          and (
+            :caseFilter = 'ALL'
+            or (
+              :caseFilter = 'TARGET_NOT_MET'
+              and p.cancelReason is null
+              and gb.status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter = 'OWNER_FAULT_CANCEL'
+              and p.cancelReason is null
+              and gb.status <> com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter not in ('ALL', 'TARGET_NOT_MET', 'OWNER_FAULT_CANCEL')
+              and p.cancelReason in :cancelReasons
+            )
+          )
+          and (
+            :keyword is null
+            or str(p.id) = :keyword
+            or lower(u.nickname) like lower(concat('%', :keyword, '%'))
+            or lower(gb.productName) like lower(concat('%', :keyword, '%'))
+          )
+        """
+    )
+    fun findAdminRefundRequests(
+        @Param("statuses") statuses: Collection<ParticipationStatus>,
+        @Param("useReviewStatusFilter") useReviewStatusFilter: Boolean,
+        @Param("reviewStatuses") reviewStatuses: Collection<OwnerRefundReviewStatus>,
+        @Param("includeNullReviewStatus") includeNullReviewStatus: Boolean,
+        @Param("caseFilter") caseFilter: String,
+        @Param("cancelReasons") cancelReasons: Collection<ParticipationCancelReason>,
+        @Param("keyword") keyword: String?,
+        pageable: Pageable,
+    ): Page<Participation>
 
     @Query(
         """

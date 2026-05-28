@@ -27,6 +27,7 @@ import com.moongchijang.domain.payment.domain.entity.PaymentOrder
 import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentRepository
+import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
@@ -55,6 +56,7 @@ class PaymentService(
     private val transactionManager: PlatformTransactionManager,
     private val redisLockUtil: RedisLockUtil,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val refundRequestSyncService: RefundRequestSyncService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -625,7 +627,11 @@ class PaymentService(
         } ?: return false
 
         val paymentResult = try {
-            portOnePaymentPort.cancelPayment(target.pgPaymentId, PENDING_REFUND_CANCEL_REASON)
+            portOnePaymentPort.cancelPayment(
+                paymentId = target.pgPaymentId,
+                reason = PENDING_REFUND_CANCEL_REASON,
+                cancelAmount = target.refundAmount,
+            )
         } catch (e: CustomException) {
             log.warn(
                 "[PaymentService] 환불대기 PG 취소 실패: participationId={}, orderId={}, errorCode={}",
@@ -635,7 +641,7 @@ class PaymentService(
             )
             return false
         }
-        if (paymentResult.status != PORTONE_STATUS_CANCELLED) {
+        if (paymentResult.status != PORTONE_STATUS_CANCELLED && paymentResult.status != PORTONE_STATUS_PARTIAL_CANCELLED) {
             log.warn(
                 "[PaymentService] 환불대기 PG 취소 미완료 상태: participationId={}, orderId={}, portOneStatus={}",
                 target.participationId,
@@ -676,6 +682,13 @@ class PaymentService(
             participationId = participation.id,
             orderId = order.orderId,
             pgPaymentId = payment.pgPaymentId,
+            refundAmount = participation.approvedRefundAmount
+                ?: if (participation.cancelReason == null) {
+                    // 자동 실패(목표 미달), 사장님 귀책 등 사용자 요청 사유가 없는 환불은 전액 환불
+                    order.totalAmount
+                } else {
+                    (order.totalAmount - order.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+                },
         )
     }
 
@@ -691,10 +704,17 @@ class PaymentService(
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
-        order.cancel(refundedAt)
-        payment.cancel(refundedAt)
+        val partial = target.refundAmount < order.totalAmount
+        if (partial) {
+            order.partialCancel(refundedAt)
+            payment.partialCancel(refundedAt)
+        } else {
+            order.cancel(refundedAt)
+            payment.cancel(refundedAt)
+        }
         participation.status = ParticipationStatus.REFUNDED
         participation.refundedAt = refundedAt
+        refundRequestSyncService.markCompleted(participation = participation, at = refundedAt)
     }
 
     private fun validateParticipationOwner(participation: Participation, userId: Long) {
@@ -853,6 +873,7 @@ class PaymentService(
         val participationId: Long,
         val orderId: String,
         val pgPaymentId: String,
+        val refundAmount: Int,
     )
 
     companion object {

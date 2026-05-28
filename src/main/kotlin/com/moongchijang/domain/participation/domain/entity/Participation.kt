@@ -85,6 +85,9 @@ class Participation(
     @Column(name = "refunded_at")
     var refundedAt: LocalDateTime? = null,
 
+    @Column(name = "approved_refund_amount")
+    var approvedRefundAmount: Int? = null,
+
     @Enumerated(EnumType.STRING)
     @Column(name = "owner_refund_review_status", length = 30)
     var ownerRefundReviewStatus: OwnerRefundReviewStatus? = null,
