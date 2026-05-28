@@ -1,0 +1,75 @@
+package com.moongchijang.domain.groupbuy.application
+
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.notification.application.event.NotificationImmediateTriggerEvent
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
+import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
+import org.springframework.scheduling.annotation.Async
+import org.springframework.stereotype.Component
+import org.springframework.transaction.event.TransactionPhase
+import org.springframework.transaction.event.TransactionalEventListener
+import java.time.format.DateTimeFormatter
+
+@Component
+class GroupBuyRequestRejectedAlimtalkEventListener(
+    private val groupBuyRequestRepository: GroupBuyRequestRepository,
+    private val userRepository: UserRepository,
+    private val aligoAlimtalkClient: AligoAlimtalkClient,
+    private val aligoProperties: AligoProperties,
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @Async("notificationEventExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    fun on(event: NotificationImmediateTriggerEvent) {
+        if (event.triggerType != NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE) {
+            return
+        }
+
+        val requestId = event.targetId
+        runCatching {
+            val request = groupBuyRequestRepository.findById(requestId)
+                .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
+            val user = userRepository.findByIdAndDeletedAtIsNull(request.userId)
+                ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+            val receiverPhone = user.phoneNumber?.trim().orEmpty()
+            if (receiverPhone.isBlank()) {
+                log.warn(
+                    "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(전화번호 없음): requestId={}, userId={}",
+                    requestId,
+                    request.userId,
+                )
+                return
+            }
+
+            val message = AligoMessageFormatter.groupBuyOpenFailed(
+                nickname = user.nickname ?: "고객",
+                productName = request.productName,
+                pickupPlace = request.roadAddress ?: request.storeAddress ?: request.storeName,
+                pickupDate = request.desiredPickupDate.format(PICKUP_DATE_FORMATTER),
+            )
+
+            aligoAlimtalkClient.send(
+                receiverPhone = receiverPhone,
+                message = message,
+                templateCode = aligoProperties.templateCodeGroupBuyOpenFailed,
+            )
+        }.onFailure { e ->
+            log.error(
+                "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 발송 실패: requestId={}",
+                requestId,
+                e,
+            )
+        }
+    }
+
+    companion object {
+        private val PICKUP_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+    }
+}
