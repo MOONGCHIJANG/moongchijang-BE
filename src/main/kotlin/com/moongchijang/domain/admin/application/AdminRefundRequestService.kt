@@ -14,6 +14,7 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentRepository
+import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
@@ -29,6 +30,7 @@ class AdminRefundRequestService(
     private val participationRepository: ParticipationRepository,
     private val paymentOrderRepository: PaymentOrderRepository,
     private val paymentRepository: PaymentRepository,
+    private val refundRequestSyncService: RefundRequestSyncService,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -129,6 +131,11 @@ class AdminRefundRequestService(
         participation.ownerRefundReviewedAt = now
         participation.approvedRefundAmount = request.refundAmount
         participation.ownerRefundDisputeReason = null
+        refundRequestSyncService.markApproved(
+            participation = participation,
+            approvedAmount = request.refundAmount,
+            at = now,
+        )
 
         val paymentOrder = paymentOrderRepository.findByUserIdAndGroupBuyId(
             userId = participation.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND),

@@ -27,6 +27,7 @@ import com.moongchijang.domain.payment.domain.entity.PaymentOrder
 import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentRepository
+import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
@@ -55,6 +56,7 @@ class PaymentService(
     private val transactionManager: PlatformTransactionManager,
     private val redisLockUtil: RedisLockUtil,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val refundRequestSyncService: RefundRequestSyncService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -707,6 +709,7 @@ class PaymentService(
         }
         participation.status = ParticipationStatus.REFUNDED
         participation.refundedAt = refundedAt
+        refundRequestSyncService.markCompleted(participation = participation, at = refundedAt)
     }
 
     private fun validateParticipationOwner(participation: Participation, userId: Long) {

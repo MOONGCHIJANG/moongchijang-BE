@@ -18,6 +18,7 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationCancelRe
 import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
@@ -37,6 +38,7 @@ class OwnerSettlementService(
     private val storeStaffRepository: StoreStaffRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
+    private val refundRequestSyncService: RefundRequestSyncService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -223,6 +225,20 @@ class OwnerSettlementService(
             null
         }
         participation.ownerRefundReviewedAt = java.time.LocalDateTime.now()
+        if (request.action == OwnerRefundReviewActionType.APPROVE) {
+            refundRequestSyncService.markApproved(
+                participation = participation,
+                approvedAmount = participation.approvedRefundAmount
+                    ?: (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0),
+                at = participation.ownerRefundReviewedAt ?: java.time.LocalDateTime.now(),
+            )
+        } else {
+            refundRequestSyncService.markRejected(
+                participation = participation,
+                reason = participation.ownerRefundDisputeReason,
+                at = participation.ownerRefundReviewedAt ?: java.time.LocalDateTime.now(),
+            )
+        }
 
         log.info(
             "[OwnerSettlementService] 환불 요청 검토 제출 완료: ownerId={}, participationId={}, action={}",
