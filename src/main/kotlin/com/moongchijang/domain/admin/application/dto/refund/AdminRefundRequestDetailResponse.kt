@@ -109,7 +109,8 @@ data class AdminRefundRequestDetailResponse(
                 pickupDate = participation.groupBuy.pickupDate.format(PICKUP_DATE_FORMATTER),
                 pickupLocation = participation.groupBuy.pickupLocation,
                 paymentAmount = participation.totalAmount,
-                refundExpectedAmount = (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0),
+                refundExpectedAmount = participation.approvedRefundAmount
+                    ?: (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0),
                 paymentMethod = payment?.method,
                 approvalNumber = payment?.pgPaymentId,
                 paidAt = payment?.approvedAt ?: paymentOrder?.approvedAt,

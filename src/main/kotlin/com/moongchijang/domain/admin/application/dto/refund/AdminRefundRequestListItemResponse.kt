@@ -60,7 +60,11 @@ data class AdminRefundRequestListItemResponse(
                 groupBuyName = participation.groupBuy.productName,
                 storeName = participation.groupBuy.store.name,
                 paymentAmount = participation.totalAmount,
-                refundAmount = if (participation.status == ParticipationStatus.REFUNDED) participation.totalAmount else 0,
+                refundAmount = when (participation.status) {
+                    ParticipationStatus.REFUNDED -> participation.approvedRefundAmount ?: participation.totalAmount
+                    ParticipationStatus.REFUND_PENDING -> participation.approvedRefundAmount ?: 0
+                    else -> 0
+                },
                 ownerOpinion = participation.ownerRefundDisputeReason,
                 requestedAt = requestedAt,
                 slaRemainingHours = calculateSlaRemainingHours(requestedAt, now),

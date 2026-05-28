@@ -47,7 +47,22 @@ class AdminRefundRequestService(
         val statuses = tab.toParticipationStatuses()
         val reviewStatuses = tab.toOwnerReviewStatuses()
         val includeNullReviewStatus = tab == AdminRefundRequestTab.REVIEW_PENDING
-        val cancelReasons = caseFilter.toCancelReasons()
+        val caseFilterCondition = caseFilter.toCaseFilterCondition()
+        if (!caseFilterCondition.supported) {
+            log.info(
+                "[AdminRefundRequestService] 환불 요청 목록 조회 완료(미지원 케이스 필터): tab={}, caseFilter={}, keyword={}, page={}, size={}",
+                tab, caseFilter, normalizedKeyword, pageable.pageNumber, pageable.pageSize
+            )
+            return AdminRefundRequestPageResponse(
+                content = emptyList(),
+                totalElements = 0L,
+                totalPages = 0,
+                number = pageable.pageNumber,
+                size = pageable.pageSize,
+                hasSlaWarning = false,
+                slaWarningCount = 0,
+            )
+        }
         log.info(
             "[AdminRefundRequestService] 환불 요청 목록 조회 시작: tab={}, caseFilter={}, keyword={}, page={}, size={}",
             tab, caseFilter, normalizedKeyword, pageable.pageNumber, pageable.pageSize
@@ -57,8 +72,8 @@ class AdminRefundRequestService(
             useReviewStatusFilter = reviewStatuses.isNotEmpty() || includeNullReviewStatus,
             reviewStatuses = reviewStatuses.ifEmpty { listOf(OwnerRefundReviewStatus.PENDING) },
             includeNullReviewStatus = includeNullReviewStatus,
-            useCaseFilter = cancelReasons.isNotEmpty(),
-            cancelReasons = cancelReasons.ifEmpty { listOf(ParticipationCancelReason.OTHER) },
+            useCaseFilter = caseFilterCondition.reasons.isNotEmpty(),
+            cancelReasons = caseFilterCondition.reasons.ifEmpty { listOf(ParticipationCancelReason.OTHER) },
             keyword = normalizedKeyword,
             pageable = pageable,
         )
@@ -230,18 +245,33 @@ class AdminRefundRequestService(
         }
     }
 
-    private fun AdminRefundRequestCaseFilter.toCancelReasons(): List<ParticipationCancelReason> {
+    private fun AdminRefundRequestCaseFilter.toCaseFilterCondition(): CaseFilterCondition {
         return when (this) {
-            AdminRefundRequestCaseFilter.ALL -> emptyList()
-            AdminRefundRequestCaseFilter.PRE_ACHIEVEMENT_FREE_CANCEL -> listOf(ParticipationCancelReason.NO_LONGER_WANTED)
-            AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL -> listOf(
-                ParticipationCancelReason.PREFER_DIRECT_VISIT,
-                ParticipationCancelReason.BOUGHT_ELSEWHERE,
+            AdminRefundRequestCaseFilter.ALL -> CaseFilterCondition(supported = true, reasons = emptyList())
+            AdminRefundRequestCaseFilter.PRE_ACHIEVEMENT_FREE_CANCEL -> CaseFilterCondition(
+                supported = true,
+                reasons = listOf(ParticipationCancelReason.NO_LONGER_WANTED),
             )
-            AdminRefundRequestCaseFilter.PICKUP_PERIOD_NO_SHOW -> listOf(ParticipationCancelReason.TIME_UNAVAILABLE)
-            AdminRefundRequestCaseFilter.OWNER_FAULT_CANCEL -> emptyList()
-            AdminRefundRequestCaseFilter.TARGET_NOT_MET -> emptyList()
-            AdminRefundRequestCaseFilter.DISPUTE_OR_DROPOUT_REFUND -> listOf(ParticipationCancelReason.OTHER)
+            AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL -> CaseFilterCondition(
+                supported = true,
+                reasons = listOf(
+                    ParticipationCancelReason.PREFER_DIRECT_VISIT,
+                    ParticipationCancelReason.BOUGHT_ELSEWHERE,
+                ),
+            )
+            AdminRefundRequestCaseFilter.PICKUP_PERIOD_NO_SHOW -> CaseFilterCondition(
+                supported = true,
+                reasons = listOf(ParticipationCancelReason.TIME_UNAVAILABLE),
+            )
+            AdminRefundRequestCaseFilter.OWNER_FAULT_CANCEL,
+            AdminRefundRequestCaseFilter.TARGET_NOT_MET -> CaseFilterCondition(
+                supported = false,
+                reasons = emptyList(),
+            )
+            AdminRefundRequestCaseFilter.DISPUTE_OR_DROPOUT_REFUND -> CaseFilterCondition(
+                supported = true,
+                reasons = listOf(ParticipationCancelReason.OTHER),
+            )
         }
     }
 
@@ -256,4 +286,9 @@ class AdminRefundRequestService(
             null -> AdminRefundRequestStatus.REVIEW_PENDING
         }
     }
+
+    private data class CaseFilterCondition(
+        val supported: Boolean,
+        val reasons: List<ParticipationCancelReason>,
+    )
 }
