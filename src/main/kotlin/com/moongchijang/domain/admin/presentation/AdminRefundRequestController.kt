@@ -2,6 +2,7 @@ package com.moongchijang.domain.admin.presentation
 
 import com.moongchijang.domain.admin.application.AdminRefundRequestService
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestCaseFilter
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
 import com.moongchijang.global.response.ApiResponse
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -55,5 +57,22 @@ class AdminRefundRequestController(
                 )
             )
         )
+    }
+
+    @GetMapping("/{requestId}")
+    @Operation(summary = "운영자 환불 요청 상세 조회")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "환불 요청 상세 조회 성공"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요"),
+            SwaggerApiResponse(responseCode = "403", description = "접근 권한 없음"),
+            SwaggerApiResponse(responseCode = "404", description = "환불 요청을 찾을 수 없음"),
+        ]
+    )
+    fun getRefundRequestDetail(
+        @PathVariable requestId: Long,
+    ): ResponseEntity<ApiResponse<AdminRefundRequestDetailResponse>> {
+        log.info("[AdminRefundRequestController] 환불 요청 상세 조회 요청: requestId={}", requestId)
+        return ResponseEntity.ok(ApiResponse.success(adminRefundRequestService.getRefundRequestDetail(requestId)))
     }
 }

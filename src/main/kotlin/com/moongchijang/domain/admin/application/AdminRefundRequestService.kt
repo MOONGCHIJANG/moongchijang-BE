@@ -1,6 +1,7 @@
 package com.moongchijang.domain.admin.application
 
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestCaseFilter
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestListItemResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
@@ -8,6 +9,10 @@ import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStat
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
+import com.moongchijang.domain.payment.domain.repository.PaymentRepository
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -19,6 +24,8 @@ import java.time.LocalDateTime
 @Transactional(readOnly = true)
 class AdminRefundRequestService(
     private val participationRepository: ParticipationRepository,
+    private val paymentOrderRepository: PaymentOrderRepository,
+    private val paymentRepository: PaymentRepository,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -66,6 +73,26 @@ class AdminRefundRequestService(
             hasSlaWarning = slaWarningCount > 0,
             slaWarningCount = slaWarningCount,
         )
+    }
+
+    fun getRefundRequestDetail(requestId: Long): AdminRefundRequestDetailResponse {
+        log.info("[AdminRefundRequestService] 환불 요청 상세 조회 시작: requestId={}", requestId)
+        val now = LocalDateTime.now(clock)
+        val participation = participationRepository.findPickupDetailById(requestId)
+            ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
+        val paymentOrder = paymentOrderRepository.findByUserIdAndGroupBuyId(
+            userId = participation.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND),
+            groupBuyId = participation.groupBuy.id,
+        )
+        val payment = paymentOrder?.let { paymentRepository.findByPaymentOrderOrderId(it.orderId) }
+        val response = AdminRefundRequestDetailResponse.from(
+            participation = participation,
+            paymentOrder = paymentOrder,
+            payment = payment,
+            now = now,
+        )
+        log.info("[AdminRefundRequestService] 환불 요청 상세 조회 완료: requestId={}, status={}", requestId, response.status)
+        return response
     }
 
     private fun AdminRefundRequestTab.toParticipationStatuses(): List<ParticipationStatus> {
