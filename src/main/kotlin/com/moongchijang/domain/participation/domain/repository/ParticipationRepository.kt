@@ -524,16 +524,28 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         join fetch p.user u
         join fetch p.groupBuy gb
         join fetch gb.store
-        where p.cancelReason is not null
-          and p.status in :statuses
+        where p.status in :statuses
           and (
             :useReviewStatusFilter = false
             or p.ownerRefundReviewStatus in :reviewStatuses
             or (:includeNullReviewStatus = true and p.ownerRefundReviewStatus is null)
           )
           and (
-            :useCaseFilter = false
-            or p.cancelReason in :cancelReasons
+            :caseFilter = 'ALL'
+            or (
+              :caseFilter = 'TARGET_NOT_MET'
+              and p.cancelReason is null
+              and gb.status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter = 'OWNER_FAULT_CANCEL'
+              and p.cancelReason is null
+              and gb.status <> com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter not in ('ALL', 'TARGET_NOT_MET', 'OWNER_FAULT_CANCEL')
+              and p.cancelReason in :cancelReasons
+            )
           )
           and (
             :keyword is null
@@ -548,16 +560,28 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         from Participation p
         join p.user u
         join p.groupBuy gb
-        where p.cancelReason is not null
-          and p.status in :statuses
+        where p.status in :statuses
           and (
             :useReviewStatusFilter = false
             or p.ownerRefundReviewStatus in :reviewStatuses
             or (:includeNullReviewStatus = true and p.ownerRefundReviewStatus is null)
           )
           and (
-            :useCaseFilter = false
-            or p.cancelReason in :cancelReasons
+            :caseFilter = 'ALL'
+            or (
+              :caseFilter = 'TARGET_NOT_MET'
+              and p.cancelReason is null
+              and gb.status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter = 'OWNER_FAULT_CANCEL'
+              and p.cancelReason is null
+              and gb.status <> com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.FAILED
+            )
+            or (
+              :caseFilter not in ('ALL', 'TARGET_NOT_MET', 'OWNER_FAULT_CANCEL')
+              and p.cancelReason in :cancelReasons
+            )
           )
           and (
             :keyword is null
@@ -572,7 +596,7 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         @Param("useReviewStatusFilter") useReviewStatusFilter: Boolean,
         @Param("reviewStatuses") reviewStatuses: Collection<OwnerRefundReviewStatus>,
         @Param("includeNullReviewStatus") includeNullReviewStatus: Boolean,
-        @Param("useCaseFilter") useCaseFilter: Boolean,
+        @Param("caseFilter") caseFilter: String,
         @Param("cancelReasons") cancelReasons: Collection<ParticipationCancelReason>,
         @Param("keyword") keyword: String?,
         pageable: Pageable,

@@ -26,7 +26,6 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -53,8 +52,20 @@ class AdminRefundRequestServiceTest {
     )
 
     @Test
-    fun `미지원 케이스 필터는 빈 목록을 반환한다`() {
+    fun `사장님 귀책 케이스 필터는 조건에 맞는 목록을 조회한다`() {
         val pageable = PageRequest.of(0, 20)
+        `when`(
+            participationRepository.findAdminRefundRequests(
+                statuses = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                useReviewStatusFilter = false,
+                reviewStatuses = listOf(OwnerRefundReviewStatus.PENDING),
+                includeNullReviewStatus = false,
+                caseFilter = "OWNER_FAULT_CANCEL",
+                cancelReasons = listOf(com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason.OTHER),
+                keyword = "테스트",
+                pageable = pageable,
+            )
+        ).thenReturn(PageImpl(emptyList(), pageable, 0))
 
         val result = service.getRefundRequests(
             tab = AdminRefundRequestTab.ALL,
@@ -65,7 +76,6 @@ class AdminRefundRequestServiceTest {
 
         assertTrue(result.content.isEmpty())
         assertEquals(0L, result.totalElements)
-        verifyNoInteractions(participationRepository)
     }
 
     @Test

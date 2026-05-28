@@ -4,6 +4,7 @@ import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStat
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.Duration
 import java.time.LocalDateTime
@@ -55,7 +56,7 @@ data class AdminRefundRequestListItemResponse(
             val requestedAt = participation.cancelledAt ?: participation.createdAt ?: now
             return AdminRefundRequestListItemResponse(
                 requestId = participation.id,
-                caseFilter = participation.cancelReason.toAdminCaseFilter(),
+                caseFilter = participation.toAdminCaseFilter(),
                 consumerName = participation.user.nickname ?: "알 수 없음",
                 groupBuyName = participation.groupBuy.productName,
                 storeName = participation.groupBuy.store.name,
@@ -88,8 +89,16 @@ private fun Participation.toAdminStatus(): AdminRefundRequestStatus {
     }
 }
 
-private fun ParticipationCancelReason?.toAdminCaseFilter(): AdminRefundRequestCaseFilter {
-    return when (this) {
+private fun Participation.toAdminCaseFilter(): AdminRefundRequestCaseFilter {
+    if (cancelReason == null) {
+        return if (groupBuy.status == GroupBuyStatus.FAILED) {
+            AdminRefundRequestCaseFilter.TARGET_NOT_MET
+        } else {
+            AdminRefundRequestCaseFilter.OWNER_FAULT_CANCEL
+        }
+    }
+
+    return when (cancelReason) {
         ParticipationCancelReason.TIME_UNAVAILABLE -> AdminRefundRequestCaseFilter.PICKUP_PERIOD_NO_SHOW
         ParticipationCancelReason.NO_LONGER_WANTED -> AdminRefundRequestCaseFilter.PRE_ACHIEVEMENT_FREE_CANCEL
         ParticipationCancelReason.PREFER_DIRECT_VISIT -> AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL
