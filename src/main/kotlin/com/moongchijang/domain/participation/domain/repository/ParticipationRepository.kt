@@ -101,7 +101,9 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         """
         SELECT p
         FROM Participation p
+        JOIN FETCH p.user u
         JOIN FETCH p.groupBuy gb
+        JOIN FETCH gb.store s
         WHERE gb.pickupDate = :pickupDate
           AND p.status IN :participationStatuses
           AND p.pickupStatus IN :pickupStatuses

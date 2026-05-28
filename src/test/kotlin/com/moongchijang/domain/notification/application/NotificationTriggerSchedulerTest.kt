@@ -8,6 +8,8 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -44,6 +46,12 @@ class NotificationTriggerSchedulerTest {
     @Mock
     private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
 
+    @Mock
+    private lateinit var aligoAlimtalkClient: AligoAlimtalkClient
+
+    @Mock
+    private lateinit var aligoProperties: AligoProperties
+
     private val scheduler by lazy {
         NotificationTriggerScheduler(
             notificationEventPublisher = notificationEventPublisher,
@@ -51,7 +59,9 @@ class NotificationTriggerSchedulerTest {
             participationRepository = participationRepository,
             groupBuyRepository = groupBuyRepository,
             favoriteRepository = favoriteRepository,
-            groupBuyRequestRepository = groupBuyRequestRepository
+            groupBuyRequestRepository = groupBuyRequestRepository,
+            aligoAlimtalkClient = aligoAlimtalkClient,
+            aligoProperties = aligoProperties,
         )
     }
 
@@ -243,6 +253,68 @@ class NotificationTriggerSchedulerTest {
             listOf(1L),
             "pickup-cutoff:41:${LocalDateTime.of(now.toLocalDate().minusDays(1), LocalTime.of(9, 0)).plusMinutes(30)}",
             now
+        )
+    }
+
+    @Test
+    fun `수령일 D-1 트리거 시 알림톡을 발송한다`() {
+        val now = LocalDateTime.of(2026, 5, 23, 7, 0)
+        val tomorrow = now.toLocalDate().plusDays(1)
+        val participation = ParticipationFixture.createParticipation(
+            participationId = 51L,
+            groupBuyId = 51L,
+            quantity = 1,
+            totalAmount = 1000,
+            currentQuantity = 10,
+            targetQuantity = 20,
+            deadline = now.plusDays(2),
+            pickupDate = tomorrow,
+            pickupTimeStart = LocalTime.of(12, 0),
+            createdAt = now.minusDays(1),
+            participationStatus = ParticipationStatus.CONFIRMED,
+            pickupStatus = PickupStatus.NOT_READY
+        ).apply {
+            user.phoneNumber = "01012345678"
+        }
+
+        `when`(
+            participationRepository.findForPickupReminderByPickupDate(
+                now.toLocalDate(),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(emptyList())
+        `when`(
+            participationRepository.findForPickupReminderByPickupDate(
+                tomorrow,
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(listOf(participation))
+        `when`(aligoProperties.templateCodePickupD1Reminder).thenReturn("UH_7967")
+
+        scheduler.triggerPickupMorningNotificationsAt(now)
+
+        val expectedMessage = """
+            테스터님, 내일 기다리던 픽업 날이에요!
+            
+            - 상품명: 두쫀쿠 오리지널 1개
+            - 픽업 장소: 서울 강남구 OO길 1
+            - 픽업 일시: 2026.05.24 12:00 ~ 16:00
+            
+            QR 픽업 코드는 내일 00시에
+            뭉치장 앱에서 자동 발급됩니다.
+            
+            ※ 픽업 미수령 시 환불이 불가하오니
+            일정을 꼭 확인해 주세요.
+            
+            - 팀 뭉치장 드림
+        """.trimIndent()
+
+        verify(aligoAlimtalkClient).send(
+            "01012345678",
+            expectedMessage,
+            "UH_7967",
         )
     }
 }

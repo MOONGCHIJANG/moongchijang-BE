@@ -5,6 +5,8 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
@@ -16,6 +18,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Component
 class NotificationTriggerScheduler(
@@ -25,6 +28,8 @@ class NotificationTriggerScheduler(
     private val groupBuyRepository: GroupBuyRepository,
     private val favoriteRepository: FavoriteRepository,
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
+    private val aligoAlimtalkClient: AligoAlimtalkClient,
+    private val aligoProperties: AligoProperties,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -150,6 +155,9 @@ class NotificationTriggerScheduler(
                 scheduleKey = "$scheduleKeyPrefix:${participation.id}:$pickupDate",
                 occurredAt = occurredAt
             )
+            if (triggerType == NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING) {
+                sendPickupD1Alimtalk(participation)
+            }
         }
         log.info(
             "[NotificationTriggerScheduler] 픽업 리마인드 알림 트리거 완료: triggerType={}, pickupDate={}, participationCount={}",
@@ -200,6 +208,52 @@ class NotificationTriggerScheduler(
 
     private fun nowKst(): LocalDateTime = LocalDateTime.now(ZoneId.of(KST_ZONE_ID))
 
+    private fun sendPickupD1Alimtalk(participation: com.moongchijang.domain.participation.domain.entity.Participation) {
+        runCatching {
+            val receiverPhone = participation.user.phoneNumber?.trim().orEmpty()
+            if (receiverPhone.isBlank()) {
+                log.warn(
+                    "[NotificationTriggerScheduler] 수령일 D-1 알림톡 스킵(전화번호 없음): participationId={}, userId={}",
+                    participation.id,
+                    participation.user.id,
+                )
+                return
+            }
+            val nickname = participation.user.nickname ?: "고객"
+            val groupBuy = participation.groupBuy
+            val pickupDateTime =
+                "${groupBuy.pickupDate.format(PICKUP_DATE_FORMATTER)} ${groupBuy.pickupTimeStart.format(PICKUP_TIME_FORMATTER)} ~ ${groupBuy.pickupTimeEnd.format(PICKUP_TIME_FORMATTER)}"
+            val message = """
+                ${nickname}님, 내일 기다리던 픽업 날이에요!
+                
+                - 상품명: ${groupBuy.productName}
+                - 픽업 장소: ${groupBuy.store.address}
+                - 픽업 일시: ${pickupDateTime}
+                
+                QR 픽업 코드는 내일 00시에
+                뭉치장 앱에서 자동 발급됩니다.
+                
+                ※ 픽업 미수령 시 환불이 불가하오니
+                일정을 꼭 확인해 주세요.
+                
+                - 팀 뭉치장 드림
+            """.trimIndent()
+
+            aligoAlimtalkClient.send(
+                receiverPhone = receiverPhone,
+                message = message,
+                templateCode = aligoProperties.templateCodePickupD1Reminder,
+            )
+        }.onFailure { e ->
+            log.error(
+                "[NotificationTriggerScheduler] 수령일 D-1 알림톡 발송 실패: participationId={}, userId={}",
+                participation.id,
+                participation.user.id,
+                e,
+            )
+        }
+    }
+
     private enum class ReminderOffset(
         val hours: Long,
         val triggerType: NotificationTriggerType,
@@ -212,5 +266,7 @@ class NotificationTriggerScheduler(
     companion object {
         private const val KST_ZONE_ID = "Asia/Seoul"
         private const val WINDOW_MINUTES = 10
+        private val PICKUP_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+        private val PICKUP_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     }
 }
