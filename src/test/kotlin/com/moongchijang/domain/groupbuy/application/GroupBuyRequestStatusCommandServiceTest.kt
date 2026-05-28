@@ -32,7 +32,7 @@ class GroupBuyRequestStatusCommandServiceTest {
         GroupBuyRequestStatusCommandService(
             groupBuyRequestRepository = groupBuyRequestRepository,
             groupBuyRequestStatusHistoryRepository = groupBuyRequestStatusHistoryRepository,
-            notificationEventPublisher = notificationEventPublisher
+            notificationEventPublisher = notificationEventPublisher,
         )
     }
 

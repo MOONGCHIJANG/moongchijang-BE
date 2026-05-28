@@ -105,5 +105,8 @@ aligo:
   api-key: ${ALIGO_API_KEY:local-aligo-api-key}
   user-id: ${ALIGO_USER_ID:local-aligo-user-id}
   sender-key: ${ALIGO_SENDER_KEY:local-aligo-sender-key}
-  template-code: ${ALIGO_TEMPLATE_CODE:local-template-code}
+  template-code-group-buy-open-success: ${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}
+  template-code-group-buy-open-failed: ${ALIGO_TEMPLATE_GROUP_BUY_OPEN_FAILED:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}}
+  template-code-pickup-d1-reminder: ${ALIGO_TEMPLATE_PICKUP_D1_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}}
+  template-code-pickup-day-reminder: ${ALIGO_TEMPLATE_PICKUP_DAY_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}}
   sender: ${ALIGO_SENDER:01000000000}

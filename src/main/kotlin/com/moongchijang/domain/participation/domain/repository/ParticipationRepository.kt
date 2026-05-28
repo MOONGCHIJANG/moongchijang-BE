@@ -101,7 +101,9 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         """
         SELECT p
         FROM Participation p
+        JOIN FETCH p.user u
         JOIN FETCH p.groupBuy gb
+        JOIN FETCH gb.store s
         WHERE gb.pickupDate = :pickupDate
           AND p.status IN :participationStatuses
           AND p.pickupStatus IN :pickupStatuses
@@ -424,6 +426,18 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participation p join fetch p.groupBuy where p.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): Optional<Participation>
+
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        where p.id = :id
+        """
+    )
+    fun findForPickupReminderById(@Param("id") id: Long): Participation?
 }
 
 interface GroupBuyPendingRefundCount {

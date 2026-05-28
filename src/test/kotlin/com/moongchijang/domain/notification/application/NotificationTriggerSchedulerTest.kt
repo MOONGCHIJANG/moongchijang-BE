@@ -51,7 +51,7 @@ class NotificationTriggerSchedulerTest {
             participationRepository = participationRepository,
             groupBuyRepository = groupBuyRepository,
             favoriteRepository = favoriteRepository,
-            groupBuyRequestRepository = groupBuyRequestRepository
+            groupBuyRequestRepository = groupBuyRequestRepository,
         )
     }
 
@@ -245,6 +245,7 @@ class NotificationTriggerSchedulerTest {
             now
         )
     }
+
 }
 
 private fun notificationTarget(groupBuyId: Long, userId: Long): FavoriteNotificationTargetProjection {
