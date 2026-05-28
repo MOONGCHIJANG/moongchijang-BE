@@ -4,6 +4,9 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -28,11 +31,23 @@ class GroupBuyRequestStatusCommandServiceTest {
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
+    @Mock
+    private lateinit var userRepository: UserRepository
+
+    @Mock
+    private lateinit var aligoAlimtalkClient: AligoAlimtalkClient
+
+    @Mock
+    private lateinit var aligoProperties: AligoProperties
+
     private val service by lazy {
         GroupBuyRequestStatusCommandService(
             groupBuyRequestRepository = groupBuyRequestRepository,
             groupBuyRequestStatusHistoryRepository = groupBuyRequestStatusHistoryRepository,
-            notificationEventPublisher = notificationEventPublisher
+            notificationEventPublisher = notificationEventPublisher,
+            userRepository = userRepository,
+            aligoAlimtalkClient = aligoAlimtalkClient,
+            aligoProperties = aligoProperties,
         )
     }
 
