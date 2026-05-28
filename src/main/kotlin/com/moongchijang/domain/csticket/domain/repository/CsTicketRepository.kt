@@ -2,11 +2,9 @@ package com.moongchijang.domain.csticket.domain.repository
 
 import com.moongchijang.domain.csticket.domain.entity.CsTicket
 import com.moongchijang.domain.csticket.domain.entity.CsTicketStatus
-import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.util.Optional
@@ -24,11 +22,11 @@ interface CsTicketRepository : JpaRepository<CsTicket, Long> {
               and (
                 :keyword is null
                 or ticket.id = :ticketId
-                or lower(coalesce(ticket.title, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(consumer.nickname, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(consumer.email, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(consumer.phoneNumber, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(groupBuy.productName, '')) like lower(concat('%', :keyword, '%'))
+                or lower(ticket.title) like lower(concat('%', :keyword, '%'))
+                or lower(consumer.nickname) like lower(concat('%', :keyword, '%'))
+                or lower(consumer.email) like lower(concat('%', :keyword, '%'))
+                or lower(consumer.phoneNumber) like lower(concat('%', :keyword, '%'))
+                or lower(groupBuy.productName) like lower(concat('%', :keyword, '%'))
               )
             order by ticket.createdAt desc, ticket.id desc
         """,
@@ -41,11 +39,11 @@ interface CsTicketRepository : JpaRepository<CsTicket, Long> {
               and (
                 :keyword is null
                 or ticket.id = :ticketId
-                or lower(coalesce(ticket.title, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(consumer.nickname, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(consumer.email, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(consumer.phoneNumber, '')) like lower(concat('%', :keyword, '%'))
-                or lower(coalesce(groupBuy.productName, '')) like lower(concat('%', :keyword, '%'))
+                or lower(ticket.title) like lower(concat('%', :keyword, '%'))
+                or lower(consumer.nickname) like lower(concat('%', :keyword, '%'))
+                or lower(consumer.email) like lower(concat('%', :keyword, '%'))
+                or lower(consumer.phoneNumber) like lower(concat('%', :keyword, '%'))
+                or lower(groupBuy.productName) like lower(concat('%', :keyword, '%'))
               )
         """
     )
@@ -68,7 +66,4 @@ interface CsTicketRepository : JpaRepository<CsTicket, Long> {
     )
     fun findAdminDetailById(@Param("id") id: Long): Optional<CsTicket>
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select ticket from CsTicket ticket where ticket.id = :id")
-    fun findWithLockById(@Param("id") id: Long): Optional<CsTicket>
 }

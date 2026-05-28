@@ -104,8 +104,10 @@ class AdminCsTicketServiceTest {
 
     @Test
     fun `CS 티켓 처리 상태 담당자 메모를 변경한다`() {
-        val ticket = createTicket(id = 12L, status = CsTicketStatus.RECEIVED)
-        `when`(csTicketRepository.findWithLockById(12L)).thenReturn(Optional.of(ticket))
+        val ticket = createTicket(id = 12L, status = CsTicketStatus.RECEIVED).apply {
+            setAuditTime(LocalDateTime.of(2026, 5, 28, 10, 0))
+        }
+        `when`(csTicketRepository.findAdminDetailById(12L)).thenReturn(Optional.of(ticket))
 
         val result = service.updateTicket(
             ticketId = 12L,
@@ -120,8 +122,24 @@ class AdminCsTicketServiceTest {
         assertEquals("김은서", result.assigneeName)
         assertEquals("안내 완료", result.processingMemo)
         assertEquals(LocalDateTime.of(2026, 5, 28, 13, 0), result.resolvedAt)
+        assertEquals(3L, result.slaHours)
         assertFalse(result.actionable)
         assertNotNull(ticket.resolvedAt)
+    }
+
+    @Test
+    fun `완료된 CS 티켓 SLA는 해결 시각 기준으로 계산한다`() {
+        val ticket = createTicket(id = 13L, status = CsTicketStatus.COMPLETED).apply {
+            setAuditTime(LocalDateTime.of(2026, 5, 28, 9, 0))
+            resolvedAt = LocalDateTime.of(2026, 5, 28, 10, 30)
+        }
+        `when`(csTicketRepository.findAdminDetailById(13L)).thenReturn(Optional.of(ticket))
+
+        val result = service.getTicketDetail(13L)
+
+        assertEquals(CsTicketStatus.COMPLETED, result.status)
+        assertEquals(1L, result.slaHours)
+        assertFalse(result.actionable)
     }
 
     private fun createTicket(

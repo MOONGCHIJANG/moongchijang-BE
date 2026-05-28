@@ -71,7 +71,7 @@ data class AdminCsTicketListItemResponse(
                 priority = ticket.priority,
                 assigneeName = ticket.assigneeName,
                 createdAt = ticket.createdAt,
-                slaHours = ticket.createdAt?.let { Duration.between(it, now).toHours().coerceAtLeast(0) } ?: 0L,
+                slaHours = ticket.calculateSlaHours(now),
                 status = ticket.status,
                 actionable = ticket.status != CsTicketStatus.COMPLETED
             )
@@ -108,7 +108,7 @@ data class AdminCsTicketDetailResponse(
                 status = ticket.status,
                 createdAt = ticket.createdAt,
                 updatedAt = ticket.updatedAt,
-                slaHours = ticket.createdAt?.let { Duration.between(it, now).toHours().coerceAtLeast(0) } ?: 0L,
+                slaHours = ticket.calculateSlaHours(now),
                 consumer = ticket.consumer?.let { user ->
                     AdminCsTicketUserResponse(
                         userId = user.id,
@@ -168,3 +168,14 @@ data class AdminCsTicketUpdateRequest(
     @field:Size(max = 1000)
     val processingMemo: String? = null,
 )
+
+private fun CsTicket.calculateSlaHours(now: LocalDateTime): Long {
+    val startedAt = createdAt ?: return 0L
+    val endedAt = if (status == CsTicketStatus.COMPLETED) {
+        resolvedAt ?: now
+    } else {
+        now
+    }
+
+    return Duration.between(startedAt, endedAt).toHours().coerceAtLeast(0)
+}

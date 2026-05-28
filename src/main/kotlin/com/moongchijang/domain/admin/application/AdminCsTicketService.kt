@@ -49,7 +49,7 @@ class AdminCsTicketService(
         request: AdminCsTicketUpdateRequest,
     ): AdminCsTicketDetailResponse {
         val now = LocalDateTime.now(clock)
-        val ticket = csTicketRepository.findWithLockById(ticketId)
+        val ticket = csTicketRepository.findAdminDetailById(ticketId)
             .orElseThrow { CustomException(ErrorCode.CS_TICKET_NOT_FOUND) }
 
         ticket.updateProcessing(

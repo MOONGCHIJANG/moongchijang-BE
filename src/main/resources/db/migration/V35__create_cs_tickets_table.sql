@@ -22,3 +22,4 @@ CREATE TABLE cs_tickets (
 CREATE INDEX idx_cs_tickets_status_created_at ON cs_tickets (status, created_at);
 CREATE INDEX idx_cs_tickets_consumer_id ON cs_tickets (consumer_id);
 CREATE INDEX idx_cs_tickets_group_buy_id ON cs_tickets (group_buy_id);
+CREATE INDEX idx_cs_tickets_refund_participation_id ON cs_tickets (refund_participation_id);
