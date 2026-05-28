@@ -3,11 +3,8 @@ package com.moongchijang.domain.admin.application
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestCaseFilter
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestListItemResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
-import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestStatus
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
-import com.moongchijang.domain.admin.application.dto.refund.calculateSlaRemainingHours
 import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
-import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -58,53 +55,12 @@ class AdminRefundRequestService(
         )
 
         return AdminRefundRequestPageResponse(
-            content = page.content.map { it.toListItem(now) },
+            content = page.content.map { AdminRefundRequestListItemResponse.from(it, now) },
             totalElements = page.totalElements,
             totalPages = page.totalPages,
             number = page.number,
             size = page.size,
         )
-    }
-
-    private fun Participation.toListItem(now: LocalDateTime): AdminRefundRequestListItemResponse {
-        val requestedAt = cancelledAt ?: createdAt ?: now
-        return AdminRefundRequestListItemResponse(
-            requestId = id,
-            caseFilter = cancelReason.toAdminCaseFilter(),
-            consumerName = user.nickname ?: "알 수 없음",
-            groupBuyName = groupBuy.productName,
-            storeName = groupBuy.store.name,
-            paymentAmount = totalAmount,
-            refundAmount = if (status == ParticipationStatus.REFUNDED) totalAmount else 0,
-            ownerOpinion = ownerRefundDisputeReason,
-            requestedAt = requestedAt,
-            slaRemainingHours = calculateSlaRemainingHours(requestedAt, now),
-            status = toAdminStatus(),
-        )
-    }
-
-    private fun Participation.toAdminStatus(): AdminRefundRequestStatus {
-        if (status == ParticipationStatus.REFUNDED) {
-            return AdminRefundRequestStatus.APPROVED
-        }
-
-        return when (ownerRefundReviewStatus) {
-            OwnerRefundReviewStatus.APPROVED -> AdminRefundRequestStatus.IN_PROGRESS
-            OwnerRefundReviewStatus.DISPUTED -> AdminRefundRequestStatus.REJECTED
-            OwnerRefundReviewStatus.PENDING,
-            null -> AdminRefundRequestStatus.REVIEW_PENDING
-        }
-    }
-
-    private fun ParticipationCancelReason?.toAdminCaseFilter(): AdminRefundRequestCaseFilter {
-        return when (this) {
-            ParticipationCancelReason.TIME_UNAVAILABLE -> AdminRefundRequestCaseFilter.PICKUP_PERIOD_NO_SHOW
-            ParticipationCancelReason.NO_LONGER_WANTED -> AdminRefundRequestCaseFilter.PRE_ACHIEVEMENT_FREE_CANCEL
-            ParticipationCancelReason.PREFER_DIRECT_VISIT -> AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL
-            ParticipationCancelReason.BOUGHT_ELSEWHERE -> AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL
-            ParticipationCancelReason.OTHER -> AdminRefundRequestCaseFilter.DISPUTE_OR_DROPOUT_REFUND
-            null -> AdminRefundRequestCaseFilter.ALL
-        }
     }
 
     private fun AdminRefundRequestTab.toParticipationStatuses(): List<ParticipationStatus> {
