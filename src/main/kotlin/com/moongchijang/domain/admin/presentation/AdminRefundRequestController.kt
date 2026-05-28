@@ -1,6 +1,7 @@
 package com.moongchijang.domain.admin.presentation
 
 import com.moongchijang.domain.admin.application.AdminRefundRequestService
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestApproveRequest
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestCaseFilter
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
@@ -10,11 +11,14 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -74,5 +78,29 @@ class AdminRefundRequestController(
     ): ResponseEntity<ApiResponse<AdminRefundRequestDetailResponse>> {
         log.info("[AdminRefundRequestController] 환불 요청 상세 조회 요청: requestId={}", requestId)
         return ResponseEntity.ok(ApiResponse.success(adminRefundRequestService.getRefundRequestDetail(requestId)))
+    }
+
+    @PatchMapping("/{requestId}/approve")
+    @Operation(summary = "운영자 환불 요청 승인 처리")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "환불 요청 승인 처리 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 환불 금액 또는 상태 전이"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요"),
+            SwaggerApiResponse(responseCode = "403", description = "접근 권한 없음"),
+            SwaggerApiResponse(responseCode = "404", description = "환불 요청을 찾을 수 없음"),
+            SwaggerApiResponse(responseCode = "409", description = "이미 처리된 환불 요청"),
+        ]
+    )
+    fun approveRefundRequest(
+        @PathVariable requestId: Long,
+        @Valid @RequestBody request: AdminRefundRequestApproveRequest,
+    ): ResponseEntity<ApiResponse<AdminRefundRequestDetailResponse>> {
+        log.info(
+            "[AdminRefundRequestController] 환불 요청 승인 처리 요청: requestId={}, refundAmount={}",
+            requestId,
+            request.refundAmount
+        )
+        return ResponseEntity.ok(ApiResponse.success(adminRefundRequestService.approveRefundRequest(requestId, request)))
     }
 }

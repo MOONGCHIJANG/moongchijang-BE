@@ -1,10 +1,13 @@
 package com.moongchijang.domain.admin.application
 
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestCaseFilter
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestApproveRequest
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestListItemResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestStatus
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
+import com.moongchijang.domain.admin.application.refund.AdminRefundRequestStatusTransitionPolicy
 import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -95,6 +98,53 @@ class AdminRefundRequestService(
         return response
     }
 
+    @Transactional
+    fun approveRefundRequest(
+        requestId: Long,
+        request: AdminRefundRequestApproveRequest,
+    ): AdminRefundRequestDetailResponse {
+        log.info(
+            "[AdminRefundRequestService] 환불 요청 승인 시작: requestId={}, refundAmount={}",
+            requestId,
+            request.refundAmount
+        )
+        val now = LocalDateTime.now(clock)
+        val participation = participationRepository.findByIdForUpdate(requestId)
+            .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+
+        val currentStatus = participation.toAdminStatus()
+        AdminRefundRequestStatusTransitionPolicy.validateTransition(
+            from = currentStatus,
+            to = AdminRefundRequestStatus.IN_PROGRESS,
+        )
+
+        if (request.refundAmount > participation.totalAmount) {
+            throw CustomException(ErrorCode.INVALID_INPUT, "refundAmount는 결제 금액을 초과할 수 없습니다.")
+        }
+
+        participation.ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED
+        participation.ownerRefundReviewedAt = now
+        participation.ownerRefundDisputeReason = null
+
+        val paymentOrder = paymentOrderRepository.findByUserIdAndGroupBuyId(
+            userId = participation.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND),
+            groupBuyId = participation.groupBuy.id,
+        )
+        val payment = paymentOrder?.let { paymentRepository.findByPaymentOrderOrderId(it.orderId) }
+        val response = AdminRefundRequestDetailResponse.from(
+            participation = participation,
+            paymentOrder = paymentOrder,
+            payment = payment,
+            now = now,
+        )
+        log.info(
+            "[AdminRefundRequestService] 환불 요청 승인 완료: requestId={}, status={}",
+            requestId,
+            response.status
+        )
+        return response
+    }
+
     private fun AdminRefundRequestTab.toParticipationStatuses(): List<ParticipationStatus> {
         return when (this) {
             AdminRefundRequestTab.ALL -> listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
@@ -127,6 +177,18 @@ class AdminRefundRequestService(
             AdminRefundRequestCaseFilter.OWNER_FAULT_CANCEL -> emptyList()
             AdminRefundRequestCaseFilter.TARGET_NOT_MET -> emptyList()
             AdminRefundRequestCaseFilter.DISPUTE_OR_DROPOUT_REFUND -> listOf(ParticipationCancelReason.OTHER)
+        }
+    }
+
+    private fun com.moongchijang.domain.participation.domain.entity.Participation.toAdminStatus(): AdminRefundRequestStatus {
+        if (status == ParticipationStatus.REFUNDED) {
+            return AdminRefundRequestStatus.APPROVED
+        }
+        return when (ownerRefundReviewStatus) {
+            OwnerRefundReviewStatus.APPROVED -> AdminRefundRequestStatus.IN_PROGRESS
+            OwnerRefundReviewStatus.DISPUTED -> AdminRefundRequestStatus.REJECTED
+            OwnerRefundReviewStatus.PENDING,
+            null -> AdminRefundRequestStatus.REVIEW_PENDING
         }
     }
 }
