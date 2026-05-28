@@ -80,7 +80,10 @@ aligo:
   api-key: ${ALIGO_API_KEY}
   user-id: ${ALIGO_USER_ID}
   sender-key: ${ALIGO_SENDER_KEY}
-  template-code: ${ALIGO_TEMPLATE_CODE}
+  template-code-group-buy-open-success: ${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE}}
+  template-code-group-buy-open-failed: ${ALIGO_TEMPLATE_GROUP_BUY_OPEN_FAILED:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE}}}
+  template-code-pickup-d1-reminder: ${ALIGO_TEMPLATE_PICKUP_D1_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE}}}
+  template-code-pickup-day-reminder: ${ALIGO_TEMPLATE_PICKUP_DAY_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE}}}
   sender: ${ALIGO_SENDER}
 
 ses:

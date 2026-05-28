@@ -15,12 +15,20 @@ class AligoAlimtalkClient(
     private val sendUrl = "https://kakaoapi.aligo.in/akv10/alimtalk/send/"
 
     fun send(receiverPhone: String, message: String): Boolean {
+        return send(
+            receiverPhone = receiverPhone,
+            message = message,
+            templateCode = aligoProperties.templateCodeGroupBuyOpenSuccess,
+        )
+    }
+
+    fun send(receiverPhone: String, message: String, templateCode: String): Boolean {
         return try {
             val body = LinkedMultiValueMap<String, String>().apply {
                 add("apikey", aligoProperties.apiKey)
                 add("userid", aligoProperties.userId)
                 add("senderkey", aligoProperties.senderKey)
-                add("tpl_code", aligoProperties.templateCode)
+                add("tpl_code", templateCode)
                 add("sender", aligoProperties.sender)
                 add("receiver_1", receiverPhone)
                 add("subject_1", "공구 알림")
