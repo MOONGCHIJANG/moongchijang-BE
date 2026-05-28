@@ -5,6 +5,7 @@ import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestAp
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestCaseFilter
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestRejectRequest
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
 import com.moongchijang.global.response.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -102,5 +103,29 @@ class AdminRefundRequestController(
             request.refundAmount
         )
         return ResponseEntity.ok(ApiResponse.success(adminRefundRequestService.approveRefundRequest(requestId, request)))
+    }
+
+    @PatchMapping("/{requestId}/reject")
+    @Operation(summary = "운영자 환불 요청 거절 처리")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "환불 요청 거절 처리 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "잘못된 거절 사유 또는 상태 전이"),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요"),
+            SwaggerApiResponse(responseCode = "403", description = "접근 권한 없음"),
+            SwaggerApiResponse(responseCode = "404", description = "환불 요청을 찾을 수 없음"),
+            SwaggerApiResponse(responseCode = "409", description = "이미 처리된 환불 요청"),
+        ]
+    )
+    fun rejectRefundRequest(
+        @PathVariable requestId: Long,
+        @Valid @RequestBody request: AdminRefundRequestRejectRequest,
+    ): ResponseEntity<ApiResponse<AdminRefundRequestDetailResponse>> {
+        log.info(
+            "[AdminRefundRequestController] 환불 요청 거절 처리 요청: requestId={}, rejectionReasonLength={}",
+            requestId,
+            request.rejectionReason.trim().length
+        )
+        return ResponseEntity.ok(ApiResponse.success(adminRefundRequestService.rejectRefundRequest(requestId, request)))
     }
 }

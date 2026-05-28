@@ -5,6 +5,7 @@ import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestAp
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestListItemResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
+import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestRejectRequest
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestStatus
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
 import com.moongchijang.domain.admin.application.refund.AdminRefundRequestStatusTransitionPolicy
@@ -150,6 +151,59 @@ class AdminRefundRequestService(
         )
         log.info(
             "[AdminRefundRequestService] 환불 요청 승인 완료: requestId={}, status={}",
+            requestId,
+            response.status
+        )
+        return response
+    }
+
+    @Transactional
+    fun rejectRefundRequest(
+        requestId: Long,
+        request: AdminRefundRequestRejectRequest,
+    ): AdminRefundRequestDetailResponse {
+        val rejectionReason = request.rejectionReason.trim()
+        if (rejectionReason.isBlank()) {
+            throw CustomException(ErrorCode.INVALID_INPUT, "rejectionReason은 필수입니다.")
+        }
+        log.info(
+            "[AdminRefundRequestService] 환불 요청 거절 시작: requestId={}, rejectionReasonLength={}",
+            requestId,
+            rejectionReason.length
+        )
+        val now = LocalDateTime.now(clock)
+        val participation = participationRepository.findByIdForUpdate(requestId)
+            .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+
+        val currentStatus = participation.toAdminStatus()
+        AdminRefundRequestStatusTransitionPolicy.validateTransition(
+            from = currentStatus,
+            to = AdminRefundRequestStatus.REJECTED,
+        )
+
+        participation.ownerRefundReviewStatus = OwnerRefundReviewStatus.DISPUTED
+        participation.ownerRefundReviewedAt = now
+        participation.ownerRefundDisputeReason = rejectionReason
+        participation.approvedRefundAmount = null
+        refundRequestSyncService.markRejected(
+            participation = participation,
+            reason = rejectionReason,
+            at = now,
+        )
+
+        val paymentOrder = paymentOrderRepository.findByUserIdAndGroupBuyId(
+            userId = participation.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND),
+            groupBuyId = participation.groupBuy.id,
+        )
+        val payment = paymentOrder?.let { paymentRepository.findByPaymentOrderOrderId(it.orderId) }
+        val response = AdminRefundRequestDetailResponse.from(
+            participation = participation,
+            paymentOrder = paymentOrder,
+            payment = payment,
+            now = now,
+        )
+        log.info(
+            "[AdminRefundRequestService] 환불 요청 거절 완료: requestId={}, status={}",
             requestId,
             response.status
         )
