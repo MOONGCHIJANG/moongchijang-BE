@@ -9,6 +9,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestReposit
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
@@ -295,21 +296,12 @@ class NotificationTriggerSchedulerTest {
 
         scheduler.triggerPickupMorningNotificationsAt(now)
 
-        val expectedMessage = """
-            테스터님, 내일 기다리던 픽업 날이에요!
-            
-            - 상품명: 두쫀쿠 오리지널 1개
-            - 픽업 장소: 서울 강남구 OO길 1
-            - 픽업 일시: 2026.05.24 12:00 ~ 16:00
-            
-            QR 픽업 코드는 내일 00시에
-            뭉치장 앱에서 자동 발급됩니다.
-            
-            ※ 픽업 미수령 시 환불이 불가하오니
-            일정을 꼭 확인해 주세요.
-            
-            - 팀 뭉치장 드림
-        """.trimIndent()
+        val expectedMessage = AligoMessageFormatter.pickupD1Reminder(
+            nickname = "테스터",
+            productName = "두쫀쿠 오리지널 1개",
+            pickupPlace = "서울 강남구 OO길 1",
+            pickupDateTime = "2026.05.24 12:00 ~ 16:00",
+        )
 
         verify(aligoAlimtalkClient).send(
             "01012345678",
@@ -356,23 +348,12 @@ class NotificationTriggerSchedulerTest {
 
         scheduler.triggerPickupMorningNotificationsAt(now)
 
-        val expectedMessage = """
-            테스터님, 오늘 픽업 당일이에요!
-            
-            - 상품명: 두쫀쿠 오리지널 1개
-            - 픽업 장소: 서울 강남구 OO길 1
-            - 픽업 일시: 2026.05.23 12:00 ~ 16:00
-            
-            자정부터 QR 픽업 코드가 발급되어 있어요.
-            뭉치장 웹(www.moongchijang.com)에서 확인 후 매장을 방문해 주세요.
-            
-            ※ 미수령 시 환불이 불가합니다.
-            
-            언제나 감사드려요 ♥️
-            늘 노력하는 뭉치장 되겠습니다.
-            
-            - 팀 뭉치장 드림
-        """.trimIndent()
+        val expectedMessage = AligoMessageFormatter.pickupDayReminder(
+            nickname = "테스터",
+            productName = "두쫀쿠 오리지널 1개",
+            pickupPlace = "서울 강남구 OO길 1",
+            pickupDateTime = "2026.05.23 12:00 ~ 16:00",
+        )
 
         verify(aligoAlimtalkClient).send(
             "01099998888",
