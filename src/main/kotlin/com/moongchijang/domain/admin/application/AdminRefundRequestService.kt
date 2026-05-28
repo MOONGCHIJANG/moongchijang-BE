@@ -54,12 +54,17 @@ class AdminRefundRequestService(
             tab, caseFilter, normalizedKeyword, pageable.pageNumber, pageable.pageSize, page.totalElements
         )
 
+        val items = page.content.map { AdminRefundRequestListItemResponse.from(it, now) }
+        val slaWarningCount = items.count { it.slaWarning }
+
         return AdminRefundRequestPageResponse(
-            content = page.content.map { AdminRefundRequestListItemResponse.from(it, now) },
+            content = items,
             totalElements = page.totalElements,
             totalPages = page.totalPages,
             number = page.number,
             size = page.size,
+            hasSlaWarning = slaWarningCount > 0,
+            slaWarningCount = slaWarningCount,
         )
     }
 

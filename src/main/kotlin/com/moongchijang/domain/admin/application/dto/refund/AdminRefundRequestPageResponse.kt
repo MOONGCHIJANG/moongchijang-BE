@@ -19,4 +19,10 @@ data class AdminRefundRequestPageResponse(
 
     @Schema(description = "페이지 크기")
     val size: Int,
+
+    @Schema(description = "요청 후 1시간 초과 SLA 경고 건 존재 여부")
+    val hasSlaWarning: Boolean,
+
+    @Schema(description = "요청 후 1시간 초과 SLA 경고 건수")
+    val slaWarningCount: Int,
 )

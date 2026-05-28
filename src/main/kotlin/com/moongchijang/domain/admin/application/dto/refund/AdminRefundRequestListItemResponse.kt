@@ -41,6 +41,9 @@ data class AdminRefundRequestListItemResponse(
     @Schema(description = "SLA 남은 시간(시간)")
     val slaRemainingHours: Long,
 
+    @Schema(description = "요청 후 1시간 초과 여부")
+    val slaWarning: Boolean,
+
     @Schema(description = "처리 상태")
     val status: AdminRefundRequestStatus,
 ){
@@ -61,6 +64,7 @@ data class AdminRefundRequestListItemResponse(
                 ownerOpinion = participation.ownerRefundDisputeReason,
                 requestedAt = requestedAt,
                 slaRemainingHours = calculateSlaRemainingHours(requestedAt, now),
+                slaWarning = isSlaWarning(requestedAt, now),
                 status = participation.toAdminStatus(),
             )
         }
@@ -97,4 +101,11 @@ internal fun calculateSlaRemainingHours(
 ): Long {
     val deadline = requestedAt.plusHours(24)
     return Duration.between(now, deadline).toHours()
+}
+
+internal fun isSlaWarning(
+    requestedAt: LocalDateTime,
+    now: LocalDateTime,
+): Boolean {
+    return Duration.between(requestedAt, now).toHours() >= 1
 }
