@@ -8,9 +8,6 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
-import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
-import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
-import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -47,12 +44,6 @@ class NotificationTriggerSchedulerTest {
     @Mock
     private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
 
-    @Mock
-    private lateinit var aligoAlimtalkClient: AligoAlimtalkClient
-
-    @Mock
-    private lateinit var aligoProperties: AligoProperties
-
     private val scheduler by lazy {
         NotificationTriggerScheduler(
             notificationEventPublisher = notificationEventPublisher,
@@ -61,8 +52,6 @@ class NotificationTriggerSchedulerTest {
             groupBuyRepository = groupBuyRepository,
             favoriteRepository = favoriteRepository,
             groupBuyRequestRepository = groupBuyRequestRepository,
-            aligoAlimtalkClient = aligoAlimtalkClient,
-            aligoProperties = aligoProperties,
         )
     }
 
@@ -257,110 +246,6 @@ class NotificationTriggerSchedulerTest {
         )
     }
 
-    @Test
-    fun `수령일 D-1 트리거 시 알림톡을 발송한다`() {
-        val now = LocalDateTime.of(2026, 5, 23, 7, 0)
-        val tomorrow = now.toLocalDate().plusDays(1)
-        val participation = ParticipationFixture.createParticipation(
-            participationId = 51L,
-            groupBuyId = 51L,
-            quantity = 1,
-            totalAmount = 1000,
-            currentQuantity = 10,
-            targetQuantity = 20,
-            deadline = now.plusDays(2),
-            pickupDate = tomorrow,
-            pickupTimeStart = LocalTime.of(12, 0),
-            createdAt = now.minusDays(1),
-            participationStatus = ParticipationStatus.CONFIRMED,
-            pickupStatus = PickupStatus.NOT_READY
-        ).apply {
-            user.phoneNumber = "01012345678"
-        }
-
-        `when`(
-            participationRepository.findForPickupReminderByPickupDate(
-                now.toLocalDate(),
-                listOf(ParticipationStatus.CONFIRMED),
-                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
-            )
-        ).thenReturn(emptyList())
-        `when`(
-            participationRepository.findForPickupReminderByPickupDate(
-                tomorrow,
-                listOf(ParticipationStatus.CONFIRMED),
-                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
-            )
-        ).thenReturn(listOf(participation))
-        `when`(aligoProperties.templateCodePickupD1Reminder).thenReturn("UH_7967")
-
-        scheduler.triggerPickupMorningNotificationsAt(now)
-
-        val expectedMessage = AligoMessageFormatter.pickupD1Reminder(
-            nickname = "테스터",
-            productName = "두쫀쿠 오리지널 1개",
-            pickupPlace = "서울 강남구 OO길 1",
-            pickupDateTime = "2026.05.24 12:00 ~ 16:00",
-        )
-
-        verify(aligoAlimtalkClient).send(
-            "01012345678",
-            expectedMessage,
-            "UH_7967",
-        )
-    }
-
-    @Test
-    fun `수령일 당일 트리거 시 알림톡을 발송한다`() {
-        val now = LocalDateTime.of(2026, 5, 23, 7, 0)
-        val participation = ParticipationFixture.createParticipation(
-            participationId = 61L,
-            groupBuyId = 61L,
-            quantity = 1,
-            totalAmount = 1000,
-            currentQuantity = 10,
-            targetQuantity = 20,
-            deadline = now.plusDays(1),
-            pickupDate = now.toLocalDate(),
-            pickupTimeStart = LocalTime.of(12, 0),
-            createdAt = now.minusDays(1),
-            participationStatus = ParticipationStatus.CONFIRMED,
-            pickupStatus = PickupStatus.NOT_READY
-        ).apply {
-            user.phoneNumber = "01099998888"
-        }
-
-        `when`(
-            participationRepository.findForPickupReminderByPickupDate(
-                now.toLocalDate(),
-                listOf(ParticipationStatus.CONFIRMED),
-                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
-            )
-        ).thenReturn(listOf(participation))
-        `when`(
-            participationRepository.findForPickupReminderByPickupDate(
-                now.toLocalDate().plusDays(1),
-                listOf(ParticipationStatus.CONFIRMED),
-                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
-            )
-        ).thenReturn(emptyList())
-        `when`(aligoProperties.templateCodePickupDayReminder).thenReturn("UH_7968")
-
-        scheduler.triggerPickupMorningNotificationsAt(now)
-
-        val expectedMessage = AligoMessageFormatter.pickupDayReminder(
-            nickname = "테스터",
-            productName = "두쫀쿠 오리지널 1개",
-            pickupPlace = "서울 강남구 OO길 1",
-            pickupDateTime = "2026.05.23 12:00 ~ 16:00",
-        )
-
-        verify(aligoAlimtalkClient).send(
-            "01099998888",
-            expectedMessage,
-            "UH_7968",
-        )
-    }
 }
 
 private fun notificationTarget(groupBuyId: Long, userId: Long): FavoriteNotificationTargetProjection {
