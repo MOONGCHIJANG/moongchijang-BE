@@ -149,6 +149,9 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_DATE(400_453, "픽업일은 공구 마감일 이후여야 합니다.", 400),
     OWNER_GROUPBUY_REQUEST_NOT_FOUND(404_450, "사장님 공구 개설 요청을 찾을 수 없습니다.", 404),
 
+    // CsTicket(500~549)
+    CS_TICKET_NOT_FOUND(404_500, "CS 티켓을 찾을 수 없습니다.", 404),
+
     // Notification(360~369)
     NOTIFICATION_NOT_FOUND(404_360, "알림을 찾을 수 없습니다.", 404),
     NOTIFICATION_FORBIDDEN(403_360, "본인 알림만 처리할 수 있습니다.", 403),
