@@ -1,0 +1,114 @@
+spring:
+  flyway:
+    enabled: false
+
+app:
+  share:
+    base-url: https://test.moongchijang.com
+
+oauth:
+  kakao:
+    client-id: test-client-id
+    client-secret: test-client-secret
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: http://localhost:3000/oauth
+
+jwt:
+  secret: test-jwt-secret-test-jwt-secret-test-jwt-secret
+  access-token:
+    expiration-minutes: 60
+
+auth:
+  refresh:
+    expiration-days: 14
+
+naver:
+  api:
+    client-id: test-naver-client-id
+    client-secret: test-naver-client-secret
+
+portone:
+  store-id: store-test
+  channel-key: channel-test
+  api-secret: portone-api-secret-test
+  payment-api-base-url: https://api.portone.io
+
+coolsms:
+  api-key: test-api-key
+  api-secret: test-api-secret
+  sender: 010-0000-0000
+
+aligo:
+  api-key: test-dummy
+  user-id: test-dummy
+  sender-key: test-dummy
+  template-code: test-dummy
+  sender: 010-0000-0000
+
+ses:
+  enabled: false
+  region: ap-northeast-2
+  from-email: no-reply@test.com
+
+email:
+  provider: SES
+
+google:
+  smtp:
+    host: smtp.gmail.com
+    port: 587
+    username: test-username
+    app-password: test-app-password
+    from: no-reply@test.com
+    connection-timeout: 5000
+    timeout: 5000
+    write-timeout: 5000
+
+gemini:
+  api-key: test-dummy-key
+
+qdrant:
+  enabled: false
+  url: http://localhost:6333
+  api-key:
+  collection-name: group_buys
+  timeout-seconds: 2
+  initialize-collection: false
+  vector-size: 768
+  distance: Cosine
+
+search:
+  engine: legacy
+  retrieval:
+    vector-candidate-limit: 10
+    vector-min-score: 0.5
+    fallback-provider: mysql
+  guard:
+    enabled: true
+    min-confidence: 0.65
+    supportive-score-threshold: 0.7
+  observability:
+    enabled: true
+  index:
+    version-key: search:index:version
+    default-version: v1
+
+indexing:
+  publisher: spring
+  consumer: none
+  sqs:
+    queue-url:
+    message-group-id: group-buy-indexing
+    max-messages: 5
+    wait-time-seconds: 10
+    visibility-timeout-seconds: 60
+    polling-fixed-delay-millis: 5000
+
+groupbuy:
+  status-transition:
+    fixed-delay-ms: 60000
+    batch-size: 500
+    lock:
+      wait-ms: 100
+      lease-ms: 55000

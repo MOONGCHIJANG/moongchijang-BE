@@ -1,0 +1,112 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/moongchijang_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:moongchijang}
+    password: ${DB_PASSWORD:moongchijang}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  flyway:
+    enabled: true
+    locations:
+      - classpath:db/migration
+    ignore-migration-patterns:
+      - "*:missing"
+
+app:
+  s3:
+    bucket: local-bucket
+    prefix: local
+  share:
+    base-url: ${APP_SHARE_BASE_URL:http://localhost:3000}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+
+oauth:
+  kakao:
+    client-id: test-client-id
+    client-secret: test-client-secret
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+    redirect-uri: http://localhost:8080/auth/kakao/callback
+
+coolsms:
+  api-key: ${COOLSMS_API_KEY:test-api-key}
+  api-secret: ${COOLSMS_API_SECRET:test-api-secret}
+  sender: ${COOLSMS_SENDER:010-0000-0000}
+
+jwt:
+  secret: jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret-jwt-secret
+  access-token:
+    expiration-minutes: ${AUTH_ACCESS_EXPIRATION_MINUTES:60}
+
+auth:
+  refresh:
+    expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
+
+naver:
+  api:
+    client-id: ${NAVER_CLIENT_ID:local-client-id}
+    client-secret: ${NAVER_CLIENT_SECRET:local-client-secret}
+
+portone:
+  store-id: ${PORTONE_STORE_ID:store-dummy}
+  channel-key: ${PORTONE_CHANNEL_KEY:channel-dummy}
+  api-secret: ${PORTONE_API_SECRET:portone-api-secret-dummy}
+  payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+
+ses:
+  enabled: ${SES_ENABLED:false}
+  region: ${SES_REGION:ap-northeast-2}
+  from-email: ${SES_FROM_EMAIL:no-reply@moongchijang.com}
+
+email:
+  provider: ${EMAIL_PROVIDER:SES}
+
+google:
+  smtp:
+    host: ${GOOGLE_SMTP_HOST:smtp.gmail.com}
+    port: ${GOOGLE_SMTP_PORT:587}
+    username: ${GOOGLE_SMTP_USERNAME:unset-username}
+    app-password: ${GOOGLE_SMTP_APP_PASSWORD:unset-app-password}
+    from: ${GOOGLE_SMTP_FROM:unset-from@example.com}
+    connection-timeout: ${GOOGLE_SMTP_CONNECTION_TIMEOUT:5000}
+    timeout: ${GOOGLE_SMTP_TIMEOUT:5000}
+    write-timeout: ${GOOGLE_SMTP_WRITE_TIMEOUT:5000}
+
+aligo:
+  api-key: ${ALIGO_API_KEY}
+  user-id: ${ALIGO_USER_ID}
+  sender-key: ${ALIGO_SENDER_KEY}
+  template-code-group-buy-open-success: ${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}
+  template-code-group-buy-open-failed: ${ALIGO_TEMPLATE_GROUP_BUY_OPEN_FAILED:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}}
+  template-code-pickup-d1-reminder: ${ALIGO_TEMPLATE_PICKUP_D1_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}}
+  template-code-pickup-day-reminder: ${ALIGO_TEMPLATE_PICKUP_DAY_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE:local-template-code}}}
+  sender: ${ALIGO_SENDER}
+
+groupbuy:
+  status-transition:
+    fixed-delay-ms: ${GROUPBUY_STATUS_TRANSITION_FIXED_DELAY_MS:60000}
+    batch-size: ${GROUPBUY_STATUS_TRANSITION_BATCH_SIZE:500}
+    lock:
+      wait-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_WAIT_MS:100}
+      lease-ms: ${GROUPBUY_STATUS_TRANSITION_LOCK_LEASE_MS:55000}
+
+business-registration:
+  api:
+    enabled: ${BUSINESS_REGISTRATION_API_ENABLED:true}
+    base-url: ${BUSINESS_REGISTRATION_API_BASE_URL:https://api.odcloud.kr}
+    status-path: ${BUSINESS_REGISTRATION_API_STATUS_PATH:/api/nts-businessman/v1/status}
+    service-key: ${BUSINESS_REGISTRATION_API_SERVICE_KEY:}

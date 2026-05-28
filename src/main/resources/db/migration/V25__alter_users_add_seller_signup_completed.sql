@@ -1,0 +1,2 @@
+ALTER TABLE users
+ADD COLUMN seller_signup_completed BOOLEAN NOT NULL DEFAULT FALSE;

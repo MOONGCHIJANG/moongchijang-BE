@@ -3,6 +3,11 @@ on:
   issues:
     types:
       - opened
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Jira issue를 생성할 GitHub issue number"
+        required: true
 
 permissions:
   contents: write
@@ -10,6 +15,7 @@ permissions:
 
 jobs:
   create-issue:
+    if: github.event_name == 'issues'
     name: Create Jira issue
     runs-on: ubuntu-latest
     steps:
@@ -79,8 +85,101 @@ jobs:
           git push origin "$BRANCH_NAME"
 
       - name: Update issue title
-        uses: actions-cool/issues-helper@v3
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue edit "${{ github.event.issue.number }}" \
+            --title "[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}"
+
+  create-issue-manual:
+    if: github.event_name == 'workflow_dispatch'
+    name: Create Jira issue manually
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login
+        uses: atlassian/gajira-login@v3
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+
+      - name: Checkout develop code
+        uses: actions/checkout@v4
         with:
-          actions: "update-issue"
+          ref: develop
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}"
+
+      - name: Load issue
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          gh issue view "$ISSUE_NUMBER" --json title,body,url > issue.json
+          jq -r '.body' issue.json > issue_body.md
+
+          extract_section() {
+            awk -v header="$1" '
+              /^### / { in_section = ($0 == "### " header); next }
+              in_section && NF { print; exit }
+            ' issue_body.md
+          }
+
+          title="$(jq -r '.title' issue.json)"
+          url="$(jq -r '.url' issue.json)"
+          parent_key="$(extract_section "상위 작업 Ticket Number")"
+          branch_prefix="$(extract_section "브랜치 전략(GitFlow)")"
+
+          test -n "$parent_key"
+          test -n "$branch_prefix"
+
+          {
+            echo "title<<ISSUE_TITLE"
+            echo "$title"
+            echo "ISSUE_TITLE"
+            echo "description<<ISSUE_DESCRIPTION"
+            echo "### Github Issue Link"
+            echo "- $url"
+            echo
+            cat issue_body.md
+            echo "ISSUE_DESCRIPTION"
+            echo "parent_key=$parent_key"
+            echo "branch_prefix=$branch_prefix"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Convert markdown to Jira Syntax
+        uses: peter-evans/jira2md@v1
+        id: md2jira
+        with:
+          input-text: ${{ steps.issue.outputs.description }}
+          mode: md2jira
+
+      - name: Create Issue
+        id: create
+        uses: atlassian/gajira-create@v3
+        with:
+          project: SCRUM
+          issuetype: Task
+          summary: "${{ steps.issue.outputs.title }}"
+          description: "${{ steps.md2jira.outputs.output-text }}"
+          fields: |
+            {
+              "parent": {
+                "key": "${{ steps.issue.outputs.parent_key }}"
+              }
+            }
+
+      - name: Create branch with Ticket number
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH_NAME="${{ steps.issue.outputs.branch_prefix }}/#${{ inputs.issue_number }}-${{ steps.create.outputs.issue }}"
+          git checkout -b "$BRANCH_NAME"
+          git push origin "$BRANCH_NAME"
+
+      - name: Update issue title
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue edit "${{ inputs.issue_number }}" \
+            --title "[${{ steps.create.outputs.issue }}] ${{ steps.issue.outputs.title }}"

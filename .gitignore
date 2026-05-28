@@ -39,6 +39,9 @@ out/
 ### Kotlin ###
 .kotlin
 
+### Claude AI (contains business logic) ###
+.claude/
+
 ### OMC (oh-my-claudecode) ###
 .omc/
 
@@ -47,6 +50,12 @@ out/
 .env.local
 .env.*.local
 *.env
+.env.*
+!.env.dev.example
+!.env.prod.example
+!.env.local.example
+docker/.env
+!docker/.env.example
 
 ### Logs ###
 logs/
@@ -61,8 +70,10 @@ Thumbs.db
 *.key
 credentials.json
 secrets.json
+docker/certbot/conf/
+docker/certbot/www/
 
 ### Local config ###
 local.properties
-application-local.yml
 application-local.properties
+application-local.yml
