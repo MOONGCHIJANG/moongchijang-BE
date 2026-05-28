@@ -210,42 +210,36 @@ class OwnerSettlementService(
             throw CustomException(ErrorCode.OWNER_REFUND_REVIEW_ALREADY_PROCESSED)
         }
 
-        participation.ownerRefundReviewStatus = when (request.action) {
-            OwnerRefundReviewActionType.APPROVE -> OwnerRefundReviewStatus.APPROVED
-            OwnerRefundReviewActionType.DISPUTE -> OwnerRefundReviewStatus.DISPUTED
-        }
-        participation.approvedRefundAmount = if (request.action == OwnerRefundReviewActionType.APPROVE) {
-            if (participation.cancelReason == null) {
-                participation.totalAmount
-            } else {
-                (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+        val now = java.time.LocalDateTime.now()
+        participation.ownerRefundReviewedAt = now
+
+        when (request.action) {
+            OwnerRefundReviewActionType.APPROVE -> {
+                val approvedAmount = if (participation.cancelReason == null) {
+                    participation.totalAmount
+                } else {
+                    (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+                }
+                participation.ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED
+                participation.approvedRefundAmount = approvedAmount
+                participation.ownerRefundDisputeReason = null
+                refundRequestSyncService.markApproved(
+                    participation = participation,
+                    approvedAmount = approvedAmount,
+                    at = now,
+                )
             }
-        } else {
-            null
-        }
-        participation.ownerRefundDisputeReason = if (request.action == OwnerRefundReviewActionType.DISPUTE) {
-            request.disputeReason?.trim()?.takeIf { it.isNotBlank() }
-        } else {
-            null
-        }
-        participation.ownerRefundReviewedAt = java.time.LocalDateTime.now()
-        if (request.action == OwnerRefundReviewActionType.APPROVE) {
-            refundRequestSyncService.markApproved(
-                participation = participation,
-                approvedAmount = participation.approvedRefundAmount
-                    ?: if (participation.cancelReason == null) {
-                        participation.totalAmount
-                    } else {
-                        (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
-                    },
-                at = participation.ownerRefundReviewedAt ?: java.time.LocalDateTime.now(),
-            )
-        } else {
-            refundRequestSyncService.markRejected(
-                participation = participation,
-                reason = participation.ownerRefundDisputeReason,
-                at = participation.ownerRefundReviewedAt ?: java.time.LocalDateTime.now(),
-            )
+            OwnerRefundReviewActionType.DISPUTE -> {
+                val disputeReason = request.disputeReason?.trim()?.takeIf { it.isNotBlank() }
+                participation.ownerRefundReviewStatus = OwnerRefundReviewStatus.DISPUTED
+                participation.approvedRefundAmount = null
+                participation.ownerRefundDisputeReason = disputeReason
+                refundRequestSyncService.markRejected(
+                    participation = participation,
+                    reason = disputeReason,
+                    at = now,
+                )
+            }
         }
 
         log.info(
