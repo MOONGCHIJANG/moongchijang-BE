@@ -682,12 +682,13 @@ class PaymentService(
             participationId = participation.id,
             orderId = order.orderId,
             pgPaymentId = payment.pgPaymentId,
-            refundAmount = when {
-                participation.approvedRefundAmount != null -> participation.approvedRefundAmount!!
-                // 자동 실패(목표 미달), 사장님 귀책 등 사용자 요청 사유가 없는 환불은 전액 환불
-                participation.cancelReason == null -> order.totalAmount
-                else -> (order.totalAmount - order.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
-            },
+            refundAmount = participation.approvedRefundAmount
+                ?: if (participation.cancelReason == null) {
+                    // 자동 실패(목표 미달), 사장님 귀책 등 사용자 요청 사유가 없는 환불은 전액 환불
+                    order.totalAmount
+                } else {
+                    (order.totalAmount - order.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+                },
         )
     }
 
