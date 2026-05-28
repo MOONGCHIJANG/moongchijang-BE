@@ -40,12 +40,17 @@ class PortOnePaymentClient(
         }
     }
 
-    override fun cancelPayment(paymentId: String, reason: String): PortOnePaymentResult {
+    override fun cancelPayment(paymentId: String, reason: String, cancelAmount: Int?): PortOnePaymentResult {
+        val requestBody = mutableMapOf<String, Any>("reason" to reason).apply {
+            if (cancelAmount != null) {
+                this["amount"] = cancelAmount
+            }
+        }
         val response = try {
             restClient.post()
                 .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}/cancel", paymentId)
                 .header("Authorization", "PortOne ${portOneProperties.apiSecret}")
-                .body(mapOf("reason" to reason))
+                .body(requestBody)
                 .retrieve()
                 .body(Map::class.java)
                 ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)

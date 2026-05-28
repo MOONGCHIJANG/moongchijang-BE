@@ -625,7 +625,11 @@ class PaymentService(
         } ?: return false
 
         val paymentResult = try {
-            portOnePaymentPort.cancelPayment(target.pgPaymentId, PENDING_REFUND_CANCEL_REASON)
+            portOnePaymentPort.cancelPayment(
+                paymentId = target.pgPaymentId,
+                reason = PENDING_REFUND_CANCEL_REASON,
+                cancelAmount = target.refundAmount,
+            )
         } catch (e: CustomException) {
             log.warn(
                 "[PaymentService] 환불대기 PG 취소 실패: participationId={}, orderId={}, errorCode={}",
@@ -635,7 +639,7 @@ class PaymentService(
             )
             return false
         }
-        if (paymentResult.status != PORTONE_STATUS_CANCELLED) {
+        if (paymentResult.status != PORTONE_STATUS_CANCELLED && paymentResult.status != PORTONE_STATUS_PARTIAL_CANCELLED) {
             log.warn(
                 "[PaymentService] 환불대기 PG 취소 미완료 상태: participationId={}, orderId={}, portOneStatus={}",
                 target.participationId,
@@ -676,6 +680,8 @@ class PaymentService(
             participationId = participation.id,
             orderId = order.orderId,
             pgPaymentId = payment.pgPaymentId,
+            refundAmount = participation.approvedRefundAmount
+                ?: (order.totalAmount - order.feeAmount.coerceAtLeast(0)).coerceAtLeast(0),
         )
     }
 
@@ -691,8 +697,14 @@ class PaymentService(
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
-        order.cancel(refundedAt)
-        payment.cancel(refundedAt)
+        val partial = target.refundAmount < order.totalAmount
+        if (partial) {
+            order.partialCancel(refundedAt)
+            payment.partialCancel(refundedAt)
+        } else {
+            order.cancel(refundedAt)
+            payment.cancel(refundedAt)
+        }
         participation.status = ParticipationStatus.REFUNDED
         participation.refundedAt = refundedAt
     }
@@ -853,6 +865,7 @@ class PaymentService(
         val participationId: Long,
         val orderId: String,
         val pgPaymentId: String,
+        val refundAmount: Int,
     )
 
     companion object {

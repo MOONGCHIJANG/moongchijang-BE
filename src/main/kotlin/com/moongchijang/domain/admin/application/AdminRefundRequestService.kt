@@ -121,9 +121,13 @@ class AdminRefundRequestService(
         if (request.refundAmount > participation.totalAmount) {
             throw CustomException(ErrorCode.INVALID_INPUT, "refundAmount는 결제 금액을 초과할 수 없습니다.")
         }
+        if (request.refundAmount > (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)) {
+            throw CustomException(ErrorCode.INVALID_INPUT, "refundAmount는 수수료 차감 후 환불 가능 금액을 초과할 수 없습니다.")
+        }
 
         participation.ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED
         participation.ownerRefundReviewedAt = now
+        participation.approvedRefundAmount = request.refundAmount
         participation.ownerRefundDisputeReason = null
 
         val paymentOrder = paymentOrderRepository.findByUserIdAndGroupBuyId(

@@ -212,6 +212,11 @@ class OwnerSettlementService(
             OwnerRefundReviewActionType.APPROVE -> OwnerRefundReviewStatus.APPROVED
             OwnerRefundReviewActionType.DISPUTE -> OwnerRefundReviewStatus.DISPUTED
         }
+        participation.approvedRefundAmount = if (request.action == OwnerRefundReviewActionType.APPROVE) {
+            (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+        } else {
+            null
+        }
         participation.ownerRefundDisputeReason = if (request.action == OwnerRefundReviewActionType.DISPUTE) {
             request.disputeReason?.trim()?.takeIf { it.isNotBlank() }
         } else {

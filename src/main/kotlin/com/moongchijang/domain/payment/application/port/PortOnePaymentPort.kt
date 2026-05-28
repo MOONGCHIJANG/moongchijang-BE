@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 interface PortOnePaymentPort {
     fun getPayment(paymentId: String): PortOnePaymentResult
 
-    fun cancelPayment(paymentId: String, reason: String): PortOnePaymentResult
+    fun cancelPayment(paymentId: String, reason: String, cancelAmount: Int? = null): PortOnePaymentResult
 }
 
 data class PortOnePaymentResult(
