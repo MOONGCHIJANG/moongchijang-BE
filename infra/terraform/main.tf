@@ -98,10 +98,41 @@ resource "aws_iam_role" "ec2_role" {
   })
 }
 
-// EC2 S3 접근 권한 연결
-resource "aws_iam_role_policy_attachment" "ec2_s3_access" {
+// EC2 S3 최소 권한 정책 문서
+data "aws_iam_policy_document" "ec2_s3_least_privilege" {
+  statement {
+    sid    = "S3ObjectReadWriteDeleteForAppBucket"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+    ]
+    resources = ["${aws_s3_bucket.terraform_test_bucket.arn}/*"]
+  }
+
+  statement {
+    sid    = "S3ListBucketForAppBucket"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+    ]
+    resources = [aws_s3_bucket.terraform_test_bucket.arn]
+  }
+}
+
+// EC2 S3 최소 권한 정책
+resource "aws_iam_policy" "ec2_s3_least_privilege" {
+  name        = "${var.project_name}-ec2-s3-least-privilege"
+  description = "Least-privilege S3 access for ${var.project_name} EC2 application role"
+  policy      = data.aws_iam_policy_document.ec2_s3_least_privilege.json
+}
+
+// EC2 S3 최소 권한 정책 연결
+resource "aws_iam_role_policy_attachment" "ec2_s3_least_privilege" {
   role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  policy_arn = aws_iam_policy.ec2_s3_least_privilege.arn
 }
 
 // EC2 인스턴스 프로파일 설정
