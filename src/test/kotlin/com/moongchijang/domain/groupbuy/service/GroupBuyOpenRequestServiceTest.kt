@@ -220,6 +220,7 @@ class GroupBuyOpenRequestServiceTest {
         assertEquals(1, result.sentCount)
         assertEquals(0, result.failedCount)
         verify(aligoAlimtalkClient).send("01012345678", "[뭉치장] 요청하신 성수 소금빵 공구가 열렸어요.")
+        verify(openRequestRepository).saveAll(listOf(openRequest))
     }
 
     @Test
@@ -244,6 +245,7 @@ class GroupBuyOpenRequestServiceTest {
         assertEquals(1, result.targetCount)
         assertEquals(0, result.sentCount)
         assertEquals(1, result.failedCount)
+        verify(openRequestRepository).saveAll(listOf(openRequest))
     }
 
     @Test
@@ -267,6 +269,7 @@ class GroupBuyOpenRequestServiceTest {
         assertEquals(0, result.sentCount)
         assertEquals(1, result.failedCount)
         verifyNoInteractions(aligoAlimtalkClient)
+        verify(openRequestRepository).saveAll(listOf(openRequest))
     }
 
     @Test
@@ -295,6 +298,7 @@ class GroupBuyOpenRequestServiceTest {
         assertEquals(1, result.sentCount)
         assertEquals(0, result.failedCount)
         verify(aligoAlimtalkClient).send("01012345678", "[뭉치장] 요청하신 서울 전체 소금빵 공구가 열렸어요.")
+        verify(openRequestRepository).saveAll(listOf(regionRequest, districtRequest))
         val invocation = mockingDetails(notificationEventPublisher).invocations
             .first { it.method.name == "publishRequestOpened" }
         assertEquals(200L, invocation.arguments[0])

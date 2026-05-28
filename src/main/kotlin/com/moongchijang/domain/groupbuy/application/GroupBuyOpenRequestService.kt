@@ -130,6 +130,8 @@ class GroupBuyOpenRequestService(
             }
         }
 
+        openRequestRepository.saveAll(pendingRequests)
+
         return GroupBuyOpenNotificationResult(
             targetCount = requestsByUserId.size,
             sentCount = sentCount,
