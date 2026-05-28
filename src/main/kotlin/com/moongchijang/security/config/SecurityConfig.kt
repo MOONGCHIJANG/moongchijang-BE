@@ -34,6 +34,7 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers(
                     "/health",
+                    "/metrics",
                     "/api/v1/auth/kakao",
                     "/api/v1/auth/refresh",
                     "/api/v1/auth/email/**",
