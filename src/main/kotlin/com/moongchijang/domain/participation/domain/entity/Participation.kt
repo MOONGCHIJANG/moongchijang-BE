@@ -25,6 +25,10 @@ import java.time.LocalDateTime
         UniqueConstraint(
             name = "uk_participation_user_group_buy",
             columnNames = ["user_id", "group_buy_id"]
+        ),
+        UniqueConstraint(
+            name = "uk_participation_pickup_token",
+            columnNames = ["pickup_token"]
         )
     ],
     indexes = [
