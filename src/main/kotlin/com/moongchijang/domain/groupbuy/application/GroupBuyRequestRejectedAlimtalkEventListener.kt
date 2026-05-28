@@ -37,7 +37,14 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
             val request = groupBuyRequestRepository.findById(requestId)
                 .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
             val user = userRepository.findByIdAndDeletedAtIsNull(request.userId)
-                ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+            if (user == null) {
+                log.warn(
+                    "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(사용자 없음): requestId={}, userId={}",
+                    requestId,
+                    request.userId,
+                )
+                return
+            }
             val receiverPhone = user.phoneNumber?.trim().orEmpty()
             if (receiverPhone.isBlank()) {
                 log.warn(
@@ -55,14 +62,22 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
                 pickupDate = request.desiredPickupDate.format(PICKUP_DATE_FORMATTER),
             )
 
-            aligoAlimtalkClient.send(
-                receiverPhone = receiverPhone,
-                message = message,
-                templateCode = aligoProperties.templateCodeGroupBuyOpenFailed,
-            )
+            runCatching {
+                aligoAlimtalkClient.send(
+                    receiverPhone = receiverPhone,
+                    message = message,
+                    templateCode = aligoProperties.templateCodeGroupBuyOpenFailed,
+                )
+            }.onFailure { e ->
+                log.error(
+                    "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 발송 실패: requestId={}",
+                    requestId,
+                    e,
+                )
+            }
         }.onFailure { e ->
             log.error(
-                "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 발송 실패: requestId={}",
+                "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 처리 실패: requestId={}",
                 requestId,
                 e,
             )
