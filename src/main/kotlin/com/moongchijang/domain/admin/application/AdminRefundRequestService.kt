@@ -139,8 +139,20 @@ class AdminRefundRequestService(
         if (request.refundAmount > participation.totalAmount) {
             throw CustomException(ErrorCode.INVALID_INPUT, "refundAmount는 결제 금액을 초과할 수 없습니다.")
         }
-        if (request.refundAmount > (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)) {
-            throw CustomException(ErrorCode.INVALID_INPUT, "refundAmount는 수수료 차감 후 환불 가능 금액을 초과할 수 없습니다.")
+        val maxRefundAmount = if (participation.cancelReason == null) {
+            participation.totalAmount
+        } else {
+            (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+        }
+        if (request.refundAmount > maxRefundAmount) {
+            throw CustomException(
+                ErrorCode.INVALID_INPUT,
+                if (participation.cancelReason == null) {
+                    "refundAmount는 결제 금액을 초과할 수 없습니다."
+                } else {
+                    "refundAmount는 수수료 차감 후 환불 가능 금액을 초과할 수 없습니다."
+                }
+            )
         }
 
         participation.ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED

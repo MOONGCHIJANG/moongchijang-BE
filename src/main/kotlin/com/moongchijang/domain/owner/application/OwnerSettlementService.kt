@@ -215,7 +215,11 @@ class OwnerSettlementService(
             OwnerRefundReviewActionType.DISPUTE -> OwnerRefundReviewStatus.DISPUTED
         }
         participation.approvedRefundAmount = if (request.action == OwnerRefundReviewActionType.APPROVE) {
-            (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+            if (participation.cancelReason == null) {
+                participation.totalAmount
+            } else {
+                (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+            }
         } else {
             null
         }
@@ -229,7 +233,11 @@ class OwnerSettlementService(
             refundRequestSyncService.markApproved(
                 participation = participation,
                 approvedAmount = participation.approvedRefundAmount
-                    ?: (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0),
+                    ?: if (participation.cancelReason == null) {
+                        participation.totalAmount
+                    } else {
+                        (participation.totalAmount - participation.feeAmount.coerceAtLeast(0)).coerceAtLeast(0)
+                    },
                 at = participation.ownerRefundReviewedAt ?: java.time.LocalDateTime.now(),
             )
         } else {
