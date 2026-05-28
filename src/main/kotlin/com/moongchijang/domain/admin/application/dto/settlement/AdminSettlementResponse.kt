@@ -77,7 +77,7 @@ data class AdminSettlementListItemResponse(
                 participantCount = aggregation.participantCount,
                 totalPaymentAmount = aggregation.totalPaymentAmount,
                 refundDeductionAmount = aggregation.refundDeductionAmount,
-                platformFeeAmount = aggregation.platformFeeAmount,
+                platformFeeAmount = 0L,
                 settlementAmount = aggregation.settlementAmount(),
                 scheduledSettlementDate = scheduledSettlementDate,
                 status = status,
@@ -87,49 +87,10 @@ data class AdminSettlementListItemResponse(
     }
 }
 
-data class AdminSettlementDetailResponse(
-    val settlementId: Long,
-    val groupBuyId: Long,
-    val storeName: String,
-    val productName: String,
-    val pickupCompletedDate: LocalDate,
-    val participantCount: Long,
-    val totalPaymentAmount: Long,
-    val refundDeductionAmount: Long,
-    val platformFeeAmount: Long,
-    val settlementAmount: Long,
-    val scheduledSettlementDate: LocalDate,
-    val status: AdminSettlementStatus,
-    val actionable: Boolean,
-) {
-    companion object {
-        fun from(
-            aggregation: AdminSettlementAggregation,
-            today: LocalDate,
-        ): AdminSettlementDetailResponse {
-            val scheduledSettlementDate = aggregation.scheduledSettlementDate()
-            val status = scheduledSettlementDate.toSettlementStatus(today)
-            return AdminSettlementDetailResponse(
-                settlementId = aggregation.groupBuyId,
-                groupBuyId = aggregation.groupBuyId,
-                storeName = aggregation.storeName,
-                productName = aggregation.productName,
-                pickupCompletedDate = aggregation.pickupCompletedDate,
-                participantCount = aggregation.participantCount,
-                totalPaymentAmount = aggregation.totalPaymentAmount,
-                refundDeductionAmount = aggregation.refundDeductionAmount,
-                platformFeeAmount = aggregation.platformFeeAmount,
-                settlementAmount = aggregation.settlementAmount(),
-                scheduledSettlementDate = scheduledSettlementDate,
-                status = status,
-                actionable = status == AdminSettlementStatus.SCHEDULED
-            )
-        }
-    }
-}
+typealias AdminSettlementDetailResponse = AdminSettlementListItemResponse
 
 fun AdminSettlementAggregation.settlementAmount(): Long =
-    (totalPaymentAmount - refundDeductionAmount - platformFeeAmount).coerceAtLeast(0L)
+    (totalPaymentAmount - refundDeductionAmount).coerceAtLeast(0L)
 
 fun AdminSettlementAggregation.scheduledSettlementDate(): LocalDate =
     pickupCompletedDate.plusDays(ADMIN_SETTLEMENT_DELAY_DAYS)

@@ -2615,7 +2615,7 @@ paths:
     get:
       tags: [Admin]
       summary: 정산 현황 대시보드 조회 (운영자)
-      description: 선택한 연월의 정산 완료 금액, 정산 예정 금액, 플랫폼 수수료, 총 거래액을 조회한다.
+      description: 선택한 연월의 정산 완료 금액, 정산 예정 금액, 서비스 수수료, 총 거래액을 조회한다. 현재 서비스 수수료 정책은 0원이다.
       security:
         - bearerAuth: []
       parameters:
@@ -5915,7 +5915,7 @@ components:
             platformFeeAmount:
               type: integer
               format: int64
-              description: 플랫폼 수수료 합계
+              description: 서비스 수수료 합계. 현재 정책은 0원
             totalTransactionAmount:
               type: integer
               format: int64
@@ -5971,11 +5971,11 @@ components:
         platformFeeAmount:
           type: integer
           format: int64
-          description: 플랫폼 수수료
+          description: 서비스 수수료. 현재 정책은 0원
         settlementAmount:
           type: integer
           format: int64
-          description: 총 결제액 - 환불 차감액 - 플랫폼 수수료
+          description: 총 결제액 - 환불 차감액
         scheduledSettlementDate:
           type: string
           format: date

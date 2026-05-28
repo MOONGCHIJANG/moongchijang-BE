@@ -3,6 +3,7 @@ package com.moongchijang.domain.admin.application
 import com.moongchijang.domain.admin.application.dto.settlement.ADMIN_SETTLEMENT_DELAY_DAYS
 import com.moongchijang.domain.admin.application.dto.settlement.AdminSettlementDashboardResponse
 import com.moongchijang.domain.admin.application.dto.settlement.AdminSettlementDetailResponse
+import com.moongchijang.domain.admin.application.dto.settlement.AdminSettlementListItemResponse
 import com.moongchijang.domain.admin.application.dto.settlement.AdminSettlementPageResponse
 import com.moongchijang.domain.admin.application.dto.settlement.AdminSettlementStatus
 import com.moongchijang.domain.admin.application.dto.settlement.AdminSettlementStatusFilter
@@ -53,7 +54,7 @@ class AdminSettlementService(
             scheduledSettlementAmount = aggregations
                 .filter { it.scheduledSettlementDate().toSettlementStatus(today) == AdminSettlementStatus.SCHEDULED }
                 .sumOf { it.settlementAmount() },
-            platformFeeAmount = aggregations.sumOf { it.platformFeeAmount },
+            platformFeeAmount = 0L,
             totalTransactionAmount = aggregations.sumOf { it.totalPaymentAmount }
         )
     }
@@ -90,7 +91,7 @@ class AdminSettlementService(
             refundStatuses = REFUND_STATUSES,
         ) ?: throw CustomException(ErrorCode.GROUPBUY_NOT_FOUND)
 
-        return AdminSettlementDetailResponse.from(aggregation, today)
+        return AdminSettlementListItemResponse.from(aggregation, today)
     }
 
     private fun validateYearMonth(year: Int, month: Int): YearMonth {

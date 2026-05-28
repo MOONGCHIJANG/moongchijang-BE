@@ -35,14 +35,14 @@ class AdminSettlementServiceTest {
             pickupCompletedDate = LocalDate.of(2026, 5, 20),
             totalPaymentAmount = 120_000L,
             refundDeductionAmount = 20_000L,
-            platformFeeAmount = 5_000L
+            platformFeeAmount = 0L
         )
         val scheduled = aggregation(
             groupBuyId = 11L,
             pickupCompletedDate = LocalDate.of(2026, 5, 27),
             totalPaymentAmount = 80_000L,
             refundDeductionAmount = 0L,
-            platformFeeAmount = 3_000L
+            platformFeeAmount = 0L
         )
         `when`(
             participationRepository.findAdminSettlementAggregations(
@@ -59,9 +59,9 @@ class AdminSettlementServiceTest {
 
         assertEquals(2026, result.year)
         assertEquals(5, result.month)
-        assertEquals(95_000L, result.completedSettlementAmount)
-        assertEquals(77_000L, result.scheduledSettlementAmount)
-        assertEquals(8_000L, result.platformFeeAmount)
+        assertEquals(100_000L, result.completedSettlementAmount)
+        assertEquals(80_000L, result.scheduledSettlementAmount)
+        assertEquals(0L, result.platformFeeAmount)
         assertEquals(200_000L, result.totalTransactionAmount)
     }
 
@@ -73,7 +73,7 @@ class AdminSettlementServiceTest {
             pickupCompletedDate = LocalDate.of(2026, 5, 27),
             totalPaymentAmount = 50_000L,
             refundDeductionAmount = 10_000L,
-            platformFeeAmount = 1_000L
+            platformFeeAmount = 0L
         )
         `when`(
             participationRepository.findAdminSettlementPage(
@@ -93,7 +93,7 @@ class AdminSettlementServiceTest {
         assertEquals(12L, result.content[0].settlementId)
         assertEquals(LocalDate.of(2026, 5, 30), result.content[0].scheduledSettlementDate)
         assertEquals(AdminSettlementStatus.SCHEDULED, result.content[0].status)
-        assertEquals(39_000L, result.content[0].settlementAmount)
+        assertEquals(40_000L, result.content[0].settlementAmount)
         assertTrue(result.content[0].actionable)
     }
 
@@ -104,7 +104,7 @@ class AdminSettlementServiceTest {
             pickupCompletedDate = LocalDate.of(2026, 5, 23),
             totalPaymentAmount = 100_000L,
             refundDeductionAmount = 20_000L,
-            platformFeeAmount = 2_000L
+            platformFeeAmount = 0L
         )
         `when`(
             participationRepository.findAdminSettlementDetail(
@@ -121,7 +121,7 @@ class AdminSettlementServiceTest {
         assertEquals(13L, result.settlementId)
         assertEquals("뭉치장 베이커리", result.storeName)
         assertEquals(AdminSettlementStatus.COMPLETED, result.status)
-        assertEquals(78_000L, result.settlementAmount)
+        assertEquals(80_000L, result.settlementAmount)
         assertFalse(result.status == AdminSettlementStatus.SCHEDULED)
     }
 

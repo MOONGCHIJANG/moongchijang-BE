@@ -26,7 +26,7 @@ class AdminSettlementControllerTest {
             month = 5,
             completedSettlementAmount = 100_000,
             scheduledSettlementAmount = 50_000,
-            platformFeeAmount = 5_000,
+            platformFeeAmount = 0,
             totalTransactionAmount = 180_000
         )
         `when`(adminSettlementService.getDashboard(2026, 5)).thenReturn(response)
@@ -73,8 +73,8 @@ class AdminSettlementControllerTest {
             participantCount = 10,
             totalPaymentAmount = 100_000,
             refundDeductionAmount = 20_000,
-            platformFeeAmount = 5_000,
-            settlementAmount = 75_000,
+            platformFeeAmount = 0,
+            settlementAmount = 80_000,
             scheduledSettlementDate = LocalDate.of(2026, 5, 23),
             status = AdminSettlementStatus.COMPLETED,
             actionable = false

@@ -399,7 +399,7 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
                coalesce(sum(case when p.status in :revenueStatuses then 1 else 0 end), 0) as participantCount,
                coalesce(sum(case when p.status in :transactionStatuses then p.totalAmount else 0 end), 0) as totalPaymentAmount,
                coalesce(sum(case when p.status in :refundStatuses then p.totalAmount else 0 end), 0) as refundDeductionAmount,
-               coalesce(sum(case when p.status in :transactionStatuses then p.feeAmount else 0 end), 0) as platformFeeAmount
+               0 as platformFeeAmount
         from GroupBuy gb
         left join Participation p on p.groupBuy = gb
         where gb.status in :groupBuyStatuses
@@ -435,7 +435,7 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
                coalesce(sum(case when p.status in :revenueStatuses then 1 else 0 end), 0) as participantCount,
                coalesce(sum(case when p.status in :transactionStatuses then p.totalAmount else 0 end), 0) as totalPaymentAmount,
                coalesce(sum(case when p.status in :refundStatuses then p.totalAmount else 0 end), 0) as refundDeductionAmount,
-               coalesce(sum(case when p.status in :transactionStatuses then p.feeAmount else 0 end), 0) as platformFeeAmount
+               0 as platformFeeAmount
         from GroupBuy gb
         left join Participation p on p.groupBuy = gb
         where gb.status in :groupBuyStatuses
@@ -462,7 +462,7 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
                coalesce(sum(case when p.status in :revenueStatuses then 1 else 0 end), 0) as participantCount,
                coalesce(sum(case when p.status in :transactionStatuses then p.totalAmount else 0 end), 0) as totalPaymentAmount,
                coalesce(sum(case when p.status in :refundStatuses then p.totalAmount else 0 end), 0) as refundDeductionAmount,
-               coalesce(sum(case when p.status in :transactionStatuses then p.feeAmount else 0 end), 0) as platformFeeAmount
+               0 as platformFeeAmount
         from GroupBuy gb
         left join Participation p on p.groupBuy = gb
         where gb.id = :groupBuyId
