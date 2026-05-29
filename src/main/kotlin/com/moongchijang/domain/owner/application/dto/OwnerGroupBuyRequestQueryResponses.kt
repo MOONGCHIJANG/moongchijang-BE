@@ -86,7 +86,9 @@ data class OwnerGroupBuyRequestDetailResponse(
     companion object {
         fun from(
             request: OwnerGroupBuyRequest,
-            images: List<OwnerGroupBuyRequestImage>
+            images: List<OwnerGroupBuyRequestImage>,
+            thumbnailUrl: String,
+            imageUrls: List<String>,
         ): OwnerGroupBuyRequestDetailResponse =
             OwnerGroupBuyRequestDetailResponse(
                 requestId = request.id,
@@ -99,8 +101,8 @@ data class OwnerGroupBuyRequestDetailResponse(
                 targetQuantity = request.targetQuantity,
                 maxQuantity = request.maxQuantity,
                 perUserLimit = request.perUserLimit,
-                thumbnailUrl = request.thumbnailUrl,
-                imageUrls = images.map { it.imageUrl },
+                thumbnailUrl = thumbnailUrl,
+                imageUrls = imageUrls,
                 deadline = request.deadline,
                 pickupDate = request.pickupDate,
                 pickupTimeStart = request.pickupTimeStart,

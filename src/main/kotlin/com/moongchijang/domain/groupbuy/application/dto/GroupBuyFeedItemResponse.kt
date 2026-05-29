@@ -62,13 +62,17 @@ data class GroupBuyFeedItemResponse(
     val targetQuantity: Int
 ) {
     companion object {
-        fun from(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): GroupBuyFeedItemResponse {
+        fun from(
+            groupBuy: GroupBuy,
+            now: LocalDateTime = LocalDateTime.now(),
+            thumbnailUrl: String?,
+        ): GroupBuyFeedItemResponse {
             val dDay = ChronoUnit.DAYS.between(now.toLocalDate(), groupBuy.deadline.toLocalDate()).toInt()
             val rate = GroupBuyProgressCalculator.achievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
 
             return GroupBuyFeedItemResponse(
                 id = groupBuy.id,
-                thumbnailUrl = groupBuy.thumbnailUrl,
+                thumbnailUrl = thumbnailUrl,
                 dDay = dDay,
                 dDayLabel = if (dDay == 0) "D-day" else "D-$dDay",
                 storeName = groupBuy.store.name,

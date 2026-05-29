@@ -17,15 +17,18 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.springframework.context.ApplicationEventPublisher
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -56,8 +59,19 @@ class AdminGroupBuyRequestActionServiceTest {
     @Mock
     private lateinit var eventPublisher: ApplicationEventPublisher
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     @InjectMocks
     private lateinit var service: AdminGroupBuyRequestActionService
+
+    @BeforeEach
+    fun setUp() {
+        lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/1.jpg"))
+            .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("exhibition/1.jpg", "https://cdn.example.com/1.jpg"))
+        lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/2.jpg"))
+            .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("exhibition/2.jpg", "https://cdn.example.com/2.jpg"))
+    }
 
     @Test
     fun `소비자 요청을 승인하면 매장과 공구와 이미지를 생성하고 OPENED로 전환한다`() {
@@ -77,6 +91,10 @@ class AdminGroupBuyRequestActionServiceTest {
         `when`(groupBuyRepository.save(any(GroupBuy::class.java))).thenAnswer {
             (it.arguments[0] as GroupBuy).apply { id = 30L }
         }
+        `when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/1.jpg"))
+            .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("exhibition/1.jpg", "https://cdn.example.com/1.jpg"))
+        `when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/2.jpg"))
+            .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("exhibition/2.jpg", "https://cdn.example.com/2.jpg"))
 
         val result = service.approve(requestId, approveRequest)
 
@@ -95,13 +113,14 @@ class AdminGroupBuyRequestActionServiceTest {
         assertEquals(20, groupBuyCaptor.value.targetQuantity)
         assertEquals(50, groupBuyCaptor.value.maxQuantity)
         assertEquals(2, groupBuyCaptor.value.perUserLimit)
-        assertEquals("https://cdn.example.com/1.jpg", groupBuyCaptor.value.thumbnailUrl)
+        assertEquals("exhibition/1.jpg", groupBuyCaptor.value.thumbnailKey)
         assertEquals("01012345678", groupBuyCaptor.value.pickupContact)
         assertEquals(approveRequest.recruitmentStartAt, groupBuyCaptor.value.recruitmentStartAt)
 
         val imageCaptor = argumentCaptor<Iterable<GroupBuyImage>>()
         verify(groupBuyImageRepository).saveAll(imageCaptor.capture())
         assertEquals(2, imageCaptor.value.toList().size)
+        assertEquals(listOf("exhibition/1.jpg", "exhibition/2.jpg"), imageCaptor.value.toList().map { it.imageKey })
         verify(groupBuyRequestStatusHistoryRepository).save(any())
         verify(eventPublisher).publishEvent(AdminGroupBuyRequestActionService.AdminGroupBuyOpenedEvent(30L))
     }

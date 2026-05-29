@@ -16,6 +16,7 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Pageable
@@ -29,6 +30,7 @@ class GroupBuyService(
     private val groupBuyImageRepository: GroupBuyImageRepository,
     private val favoriteRepository: FavoriteRepository,
     private val participationRepository: ParticipationRepository,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     @Value("\${app.share.base-url}") private val shareBaseUrl: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -69,7 +71,12 @@ class GroupBuyService(
         )
 
         return GroupBuyFeedPageResponse.from(
-            resultPage.map { GroupBuyFeedItemResponse.from(it) },
+            resultPage.map {
+                GroupBuyFeedItemResponse.from(
+                    groupBuy = it,
+                    thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.thumbnailKey),
+                )
+            },
             hasRegionalResult = hasRegionalResult
         )
     }
@@ -105,7 +112,9 @@ class GroupBuyService(
 
         return GroupBuyDetailResponse.from(
             groupBuy = groupBuy,
-            images = images,
+            thumbnailUrl = s3ImageReferenceResolver.resolveForRead(groupBuy.thumbnailKey),
+            imageUrls = images.map { s3ImageReferenceResolver.resolveForRead(it.imageKey) ?: "" }
+                .filter { it.isNotBlank() },
             isWishlisted = isWishlisted,
             isParticipated = isParticipated,
             canParticipate = canParticipate
@@ -121,7 +130,8 @@ class GroupBuyService(
 
         val response = ShareMetaResponse.from(
             groupBuy = groupBuy,
-            shareUrl = buildShareUrl(groupBuy.id)
+            shareUrl = buildShareUrl(groupBuy.id),
+            imageUrl = s3ImageReferenceResolver.resolveForRead(groupBuy.thumbnailKey),
         )
 
         log.debug("[GroupBuyService] 공구 공유 메타데이터 조회 완료: groupBuyId={}", groupBuyId)

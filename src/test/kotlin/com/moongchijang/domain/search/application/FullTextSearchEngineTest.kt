@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.search.application.dto.SearchCase
 import com.moongchijang.domain.search.domain.SearchUiState
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.search.MockitoKotlinMatchers.anyLocalDateTime
 import com.moongchijang.support.search.MockitoKotlinMatchers.anyLongList
 import com.moongchijang.support.search.SearchTestFixtures
@@ -17,7 +18,8 @@ import org.mockito.Mockito
 class FullTextSearchEngineTest {
 
     private val groupBuyRepository: GroupBuyRepository = Mockito.mock(GroupBuyRepository::class.java)
-    private val engine = FullTextSearchEngine(groupBuyRepository)
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver = Mockito.mock(S3ImageReferenceResolver::class.java)
+    private val engine = FullTextSearchEngine(groupBuyRepository, s3ImageReferenceResolver)
 
     private fun stubIds(ids: List<Long>) {
         Mockito.`when`(

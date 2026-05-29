@@ -7,6 +7,7 @@ import com.moongchijang.domain.groupbuy.infrastructure.search.FullTextQueryBuild
 import com.moongchijang.domain.search.application.dto.SearchCase
 import com.moongchijang.domain.search.application.dto.SearchResponse
 import com.moongchijang.domain.search.domain.SearchUiState
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -17,6 +18,7 @@ import java.time.LocalDateTime
 @Component
 class FullTextSearchEngine(
     private val groupBuyRepository: GroupBuyRepository,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     companion object {
         private const val DEFAULT_LIMIT = 50
@@ -50,7 +52,13 @@ class FullTextSearchEngine(
             confidence = 0.0,
             uiState = SearchUiState.RESULTS,
             totalCount = matches.size,
-            results = matches.map { GroupBuyFeedItemResponse.from(it, now) },
+            results = matches.map {
+                GroupBuyFeedItemResponse.from(
+                    groupBuy = it,
+                    thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.thumbnailKey),
+                    now = now,
+                )
+            },
         )
     }
 

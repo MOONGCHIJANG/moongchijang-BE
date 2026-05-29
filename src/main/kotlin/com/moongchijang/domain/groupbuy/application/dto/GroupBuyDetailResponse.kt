@@ -1,7 +1,6 @@
 package com.moongchijang.domain.groupbuy.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import io.swagger.v3.oas.annotations.media.Schema
@@ -109,7 +108,8 @@ data class GroupBuyDetailResponse(
     companion object {
         fun from(
             groupBuy: GroupBuy,
-            images: List<GroupBuyImage>,
+            thumbnailUrl: String?,
+            imageUrls: List<String>,
             isWishlisted: Boolean,
             isParticipated: Boolean,
             canParticipate: Boolean,
@@ -128,8 +128,8 @@ data class GroupBuyDetailResponse(
                 districtLabel = groupBuy.store.district.label,
                 productName = groupBuy.productName,
                 productDescription = groupBuy.productDescription,
-                thumbnailUrl = groupBuy.thumbnailUrl,
-                imageUrls = images.map { it.imageUrl },
+                thumbnailUrl = thumbnailUrl,
+                imageUrls = imageUrls,
                 price = groupBuy.price,
                 achievementRate = rate,
                 currentQuantity = groupBuy.currentQuantity,

@@ -42,7 +42,7 @@ object SearchTestFixtures {
     ): GroupBuy = GroupBuy(
         store = store,
         groupBuyRequest = groupBuyRequest(),
-        thumbnailUrl = "https://example.jpg",
+        thumbnailKey = "dev/group-buys/test/thumbnail/example.jpg",
         productName = productName,
         productDescription = "설명",
         price = 6000,

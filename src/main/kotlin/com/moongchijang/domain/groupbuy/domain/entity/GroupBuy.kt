@@ -20,7 +20,7 @@ class GroupBuy(
     var groupBuyRequest: GroupBuyRequest,
 
     @Column(length = 500)
-    var thumbnailUrl: String? = null,
+    var thumbnailKey: String? = null,
 
     @Column(nullable = false, length = 100)
     var productName: String,

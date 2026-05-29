@@ -18,16 +18,19 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
 import org.mockito.Mockito.never
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -48,12 +51,21 @@ class PickupServiceTest {
     @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     private val service: PickupService by lazy {
         PickupService(
             participationRepository = participationRepository,
             userRepository = userRepository,
             storeStaffRepository = storeStaffRepository,
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
         )
+    }
+
+    @BeforeEach
+    fun setUp() {
+        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString())).thenAnswer { it.arguments[0] as String? }
     }
 
     @Test
@@ -421,7 +433,7 @@ class PickupServiceTest {
         GroupBuy(
             store = store,
             groupBuyRequest = createGroupBuyRequest(pickupDate),
-            thumbnailUrl = "https://example.com/image.jpg",
+            thumbnailKey = "https://example.com/image.jpg",
             productName = "두쫀쿠",
             productDescription = "설명",
             price = 6000,

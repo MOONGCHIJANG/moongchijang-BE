@@ -15,6 +15,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -32,7 +33,8 @@ class OwnerGroupBuyRequestService(
     private val storeStaffRepository: StoreStaffRepository,
     private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
     private val ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository,
-    private val clock: Clock
+    private val clock: Clock,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     private val log = LoggerFactory.getLogger(OwnerGroupBuyRequestService::class.java)
 
@@ -77,7 +79,21 @@ class OwnerGroupBuyRequestService(
         }
 
         val images = ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)
-        val response = OwnerGroupBuyRequestDetailResponse.from(request, images)
+        val thumbnailUrl = s3ImageReferenceResolver.resolveForRead(request.thumbnailKey).also {
+            if (it.isNullOrBlank()) {
+                log.warn(
+                    "[OwnerGroupBuyRequestService] 요청공구 썸네일 key 누락: ownerId={}, requestId={}",
+                    ownerId,
+                    requestId,
+                )
+            }
+        }.orEmpty()
+        val response = OwnerGroupBuyRequestDetailResponse.from(
+            request = request,
+            images = images,
+            thumbnailUrl = thumbnailUrl,
+            imageUrls = images.mapNotNull { s3ImageReferenceResolver.resolveForRead(it.imageKey) },
+        )
         log.info("[OwnerGroupBuyRequestService] 사장님 요청공구 상세 조회 완료: ownerId={}, requestId={}", ownerId, requestId)
         return response
     }
@@ -94,6 +110,10 @@ class OwnerGroupBuyRequestService(
         }
 
         validateRequest(request)
+        val imageReferences = request.imageUrls.map { s3ImageReferenceResolver.resolve(it) }
+        val thumbnail = imageReferences.first()
+        val thumbnailKey = thumbnail.key
+            ?: throw CustomException(ErrorCode.INVALID_INPUT, "요청공구 썸네일 이미지 key가 존재하지 않습니다.")
 
         val saved = ownerGroupBuyRequestRepository.save(
             OwnerGroupBuyRequest(
@@ -106,7 +126,7 @@ class OwnerGroupBuyRequestService(
                 targetQuantity = request.targetQuantity,
                 maxQuantity = request.maxQuantity,
                 perUserLimit = request.perUserLimit,
-                thumbnailUrl = request.imageUrls.first().trim(),
+                thumbnailKey = thumbnailKey,
                 deadline = request.deadline,
                 pickupDate = request.pickupDate,
                 pickupTimeStart = request.pickupTimeStart,
@@ -118,10 +138,12 @@ class OwnerGroupBuyRequestService(
         )
 
         ownerGroupBuyRequestImageRepository.saveAll(
-            request.imageUrls.mapIndexed { index, imageUrl ->
+            imageReferences.mapIndexed { index, imageReference ->
+                val imageKey = imageReference.key
+                    ?: throw CustomException(ErrorCode.INVALID_INPUT, "요청공구 상품 이미지 key가 존재하지 않습니다.")
                 OwnerGroupBuyRequestImage(
                     request = saved,
-                    imageUrl = imageUrl.trim(),
+                    imageKey = imageKey,
                     sortOrder = index
                 )
             }

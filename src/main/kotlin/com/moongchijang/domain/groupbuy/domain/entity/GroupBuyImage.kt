@@ -12,7 +12,7 @@ class GroupBuyImage(
     var groupBuy: GroupBuy,
 
     @Column(nullable = false, length = 500)
-    var imageUrl: String,
+    var imageKey: String,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

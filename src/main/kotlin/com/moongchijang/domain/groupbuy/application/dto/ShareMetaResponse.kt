@@ -39,13 +39,14 @@ data class ShareMetaResponse(
     companion object {
         fun from(
             groupBuy: GroupBuy,
-            shareUrl: String
+            shareUrl: String,
+            imageUrl: String?
         ): ShareMetaResponse {
             return ShareMetaResponse(
                 shareUrl = shareUrl,
                 title = groupBuy.productName,
                 description = groupBuy.productDescription,
-                imageUrl = groupBuy.thumbnailUrl,
+                imageUrl = imageUrl,
                 storeName = groupBuy.store.name,
                 deadline = groupBuy.deadline,
                 pickupDate = groupBuy.pickupDate,

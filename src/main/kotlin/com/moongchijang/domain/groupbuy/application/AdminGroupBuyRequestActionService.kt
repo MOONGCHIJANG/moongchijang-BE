@@ -17,6 +17,7 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -32,6 +33,7 @@ class AdminGroupBuyRequestActionService(
     private val groupBuyImageRepository: GroupBuyImageRepository,
     private val storeRepository: StoreRepository,
     private val eventPublisher: ApplicationEventPublisher,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     private val log = LoggerFactory.getLogger(AdminGroupBuyRequestActionService::class.java)
 
@@ -43,13 +45,14 @@ class AdminGroupBuyRequestActionService(
         validateApproveRequest(request, maxQuantity)
 
         val store = resolveStore(groupBuyRequest, request)
-        val imageUrls = request.imageUrls.map { it.trim() }
+        val images = request.imageUrls.map { s3ImageReferenceResolver.resolve(it) }
+        val thumbnail = images.first()
 
         val groupBuy = groupBuyRepository.save(
             GroupBuy(
                 store = store,
                 groupBuyRequest = groupBuyRequest,
-                thumbnailUrl = imageUrls.first(),
+                thumbnailKey = thumbnail.key,
                 productName = request.productName.trim(),
                 productDescription = request.productDescription.trim(),
                 price = request.price,
@@ -69,7 +72,16 @@ class AdminGroupBuyRequestActionService(
             )
         )
 
-        groupBuyImageRepository.saveAll(imageUrls.map { GroupBuyImage(groupBuy = groupBuy, imageUrl = it) })
+        groupBuyImageRepository.saveAll(
+            images.map {
+                val imageKey = it.key
+                    ?: throw CustomException(ErrorCode.INVALID_INPUT, "공구 이미지 key가 존재하지 않습니다.")
+                GroupBuyImage(
+                    groupBuy = groupBuy,
+                    imageKey = imageKey,
+                )
+            }
+        )
         markRequest(groupBuyRequest, GroupBuyRequestStatus.OPENED, openedGroupBuyId = groupBuy.id)
         eventPublisher.publishEvent(AdminGroupBuyOpenedEvent(groupBuy.id))
 
