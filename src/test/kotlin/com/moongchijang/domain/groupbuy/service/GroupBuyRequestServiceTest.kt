@@ -212,7 +212,7 @@ class GroupBuyRequestServiceTest {
 
     @Test
     fun `오늘 날짜로 요청 시 GROUPBUY_REQUEST_INVALID_DATE 예외`() {
-        val request = GroupBuyRequestFixture.createRequest(desiredPickupDate = LocalDate.now())
+        val request = GroupBuyRequestFixture.createRequest(desiredPickupDate = LocalDate.of(2026, 5, 27))
 
         val ex = assertThrows<CustomException> { service.create(1L, request) }
         assertEquals(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE, ex.errorCode)
@@ -220,7 +220,7 @@ class GroupBuyRequestServiceTest {
 
     @Test
     fun `과거 날짜로 요청 시 GROUPBUY_REQUEST_INVALID_DATE 예외`() {
-        val request = GroupBuyRequestFixture.createRequest(desiredPickupDate = LocalDate.now().minusDays(1))
+        val request = GroupBuyRequestFixture.createRequest(desiredPickupDate = LocalDate.of(2026, 5, 26))
 
         val ex = assertThrows<CustomException> { service.create(1L, request) }
         assertEquals(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE, ex.errorCode)

@@ -8,5 +8,10 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 @Configuration
 class JacksonConfig {
     @Bean
+    fun jackson2ObjectMapperBuilder(): Jackson2ObjectMapperBuilder =
+        Jackson2ObjectMapperBuilder()
+            .findModulesViaServiceLoader(true)
+
+    @Bean
     fun objectMapper(builder: Jackson2ObjectMapperBuilder): ObjectMapper = builder.build()
 }
