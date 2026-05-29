@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/search")
-@Tag(name = "Search", description = "공구 검색 (AI 자연어)")
+@Tag(name = "Search", description = "공구 검색 (FULLTEXT 기반)")
 @Validated
 class SearchController(
     private val searchService: SearchService
@@ -24,7 +24,7 @@ class SearchController(
     data class SearchRequest(@field:NotBlank val keyword: String)
 
     @PostMapping
-    @Operation(summary = "검색어 입력 및 AI 분석 (1.1.4-1)")
+    @Operation(summary = "검색어 입력 및 FULLTEXT 기반 분류 (1.1.4-1)")
     fun search(
         @Valid @RequestBody request: SearchRequest,
         @AuthenticationPrincipal principal: CustomUserPrincipal?
