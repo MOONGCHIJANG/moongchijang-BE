@@ -52,7 +52,6 @@ class AdminGroupBuyRequestActionService(
             GroupBuy(
                 store = store,
                 groupBuyRequest = groupBuyRequest,
-                thumbnailUrl = thumbnail.url,
                 thumbnailKey = thumbnail.key,
                 productName = request.productName.trim(),
                 productDescription = request.productDescription.trim(),
@@ -77,7 +76,6 @@ class AdminGroupBuyRequestActionService(
             images.map {
                 GroupBuyImage(
                     groupBuy = groupBuy,
-                    imageUrl = it.url,
                     imageKey = it.key,
                 )
             }

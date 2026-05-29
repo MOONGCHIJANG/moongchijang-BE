@@ -5,6 +5,7 @@ import com.moongchijang.domain.favorite.application.dto.WishSortType
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -25,7 +26,10 @@ class WishlistQueryServiceTest {
     @Mock
     private lateinit var favoriteRepository: FavoriteRepository
 
-    private val service by lazy { WishlistQueryService(favoriteRepository) }
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
+    private val service by lazy { WishlistQueryService(favoriteRepository, s3ImageReferenceResolver) }
 
     @Test
     fun `찜 목록 조회 요청 시 페이지 결과 반환`() {

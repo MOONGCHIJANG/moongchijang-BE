@@ -11,9 +11,6 @@ class GroupBuyImage(
     @JoinColumn(name = "group_buy_id", nullable = false)
     var groupBuy: GroupBuy,
 
-    @Column(nullable = false, length = 500)
-    var imageUrl: String,
-
     @Column(length = 500)
     var imageKey: String? = null,
 

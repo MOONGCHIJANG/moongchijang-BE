@@ -23,6 +23,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.anyString
 import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
@@ -78,6 +79,9 @@ class OwnerGroupBuyRequestServiceTest {
             .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("1.jpg", "https://cdn.example.com/1.jpg"))
         lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/2.jpg"))
             .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("2.jpg", "https://cdn.example.com/2.jpg"))
+        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString())).thenAnswer { key ->
+            "https://cdn.example.com/${key.arguments[0] as String}"
+        }
     }
 
     @Test
@@ -103,7 +107,6 @@ class OwnerGroupBuyRequestServiceTest {
         assertEquals(owner, requestCaptor.value.owner)
         assertEquals(store, requestCaptor.value.store)
         assertEquals("두쫀쿠 세트", requestCaptor.value.productName)
-        assertEquals("https://cdn.example.com/1.jpg", requestCaptor.value.thumbnailUrl)
         assertEquals("1.jpg", requestCaptor.value.thumbnailKey)
 
         val imageCaptor = argumentCaptor<Iterable<OwnerGroupBuyRequestImage>>()
@@ -111,7 +114,6 @@ class OwnerGroupBuyRequestServiceTest {
         val images = imageCaptor.value.toList()
         assertEquals(2, images.size)
         assertEquals(listOf(0, 1), images.map { it.sortOrder })
-        assertEquals(listOf("https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"), images.map { it.imageUrl })
         assertEquals(listOf("1.jpg", "2.jpg"), images.map { it.imageKey })
         assertTrue(images.all { it.request.id == 101L })
     }
@@ -171,8 +173,8 @@ class OwnerGroupBuyRequestServiceTest {
         val owner = seller()
         val request = ownerRequest(owner = owner).apply { id = 101L }
         val images = listOf(
-            OwnerGroupBuyRequestImage(request = request, imageUrl = "https://cdn.example.com/1.jpg", sortOrder = 0),
-            OwnerGroupBuyRequestImage(request = request, imageUrl = "https://cdn.example.com/2.jpg", sortOrder = 1)
+            OwnerGroupBuyRequestImage(request = request, imageKey = "1.jpg", sortOrder = 0),
+            OwnerGroupBuyRequestImage(request = request, imageKey = "2.jpg", sortOrder = 1)
         )
 
         `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
@@ -312,7 +314,7 @@ class OwnerGroupBuyRequestServiceTest {
         targetQuantity = 20,
         maxQuantity = 50,
         perUserLimit = 2,
-        thumbnailUrl = "https://cdn.example.com/1.jpg",
+        thumbnailKey = "1.jpg",
         deadline = FIXED_NOW.plusDays(8),
         pickupDate = FIXED_NOW.toLocalDate().plusDays(9),
         pickupTimeStart = LocalTime.of(12, 0),

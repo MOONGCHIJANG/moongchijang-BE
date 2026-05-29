@@ -248,7 +248,7 @@ class GroupBuyRepositoryImplIntegrationTest {
         val groupBuy = GroupBuy(
             store = store,
             groupBuyRequest = request,
-            thumbnailUrl = "https://example.com/$productName.jpg",
+            thumbnailKey = "https://example.com/$productName.jpg",
             productName = productName,
             productDescription = "설명",
             price = 10000,

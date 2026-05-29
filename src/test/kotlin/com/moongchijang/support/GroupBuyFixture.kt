@@ -26,7 +26,7 @@ object GroupBuyFixture {
         return GroupBuy(
             store = createStore(),
             groupBuyRequest = createGroupBuyRequest(productName = productName, desiredQuantity = targetQuantity),
-            thumbnailUrl = "https://example.jpg",
+            thumbnailKey = "dev/group-buys/test/thumbnail/example.jpg",
             productName = productName,
             productDescription = "설명",
             price = price,
@@ -79,10 +79,10 @@ object GroupBuyFixture {
         ).apply { id = 20L }
     }
 
-    fun createImage(groupBuy: GroupBuy, imageUrl: String): GroupBuyImage {
+    fun createImage(groupBuy: GroupBuy, imageKey: String): GroupBuyImage {
         return GroupBuyImage(
             groupBuy = groupBuy,
-            imageUrl = imageUrl
+            imageKey = imageKey
         )
     }
 }
