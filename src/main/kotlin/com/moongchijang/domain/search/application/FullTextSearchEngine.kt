@@ -99,11 +99,8 @@ class FullTextSearchEngine(
             limit = DEFAULT_LIMIT,
         )
 
-    private fun mergeIds(productIds: List<Long>, storeIds: List<Long>): List<Long> =
-        LinkedHashSet<Long>(productIds.size + storeIds.size).apply {
-            addAll(productIds)
-            addAll(storeIds)
-        }.toList()
+    private fun mergeIds(productIds: List<Long>, storeIds: List<Long>): Set<Long> =
+        productIds.union(storeIds)
 
     private fun classifyCase(productHit: Boolean, storeHit: Boolean): SearchCase = when {
         productHit && storeHit -> SearchCase.BOTH_DETECTED
