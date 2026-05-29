@@ -20,7 +20,7 @@ object FullTextQueryBuilder {
      * 1차 strict 쿼리와 2차 fallback 쿼리를 한 번의 sanitize 로 동시에 생성한다.
      *
      * - strict: 모든 토큰에 `+token*` 를 붙여 AND 의미로 결합.
-     * - fallback: `+` 제거한 OR 결합. 단일 토큰이 ngram_token_size 를 초과하면 2글자 ngram 으로 분해.
+     * - fallback: `+` 제거한 OR 결합. ngram_token_size 를 초과하는 토큰은 토큰별로 2글자 ngram 으로 분해.
      * - 토큰이 하나도 남지 않으면 두 쿼리 모두 빈 문자열을 반환한다.
      *   호출 측은 strict 가 빈 문자열이면 fallback 도 빈 문자열임을 가정할 수 있다.
      */
@@ -28,11 +28,10 @@ object FullTextQueryBuilder {
         val tokens = sanitize(rawQuery)
         if (tokens.isEmpty()) return "" to ""
         val strict = tokens.joinToString(" ") { "+$it*" }
-        val fallback = if (tokens.size == 1 && tokens[0].length > NGRAM_TOKEN_SIZE) {
-            decomposeToNgrams(tokens[0]).joinToString(" ")
-        } else {
-            tokens.joinToString(" ")
-        }
+        val fallback = tokens.flatMap { token ->
+            if (token.length > NGRAM_TOKEN_SIZE) decomposeToNgrams(token)
+            else listOf(token)
+        }.joinToString(" ")
         return strict to fallback
     }
 

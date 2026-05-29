@@ -99,7 +99,7 @@ class FullTextQueryBuilderTest {
     fun `fallback query joins tokens without required operator`() {
         val result = FullTextQueryBuilder.toFallbackQuery("성수 소금빵")
 
-        assertThat(result).isEqualTo("성수 소금빵")
+        assertThat(result).isEqualTo("성수 소금 금빵")
     }
 
     @Test
@@ -135,11 +135,19 @@ class FullTextQueryBuilderTest {
     }
 
     @Test
-    @DisplayName("fallback 쿼리에서 두 글자 이상 토큰이 다수면 그대로 OR 결합된다")
-    fun `fallback query keeps multiple tokens as separate OR terms`() {
-        val result = FullTextQueryBuilder.toFallbackQuery("카레 소시지")
+    @DisplayName("fallback 쿼리에서 모든 토큰이 ngram 크기 이하면 분해 없이 OR 결합된다")
+    fun `fallback query keeps tokens unchanged when all are within ngram size`() {
+        val result = FullTextQueryBuilder.toFallbackQuery("카레 우동")
 
-        assertThat(result).isEqualTo("카레 소시지")
+        assertThat(result).isEqualTo("카레 우동")
+    }
+
+    @Test
+    @DisplayName("fallback 쿼리에서 다중 토큰이라도 ngram 크기를 초과하는 토큰은 토큰별로 ngram 분해된다")
+    fun `fallback query decomposes long tokens per-token even with multiple tokens`() {
+        val result = FullTextQueryBuilder.toFallbackQuery("카레소시지 성수")
+
+        assertThat(result).isEqualTo("카레 레소 소시 시지 성수")
     }
 
     @Test
@@ -147,6 +155,6 @@ class FullTextQueryBuilderTest {
     fun `fallback query strips boolean mode operator characters`() {
         val result = FullTextQueryBuilder.toFallbackQuery("(성수)~소금빵")
 
-        assertThat(result).isEqualTo("성수 소금빵")
+        assertThat(result).isEqualTo("성수 소금 금빵")
     }
 }
