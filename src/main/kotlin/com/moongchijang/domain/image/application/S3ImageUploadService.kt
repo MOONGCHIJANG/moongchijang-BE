@@ -139,8 +139,9 @@ class S3ImageUploadService(
     }
 
     private fun validateOwnership(userId: Long, keys: List<String>) {
-        val pendingPathToken = "/pending/$userId/"
-        if (keys.any { !it.contains(pendingPathToken) }) {
+        val prefix = appS3Properties.prefix.trim('/').let { if (it.isBlank()) "" else "$it/" }
+        val expectedPrefix = "${prefix}group-buys/pending/$userId/"
+        if (keys.any { !it.startsWith(expectedPrefix) }) {
             throw CustomException(
                 ErrorCode.INVALID_INPUT,
                 "본인 pending 경로의 이미지 key만 삭제할 수 있습니다."
