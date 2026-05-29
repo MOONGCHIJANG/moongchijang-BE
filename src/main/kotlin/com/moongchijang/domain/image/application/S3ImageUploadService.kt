@@ -5,11 +5,16 @@ import com.moongchijang.domain.image.application.dto.ImagePresignedUploadItemRes
 import com.moongchijang.domain.image.application.dto.ImagePresignedUploadRequest
 import com.moongchijang.domain.image.application.dto.ImagePresignedUploadResponse
 import com.moongchijang.domain.image.application.dto.ImageUploadCategory
+import com.moongchijang.domain.image.application.dto.ImageDeleteResponse
 import com.moongchijang.global.config.AppS3Properties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.Delete
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
@@ -20,6 +25,7 @@ import java.util.UUID
 
 @Service
 class S3ImageUploadService(
+    private val s3Client: S3Client,
     private val s3Presigner: S3Presigner,
     private val appS3Properties: AppS3Properties,
 ) {
@@ -37,6 +43,41 @@ class S3ImageUploadService(
             responses.count { it.category == ImageUploadCategory.PRODUCT },
         )
         return ImagePresignedUploadResponse(items = responses)
+    }
+
+    fun deleteImages(userId: Long, keys: List<String>): ImageDeleteResponse {
+        val normalizedKeys = keys.map { it.trim().removePrefix("/") }.filter { it.isNotBlank() }.distinct()
+        if (normalizedKeys.isEmpty()) {
+            throw CustomException(ErrorCode.INVALID_INPUT, "삭제할 이미지 key가 비어 있습니다.")
+        }
+        val prefix = appS3Properties.prefix.trim('/').let { if (it.isBlank()) "" else "$it/" }
+        if (prefix.isNotBlank() && normalizedKeys.any { !it.startsWith(prefix) }) {
+            throw CustomException(ErrorCode.INVALID_INPUT, "허용된 경로(prefix)의 이미지 key만 삭제할 수 있습니다.")
+        }
+
+        val request = DeleteObjectsRequest.builder()
+            .bucket(appS3Properties.bucket)
+            .delete(
+                Delete.builder()
+                    .objects(normalizedKeys.map { ObjectIdentifier.builder().key(it).build() })
+                    .build()
+            )
+            .build()
+
+        val result = s3Client.deleteObjects(request)
+        val deleted = result.deleted()?.map { it.key() } ?: emptyList()
+        val failed = result.errors()?.map { it.key() } ?: emptyList()
+        log.info(
+            "[S3ImageUploadService] 이미지 삭제 완료: userId={}, requested={}, deleted={}, failed={}",
+            userId,
+            normalizedKeys.size,
+            deleted.size,
+            failed.size,
+        )
+        return ImageDeleteResponse(
+            deletedKeys = deleted,
+            failedKeys = failed,
+        )
     }
 
     private fun issueSingle(groupBuyId: Long?, file: ImagePresignedUploadItemRequest): ImagePresignedUploadItemResponse {
