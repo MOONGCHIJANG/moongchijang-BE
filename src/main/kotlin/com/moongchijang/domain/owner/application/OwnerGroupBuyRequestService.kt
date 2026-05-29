@@ -15,6 +15,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -32,7 +33,8 @@ class OwnerGroupBuyRequestService(
     private val storeStaffRepository: StoreStaffRepository,
     private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
     private val ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository,
-    private val clock: Clock
+    private val clock: Clock,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     private val log = LoggerFactory.getLogger(OwnerGroupBuyRequestService::class.java)
 
@@ -94,6 +96,8 @@ class OwnerGroupBuyRequestService(
         }
 
         validateRequest(request)
+        val imageReferences = request.imageUrls.map { s3ImageReferenceResolver.resolve(it) }
+        val thumbnail = imageReferences.first()
 
         val saved = ownerGroupBuyRequestRepository.save(
             OwnerGroupBuyRequest(
@@ -106,7 +110,8 @@ class OwnerGroupBuyRequestService(
                 targetQuantity = request.targetQuantity,
                 maxQuantity = request.maxQuantity,
                 perUserLimit = request.perUserLimit,
-                thumbnailUrl = request.imageUrls.first().trim(),
+                thumbnailUrl = thumbnail.url,
+                thumbnailKey = thumbnail.key,
                 deadline = request.deadline,
                 pickupDate = request.pickupDate,
                 pickupTimeStart = request.pickupTimeStart,
@@ -118,10 +123,11 @@ class OwnerGroupBuyRequestService(
         )
 
         ownerGroupBuyRequestImageRepository.saveAll(
-            request.imageUrls.mapIndexed { index, imageUrl ->
+            imageReferences.mapIndexed { index, imageReference ->
                 OwnerGroupBuyRequestImage(
                     request = saved,
-                    imageUrl = imageUrl.trim(),
+                    imageUrl = imageReference.url,
+                    imageKey = imageReference.key,
                     sortOrder = index
                 )
             }

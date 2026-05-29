@@ -14,6 +14,9 @@ class GroupBuyImage(
     @Column(nullable = false, length = 500)
     var imageUrl: String,
 
+    @Column(length = 500)
+    var imageKey: String? = null,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L

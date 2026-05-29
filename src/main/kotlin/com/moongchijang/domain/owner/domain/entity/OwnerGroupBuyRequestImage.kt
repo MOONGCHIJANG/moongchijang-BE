@@ -35,6 +35,9 @@ class OwnerGroupBuyRequestImage(
     @Column(name = "image_url", nullable = false, length = 500)
     var imageUrl: String,
 
+    @Column(name = "image_key", length = 500)
+    var imageKey: String? = null,
+
     @Column(name = "sort_order", nullable = false)
     var sortOrder: Int,
 

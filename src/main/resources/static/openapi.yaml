@@ -43,6 +43,8 @@ tags:
     description: 사장님 전용 (QR 스캔 · 홈 · 예약 목록)
   - name: Admin
     description: 운영자 전용 (공구요청 · 공구관리 · 환불 · 정산)
+  - name: ImageUpload
+    description: S3 Presigned URL 발급 · 이미지 삭제
 
 paths:
 
@@ -2713,6 +2715,59 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────────────────────────
+  # ImageUpload
+  # ─────────────────────────────────────────────────────────────
+  /api/v1/images/presigned-urls:
+    post:
+      tags: [ImageUpload]
+      summary: S3 이미지 업로드용 Presigned URL 발급
+      description: 썸네일(최대 1장), 상품 이미지(최대 10장)에 대한 업로드 URL을 발급한다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImagePresignedUploadRequest'
+      responses:
+        '200':
+          description: Presigned URL 발급 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseImagePresignedUpload'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/images:
+    delete:
+      tags: [ImageUpload]
+      summary: S3 업로드 이미지 삭제
+      description: 요청한 S3 key 목록을 삭제한다. 허용된 prefix 범위의 key만 삭제 가능하다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageDeleteRequest'
+      responses:
+        '200':
+          description: 이미지 삭제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseImageDelete'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
 # ─────────────────────────────────────────────────────────────────
 # Components
@@ -6384,4 +6439,115 @@ components:
                   previousGroupBuyStore:
                     type: boolean
                     description: 과거 공구 이력이 있는 매장 여부
+        error: { nullable: true, example: null }
+
+    # ── ImageUpload ────────────────────────────────────────────
+    ImageUploadCategory:
+      type: string
+      description: 이미지 업로드 카테고리
+      enum: [THUMBNAIL, PRODUCT]
+
+    ImagePresignedUploadItemRequest:
+      type: object
+      required: [category, fileName, contentType]
+      properties:
+        category:
+          $ref: '#/components/schemas/ImageUploadCategory'
+        fileName:
+          type: string
+          description: 원본 파일명
+          example: cake.jpg
+        contentType:
+          type: string
+          description: 파일 Content-Type
+          example: image/jpeg
+
+    ImagePresignedUploadRequest:
+      type: object
+      required: [files]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+          nullable: true
+          description: 공구 ID. 생성 전 단계면 null
+          example: 960004
+        files:
+          type: array
+          description: 발급 대상 파일 목록
+          items:
+            $ref: '#/components/schemas/ImagePresignedUploadItemRequest'
+
+    ImagePresignedUploadItemResponse:
+      type: object
+      required: [category, key, uploadUrl, method]
+      properties:
+        category:
+          $ref: '#/components/schemas/ImageUploadCategory'
+        key:
+          type: string
+          description: S3 Object Key
+          example: dev/group-buys/pending/7/20260529/products/550e8400-e29b-41d4-a716-446655440000.jpg
+        uploadUrl:
+          type: string
+          description: S3 업로드용 Presigned URL
+          example: https://moongchijang-s3.s3.ap-northeast-2.amazonaws.com/dev/group-buys/960004/products/...
+        method:
+          type: string
+          example: PUT
+
+    ImagePresignedUploadResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: 발급 결과 목록
+          items:
+            $ref: '#/components/schemas/ImagePresignedUploadItemResponse'
+
+    ApiResponseImagePresignedUpload:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/ImagePresignedUploadResponse'
+        error: { nullable: true, example: null }
+
+    ImageDeleteRequest:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          description: 삭제할 S3 key 목록
+          items:
+            type: string
+          example:
+            - dev/group-buys/960004/thumbnail/550e8400-e29b-41d4-a716-446655440000.jpg
+            - dev/group-buys/960004/products/550e8400-e29b-41d4-a716-446655440001.jpg
+
+    ImageDeleteResponse:
+      type: object
+      required: [deletedKeys, failedKeys]
+      properties:
+        deletedKeys:
+          type: array
+          description: 삭제 완료 key 목록
+          items:
+            type: string
+        failedKeys:
+          type: array
+          description: 삭제 실패 key 목록
+          items:
+            type: string
+
+    ApiResponseImageDelete:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/ImageDeleteResponse'
         error: { nullable: true, example: null }
