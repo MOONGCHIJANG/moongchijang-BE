@@ -113,8 +113,9 @@ class GroupBuyService(
         return GroupBuyDetailResponse.from(
             groupBuy = groupBuy,
             thumbnailUrl = s3ImageReferenceResolver.resolveForRead(groupBuy.thumbnailKey),
-            imageUrls = images.map { s3ImageReferenceResolver.resolveForRead(it.imageKey) ?: "" }
-                .filter { it.isNotBlank() },
+            imageUrls = images
+                .filter { it.imageKey != groupBuy.thumbnailKey }
+                .mapNotNull { s3ImageReferenceResolver.resolveForRead(it.imageKey) },
             isWishlisted = isWishlisted,
             isParticipated = isParticipated,
             canParticipate = canParticipate
