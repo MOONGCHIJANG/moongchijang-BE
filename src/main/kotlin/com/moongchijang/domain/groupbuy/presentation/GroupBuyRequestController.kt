@@ -27,9 +27,10 @@ class GroupBuyRequestController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: GroupBuyRequestCreateRequest
     ): ResponseEntity<ApiResponse<GroupBuyRequestIdResponse>> {
-        return ResponseEntity
+        val response = ResponseEntity
             .status(HttpStatus.CREATED)
             .body(ApiResponse.success(groupBuyRequestService.create(principal.id, request)))
+        return response
     }
 
     @GetMapping
@@ -37,7 +38,8 @@ class GroupBuyRequestController(
     fun getMyRequests(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<ApiResponse<List<GroupBuyRequestResponse>>> {
-        return ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getMyRequests(principal.id)))
+        val response = ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getMyRequests(principal.id)))
+        return response
     }
 
     @GetMapping("/{requestId}")
@@ -46,6 +48,7 @@ class GroupBuyRequestController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @PathVariable requestId: Long
     ): ResponseEntity<ApiResponse<GroupBuyRequestResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getDetail(principal.id, requestId)))
+        val response = ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getDetail(principal.id, requestId)))
+        return response
     }
 }

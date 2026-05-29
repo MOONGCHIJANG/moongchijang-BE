@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class GroupBuyOpenRequestController(
     private val openRequestService: GroupBuyOpenRequestService
 ) {
+
     @PostMapping
     @Operation(summary = "공구 개설 알림 신청")
     fun create(
@@ -30,7 +31,8 @@ class GroupBuyOpenRequestController(
         @Valid @RequestBody request: CreateGroupBuyOpenRequestRequest
     ): ResponseEntity<ApiResponse<Nothing>> {
         openRequestService.create(principal.id, request)
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success())
+        val response = ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success())
+        return response
     }
 
     @PostMapping("/store-recommendations")
@@ -38,6 +40,7 @@ class GroupBuyOpenRequestController(
     fun recommendStores(
         @Valid @RequestBody request: StoreRecommendationRequest
     ): ResponseEntity<ApiResponse<StoreRecommendationResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(openRequestService.recommendStores(request)))
+        val response = ResponseEntity.ok(ApiResponse.success(openRequestService.recommendStores(request)))
+        return response
     }
 }

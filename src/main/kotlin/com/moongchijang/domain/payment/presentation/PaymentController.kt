@@ -35,7 +35,8 @@ class PaymentController(
         @PathVariable groupBuyId: Long,
         @RequestParam quantity: Int,
     ): ResponseEntity<ApiResponse<CheckoutInfoResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(paymentService.getCheckoutInfo(groupBuyId, quantity)))
+        val response = ResponseEntity.ok(ApiResponse.success(paymentService.getCheckoutInfo(groupBuyId, quantity)))
+        return response
     }
 
     @PostMapping("/group-buys/{groupBuyId}/payment-orders")
@@ -45,7 +46,8 @@ class PaymentController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: CreatePaymentOrderRequest,
     ): ResponseEntity<ApiResponse<CreatePaymentOrderResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(paymentService.createPaymentOrder(groupBuyId, principal.id, request)))
+        val response = ResponseEntity.ok(ApiResponse.success(paymentService.createPaymentOrder(groupBuyId, principal.id, request)))
+        return response
     }
 
     @PostMapping("/payments/portone/complete")
@@ -54,7 +56,8 @@ class PaymentController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: CompletePortOnePaymentRequest,
     ): ResponseEntity<ApiResponse<ConfirmPaymentResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(paymentService.completePortOnePayment(request, principal.id)))
+        val response = ResponseEntity.ok(ApiResponse.success(paymentService.completePortOnePayment(request, principal.id)))
+        return response
     }
 
     @PostMapping("/payments/portone/webhook")
@@ -62,7 +65,8 @@ class PaymentController(
         @RequestBody request: PortOneWebhookRequest,
     ): ResponseEntity<ApiResponse<PortOneWebhookResponse>> {
         paymentService.handlePortOneWebhook(request)
-        return ResponseEntity.ok(ApiResponse.success(PortOneWebhookResponse()))
+        val response = ResponseEntity.ok(ApiResponse.success(PortOneWebhookResponse()))
+        return response
     }
 
     @PostMapping("/participations/{participationId}/cancel")
@@ -72,6 +76,7 @@ class PaymentController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: CancelParticipationRequest,
     ): ResponseEntity<ApiResponse<CancelParticipationResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(paymentService.cancelParticipation(participationId, principal.id, request)))
+        val response = ResponseEntity.ok(ApiResponse.success(paymentService.cancelParticipation(participationId, principal.id, request)))
+        return response
     }
 }

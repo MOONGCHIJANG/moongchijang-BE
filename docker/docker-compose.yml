@@ -113,6 +113,7 @@ services:
       ALERT_SERVICE: ${ALERT_SERVICE:-moongchijang-be}
       DISCORD_WEBHOOK_MONITORING_CRITICAL: ${DISCORD_WEBHOOK_MONITORING_CRITICAL:-https://discord.com/api/webhooks/placeholder/critical}
       DISCORD_WEBHOOK_MONITORING_WARNING: ${DISCORD_WEBHOOK_MONITORING_WARNING:-https://discord.com/api/webhooks/placeholder/warning}
+      DISCORD_WEBHOOK_PAYMENT: ${DISCORD_WEBHOOK_PAYMENT:-https://discord.com/api/webhooks/placeholder/payment}
     command:
       - /bin/sh
       - -c
@@ -122,6 +123,7 @@ services:
           -e "s|__ALERT_SERVICE__|$${ALERT_SERVICE}|g" \
           -e "s|__DISCORD_WEBHOOK_MONITORING_CRITICAL__|$${DISCORD_WEBHOOK_MONITORING_CRITICAL}|g" \
           -e "s|__DISCORD_WEBHOOK_MONITORING_WARNING__|$${DISCORD_WEBHOOK_MONITORING_WARNING}|g" \
+          -e "s|__DISCORD_WEBHOOK_PAYMENT__|$${DISCORD_WEBHOOK_PAYMENT}|g" \
           /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.generated.yml
         exec /bin/alertmanager \
           --config.file=/tmp/alertmanager.generated.yml \

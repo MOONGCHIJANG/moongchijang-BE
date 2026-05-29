@@ -29,9 +29,10 @@ class AdminGroupBuyRequestActionController(
         @PathVariable requestId: Long,
         @Valid @RequestBody request: AdminGroupBuyRequestApproveRequest
     ): ResponseEntity<ApiResponse<AdminGroupBuyRequestActionResponse>> {
-        return ResponseEntity
+        val response = ResponseEntity
             .status(HttpStatus.CREATED)
             .body(ApiResponse.success(adminGroupBuyRequestActionService.approve(requestId, request)))
+        return response
     }
 
     @PostMapping("/{requestId}/reject")
@@ -40,6 +41,7 @@ class AdminGroupBuyRequestActionController(
         @PathVariable requestId: Long,
         @Valid @RequestBody request: AdminGroupBuyRequestRejectRequest
     ): ResponseEntity<ApiResponse<AdminGroupBuyRequestActionResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(adminGroupBuyRequestActionService.reject(requestId, request)))
+        val response = ResponseEntity.ok(ApiResponse.success(adminGroupBuyRequestActionService.reject(requestId, request)))
+        return response
     }
 }

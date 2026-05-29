@@ -17,6 +17,7 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -32,8 +33,10 @@ class AdminGroupBuyRequestActionService(
     private val storeRepository: StoreRepository,
     private val eventPublisher: ApplicationEventPublisher,
 ) {
+    private val log = LoggerFactory.getLogger(AdminGroupBuyRequestActionService::class.java)
 
     fun approve(requestId: Long, request: AdminGroupBuyRequestApproveRequest): AdminGroupBuyRequestActionResponse {
+        log.info("[AdminGroupBuyRequestActionService] 공구요청 승인 시작: requestId={}", requestId)
         val groupBuyRequest = findRequest(requestId)
         validateActionable(groupBuyRequest)
         val maxQuantity = request.maxQuantity ?: request.targetQuantity
@@ -70,14 +73,21 @@ class AdminGroupBuyRequestActionService(
         markRequest(groupBuyRequest, GroupBuyRequestStatus.OPENED, openedGroupBuyId = groupBuy.id)
         eventPublisher.publishEvent(AdminGroupBuyOpenedEvent(groupBuy.id))
 
-        return AdminGroupBuyRequestActionResponse(
+        val response = AdminGroupBuyRequestActionResponse(
             requestId = groupBuyRequest.id,
             status = GroupBuyRequestStatus.OPENED,
             groupBuyId = groupBuy.id
         )
+        log.info(
+            "[AdminGroupBuyRequestActionService] 공구요청 승인 완료: requestId={}, groupBuyId={}",
+            requestId,
+            groupBuy.id,
+        )
+        return response
     }
 
     fun reject(requestId: Long, request: AdminGroupBuyRequestRejectRequest): AdminGroupBuyRequestActionResponse {
+        log.info("[AdminGroupBuyRequestActionService] 공구요청 반려 시작: requestId={}", requestId)
         val groupBuyRequest = findRequest(requestId)
         validateActionable(groupBuyRequest)
 
@@ -87,11 +97,13 @@ class AdminGroupBuyRequestActionService(
         }
 
         markRequest(groupBuyRequest, GroupBuyRequestStatus.REJECTED, rejectionReason = reason)
-        return AdminGroupBuyRequestActionResponse(
+        val response = AdminGroupBuyRequestActionResponse(
             requestId = groupBuyRequest.id,
             status = GroupBuyRequestStatus.REJECTED,
             groupBuyId = null
         )
+        log.info("[AdminGroupBuyRequestActionService] 공구요청 반려 완료: requestId={}", requestId)
+        return response
     }
 
     private fun findRequest(requestId: Long): GroupBuyRequest {

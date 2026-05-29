@@ -34,7 +34,8 @@ class GroupBuyRequestAdminController(
         @RequestParam(required = false) keyword: String?,
         pageable: Pageable
     ): ResponseEntity<ApiResponse<AdminGroupBuyRequestPageResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getAdminRequests(status, keyword, pageable)))
+        val response = ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getAdminRequests(status, keyword, pageable)))
+        return response
     }
 
     @GetMapping("/{requestId}")
@@ -42,7 +43,8 @@ class GroupBuyRequestAdminController(
     fun getDetail(
         @PathVariable requestId: Long
     ): ResponseEntity<ApiResponse<AdminGroupBuyRequestDetailResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getAdminDetail(requestId)))
+        val response = ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.getAdminDetail(requestId)))
+        return response
     }
 
     @PatchMapping("/{requestId}/status")
@@ -51,6 +53,7 @@ class GroupBuyRequestAdminController(
         @PathVariable requestId: Long,
         @Valid @RequestBody request: GroupBuyRequestStatusUpdateRequest
     ): ResponseEntity<ApiResponse<GroupBuyRequestResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.updateStatus(requestId, request)))
+        val response = ResponseEntity.ok(ApiResponse.success(groupBuyRequestService.updateStatus(requestId, request)))
+        return response
     }
 }

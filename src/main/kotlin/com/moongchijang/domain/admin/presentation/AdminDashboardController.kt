@@ -23,13 +23,17 @@ class AdminDashboardController(
 
     @GetMapping("/summary")
     @Operation(summary = "운영자 대시보드 운영 관리 요약")
-    fun getSummary(): ResponseEntity<ApiResponse<AdminDashboardSummaryResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminDashboardSummaryService.getSummary()))
+    fun getSummary(): ResponseEntity<ApiResponse<AdminDashboardSummaryResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminDashboardSummaryService.getSummary()))
+        return response
+    }
 
     @GetMapping("/dashboard/unconfirmed-orders")
     @Operation(summary = "운영자 대시보드 발주 미확정 모니터링")
     fun getUnconfirmedOrders(
         pageable: Pageable
-    ): ResponseEntity<ApiResponse<AdminDashboardUnconfirmedOrderResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminDashboardOrderMonitoringService.getUnconfirmedOrders(pageable)))
+    ): ResponseEntity<ApiResponse<AdminDashboardUnconfirmedOrderResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminDashboardOrderMonitoringService.getUnconfirmedOrders(pageable)))
+        return response
+    }
 }

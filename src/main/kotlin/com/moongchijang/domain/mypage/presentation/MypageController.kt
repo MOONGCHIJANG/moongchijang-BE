@@ -28,49 +28,63 @@ class MypageController(
     @Operation(summary = "마이페이지 탭별 건수 조회")
     fun getSummary(
         @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<MypageSummaryResponse>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getSummary(principal.id)))
+    ): ResponseEntity<ApiResponse<MypageSummaryResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(mypageService.getSummary(principal.id)))
+        return response
+    }
 
     @GetMapping("/users/me/tabs/counts")
     @Operation(summary = "내 탭별 건수 조회")
     fun getUserTabCounts(
         @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<MypageSummaryResponse>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getSummary(principal.id)))
+    ): ResponseEntity<ApiResponse<MypageSummaryResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(mypageService.getSummary(principal.id)))
+        return response
+    }
 
     @GetMapping("/users/me/participations")
     @Operation(summary = "내 참여 내역 상태별 조회")
     fun getUserParticipations(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @RequestParam status: MypageParticipationStatusFilter
-    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getParticipations(principal.id, status)))
+    ): ResponseEntity<ApiResponse<List<MypageParticipationResponse>>> {
+        val response = ResponseEntity.ok(ApiResponse.success(mypageService.getParticipations(principal.id, status)))
+        return response
+    }
 
     @GetMapping("/users/me/group-buy-requests")
     @Operation(summary = "내 공구 개설 요청 내역 조회")
     fun getUserGroupBuyRequests(
         @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageGroupBuyRequestResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getGroupBuyRequests(principal.id)))
+    ): ResponseEntity<ApiResponse<List<MypageGroupBuyRequestResponse>>> {
+        val response = ResponseEntity.ok(ApiResponse.success(mypageService.getGroupBuyRequests(principal.id)))
+        return response
+    }
 
     @GetMapping("/mypage/refunds")
     @Operation(summary = "내 환불 내역 조회")
     fun getRefunds(
         @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
+    ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> {
+        val response = ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
+        return response
+    }
 
     @GetMapping("/users/me/refunds")
     @Operation(summary = "내 환불 내역 조회 (마이페이지)")
     fun getUserRefunds(
         @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
+    ): ResponseEntity<ApiResponse<List<MypageRefundResponse>>> {
+        val response = ResponseEntity.ok(ApiResponse.success(mypageService.getRefunds(principal.id)))
+        return response
+    }
 
     @GetMapping("/mypage/group-buy-requests")
     @Operation(summary = "내 공구 개설 요청 내역 조회")
     fun getGroupBuyRequests(
         @AuthenticationPrincipal principal: CustomUserPrincipal
-    ): ResponseEntity<ApiResponse<List<MypageGroupBuyRequestResponse>>> =
-        ResponseEntity.ok(ApiResponse.success(mypageService.getGroupBuyRequests(principal.id)))
+    ): ResponseEntity<ApiResponse<List<MypageGroupBuyRequestResponse>>> {
+        val response = ResponseEntity.ok(ApiResponse.success(mypageService.getGroupBuyRequests(principal.id)))
+        return response
+    }
 }

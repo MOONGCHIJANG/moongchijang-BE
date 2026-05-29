@@ -3,12 +3,14 @@ package com.moongchijang.domain.store.application
 import com.moongchijang.domain.store.application.dto.StoreSearchResponse
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class StoreSearchService(
     private val naverLocalSearchClient: NaverLocalSearchClient
 ) {
+    private val log = LoggerFactory.getLogger(StoreSearchService::class.java)
     companion object {
         private const val NAVER_FETCH_DISPLAY = 20
 
@@ -53,8 +55,15 @@ class StoreSearchService(
     }
 
     fun search(keyword: String, display: Int = 5): StoreSearchResponse {
+        log.info("[StoreSearchService] 매장 검색 시작: keywordLength={}, display={}", keyword.length, display)
+        if (keyword.isBlank()) {
+            log.info("[StoreSearchService] 매장 검색 스킵: 빈 키워드")
+            return StoreSearchResponse.from(emptyList())
+        }
         val response = naverLocalSearchClient.search(keyword, display.coerceAtLeast(NAVER_FETCH_DISPLAY))
-        return StoreSearchResponse.from(response.items.filter { it.isBakeryDomain() }.take(display))
+        val result = StoreSearchResponse.from(response.items.filter { it.isBakeryDomain() }.take(display))
+        log.info("[StoreSearchService] 매장 검색 완료: resultCount={}", result.stores.size)
+        return result
     }
 
     private fun NaverLocalSearchItem.isBakeryDomain(): Boolean {

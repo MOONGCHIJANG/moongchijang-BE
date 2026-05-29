@@ -32,21 +32,27 @@ class AdminCsTicketController(
         @RequestParam(defaultValue = "ALL") status: AdminCsTicketStatusFilter,
         @RequestParam(required = false) keyword: String?,
         pageable: Pageable,
-    ): ResponseEntity<ApiResponse<AdminCsTicketPageResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminCsTicketService.getTickets(status, keyword, pageable)))
+    ): ResponseEntity<ApiResponse<AdminCsTicketPageResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminCsTicketService.getTickets(status, keyword, pageable)))
+        return response
+    }
 
     @GetMapping("/{ticketId}")
     @Operation(summary = "운영자 CS 티켓 상세 조회")
     fun getTicketDetail(
         @PathVariable ticketId: Long,
-    ): ResponseEntity<ApiResponse<AdminCsTicketDetailResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminCsTicketService.getTicketDetail(ticketId)))
+    ): ResponseEntity<ApiResponse<AdminCsTicketDetailResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminCsTicketService.getTicketDetail(ticketId)))
+        return response
+    }
 
     @PatchMapping("/{ticketId}")
     @Operation(summary = "운영자 CS 티켓 처리 정보 변경")
     fun updateTicket(
         @PathVariable ticketId: Long,
         @Valid @RequestBody request: AdminCsTicketUpdateRequest,
-    ): ResponseEntity<ApiResponse<AdminCsTicketDetailResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminCsTicketService.updateTicket(ticketId, request)))
+    ): ResponseEntity<ApiResponse<AdminCsTicketDetailResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminCsTicketService.updateTicket(ticketId, request)))
+        return response
+    }
 }

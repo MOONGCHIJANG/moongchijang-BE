@@ -8,6 +8,10 @@ route:
   group_interval: 5m
   repeat_interval: 3h
   routes:
+    - receiver: payment-discord
+      matchers:
+        - env="__ALERT_ENV__"
+        - domain="payment"
     - receiver: monitoring-critical-discord
       matchers:
         - env="__ALERT_ENV__"
@@ -39,6 +43,19 @@ receivers:
         send_resolved: true
         title: >-
           [__ALERT_ENV__][warning] {{ .CommonLabels.alertname }}
+        message: >-
+          서비스={{ .CommonLabels.service }}
+          인스턴스={{ .CommonLabels.instance }}
+          상태={{ .Status }}
+          요약={{ .CommonAnnotations.summary }}
+          상세={{ .CommonAnnotations.description }}
+
+  - name: payment-discord
+    discord_configs:
+      - webhook_url: "__DISCORD_WEBHOOK_PAYMENT__"
+        send_resolved: true
+        title: >-
+          [__ALERT_ENV__][payment][{{ .CommonLabels.severity }}] {{ .CommonLabels.alertname }}
         message: >-
           서비스={{ .CommonLabels.service }}
           인스턴스={{ .CommonLabels.instance }}

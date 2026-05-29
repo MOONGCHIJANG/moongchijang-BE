@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*
 class SearchController(
     private val searchService: SearchService
 ) {
+
     data class SearchRequest(@field:NotBlank val keyword: String)
 
     @PostMapping
@@ -28,7 +29,8 @@ class SearchController(
         @Valid @RequestBody request: SearchRequest,
         @AuthenticationPrincipal principal: CustomUserPrincipal?
     ): ResponseEntity<ApiResponse<SearchResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(searchService.search(request.keyword, principal?.id)))
+        val response = ResponseEntity.ok(ApiResponse.success(searchService.search(request.keyword, principal?.id)))
+        return response
     }
 
     @GetMapping("/recent")
@@ -36,7 +38,8 @@ class SearchController(
     fun getRecentSearches(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<ApiResponse<List<String>>> {
-        return ResponseEntity.ok(ApiResponse.success(searchService.getHistory(principal.id)))
+        val response = ResponseEntity.ok(ApiResponse.success(searchService.getHistory(principal.id)))
+        return response
     }
 
     @DeleteMapping("/recent")
@@ -45,7 +48,8 @@ class SearchController(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<ApiResponse<Nothing>> {
         searchService.clearHistory(principal.id)
-        return ResponseEntity.ok(ApiResponse.success())
+        val response = ResponseEntity.ok(ApiResponse.success())
+        return response
     }
 
     @DeleteMapping("/recent/{keyword}")
@@ -55,6 +59,7 @@ class SearchController(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<ApiResponse<Nothing>> {
         searchService.deleteHistory(principal.id, keyword)
-        return ResponseEntity.ok(ApiResponse.success())
+        val response = ResponseEntity.ok(ApiResponse.success())
+        return response
     }
 }

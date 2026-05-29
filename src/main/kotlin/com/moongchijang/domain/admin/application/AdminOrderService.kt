@@ -11,6 +11,7 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,11 +25,18 @@ class AdminOrderService(
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
+    private val log = LoggerFactory.getLogger(AdminOrderService::class.java)
 
     fun getOrders(
         status: AdminOrderStatusFilter,
         pageable: Pageable
     ): AdminOrderPageResponse {
+        log.info(
+            "[AdminOrderService] 주문 목록 조회 시작: status={}, page={}, size={}",
+            status,
+            pageable.pageNumber,
+            pageable.pageSize,
+        )
         val now = LocalDateTime.now(clock)
         val page = groupBuyRepository.findAdminOrderPage(
             groupBuyStatus = GroupBuyStatus.ACHIEVED,
@@ -44,49 +52,63 @@ class AdminOrderService(
                 .associate { it.groupBuyId to it.pendingRefundCount }
         }
 
-        return AdminOrderPageResponse.from(page, pendingRefundCountsByGroupBuyId, now)
+        val response = AdminOrderPageResponse.from(page, pendingRefundCountsByGroupBuyId, now)
+        log.info("[AdminOrderService] 주문 목록 조회 완료: status={}, totalElements={}", status, response.totalElements)
+        return response
     }
 
     fun getOrderDetail(orderId: Long): AdminOrderDetailResponse {
+        log.info("[AdminOrderService] 주문 상세 조회 시작: orderId={}", orderId)
         val now = LocalDateTime.now(clock)
         val groupBuy = groupBuyRepository.findAdminOrderDetailById(orderId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
-        return AdminOrderDetailResponse.from(
+        val response = AdminOrderDetailResponse.from(
             groupBuy = groupBuy,
             pendingRefundCount = countPendingRefunds(groupBuy.id),
             now = now
         )
+        log.info("[AdminOrderService] 주문 상세 조회 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
+        return response
     }
 
     @Transactional
     fun markOwnerContacted(orderId: Long): AdminOrderDetailResponse {
+        log.info("[AdminOrderService] 주문 사장님연락 상태 변경 시작: orderId={}", orderId)
         val now = LocalDateTime.now(clock)
         val groupBuy = findOrderForUpdate(orderId)
         validatePendingOrder(groupBuy)
         groupBuy.markOrderOwnerContacted(now)
 
-        return AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        val response = AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        log.info("[AdminOrderService] 주문 사장님연락 상태 변경 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
+        return response
     }
 
     @Transactional
     fun confirmOrder(orderId: Long): AdminOrderDetailResponse {
+        log.info("[AdminOrderService] 주문 확정 시작: orderId={}", orderId)
         val now = LocalDateTime.now(clock)
         val groupBuy = findOrderForUpdate(orderId)
         validatePendingOrder(groupBuy)
         groupBuy.confirmOrder(now)
 
-        return AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        val response = AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        log.info("[AdminOrderService] 주문 확정 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
+        return response
     }
 
     @Transactional
     fun cancelOrder(orderId: Long): AdminOrderDetailResponse {
+        log.info("[AdminOrderService] 주문 취소 시작: orderId={}", orderId)
         val now = LocalDateTime.now(clock)
         val groupBuy = findOrderForUpdate(orderId)
         validatePendingOrder(groupBuy)
         groupBuy.cancelOrder(now)
 
-        return AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        val response = AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        log.info("[AdminOrderService] 주문 취소 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
+        return response
     }
 
     private fun findOrderForUpdate(orderId: Long): GroupBuy {
