@@ -10,12 +10,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
+import org.slf4j.LoggerFactory
 
 @Component
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider,
     private val userRepository: UserRepository,
 ) : OncePerRequestFilter() {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     private val whitelist = listOf(
         "/health",
@@ -42,20 +44,49 @@ class JwtAuthenticationFilter(
         filterChain: FilterChain,
     ) {
         val token = resolveToken(request)
+        val path = request.servletPath
+        val method = request.method
 
-        if (!token.isNullOrBlank() && jwtTokenProvider.validateToken(token) == TokenStatus.VALID) {
-            val userId = jwtTokenProvider.getUserIdFromToken(token)
-            val user = userRepository.findById(userId).orElse(null)
+        if (!token.isNullOrBlank()) {
+            when (val tokenStatus = jwtTokenProvider.validateToken(token)) {
+                TokenStatus.VALID -> {
+                    val userId = jwtTokenProvider.getUserIdFromToken(token)
+                    val user = userRepository.findById(userId).orElse(null)
 
-            if (user != null && user.deletedAt == null) {
-                val principal = CustomUserPrincipal(
-                    id = user.id!!,
-                    email = user.email,
-                    role = user.role,
-                )
+                    if (user != null && user.deletedAt == null) {
+                        val principal = CustomUserPrincipal(
+                            id = user.id!!,
+                            email = user.email,
+                            role = user.role,
+                        )
 
-                val authentication = UsernamePasswordAuthenticationToken(principal, null, principal.authorities)
-                SecurityContextHolder.getContext().authentication = authentication
+                        val authentication = UsernamePasswordAuthenticationToken(principal, null, principal.authorities)
+                        SecurityContextHolder.getContext().authentication = authentication
+                    } else {
+                        log.warn(
+                            "[JwtAuthenticationFilter] 유효 토큰 사용자 조회 실패 또는 탈퇴 사용자: method={}, path={}, userId={}",
+                            method,
+                            path,
+                            userId,
+                        )
+                    }
+                }
+                TokenStatus.EXPIRED -> {
+                    log.info(
+                        "[JwtAuthenticationFilter] 만료된 액세스 토큰 감지: method={}, path={}, tokenStatus={}",
+                        method,
+                        path,
+                        tokenStatus,
+                    )
+                }
+                TokenStatus.INVALID -> {
+                    log.info(
+                        "[JwtAuthenticationFilter] 유효하지 않은 액세스 토큰 감지: method={}, path={}, tokenStatus={}",
+                        method,
+                        path,
+                        tokenStatus,
+                    )
+                }
             }
         }
 
