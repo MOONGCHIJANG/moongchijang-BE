@@ -9,7 +9,8 @@ SET thumbnail_key = SUBSTRING_INDEX(
 )
 WHERE (thumbnail_key IS NULL OR thumbnail_key = '')
   AND thumbnail_url IS NOT NULL
-  AND thumbnail_url REGEXP '^https?://';
+  AND thumbnail_url REGEXP '^https?://'
+  AND LOCATE('/', thumbnail_url, LOCATE('://', thumbnail_url) + 3) > 0;
 
 UPDATE group_buy_images
 SET image_key = SUBSTRING_INDEX(
@@ -19,7 +20,8 @@ SET image_key = SUBSTRING_INDEX(
 )
 WHERE (image_key IS NULL OR image_key = '')
   AND image_url IS NOT NULL
-  AND image_url REGEXP '^https?://';
+  AND image_url REGEXP '^https?://'
+  AND LOCATE('/', image_url, LOCATE('://', image_url) + 3) > 0;
 
 UPDATE owner_group_buy_requests
 SET thumbnail_key = SUBSTRING_INDEX(
@@ -29,7 +31,8 @@ SET thumbnail_key = SUBSTRING_INDEX(
 )
 WHERE (thumbnail_key IS NULL OR thumbnail_key = '')
   AND thumbnail_url IS NOT NULL
-  AND thumbnail_url REGEXP '^https?://';
+  AND thumbnail_url REGEXP '^https?://'
+  AND LOCATE('/', thumbnail_url, LOCATE('://', thumbnail_url) + 3) > 0;
 
 UPDATE owner_group_buy_request_images
 SET image_key = SUBSTRING_INDEX(
@@ -39,4 +42,5 @@ SET image_key = SUBSTRING_INDEX(
 )
 WHERE (image_key IS NULL OR image_key = '')
   AND image_url IS NOT NULL
-  AND image_url REGEXP '^https?://';
+  AND image_url REGEXP '^https?://'
+  AND LOCATE('/', image_url, LOCATE('://', image_url) + 3) > 0;
