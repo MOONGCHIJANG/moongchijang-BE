@@ -12,15 +12,18 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
@@ -54,6 +57,9 @@ class OwnerGroupBuyRequestServiceTest {
     @Mock
     private lateinit var ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     private val service: OwnerGroupBuyRequestService by lazy {
         OwnerGroupBuyRequestService(
             userRepository = userRepository,
@@ -61,8 +67,17 @@ class OwnerGroupBuyRequestServiceTest {
             storeStaffRepository = storeStaffRepository,
             ownerGroupBuyRequestRepository = ownerGroupBuyRequestRepository,
             ownerGroupBuyRequestImageRepository = ownerGroupBuyRequestImageRepository,
-            clock = FIXED_CLOCK
+            clock = FIXED_CLOCK,
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
         )
+    }
+
+    @BeforeEach
+    fun setUp() {
+        lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/1.jpg"))
+            .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("1.jpg", "https://cdn.example.com/1.jpg"))
+        lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/2.jpg"))
+            .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("2.jpg", "https://cdn.example.com/2.jpg"))
     }
 
     @Test
@@ -89,6 +104,7 @@ class OwnerGroupBuyRequestServiceTest {
         assertEquals(store, requestCaptor.value.store)
         assertEquals("두쫀쿠 세트", requestCaptor.value.productName)
         assertEquals("https://cdn.example.com/1.jpg", requestCaptor.value.thumbnailUrl)
+        assertEquals("1.jpg", requestCaptor.value.thumbnailKey)
 
         val imageCaptor = argumentCaptor<Iterable<OwnerGroupBuyRequestImage>>()
         verify(ownerGroupBuyRequestImageRepository).saveAll(imageCaptor.capture())
@@ -96,6 +112,7 @@ class OwnerGroupBuyRequestServiceTest {
         assertEquals(2, images.size)
         assertEquals(listOf(0, 1), images.map { it.sortOrder })
         assertEquals(listOf("https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"), images.map { it.imageUrl })
+        assertEquals(listOf("1.jpg", "2.jpg"), images.map { it.imageKey })
         assertTrue(images.all { it.request.id == 101L })
     }
 

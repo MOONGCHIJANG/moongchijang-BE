@@ -26,6 +26,7 @@ app:
   s3:
     bucket: local-bucket
     prefix: local
+    public-base-url: ${APP_S3_PUBLIC_BASE_URL:}
   share:
     base-url: ${APP_SHARE_BASE_URL:http://localhost:3000}
   cors:
