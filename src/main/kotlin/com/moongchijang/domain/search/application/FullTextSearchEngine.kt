@@ -29,13 +29,13 @@ class FullTextSearchEngine(
     fun search(query: String): SearchResponse {
         val now = LocalDateTime.now()
 
-        val strictQuery = FullTextQueryBuilder.toBooleanQuery(query)
-        val strictIds = if (strictQuery.isEmpty()) emptyList() else searchIds(strictQuery, now)
-
-        val ids = strictIds.ifEmpty {
-            val fallbackQuery = FullTextQueryBuilder.toFallbackQuery(query)
-            if (fallbackQuery.isEmpty()) emptyList() else searchIds(fallbackQuery, now)
+        val (strictQuery, fallbackQuery) = FullTextQueryBuilder.buildQueries(query)
+        if (strictQuery.isEmpty()) {
+            return emptyResponse()
         }
+
+        val strictIds = searchIds(strictQuery, now)
+        val ids = strictIds.ifEmpty { searchIds(fallbackQuery, now) }
 
         if (ids.isEmpty()) {
             return emptyResponse()
