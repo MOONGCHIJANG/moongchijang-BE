@@ -30,6 +30,8 @@ app:
   s3:
     bucket: ${S3_BUCKET}
     prefix: ${S3_PREFIX}
+    region: ${APP_S3_REGION:ap-northeast-2}
+    presign-expiration-seconds: ${APP_S3_PRESIGN_EXPIRATION_SECONDS:900}
     public-base-url: ${APP_S3_PUBLIC_BASE_URL:}
   share:
     base-url: ${APP_SHARE_BASE_URL:https://moongchijang.com}
