@@ -10,6 +10,7 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -46,6 +47,9 @@ class GroupBuyServiceTest {
     @Mock
     private lateinit var participationRepository: ParticipationRepository
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     private lateinit var service: GroupBuyService
 
     @BeforeEach
@@ -55,6 +59,7 @@ class GroupBuyServiceTest {
             groupBuyImageRepository = groupBuyImageRepository,
             favoriteRepository = favoriteRepository,
             participationRepository = participationRepository,
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
             shareBaseUrl = "https://moongchijang.com"
         )
     }
@@ -324,7 +329,7 @@ class GroupBuyServiceTest {
             status = GroupBuyStatus.IN_PROGRESS,
             productName = "두쭌쿠 오리지널 1개"
         ).apply {
-            thumbnailUrl = "https://cdn.moongchijang.com/group-buys/101/thumbnail.jpg"
+            thumbnailKey = "https://cdn.moongchijang.com/group-buys/101/thumbnail.jpg"
             productDescription = "지금 함께 주문하고 픽업해요."
             pickupDate = LocalDate.of(2026, 5, 15)
             pickupTimeStart = LocalTime.of(14, 0)

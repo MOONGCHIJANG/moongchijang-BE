@@ -29,11 +29,12 @@ data class WishlistPageResponse(
     companion object {
         fun from(
             page: Page<GroupBuy>,
+            thumbnailUrlResolver: (GroupBuy) -> String?,
             now: LocalDateTime = LocalDateTime.now(),
             urgentCount: Int,
         ): WishlistPageResponse {
             return WishlistPageResponse(
-                content = page.content.map { WishlistItemResponse.from(it, now) },
+                content = page.content.map { WishlistItemResponse.from(it, thumbnailUrlResolver(it), now) },
                 totalElements = page.totalElements,
                 totalPages = page.totalPages,
                 number = page.number,

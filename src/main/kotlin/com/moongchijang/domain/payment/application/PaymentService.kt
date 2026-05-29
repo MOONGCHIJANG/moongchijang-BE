@@ -32,6 +32,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -57,6 +58,7 @@ class PaymentService(
     private val redisLockUtil: RedisLockUtil,
     private val notificationEventPublisher: NotificationEventPublisher,
     private val refundRequestSyncService: RefundRequestSyncService,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -75,7 +77,7 @@ class PaymentService(
             groupBuyId = groupBuy.id,
             storeName = groupBuy.store.name,
             productName = groupBuy.productName,
-            thumbnailUrl = groupBuy.thumbnailUrl,
+            thumbnailUrl = s3ImageReferenceResolver.resolveForRead(groupBuy.thumbnailKey),
             pickupDate = groupBuy.pickupDate,
             pickupTimeStart = groupBuy.pickupTimeStart,
             pickupTimeEnd = groupBuy.pickupTimeEnd,

@@ -18,6 +18,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -48,11 +49,15 @@ class PickupServiceTest {
     @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     private val service: PickupService by lazy {
         PickupService(
             participationRepository = participationRepository,
             userRepository = userRepository,
             storeStaffRepository = storeStaffRepository,
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
         )
     }
 
@@ -421,7 +426,7 @@ class PickupServiceTest {
         GroupBuy(
             store = store,
             groupBuyRequest = createGroupBuyRequest(pickupDate),
-            thumbnailUrl = "https://example.com/image.jpg",
+            thumbnailKey = "https://example.com/image.jpg",
             productName = "두쫀쿠",
             productDescription = "설명",
             price = 6000,

@@ -62,7 +62,11 @@ data class WishlistItemResponse(
     val isWishlisted: Boolean,
 ) {
     companion object {
-        fun from(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): WishlistItemResponse {
+        fun from(
+            groupBuy: GroupBuy,
+            thumbnailUrl: String?,
+            now: LocalDateTime = LocalDateTime.now()
+        ): WishlistItemResponse {
             val dDay = ChronoUnit.DAYS.between(now.toLocalDate(), groupBuy.deadline.toLocalDate()).toInt()
             val achievementRate = GroupBuyProgressCalculator.achievementRate(
                 groupBuy.currentQuantity,
@@ -71,7 +75,7 @@ data class WishlistItemResponse(
 
             return WishlistItemResponse(
                 groupBuyId = groupBuy.id,
-                thumbnailUrl = groupBuy.thumbnailUrl,
+                thumbnailUrl = thumbnailUrl,
                 dDay = dDay,
                 dDayLabel = if (groupBuy.deadline <= now) "마감" else if (dDay == 0) "D-day" else "D-$dDay",
                 storeName = groupBuy.store.name,

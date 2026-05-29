@@ -90,7 +90,7 @@ class ParticipationAuditingIntegrationTest {
         val groupBuy = GroupBuy(
             store = store,
             groupBuyRequest = request,
-            thumbnailUrl = "https://example.com/image.jpg",
+            thumbnailKey = "https://example.com/image.jpg",
             productName = "테스트 상품",
             productDescription = "설명",
             price = 1000,

@@ -8,6 +8,22 @@ import java.net.URI
 class S3ImageReferenceResolver(
     private val appS3Properties: AppS3Properties,
 ) {
+    fun resolveForRead(key: String?): String? = resolveForRead(key, null)
+
+    fun resolveForRead(key: String?, url: String?): String? {
+        val normalizedKey = key?.trim()?.removePrefix("/")?.takeIf { it.isNotBlank() }
+        if (normalizedKey != null) {
+            return buildPublicUrl(normalizedKey)
+        }
+
+        val normalizedUrl = url?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        return if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
+            normalizedUrl
+        } else {
+            buildPublicUrl(normalizedUrl.removePrefix("/"))
+        }
+    }
+
     fun resolve(raw: String): ResolvedImageReference {
         val normalized = raw.trim()
         if (normalized.isBlank()) {

@@ -32,6 +32,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -96,6 +97,9 @@ class PaymentServiceTest {
     @Mock
     private lateinit var refundRequestSyncService: RefundRequestSyncService
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
@@ -115,7 +119,8 @@ class PaymentServiceTest {
             transactionManager = transactionManager,
             redisLockUtil = redisLockUtil,
             notificationEventPublisher = notificationEventPublisher,
-            refundRequestSyncService = refundRequestSyncService
+            refundRequestSyncService = refundRequestSyncService,
+            s3ImageReferenceResolver = s3ImageReferenceResolver
         )
     }
 
@@ -968,7 +973,7 @@ class PaymentServiceTest {
         return GroupBuy(
             store = createStore(),
             groupBuyRequest = createGroupBuyRequest(),
-            thumbnailUrl = "https://example.com/image.jpg",
+            thumbnailKey = "https://example.com/image.jpg",
             productName = "두쫀쿠",
             productDescription = "설명",
             price = price,

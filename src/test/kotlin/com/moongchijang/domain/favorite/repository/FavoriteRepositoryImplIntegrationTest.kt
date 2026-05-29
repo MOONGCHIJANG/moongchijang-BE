@@ -96,7 +96,7 @@ class FavoriteRepositoryImplIntegrationTest {
         val groupBuy = GroupBuy(
             store = store,
             groupBuyRequest = request,
-            thumbnailUrl = "https://example.com/test.jpg",
+            thumbnailKey = "https://example.com/test.jpg",
             productName = "테스트 상품",
             productDescription = "설명",
             price = 10000,

@@ -13,6 +13,7 @@ import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,7 +23,8 @@ import org.springframework.transaction.annotation.Transactional
 class MypageService(
     private val participationRepository: ParticipationRepository,
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
-    private val paymentOrderRepository: PaymentOrderRepository
+    private val paymentOrderRepository: PaymentOrderRepository,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     private val log = LoggerFactory.getLogger(MypageService::class.java)
 
@@ -66,6 +68,7 @@ class MypageService(
         val responses = participations.map {
             MypageRefundResponse.from(
                 participation = it,
+                thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.groupBuy.thumbnailKey),
                 paymentInfo = paymentInfoByParticipationId[it.id]
             )
         }
@@ -104,6 +107,7 @@ class MypageService(
         return participations.map {
             MypageParticipationResponse.from(
                 participation = it,
+                thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.groupBuy.thumbnailKey),
                 approvedPaymentGroupBuyIds = cancellableGroupBuyIds,
                 paymentInfo = paymentInfoByParticipationId[it.id]
             )
@@ -147,6 +151,7 @@ class MypageService(
         return participations.map {
             MypageParticipationResponse.from(
                 participation = it,
+                thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.groupBuy.thumbnailKey),
                 paymentInfo = paymentInfoByParticipationId[it.id]
             )
         }

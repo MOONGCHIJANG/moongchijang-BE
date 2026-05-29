@@ -16,6 +16,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,6 +31,7 @@ class PickupService(
     private val participationRepository: ParticipationRepository,
     private val userRepository: UserRepository,
     private val storeStaffRepository: StoreStaffRepository,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     private val log = LoggerFactory.getLogger(PickupService::class.java)
 
@@ -50,7 +52,7 @@ class PickupService(
             latitude = store.latitude,
             longitude = store.longitude,
             transitInfo = null,
-            thumbnailUrl = groupBuy.thumbnailUrl,
+            thumbnailUrl = s3ImageReferenceResolver.resolveForRead(groupBuy.thumbnailKey),
             productName = groupBuy.productName,
             quantity = participation.quantity,
             pickupDate = groupBuy.pickupDate,

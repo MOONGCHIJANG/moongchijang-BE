@@ -61,9 +61,6 @@ class OwnerGroupBuyRequest(
     @Column(name = "per_user_limit")
     var perUserLimit: Int? = null,
 
-    @Column(name = "thumbnail_url", nullable = false, length = 500)
-    var thumbnailUrl: String,
-
     @Column(name = "thumbnail_key", length = 500)
     var thumbnailKey: String? = null,
 

@@ -21,7 +21,7 @@ class GroupBuyFeedItemResponseTest {
             deadline = LocalDateTime.of(2026, 5, 21, 6, 4, 50)
         )
 
-        val response = GroupBuyFeedItemResponse.from(groupBuy, now)
+        val response = GroupBuyFeedItemResponse.from(groupBuy, now, "https://example.com/image.jpg")
 
         assertEquals(1, response.dDay)
         assertEquals("D-1", response.dDayLabel)
@@ -34,7 +34,7 @@ class GroupBuyFeedItemResponseTest {
             deadline = LocalDateTime.of(2026, 5, 20, 23, 59, 59)
         )
 
-        val response = GroupBuyFeedItemResponse.from(groupBuy, now)
+        val response = GroupBuyFeedItemResponse.from(groupBuy, now, "https://example.com/image.jpg")
 
         assertEquals(0, response.dDay)
         assertEquals("D-day", response.dDayLabel)
@@ -59,7 +59,7 @@ class GroupBuyFeedItemResponseTest {
         return GroupBuy(
             store = store,
             groupBuyRequest = request,
-            thumbnailUrl = "https://example.com/image.jpg",
+            thumbnailKey = "dev/group-buys/test/thumbnail/image.jpg",
             productName = "버터바 4종 세트",
             productDescription = "설명",
             price = 1000,

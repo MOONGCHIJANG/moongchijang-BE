@@ -113,7 +113,6 @@ class AdminGroupBuyRequestActionServiceTest {
         assertEquals(20, groupBuyCaptor.value.targetQuantity)
         assertEquals(50, groupBuyCaptor.value.maxQuantity)
         assertEquals(2, groupBuyCaptor.value.perUserLimit)
-        assertEquals("https://cdn.example.com/1.jpg", groupBuyCaptor.value.thumbnailUrl)
         assertEquals("exhibition/1.jpg", groupBuyCaptor.value.thumbnailKey)
         assertEquals("01012345678", groupBuyCaptor.value.pickupContact)
         assertEquals(approveRequest.recruitmentStartAt, groupBuyCaptor.value.recruitmentStartAt)

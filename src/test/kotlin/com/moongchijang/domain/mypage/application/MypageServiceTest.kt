@@ -376,7 +376,7 @@ class MypageServiceTest {
         val groupBuy = com.moongchijang.domain.groupbuy.domain.entity.GroupBuy(
             store = store,
             groupBuyRequest = groupBuyRequest,
-            thumbnailUrl = "https://example.com/cake.jpg",
+            thumbnailKey = "https://example.com/cake.jpg",
             productName = "초코 케이크",
             productDescription = "진한 초코 케이크",
             price = 12_000,

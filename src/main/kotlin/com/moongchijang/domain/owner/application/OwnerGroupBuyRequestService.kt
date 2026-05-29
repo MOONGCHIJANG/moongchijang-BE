@@ -79,7 +79,13 @@ class OwnerGroupBuyRequestService(
         }
 
         val images = ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)
-        val response = OwnerGroupBuyRequestDetailResponse.from(request, images)
+        val response = OwnerGroupBuyRequestDetailResponse.from(
+            request = request,
+            images = images,
+            thumbnailUrl = s3ImageReferenceResolver.resolveForRead(request.thumbnailKey, null)
+                ?: throw CustomException(ErrorCode.INVALID_INPUT, "요청공구 썸네일 이미지 key가 존재하지 않습니다."),
+            imageUrls = images.mapNotNull { s3ImageReferenceResolver.resolveForRead(it.imageKey, null) },
+        )
         log.info("[OwnerGroupBuyRequestService] 사장님 요청공구 상세 조회 완료: ownerId={}, requestId={}", ownerId, requestId)
         return response
     }
@@ -110,7 +116,6 @@ class OwnerGroupBuyRequestService(
                 targetQuantity = request.targetQuantity,
                 maxQuantity = request.maxQuantity,
                 perUserLimit = request.perUserLimit,
-                thumbnailUrl = thumbnail.url,
                 thumbnailKey = thumbnail.key,
                 deadline = request.deadline,
                 pickupDate = request.pickupDate,
@@ -126,7 +131,6 @@ class OwnerGroupBuyRequestService(
             imageReferences.mapIndexed { index, imageReference ->
                 OwnerGroupBuyRequestImage(
                     request = saved,
-                    imageUrl = imageReference.url,
                     imageKey = imageReference.key,
                     sortOrder = index
                 )

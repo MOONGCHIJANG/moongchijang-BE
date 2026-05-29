@@ -37,13 +37,14 @@ data class MypageRefundResponse(
     companion object {
         fun from(
             participation: Participation,
+            thumbnailUrl: String?,
             paymentInfo: MypageParticipationPaymentInfo? = null
         ): MypageRefundResponse {
             val groupBuy = participation.groupBuy
 
             return MypageRefundResponse(
                 participationId = participation.id,
-                thumbnailUrl = groupBuy.thumbnailUrl,
+                thumbnailUrl = thumbnailUrl,
                 productName = groupBuy.productName,
                 refundStatus = refundStatus(participation),
                 storeName = groupBuy.store.name,
@@ -97,6 +98,7 @@ data class MypageParticipationResponse(
     companion object {
         fun from(
             participation: Participation,
+            thumbnailUrl: String?,
             approvedPaymentGroupBuyIds: Set<Long> = emptySet(),
             paymentInfo: MypageParticipationPaymentInfo? = null
         ): MypageParticipationResponse {
@@ -107,7 +109,7 @@ data class MypageParticipationResponse(
             return MypageParticipationResponse(
                 participationId = participation.id,
                 groupBuyId = groupBuy.id,
-                thumbnailUrl = groupBuy.thumbnailUrl,
+                thumbnailUrl = thumbnailUrl,
                 productName = groupBuy.productName,
                 participationStatus = participation.status.name,
                 achievementRate = achievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity),
