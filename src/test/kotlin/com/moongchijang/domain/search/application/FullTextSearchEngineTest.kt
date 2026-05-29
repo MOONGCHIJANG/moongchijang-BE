@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito
+import java.time.LocalDateTime
 
 class FullTextSearchEngineTest {
 
@@ -21,21 +22,23 @@ class FullTextSearchEngineTest {
     private val s3ImageReferenceResolver: S3ImageReferenceResolver = Mockito.mock(S3ImageReferenceResolver::class.java)
     private val engine = FullTextSearchEngine(groupBuyRepository, s3ImageReferenceResolver)
 
-    private fun stubIds(ids: List<Long>) {
-        Mockito.`when`(
-            groupBuyRepository.searchIdsByFullText(
-                anyString(),
-                anyString(),
-                anyLocalDateTime(),
-                anyInt(),
-            )
-        ).thenReturn(ids)
+    private fun stubProductIds(vararg sequentialReturns: List<Long>) {
+        val stubbing = Mockito.`when`(
+            groupBuyRepository.searchProductIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+        )
+        sequentialReturns.fold(stubbing) { acc, ret -> acc.thenReturn(ret) }
     }
 
-    private fun stubFetch(ids: Collection<Long>, matches: List<GroupBuy>) {
-        Mockito.`when`(
-            groupBuyRepository.findAllWithStoreByIdIn(ids)
-        ).thenReturn(matches)
+    private fun stubStoreIds(vararg sequentialReturns: List<Long>) {
+        val stubbing = Mockito.`when`(
+            groupBuyRepository.searchStoreIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+        )
+        sequentialReturns.fold(stubbing) { acc, ret -> acc.thenReturn(ret) }
+    }
+
+    private fun stubFetch(matches: List<GroupBuy>) {
+        Mockito.`when`(groupBuyRepository.findAllWithStoreByIdIn(Mockito.anyCollection()))
+            .thenReturn(matches)
     }
 
     @Test
@@ -47,78 +50,139 @@ class FullTextSearchEngineTest {
         assertThat(response.totalCount).isZero
         assertThat(response.results).isEmpty()
         assertThat(response.searchCase).isEqualTo(SearchCase.NONE_DETECTED)
+        assertThat(response.confidence).isEqualTo(0.0)
         Mockito.verifyNoInteractions(groupBuyRepository)
     }
 
     @Test
-    @DisplayName("매칭 id가 있으면 fetch join 결과를 1차 쿼리 순서대로 RESULTS 카드 DTO로 반환한다")
-    fun `non empty id list produces RESULTS with mapped cards in id order`() {
-        val first = SearchTestFixtures.groupBuy(id = 10L, productName = "소금빵")
-        val second = SearchTestFixtures.groupBuy(id = 20L, productName = "크루아상")
-        stubIds(listOf(10L, 20L))
-        // fetch 결과는 의도적으로 역순 — 1차 id 순서로 재정렬되는지 검증
-        stubFetch(listOf(10L, 20L), listOf(second, first))
+    @DisplayName("상품 인덱스만 hit 하면 PRODUCT_ONLY 로 분류하고 detectedProduct 에 검색어를 채운다")
+    fun `product only hit yields PRODUCT_ONLY case`() {
+        val saltBread = SearchTestFixtures.groupBuy(id = 10L, productName = "소금빵")
+        stubProductIds(listOf(10L))
+        stubStoreIds(emptyList())
+        stubFetch(listOf(saltBread))
 
         val response = engine.search("소금빵")
 
-        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
-        assertThat(response.totalCount).isEqualTo(2)
-        assertThat(response.results.map { it.id }).containsExactly(10L, 20L)
+        assertThat(response.searchCase).isEqualTo(SearchCase.PRODUCT_ONLY)
+        assertThat(response.detectedProduct).isEqualTo("소금빵")
         assertThat(response.detectedRegion).isNull()
-        assertThat(response.detectedProduct).isNull()
+        assertThat(response.confidence).isEqualTo(0.5)
+        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+        assertThat(response.results.map { it.id }).containsExactly(10L)
     }
 
     @Test
-    @DisplayName("1차 strict 와 2차 fallback 모두 0건이면 fetch를 호출하지 않고 EMPTY_CAN_REQUEST를 반환한다")
-    fun `empty id list short circuits fetch`() {
-        stubIds(emptyList())
+    @DisplayName("매장/주소 인덱스만 hit 하면 NEIGHBORHOOD_ONLY 로 분류하고 detectedRegion 에 검색어를 채운다")
+    fun `store only hit yields NEIGHBORHOOD_ONLY case`() {
+        val seongsuStoreGroupBuy = SearchTestFixtures.groupBuy(id = 20L, productName = "베이글")
+        stubProductIds(emptyList())
+        stubStoreIds(listOf(20L))
+        stubFetch(listOf(seongsuStoreGroupBuy))
+
+        val response = engine.search("성수")
+
+        assertThat(response.searchCase).isEqualTo(SearchCase.NEIGHBORHOOD_ONLY)
+        assertThat(response.detectedRegion).isEqualTo("성수")
+        assertThat(response.detectedProduct).isNull()
+        assertThat(response.confidence).isEqualTo(0.5)
+        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+        assertThat(response.results.map { it.id }).containsExactly(20L)
+    }
+
+    @Test
+    @DisplayName("양쪽 인덱스가 모두 hit 하면 BOTH_DETECTED 로 분류하고 detectedProduct/Region 모두 채운다")
+    fun `both indexes hit yields BOTH_DETECTED case`() {
+        val saltBread = SearchTestFixtures.groupBuy(
+            id = 10L,
+            productName = "소금빵",
+            deadline = LocalDateTime.now().plusDays(1),
+        )
+        val seongsuBagel = SearchTestFixtures.groupBuy(
+            id = 20L,
+            productName = "베이글",
+            deadline = LocalDateTime.now().plusDays(2),
+        )
+        stubProductIds(listOf(10L))
+        stubStoreIds(listOf(20L))
+        stubFetch(listOf(saltBread, seongsuBagel))
+
+        val response = engine.search("성수 소금빵")
+
+        assertThat(response.searchCase).isEqualTo(SearchCase.BOTH_DETECTED)
+        assertThat(response.detectedProduct).isEqualTo("성수 소금빵")
+        assertThat(response.detectedRegion).isEqualTo("성수 소금빵")
+        assertThat(response.confidence).isEqualTo(1.0)
+        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+        assertThat(response.totalCount).isEqualTo(2)
+        // deadline ASC 정렬 검증 (saltBread = +1일, seongsuBagel = +2일)
+        assertThat(response.results.map { it.id }).containsExactly(10L, 20L)
+    }
+
+    @Test
+    @DisplayName("양쪽 인덱스에서 동일한 id 가 반환되면 dedupe 되어 한 번만 결과에 포함된다")
+    fun `overlapping ids are deduplicated`() {
+        val sharedHit = SearchTestFixtures.groupBuy(id = 10L, productName = "성수 소금빵")
+        stubProductIds(listOf(10L))
+        stubStoreIds(listOf(10L))
+        stubFetch(listOf(sharedHit))
+
+        val response = engine.search("성수 소금빵")
+
+        assertThat(response.searchCase).isEqualTo(SearchCase.BOTH_DETECTED)
+        assertThat(response.totalCount).isEqualTo(1)
+        assertThat(response.results.map { it.id }).containsExactly(10L)
+    }
+
+    @Test
+    @DisplayName("1차 strict 양쪽 모두 0건이고 2차 fallback 도 모두 0건이면 NONE_DETECTED + EMPTY_CAN_REQUEST")
+    fun `all empty yields NONE_DETECTED and EMPTY_CAN_REQUEST`() {
+        stubProductIds(emptyList(), emptyList())
+        stubStoreIds(emptyList(), emptyList())
 
         val response = engine.search("존재하지않는상품")
 
+        assertThat(response.searchCase).isEqualTo(SearchCase.NONE_DETECTED)
         assertThat(response.uiState).isEqualTo(SearchUiState.EMPTY_CAN_REQUEST)
-        assertThat(response.totalCount).isZero
-        assertThat(response.results).isEmpty()
+        assertThat(response.confidence).isEqualTo(0.0)
+        assertThat(response.detectedProduct).isNull()
+        assertThat(response.detectedRegion).isNull()
         Mockito.verify(groupBuyRepository, Mockito.never()).findAllWithStoreByIdIn(anyLongList())
     }
 
     @Test
-    @DisplayName("1차 strict 가 hit 하면 2차 fallback 쿼리는 실행되지 않는다")
-    fun `strict hit skips fallback query`() {
-        val match = SearchTestFixtures.groupBuy(id = 10L, productName = "소금빵")
-        stubIds(listOf(10L))
-        stubFetch(listOf(10L), listOf(match))
+    @DisplayName("1차 strict 가 한쪽이라도 hit 하면 2차 fallback 쿼리는 실행되지 않는다")
+    fun `strict any hit skips fallback`() {
+        val saltBread = SearchTestFixtures.groupBuy(id = 10L, productName = "소금빵")
+        stubProductIds(listOf(10L))
+        stubStoreIds(emptyList())
+        stubFetch(listOf(saltBread))
 
-        val response = engine.search("소금빵")
+        engine.search("소금빵")
 
-        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
-        assertThat(response.totalCount).isEqualTo(1)
         Mockito.verify(groupBuyRepository, Mockito.times(1))
-            .searchIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+            .searchProductIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+        Mockito.verify(groupBuyRepository, Mockito.times(1))
+            .searchStoreIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
     }
 
     @Test
-    @DisplayName("1차 strict 가 0건이면 2차 fallback 쿼리로 재조회한 결과를 사용한다")
-    fun `strict miss falls back to OR query`() {
-        val curry = SearchTestFixtures.groupBuy(id = 20L, productName = "카레")
-        val sausage = SearchTestFixtures.groupBuy(id = 30L, productName = "소시지")
-        Mockito.`when`(
-            groupBuyRepository.searchIdsByFullText(
-                anyString(),
-                anyString(),
-                anyLocalDateTime(),
-                anyInt(),
-            )
-        )
-            .thenReturn(emptyList())
-            .thenReturn(listOf(20L, 30L))
-        stubFetch(listOf(20L, 30L), listOf(curry, sausage))
+    @DisplayName("1차 strict 양쪽 0건이면 2차 fallback 쿼리로 양쪽 인덱스를 재조회한다")
+    fun `strict miss falls back on both axes`() {
+        val curry = SearchTestFixtures.groupBuy(id = 30L, productName = "카레")
+        val sausage = SearchTestFixtures.groupBuy(id = 40L, productName = "소시지")
+        stubProductIds(emptyList(), listOf(30L, 40L))
+        stubStoreIds(emptyList(), emptyList())
+        stubFetch(listOf(curry, sausage))
 
         val response = engine.search("카레소시지")
 
-        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+        assertThat(response.searchCase).isEqualTo(SearchCase.PRODUCT_ONLY)
         assertThat(response.totalCount).isEqualTo(2)
-        assertThat(response.results.map { it.id }).containsExactly(20L, 30L)
+        assertThat(response.results.map { it.id }).containsExactlyInAnyOrder(30L, 40L)
         Mockito.verify(groupBuyRepository, Mockito.times(2))
-            .searchIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+            .searchProductIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+        Mockito.verify(groupBuyRepository, Mockito.times(2))
+            .searchStoreIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
     }
 }

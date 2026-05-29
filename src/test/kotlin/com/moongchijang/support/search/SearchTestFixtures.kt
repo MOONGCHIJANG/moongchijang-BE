@@ -38,7 +38,8 @@ object SearchTestFixtures {
         id: Long,
         productName: String = "두쫀쿠",
         store: Store = store(),
-        status: GroupBuyStatus = GroupBuyStatus.IN_PROGRESS
+        status: GroupBuyStatus = GroupBuyStatus.IN_PROGRESS,
+        deadline: LocalDateTime = LocalDateTime.now().plusDays(3),
     ): GroupBuy = GroupBuy(
         store = store,
         groupBuyRequest = groupBuyRequest(),
@@ -50,7 +51,7 @@ object SearchTestFixtures {
         currentQuantity = 10,
         maxQuantity = 100,
         status = status,
-        deadline = LocalDateTime.now().plusDays(3),
+        deadline = deadline,
         pickupDate = LocalDate.now().plusDays(5),
         pickupTimeStart = LocalTime.of(14, 0),
         pickupTimeEnd = LocalTime.of(18, 0),
