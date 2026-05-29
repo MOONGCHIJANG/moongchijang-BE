@@ -204,9 +204,11 @@ class GroupBuyServiceTest {
     fun `상세 조회 시 썸네일과 동일한 키의 이미지는 imageUrls 에서 제외된다`() {
         val groupBuyId = 13L
         val userId = 1L
+        val thumbnailKey = "test-thumbnail-key"
         val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
+            .apply { this.thumbnailKey = thumbnailKey }
         val images = listOf(
-            GroupBuyFixture.createImage(groupBuy, groupBuy.thumbnailKey!!),
+            GroupBuyFixture.createImage(groupBuy, thumbnailKey),
             GroupBuyFixture.createImage(groupBuy, "https://image-detail.jpg"),
         )
 
