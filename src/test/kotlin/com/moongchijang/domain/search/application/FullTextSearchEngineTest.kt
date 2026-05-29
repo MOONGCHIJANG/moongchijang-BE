@@ -67,7 +67,7 @@ class FullTextSearchEngineTest {
     }
 
     @Test
-    @DisplayName("매칭 id가 0개면 fetch를 호출하지 않고 EMPTY_CAN_REQUEST를 반환한다")
+    @DisplayName("1차 strict 와 2차 fallback 모두 0건이면 fetch를 호출하지 않고 EMPTY_CAN_REQUEST를 반환한다")
     fun `empty id list short circuits fetch`() {
         stubIds(emptyList())
 
@@ -77,5 +77,46 @@ class FullTextSearchEngineTest {
         assertThat(response.totalCount).isZero
         assertThat(response.results).isEmpty()
         Mockito.verify(groupBuyRepository, Mockito.never()).findAllWithStoreByIdIn(anyLongList())
+    }
+
+    @Test
+    @DisplayName("1차 strict 가 hit 하면 2차 fallback 쿼리는 실행되지 않는다")
+    fun `strict hit skips fallback query`() {
+        val match = SearchTestFixtures.groupBuy(id = 10L, productName = "소금빵")
+        stubIds(listOf(10L))
+        stubFetch(listOf(10L), listOf(match))
+
+        val response = engine.search("소금빵")
+
+        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+        assertThat(response.totalCount).isEqualTo(1)
+        Mockito.verify(groupBuyRepository, Mockito.times(1))
+            .searchIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+    }
+
+    @Test
+    @DisplayName("1차 strict 가 0건이면 2차 fallback 쿼리로 재조회한 결과를 사용한다")
+    fun `strict miss falls back to OR query`() {
+        val curry = SearchTestFixtures.groupBuy(id = 20L, productName = "카레")
+        val sausage = SearchTestFixtures.groupBuy(id = 30L, productName = "소시지")
+        Mockito.`when`(
+            groupBuyRepository.searchIdsByFullText(
+                anyString(),
+                anyString(),
+                anyLocalDateTime(),
+                anyInt(),
+            )
+        )
+            .thenReturn(emptyList())
+            .thenReturn(listOf(20L, 30L))
+        stubFetch(listOf(20L, 30L), listOf(curry, sausage))
+
+        val response = engine.search("카레소시지")
+
+        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+        assertThat(response.totalCount).isEqualTo(2)
+        assertThat(response.results.map { it.id }).containsExactly(20L, 30L)
+        Mockito.verify(groupBuyRepository, Mockito.times(2))
+            .searchIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
     }
 }
