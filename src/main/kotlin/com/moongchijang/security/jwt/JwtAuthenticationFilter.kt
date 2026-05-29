@@ -2,14 +2,11 @@ package com.moongchijang.security.jwt
 
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.ErrorCode
-import com.moongchijang.global.response.ApiResponse
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
@@ -20,7 +17,6 @@ import org.slf4j.LoggerFactory
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider,
     private val userRepository: UserRepository,
-    private val objectMapper: ObjectMapper,
 ) : OncePerRequestFilter() {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -83,8 +79,7 @@ class JwtAuthenticationFilter(
                         path,
                         tokenStatus,
                     )
-                    writeUnauthorizedResponse(response, ErrorCode.TOKEN_EXPIRED)
-                    return
+                    request.setAttribute(AUTH_EXCEPTION_ATTRIBUTE, ErrorCode.TOKEN_EXPIRED)
                 }
                 TokenStatus.INVALID -> {
                     log.info(
@@ -93,8 +88,7 @@ class JwtAuthenticationFilter(
                         path,
                         tokenStatus,
                     )
-                    writeUnauthorizedResponse(response, ErrorCode.TOKEN_INVALID)
-                    return
+                    request.setAttribute(AUTH_EXCEPTION_ATTRIBUTE, ErrorCode.TOKEN_INVALID)
                 }
             }
         }
@@ -110,12 +104,6 @@ class JwtAuthenticationFilter(
 
     companion object {
         private const val TOKEN_PREFIX = "Bearer "
-    }
-
-    private fun writeUnauthorizedResponse(response: HttpServletResponse, errorCode: ErrorCode) {
-        response.status = HttpServletResponse.SC_UNAUTHORIZED
-        response.contentType = MediaType.APPLICATION_JSON_VALUE
-        response.characterEncoding = Charsets.UTF_8.name()
-        response.writer.write(objectMapper.writeValueAsString(ApiResponse.fail(errorCode)))
+        const val AUTH_EXCEPTION_ATTRIBUTE = "auth_exception"
     }
 }
