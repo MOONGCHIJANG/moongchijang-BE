@@ -13,7 +13,11 @@ import java.time.LocalDateTime
 
 /**
  * ngram FULLTEXT 인덱스 기반 검색 엔진.
- * BOOLEAN MODE 쿼리로 변환한 토큰이 하나도 없으면 검색을 스킵한다.
+ *
+ * 1차: strict AND 쿼리(`+token*`)로 정확 매칭 우선.
+ * 2차: 1차에서 0건이면 fallback OR 쿼리로 재조회. 합성어/부분 매칭 케이스를 잡는다.
+ *
+ * 1·2차 모두 0건이거나 사용자 입력이 빈 토큰뿐이면 [emptyResponse] 를 반환한다.
  */
 @Component
 class FullTextSearchEngine(
@@ -25,18 +29,16 @@ class FullTextSearchEngine(
     }
 
     fun search(query: String): SearchResponse {
-        val booleanQuery = FullTextQueryBuilder.toBooleanQuery(query)
-        if (booleanQuery.isEmpty()) {
-            return emptyResponse()
-        }
         val now = LocalDateTime.now()
 
-        val ids = groupBuyRepository.searchIdsByFullText(
-            query = booleanQuery,
-            status = GroupBuyStatus.IN_PROGRESS.name,
-            now = now,
-            limit = DEFAULT_LIMIT,
-        )
+        val (strictQuery, fallbackQuery) = FullTextQueryBuilder.buildQueries(query)
+        if (strictQuery.isEmpty()) {
+            return emptyResponse()
+        }
+
+        val strictIds = searchIds(strictQuery, now)
+        val ids = strictIds.ifEmpty { searchIds(fallbackQuery, now) }
+
         if (ids.isEmpty()) {
             return emptyResponse()
         }
@@ -61,6 +63,14 @@ class FullTextSearchEngine(
             },
         )
     }
+
+    private fun searchIds(booleanQuery: String, now: LocalDateTime): List<Long> =
+        groupBuyRepository.searchIdsByFullText(
+            query = booleanQuery,
+            status = GroupBuyStatus.IN_PROGRESS.name,
+            now = now,
+            limit = DEFAULT_LIMIT,
+        )
 
     private fun emptyResponse() = SearchResponse(
         searchCase = SearchCase.NONE_DETECTED,

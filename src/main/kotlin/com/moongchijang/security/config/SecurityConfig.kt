@@ -63,6 +63,7 @@ class SecurityConfig(
                 it.requestMatchers(
                     HttpMethod.POST,
                     "/api/v1/group-buys/*/viewers/heartbeat",
+                    "/api/v1/search",
                 ).permitAll()
                 it.requestMatchers(
                     HttpMethod.POST,
