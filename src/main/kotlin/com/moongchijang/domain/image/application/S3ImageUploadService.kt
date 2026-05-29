@@ -33,7 +33,7 @@ class S3ImageUploadService(
 
     fun issuePresignedUrls(userId: Long, request: ImagePresignedUploadRequest): ImagePresignedUploadResponse {
         validateCount(request.files)
-        val responses = request.files.map { issueSingle(request.groupBuyId, it) }
+        val responses = request.files.map { issueSingle(userId, request.groupBuyId, it) }
         log.info(
             "[S3ImageUploadService] Presigned URL 발급 완료: userId={}, groupBuyId={}, total={}, thumbnailCount={}, productCount={}",
             userId,
@@ -54,6 +54,7 @@ class S3ImageUploadService(
         if (prefix.isNotBlank() && normalizedKeys.any { !it.startsWith(prefix) }) {
             throw CustomException(ErrorCode.INVALID_INPUT, "허용된 경로(prefix)의 이미지 key만 삭제할 수 있습니다.")
         }
+        validateOwnership(userId, normalizedKeys)
 
         val request = DeleteObjectsRequest.builder()
             .bucket(appS3Properties.bucket)
@@ -80,7 +81,7 @@ class S3ImageUploadService(
         )
     }
 
-    private fun issueSingle(groupBuyId: Long?, file: ImagePresignedUploadItemRequest): ImagePresignedUploadItemResponse {
+    private fun issueSingle(userId: Long, groupBuyId: Long?, file: ImagePresignedUploadItemRequest): ImagePresignedUploadItemResponse {
         val contentType = file.contentType.trim().lowercase()
         if (contentType !in ALLOWED_CONTENT_TYPES) {
             throw CustomException(ErrorCode.INVALID_INPUT, "지원하지 않는 이미지 형식입니다.")
@@ -89,7 +90,7 @@ class S3ImageUploadService(
         val extension = extensionFrom(file.fileName)
         val folder = if (file.category == ImageUploadCategory.THUMBNAIL) "thumbnail" else "products"
         val datePartition = LocalDate.now(ZoneId.of("Asia/Seoul")).toString().replace("-", "")
-        val subject = groupBuyId?.toString() ?: "pending/$datePartition"
+        val subject = groupBuyId?.toString() ?: "pending/$userId/$datePartition"
         val key = "${appS3Properties.prefix.trim('/')}/group-buys/$subject/$folder/${UUID.randomUUID()}.$extension"
 
         val putRequest = PutObjectRequest.builder()
@@ -129,6 +130,16 @@ class S3ImageUploadService(
             throw CustomException(ErrorCode.INVALID_INPUT, "지원하지 않는 파일 확장자입니다.")
         }
         return ext
+    }
+
+    private fun validateOwnership(userId: Long, keys: List<String>) {
+        val pendingPathToken = "/pending/$userId/"
+        if (keys.any { !it.contains(pendingPathToken) }) {
+            throw CustomException(
+                ErrorCode.INVALID_INPUT,
+                "본인 pending 경로의 이미지 key만 삭제할 수 있습니다."
+            )
+        }
     }
 
     private fun String.trim(char: Char): String = this.trim().trimStart(char).trimEnd(char)

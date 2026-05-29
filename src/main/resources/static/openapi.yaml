@@ -6487,7 +6487,7 @@ components:
         key:
           type: string
           description: S3 Object Key
-          example: dev/group-buys/960004/products/550e8400-e29b-41d4-a716-446655440000.jpg
+          example: dev/group-buys/pending/7/20260529/products/550e8400-e29b-41d4-a716-446655440000.jpg
         uploadUrl:
           type: string
           description: S3 업로드용 Presigned URL
