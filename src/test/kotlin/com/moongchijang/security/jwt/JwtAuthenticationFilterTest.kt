@@ -1,18 +1,16 @@
 package com.moongchijang.security.jwt
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import jakarta.servlet.FilterChain
-import jakarta.servlet.http.HttpServletResponse
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.springframework.http.HttpHeaders
@@ -25,12 +23,10 @@ class JwtAuthenticationFilterTest {
 
     private val jwtTokenProvider: JwtTokenProvider = mock(JwtTokenProvider::class.java)
     private val userRepository: UserRepository = mock(UserRepository::class.java)
-    private val objectMapper = ObjectMapper()
 
     private val filter = JwtAuthenticationFilter(
         jwtTokenProvider = jwtTokenProvider,
         userRepository = userRepository,
-        objectMapper = objectMapper,
     )
 
     @AfterEach
@@ -65,7 +61,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    fun `만료 토큰이면 401 TOKEN_EXPIRED 반환하고 체인을 진행하지 않는다`() {
+    fun `만료 토큰이면 요청 attribute에 TOKEN_EXPIRED를 기록하고 체인을 진행한다`() {
         val request = MockHttpServletRequest().apply {
             method = "GET"
             requestURI = "/api/v1/users/me"
@@ -78,13 +74,13 @@ class JwtAuthenticationFilterTest {
 
         filter.doFilter(request, response, chain)
 
-        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.status)
-        assertTrue(response.contentAsString.contains("\"code\":\"TOKEN_EXPIRED\""))
-        verify(chain, never()).doFilter(request, response)
+        assertEquals(ErrorCode.TOKEN_EXPIRED, request.getAttribute(JwtAuthenticationFilter.AUTH_EXCEPTION_ATTRIBUTE))
+        assertNull(SecurityContextHolder.getContext().authentication)
+        verify(chain).doFilter(request, response)
     }
 
     @Test
-    fun `무효 토큰이면 401 TOKEN_INVALID 반환하고 체인을 진행하지 않는다`() {
+    fun `무효 토큰이면 요청 attribute에 TOKEN_INVALID를 기록하고 체인을 진행한다`() {
         val request = MockHttpServletRequest().apply {
             method = "GET"
             requestURI = "/api/v1/users/me"
@@ -97,8 +93,8 @@ class JwtAuthenticationFilterTest {
 
         filter.doFilter(request, response, chain)
 
-        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.status)
-        assertTrue(response.contentAsString.contains("\"code\":\"TOKEN_INVALID\""))
-        verify(chain, never()).doFilter(request, response)
+        assertEquals(ErrorCode.TOKEN_INVALID, request.getAttribute(JwtAuthenticationFilter.AUTH_EXCEPTION_ATTRIBUTE))
+        assertNull(SecurityContextHolder.getContext().authentication)
+        verify(chain).doFilter(request, response)
     }
 }
