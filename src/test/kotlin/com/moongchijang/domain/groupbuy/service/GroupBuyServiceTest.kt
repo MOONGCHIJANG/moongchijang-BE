@@ -201,6 +201,29 @@ class GroupBuyServiceTest {
     }
 
     @Test
+    fun `상세 조회 시 썸네일과 동일한 키의 이미지는 imageUrls 에서 제외된다`() {
+        val groupBuyId = 13L
+        val userId = 1L
+        val thumbnailKey = "test-thumbnail-key"
+        val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
+            .apply { this.thumbnailKey = thumbnailKey }
+        val images = listOf(
+            GroupBuyFixture.createImage(groupBuy, thumbnailKey),
+            GroupBuyFixture.createImage(groupBuy, "https://image-detail.jpg"),
+        )
+
+        `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
+        `when`(groupBuyImageRepository.findAllByGroupBuyId(groupBuyId)).thenReturn(images)
+        `when`(favoriteRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(userId, groupBuyId)).thenReturn(false)
+
+        val result = service.getDetail(groupBuyId, userId)
+
+        assertEquals(listOf("https://image-detail.jpg"), result.imageUrls)
+        assertEquals(groupBuy.thumbnailKey, result.thumbnailUrl)
+    }
+
+    @Test
     fun `비로그인 사용자 상세 조회 시 찜 여부와 참여 여부 false 반환`() {
         val groupBuyId = 11L
         val groupBuy = GroupBuyFixture.createGroupBuy(id = groupBuyId, status = GroupBuyStatus.IN_PROGRESS)
