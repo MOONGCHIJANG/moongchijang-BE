@@ -41,7 +41,7 @@ class GroupBuyRequestService(
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
         log.info("[GroupBuyRequestService] 공구요청 생성 시작: userId={}", userId)
-        if (!request.desiredPickupDate.isAfter(LocalDate.now())) {
+        if (!request.desiredPickupDate.isAfter(LocalDate.now(clock))) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE)
         }
 

@@ -56,6 +56,10 @@ class StoreSearchService(
 
     fun search(keyword: String, display: Int = 5): StoreSearchResponse {
         log.info("[StoreSearchService] 매장 검색 시작: keywordLength={}, display={}", keyword.length, display)
+        if (keyword.isBlank()) {
+            log.info("[StoreSearchService] 매장 검색 스킵: 빈 키워드")
+            return StoreSearchResponse.from(emptyList())
+        }
         val response = naverLocalSearchClient.search(keyword, display.coerceAtLeast(NAVER_FETCH_DISPLAY))
         val result = StoreSearchResponse.from(response.items.filter { it.isBakeryDomain() }.take(display))
         log.info("[StoreSearchService] 매장 검색 완료: resultCount={}", result.stores.size)
