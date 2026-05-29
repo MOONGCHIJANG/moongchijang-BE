@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class AdminSettlementController(
     private val adminSettlementService: AdminSettlementService,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminSettlementController::class.java)
 
     @GetMapping("/dashboard")
     @Operation(summary = "운영자 정산 현황 대시보드 조회")

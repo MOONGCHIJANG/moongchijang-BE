@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController
 class AdminCsTicketController(
     private val adminCsTicketService: AdminCsTicketService,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminCsTicketController::class.java)
 
     @GetMapping
     @Operation(summary = "운영자 CS 티켓 목록 조회")

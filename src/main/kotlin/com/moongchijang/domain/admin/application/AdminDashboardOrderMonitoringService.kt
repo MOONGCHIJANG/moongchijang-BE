@@ -19,7 +19,7 @@ class AdminDashboardOrderMonitoringService(
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminDashboardOrderMonitoringService::class.java)
 
     fun getUnconfirmedOrders(pageable: Pageable): AdminDashboardUnconfirmedOrderResponse {
         log.info(

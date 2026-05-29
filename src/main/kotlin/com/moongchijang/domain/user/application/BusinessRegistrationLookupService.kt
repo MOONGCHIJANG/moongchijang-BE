@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service
 class BusinessRegistrationLookupService(
     private val businessRegistrationLookupPort: BusinessRegistrationLookupPort,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(BusinessRegistrationLookupService::class.java)
 
     fun lookup(request: BusinessRegistrationLookupRequest): BusinessRegistrationLookupResponse {
         val businessRegistrationNumber = normalize(request.businessRegistrationNumber)

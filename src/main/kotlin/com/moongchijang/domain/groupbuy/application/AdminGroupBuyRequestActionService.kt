@@ -33,7 +33,7 @@ class AdminGroupBuyRequestActionService(
     private val storeRepository: StoreRepository,
     private val eventPublisher: ApplicationEventPublisher,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminGroupBuyRequestActionService::class.java)
 
     fun approve(requestId: Long, request: AdminGroupBuyRequestApproveRequest): AdminGroupBuyRequestActionResponse {
         log.info("[AdminGroupBuyRequestActionService] 공구요청 승인 시작: requestId={}", requestId)

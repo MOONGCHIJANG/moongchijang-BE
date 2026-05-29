@@ -25,7 +25,7 @@ class AdminOrderService(
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminOrderService::class.java)
 
     fun getOrders(
         status: AdminOrderStatusFilter,

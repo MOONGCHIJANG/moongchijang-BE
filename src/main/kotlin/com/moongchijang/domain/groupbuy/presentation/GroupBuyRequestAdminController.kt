@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController
 class GroupBuyRequestAdminController(
     private val groupBuyRequestService: GroupBuyRequestService
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(GroupBuyRequestAdminController::class.java)
 
     @GetMapping
     @Operation(summary = "운영자 공구 개설 요청 목록 조회")

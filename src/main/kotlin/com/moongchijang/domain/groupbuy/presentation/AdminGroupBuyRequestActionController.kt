@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class AdminGroupBuyRequestActionController(
     private val adminGroupBuyRequestActionService: AdminGroupBuyRequestActionService
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminGroupBuyRequestActionController::class.java)
 
     @PostMapping("/{requestId}/approve")
     @Operation(summary = "소비자 공구 개설 요청 승인 및 공구 생성")

@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class PickupController(
     private val pickupService: PickupService,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(PickupController::class.java)
 
     @GetMapping("/participations/{participationId}/pickup")
     fun getPickupGuide(

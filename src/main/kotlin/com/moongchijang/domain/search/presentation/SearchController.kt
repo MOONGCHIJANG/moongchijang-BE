@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*
 class SearchController(
     private val searchService: SearchService
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(SearchController::class.java)
 
     data class SearchRequest(@field:NotBlank val keyword: String)
 

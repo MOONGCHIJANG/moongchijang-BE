@@ -24,7 +24,7 @@ class MypageService(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val paymentOrderRepository: PaymentOrderRepository
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(MypageService::class.java)
 
     fun getSummary(userId: Long): MypageSummaryResponse {
         log.info("[MypageService] 마이페이지 요약 조회 시작: userId={}", userId)

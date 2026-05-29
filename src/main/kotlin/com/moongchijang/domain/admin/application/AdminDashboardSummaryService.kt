@@ -26,7 +26,7 @@ class AdminDashboardSummaryService(
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminDashboardSummaryService::class.java)
 
     fun getSummary(): AdminDashboardSummaryResponse {
         log.info("[AdminDashboardSummaryService] 관리자 대시보드 요약 조회 시작")

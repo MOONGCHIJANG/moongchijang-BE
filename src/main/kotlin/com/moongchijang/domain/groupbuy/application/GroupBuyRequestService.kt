@@ -37,7 +37,7 @@ class GroupBuyRequestService(
     private val userRepository: UserRepository,
     private val clock: Clock,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(GroupBuyRequestService::class.java)
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
         log.info("[GroupBuyRequestService] 공구요청 생성 시작: userId={}", userId)

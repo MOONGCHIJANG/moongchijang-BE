@@ -20,7 +20,7 @@ class AdminCsTicketService(
     private val csTicketRepository: CsTicketRepository,
     private val clock: Clock,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminCsTicketService::class.java)
 
     fun getTickets(
         status: AdminCsTicketStatusFilter,

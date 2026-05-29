@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 class PaymentController(
     private val paymentService: PaymentService,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(PaymentController::class.java)
 
     @GetMapping("/group-buys/{groupBuyId}/checkout")
     fun getCheckoutInfo(

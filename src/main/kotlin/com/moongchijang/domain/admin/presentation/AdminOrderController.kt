@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class AdminOrderController(
     private val adminOrderService: AdminOrderService,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminOrderController::class.java)
 
     @GetMapping
     @Operation(summary = "운영자 발주 관리 목록 조회")

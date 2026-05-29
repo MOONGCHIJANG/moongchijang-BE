@@ -34,7 +34,7 @@ class OwnerGroupBuyRequestService(
     private val ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository,
     private val clock: Clock
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(OwnerGroupBuyRequestService::class.java)
 
     @Transactional(readOnly = true)
     fun getMyRequests(ownerId: Long, pageable: Pageable): OwnerGroupBuyRequestPageResponse {

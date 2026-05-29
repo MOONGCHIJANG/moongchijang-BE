@@ -21,7 +21,7 @@ class AdminDashboardController(
     private val adminDashboardSummaryService: AdminDashboardSummaryService,
     private val adminDashboardOrderMonitoringService: AdminDashboardOrderMonitoringService,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(AdminDashboardController::class.java)
 
     @GetMapping("/summary")
     @Operation(summary = "운영자 대시보드 운영 관리 요약")

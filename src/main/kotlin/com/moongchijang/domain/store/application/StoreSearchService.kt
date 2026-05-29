@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 class StoreSearchService(
     private val naverLocalSearchClient: NaverLocalSearchClient
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(StoreSearchService::class.java)
     companion object {
         private const val NAVER_FETCH_DISPLAY = 20
 

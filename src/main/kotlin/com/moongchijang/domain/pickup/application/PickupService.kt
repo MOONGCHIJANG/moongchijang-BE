@@ -31,7 +31,7 @@ class PickupService(
     private val userRepository: UserRepository,
     private val storeStaffRepository: StoreStaffRepository,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(PickupService::class.java)
 
     @Transactional(readOnly = true)
     fun getPickupGuide(participationId: Long, userId: Long): PickupGuideResponse {

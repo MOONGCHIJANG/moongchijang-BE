@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 class MypageController(
     private val mypageService: MypageService
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(MypageController::class.java)
 
     @GetMapping("/mypage/summary")
     @Operation(summary = "마이페이지 탭별 건수 조회")

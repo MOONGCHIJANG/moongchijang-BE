@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController
 class StoreSearchController(
     private val storeSearchService: StoreSearchService
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(StoreSearchController::class.java)
 
     @GetMapping("/search")
     @Operation(summary = "매장 검색 자동완성 (네이버 Local Search API)")
