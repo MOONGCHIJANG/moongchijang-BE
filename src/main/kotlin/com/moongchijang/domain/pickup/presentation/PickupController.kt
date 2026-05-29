@@ -9,6 +9,7 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
+import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class PickupController(
     private val pickupService: PickupService,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @GetMapping("/participations/{participationId}/pickup")
     fun getPickupGuide(
@@ -29,7 +31,10 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<PickupGuideResponse>> {
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(pickupService.getPickupGuide(participationId, userId)))
+        log.info("[PickupController] 픽업 가이드 조회 요청: participationId={}, userId={}", participationId, userId)
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.getPickupGuide(participationId, userId)))
+        log.info("[PickupController] 픽업 가이드 조회 응답 완료: participationId={}, userId={}", participationId, userId)
+        return response
     }
 
     @GetMapping("/participations/{participationId}/qr")
@@ -38,7 +43,10 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<PickupQrResponse>> {
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(pickupService.getPickupQr(participationId, userId)))
+        log.info("[PickupController] 픽업 QR 조회 요청: participationId={}, userId={}", participationId, userId)
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.getPickupQr(participationId, userId)))
+        log.info("[PickupController] 픽업 QR 조회 응답 완료: participationId={}, userId={}", participationId, userId)
+        return response
     }
 
     @GetMapping("/pickups/me/nearest-qr")
@@ -46,7 +54,10 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<NearestPickupQrResponse>> {
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(pickupService.getNearestPickupQr(userId)))
+        log.info("[PickupController] 가장 가까운 픽업 QR 조회 요청: userId={}", userId)
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.getNearestPickupQr(userId)))
+        log.info("[PickupController] 가장 가까운 픽업 QR 조회 응답 완료: userId={}", userId)
+        return response
     }
 
     @PostMapping("/pickups/{qrCode}/verify")
@@ -55,7 +66,10 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<PickupVerifyResponse>> {
         val userId = principal.requirePickupVerifierUserId()
-        return ResponseEntity.ok(ApiResponse.success(pickupService.verifyPickup(qrCode, userId)))
+        log.info("[PickupController] 픽업 검증 요청: userId={}", userId)
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.verifyPickup(qrCode, userId)))
+        log.info("[PickupController] 픽업 검증 응답 완료: userId={}", userId)
+        return response
     }
 
     private fun CustomUserPrincipal?.requirePickupVerifierUserId(): Long {
