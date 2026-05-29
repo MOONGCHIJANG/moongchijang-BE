@@ -74,9 +74,11 @@ class AdminGroupBuyRequestActionService(
 
         groupBuyImageRepository.saveAll(
             images.map {
+                val imageKey = it.key
+                    ?: throw CustomException(ErrorCode.INVALID_INPUT, "공구 이미지 key가 존재하지 않습니다.")
                 GroupBuyImage(
                     groupBuy = groupBuy,
-                    imageKey = it.key,
+                    imageKey = imageKey,
                 )
             }
         )

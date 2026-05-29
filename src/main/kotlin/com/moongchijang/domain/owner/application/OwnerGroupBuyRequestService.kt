@@ -112,6 +112,8 @@ class OwnerGroupBuyRequestService(
         validateRequest(request)
         val imageReferences = request.imageUrls.map { s3ImageReferenceResolver.resolve(it) }
         val thumbnail = imageReferences.first()
+        val thumbnailKey = thumbnail.key
+            ?: throw CustomException(ErrorCode.INVALID_INPUT, "요청공구 썸네일 이미지 key가 존재하지 않습니다.")
 
         val saved = ownerGroupBuyRequestRepository.save(
             OwnerGroupBuyRequest(
@@ -124,7 +126,7 @@ class OwnerGroupBuyRequestService(
                 targetQuantity = request.targetQuantity,
                 maxQuantity = request.maxQuantity,
                 perUserLimit = request.perUserLimit,
-                thumbnailKey = thumbnail.key,
+                thumbnailKey = thumbnailKey,
                 deadline = request.deadline,
                 pickupDate = request.pickupDate,
                 pickupTimeStart = request.pickupTimeStart,
@@ -137,9 +139,11 @@ class OwnerGroupBuyRequestService(
 
         ownerGroupBuyRequestImageRepository.saveAll(
             imageReferences.mapIndexed { index, imageReference ->
+                val imageKey = imageReference.key
+                    ?: throw CustomException(ErrorCode.INVALID_INPUT, "요청공구 상품 이미지 key가 존재하지 않습니다.")
                 OwnerGroupBuyRequestImage(
                     request = saved,
-                    imageKey = imageReference.key,
+                    imageKey = imageKey,
                     sortOrder = index
                 )
             }

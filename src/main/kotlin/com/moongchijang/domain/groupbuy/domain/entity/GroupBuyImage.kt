@@ -11,8 +11,8 @@ class GroupBuyImage(
     @JoinColumn(name = "group_buy_id", nullable = false)
     var groupBuy: GroupBuy,
 
-    @Column(length = 500)
-    var imageKey: String? = null,
+    @Column(nullable = false, length = 500)
+    var imageKey: String,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

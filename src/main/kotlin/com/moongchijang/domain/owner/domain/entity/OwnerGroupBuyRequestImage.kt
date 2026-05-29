@@ -32,8 +32,8 @@ class OwnerGroupBuyRequestImage(
     @JoinColumn(name = "request_id", nullable = false)
     var request: OwnerGroupBuyRequest,
 
-    @Column(name = "image_key", length = 500)
-    var imageKey: String? = null,
+    @Column(name = "image_key", nullable = false, length = 500)
+    var imageKey: String,
 
     @Column(name = "sort_order", nullable = false)
     var sortOrder: Int,
