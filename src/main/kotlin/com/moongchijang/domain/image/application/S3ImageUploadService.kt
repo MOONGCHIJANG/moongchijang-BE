@@ -56,18 +56,22 @@ class S3ImageUploadService(
         }
         validateOwnership(userId, normalizedKeys)
 
-        val request = DeleteObjectsRequest.builder()
-            .bucket(appS3Properties.bucket)
-            .delete(
-                Delete.builder()
-                    .objects(normalizedKeys.map { ObjectIdentifier.builder().key(it).build() })
-                    .build()
-            )
-            .build()
+        val deleted = mutableListOf<String>()
+        val failed = mutableListOf<String>()
+        normalizedKeys.chunked(1000).forEach { chunk ->
+            val request = DeleteObjectsRequest.builder()
+                .bucket(appS3Properties.bucket)
+                .delete(
+                    Delete.builder()
+                        .objects(chunk.map { ObjectIdentifier.builder().key(it).build() })
+                        .build()
+                )
+                .build()
 
-        val result = s3Client.deleteObjects(request)
-        val deleted = result.deleted()?.map { it.key() } ?: emptyList()
-        val failed = result.errors()?.map { it.key() } ?: emptyList()
+            val result = s3Client.deleteObjects(request)
+            result.deleted()?.mapNotNull { it.key() }?.let { deleted.addAll(it) }
+            result.errors()?.mapNotNull { it.key() }?.let { failed.addAll(it) }
+        }
         log.info(
             "[S3ImageUploadService] 이미지 삭제 완료: userId={}, requested={}, deleted={}, failed={}",
             userId,
@@ -91,7 +95,9 @@ class S3ImageUploadService(
         val folder = if (file.category == ImageUploadCategory.THUMBNAIL) "thumbnail" else "products"
         val datePartition = LocalDate.now(ZoneId.of("Asia/Seoul")).toString().replace("-", "")
         val subject = groupBuyId?.toString() ?: "pending/$userId/$datePartition"
-        val key = "${appS3Properties.prefix.trim('/')}/group-buys/$subject/$folder/${UUID.randomUUID()}.$extension"
+        val prefix = appS3Properties.prefix.trim('/')
+        val prefixSegment = if (prefix.isBlank()) "" else "$prefix/"
+        val key = "${prefixSegment}group-buys/$subject/$folder/${UUID.randomUUID()}.$extension"
 
         val putRequest = PutObjectRequest.builder()
             .bucket(appS3Properties.bucket)
