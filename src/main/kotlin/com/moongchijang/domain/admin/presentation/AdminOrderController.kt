@@ -28,34 +28,44 @@ class AdminOrderController(
     fun getOrders(
         @RequestParam(defaultValue = "ALL") status: AdminOrderStatusFilter,
         pageable: Pageable
-    ): ResponseEntity<ApiResponse<AdminOrderPageResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminOrderService.getOrders(status, pageable)))
+    ): ResponseEntity<ApiResponse<AdminOrderPageResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminOrderService.getOrders(status, pageable)))
+        return response
+    }
 
     @GetMapping("/{orderId}")
     @Operation(summary = "운영자 발주 관리 상세 조회")
     fun getOrderDetail(
         @PathVariable orderId: Long
-    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminOrderService.getOrderDetail(orderId)))
+    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminOrderService.getOrderDetail(orderId)))
+        return response
+    }
 
     @PostMapping("/{orderId}/owner-contact")
     @Operation(summary = "운영자 발주 사장님 연락 완료 기록")
     fun markOwnerContacted(
         @PathVariable orderId: Long
-    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminOrderService.markOwnerContacted(orderId)))
+    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminOrderService.markOwnerContacted(orderId)))
+        return response
+    }
 
     @PostMapping("/{orderId}/confirm")
     @Operation(summary = "운영자 발주 확정 처리")
     fun confirmOrder(
         @PathVariable orderId: Long
-    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminOrderService.confirmOrder(orderId)))
+    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminOrderService.confirmOrder(orderId)))
+        return response
+    }
 
     @PostMapping("/{orderId}/cancel")
     @Operation(summary = "운영자 발주 취소 처리")
     fun cancelOrder(
         @PathVariable orderId: Long
-    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminOrderService.cancelOrder(orderId)))
+    ): ResponseEntity<ApiResponse<AdminOrderDetailResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminOrderService.cancelOrder(orderId)))
+        return response
+    }
 }

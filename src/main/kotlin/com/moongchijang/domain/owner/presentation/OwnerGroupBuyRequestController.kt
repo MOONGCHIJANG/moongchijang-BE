@@ -34,7 +34,8 @@ class OwnerGroupBuyRequestController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         pageable: Pageable
     ): ResponseEntity<ApiResponse<OwnerGroupBuyRequestPageResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getMyRequests(principal.id, pageable)))
+        val response = ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getMyRequests(principal.id, pageable)))
+        return response
     }
 
     @GetMapping("/{requestId}")
@@ -43,7 +44,8 @@ class OwnerGroupBuyRequestController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @PathVariable requestId: Long
     ): ResponseEntity<ApiResponse<OwnerGroupBuyRequestDetailResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getDetail(principal.id, requestId)))
+        val response = ResponseEntity.ok(ApiResponse.success(ownerGroupBuyRequestService.getDetail(principal.id, requestId)))
+        return response
     }
 
     @PostMapping
@@ -52,8 +54,9 @@ class OwnerGroupBuyRequestController(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: OwnerGroupBuyRequestCreateRequest
     ): ResponseEntity<ApiResponse<OwnerGroupBuyRequestCreateResponse>> {
-        return ResponseEntity
+        val response = ResponseEntity
             .status(HttpStatus.CREATED)
             .body(ApiResponse.success(ownerGroupBuyRequestService.create(principal.id, request)))
+        return response
     }
 }

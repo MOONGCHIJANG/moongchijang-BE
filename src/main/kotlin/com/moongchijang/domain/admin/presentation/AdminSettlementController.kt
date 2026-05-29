@@ -28,8 +28,10 @@ class AdminSettlementController(
     fun getDashboard(
         @RequestParam year: Int,
         @RequestParam month: Int,
-    ): ResponseEntity<ApiResponse<AdminSettlementDashboardResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminSettlementService.getDashboard(year, month)))
+    ): ResponseEntity<ApiResponse<AdminSettlementDashboardResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminSettlementService.getDashboard(year, month)))
+        return response
+    }
 
     @GetMapping
     @Operation(summary = "운영자 정산 현황 목록 조회")
@@ -38,13 +40,17 @@ class AdminSettlementController(
         @RequestParam month: Int,
         @RequestParam(defaultValue = "ALL") status: AdminSettlementStatusFilter,
         pageable: Pageable,
-    ): ResponseEntity<ApiResponse<AdminSettlementPageResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminSettlementService.getSettlements(year, month, status, pageable)))
+    ): ResponseEntity<ApiResponse<AdminSettlementPageResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminSettlementService.getSettlements(year, month, status, pageable)))
+        return response
+    }
 
     @GetMapping("/{settlementId}")
     @Operation(summary = "운영자 정산 현황 상세 조회")
     fun getSettlementDetail(
         @PathVariable settlementId: Long,
-    ): ResponseEntity<ApiResponse<AdminSettlementDetailResponse>> =
-        ResponseEntity.ok(ApiResponse.success(adminSettlementService.getSettlementDetail(settlementId)))
+    ): ResponseEntity<ApiResponse<AdminSettlementDetailResponse>> {
+        val response = ResponseEntity.ok(ApiResponse.success(adminSettlementService.getSettlementDetail(settlementId)))
+        return response
+    }
 }

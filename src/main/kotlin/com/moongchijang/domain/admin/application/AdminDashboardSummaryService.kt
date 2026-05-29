@@ -9,6 +9,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestReposit
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -25,8 +26,10 @@ class AdminDashboardSummaryService(
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
+    private val log = LoggerFactory.getLogger(AdminDashboardSummaryService::class.java)
 
     fun getSummary(): AdminDashboardSummaryResponse {
+        log.info("[AdminDashboardSummaryService] 관리자 대시보드 요약 조회 시작")
         val now = LocalDateTime.now(clock)
         val today = LocalDate.now(clock)
         val todayRange = today.toRange()
@@ -53,7 +56,7 @@ class AdminDashboardSummaryService(
         )
         val pendingCreatedAts = groupBuyRequestRepository.findCreatedAtByStatusIn(pendingApprovalStatuses)
 
-        return AdminDashboardSummaryResponse(
+        val response = AdminDashboardSummaryResponse(
             pendingRefundAmount = pendingRefundAmount,
             pendingRefundAmountChangeRate = changeRate(todayPendingRefundAmount, yesterdayPendingRefundAmount),
             pendingApprovalCount = groupBuyRequestRepository.countByStatusIn(pendingApprovalStatuses),
@@ -87,6 +90,12 @@ class AdminDashboardSummaryService(
             ),
             hasOrderOver48h = unconfirmedOrderOver48hCount > 0
         )
+        log.info(
+            "[AdminDashboardSummaryService] 관리자 대시보드 요약 조회 완료: pendingApprovalCount={}, unconfirmedOrderCount={}",
+            response.pendingApprovalCount,
+            response.unconfirmedOrderCount,
+        )
+        return response
     }
 
     private fun averageReviewMinutes(createdAts: List<LocalDateTime>, now: LocalDateTime): Long {

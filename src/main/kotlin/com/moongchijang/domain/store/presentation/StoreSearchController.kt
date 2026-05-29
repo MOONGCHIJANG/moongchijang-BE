@@ -23,6 +23,7 @@ class StoreSearchController(
     fun search(
         @RequestParam keyword: String
     ): ResponseEntity<ApiResponse<StoreSearchResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(storeSearchService.search(keyword)))
+        val response = ResponseEntity.ok(ApiResponse.success(storeSearchService.search(keyword)))
+        return response
     }
 }

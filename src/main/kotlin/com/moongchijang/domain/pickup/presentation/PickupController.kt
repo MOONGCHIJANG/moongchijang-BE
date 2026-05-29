@@ -29,7 +29,8 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<PickupGuideResponse>> {
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(pickupService.getPickupGuide(participationId, userId)))
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.getPickupGuide(participationId, userId)))
+        return response
     }
 
     @GetMapping("/participations/{participationId}/qr")
@@ -38,7 +39,8 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<PickupQrResponse>> {
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(pickupService.getPickupQr(participationId, userId)))
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.getPickupQr(participationId, userId)))
+        return response
     }
 
     @GetMapping("/pickups/me/nearest-qr")
@@ -46,7 +48,8 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<NearestPickupQrResponse>> {
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
-        return ResponseEntity.ok(ApiResponse.success(pickupService.getNearestPickupQr(userId)))
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.getNearestPickupQr(userId)))
+        return response
     }
 
     @PostMapping("/pickups/{qrCode}/verify")
@@ -55,7 +58,8 @@ class PickupController(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<PickupVerifyResponse>> {
         val userId = principal.requirePickupVerifierUserId()
-        return ResponseEntity.ok(ApiResponse.success(pickupService.verifyPickup(qrCode, userId)))
+        val response = ResponseEntity.ok(ApiResponse.success(pickupService.verifyPickup(qrCode, userId)))
+        return response
     }
 
     private fun CustomUserPrincipal?.requirePickupVerifierUserId(): Long {
