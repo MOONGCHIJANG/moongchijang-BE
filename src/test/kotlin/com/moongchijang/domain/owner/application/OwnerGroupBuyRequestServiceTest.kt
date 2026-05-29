@@ -23,6 +23,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.anyString
 import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
@@ -78,6 +79,9 @@ class OwnerGroupBuyRequestServiceTest {
             .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("1.jpg", "https://cdn.example.com/1.jpg"))
         lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/2.jpg"))
             .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("2.jpg", "https://cdn.example.com/2.jpg"))
+        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString())).thenAnswer { key ->
+            "https://cdn.example.com/${key.arguments[0] as String}"
+        }
     }
 
     @Test
@@ -310,7 +314,7 @@ class OwnerGroupBuyRequestServiceTest {
         targetQuantity = 20,
         maxQuantity = 50,
         perUserLimit = 2,
-        thumbnailKey = "https://cdn.example.com/1.jpg",
+        thumbnailKey = "1.jpg",
         deadline = FIXED_NOW.plusDays(8),
         pickupDate = FIXED_NOW.toLocalDate().plusDays(9),
         pickupTimeStart = LocalTime.of(12, 0),

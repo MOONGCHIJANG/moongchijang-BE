@@ -23,12 +23,14 @@ import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
 import org.mockito.Mockito.never
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -59,6 +61,11 @@ class PickupServiceTest {
             storeStaffRepository = storeStaffRepository,
             s3ImageReferenceResolver = s3ImageReferenceResolver,
         )
+    }
+
+    @BeforeEach
+    fun setUp() {
+        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString())).thenAnswer { it.arguments[0] as String? }
     }
 
     @Test

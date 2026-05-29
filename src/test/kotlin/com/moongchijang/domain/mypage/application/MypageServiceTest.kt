@@ -18,11 +18,14 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
+import org.mockito.Mockito.anyString
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -43,8 +46,16 @@ class MypageServiceTest {
     @Mock
     private lateinit var paymentOrderRepository: PaymentOrderRepository
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     @InjectMocks
     private lateinit var mypageService: MypageService
+
+    @org.junit.jupiter.api.BeforeEach
+    fun setUp() {
+        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString())).thenAnswer { it.arguments[0] as String? }
+    }
 
     @Test
     fun `summary는 Figma 마이페이지 탭 기준 count를 반환한다`() {

@@ -20,7 +20,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
+import org.mockito.Mockito.anyString
 import org.mockito.Mockito.never
+import org.mockito.Mockito.lenient
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -54,6 +56,7 @@ class GroupBuyServiceTest {
 
     @BeforeEach
     fun setUp() {
+        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString())).thenAnswer { it.arguments[0] as String? }
         service = GroupBuyService(
             groupBuyRepository = groupBuyRepository,
             groupBuyImageRepository = groupBuyImageRepository,
