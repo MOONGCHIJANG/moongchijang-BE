@@ -17,11 +17,11 @@ class BusinessRegistrationLookupService(
 
     fun lookup(request: BusinessRegistrationLookupRequest): BusinessRegistrationLookupResponse {
         val businessRegistrationNumber = normalize(request.businessRegistrationNumber)
+        validateBusinessRegistrationNumberFormat(businessRegistrationNumber)
         log.info(
             "[BusinessRegistrationLookupService] 사업자등록 조회 시작: registrationNumberSuffix={}",
             businessRegistrationNumber.takeLast(4),
         )
-        validateBusinessRegistrationNumberFormat(businessRegistrationNumber)
 
         val result = businessRegistrationLookupPort.lookup(businessRegistrationNumber)
 
