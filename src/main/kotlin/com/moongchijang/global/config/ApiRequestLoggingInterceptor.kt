@@ -4,6 +4,7 @@ import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
+import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerInterceptor
 
@@ -24,7 +25,7 @@ class ApiRequestLoggingInterceptor : HandlerInterceptor {
     ) {
         val startedAt = request.getAttribute(REQUEST_START_TIME_ATTR) as? Long ?: System.currentTimeMillis()
         val elapsedMs = System.currentTimeMillis() - startedAt
-        val userId = (request.userPrincipal as? CustomUserPrincipal)?.id
+        val userId = ((request.userPrincipal as? Authentication)?.principal as? CustomUserPrincipal)?.id
 
         log.info(
             "[ApiRequestLoggingInterceptor] method={}, path={}, status={}, elapsedMs={}, userId={}",
