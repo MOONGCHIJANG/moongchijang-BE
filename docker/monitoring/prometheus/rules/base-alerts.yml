@@ -147,3 +147,127 @@ groups:
         annotations:
           summary: "[prod][warning] GC 일시정지 시간 증가"
           description: "10분 동안 JVM 평균 GC pause 시간이 200ms를 초과했습니다."
+
+      - alert: PaymentFailureRateWarning
+        expr: |
+          (
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*",status=~"4..|5.."}[5m]))
+            /
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*"}[5m]))
+          ) > 0.05
+          and
+          sum by (instance) (increase(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*"}[5m])) >= 20
+        for: 5m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+          domain: payment
+        annotations:
+          summary: "[prod][payment][warning] 결제 실패율 증가"
+          description: "5분 동안 결제 실패율(4xx+5xx)이 5%를 초과했습니다."
+
+      - alert: PaymentFailureRateCritical
+        expr: |
+          (
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*",status=~"4..|5.."}[5m]))
+            /
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*"}[5m]))
+          ) > 0.10
+          and
+          sum by (instance) (increase(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*"}[5m])) >= 20
+        for: 5m
+        labels:
+          severity: critical
+          service: moongchijang-be
+          env: prod
+          domain: payment
+        annotations:
+          summary: "[prod][payment][critical] 결제 실패율 급증"
+          description: "5분 동안 결제 실패율(4xx+5xx)이 10%를 초과했습니다."
+
+      - alert: PaymentCompleteUnauthorizedRateWarning
+        expr: |
+          (
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete).*",status=~"401|403"}[10m]))
+            /
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete).*"}[10m]))
+          ) > 0.03
+          and
+          sum by (instance) (increase(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete).*"}[10m])) >= 20
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+          domain: payment
+        annotations:
+          summary: "[prod][payment][warning] 결제 완료 API 인증/권한 오류 증가"
+          description: "10분 동안 결제 완료 API의 401/403 비율이 3%를 초과했습니다."
+
+      - alert: PaymentApi5xxRateCritical
+        expr: |
+          (
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*",status=~"5.."}[5m]))
+            /
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*"}[5m]))
+          ) > 0.01
+          and
+          sum by (instance) (increase(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/complete|/group-buys/.*/payment-orders).*"}[5m])) >= 20
+        for: 5m
+        labels:
+          severity: critical
+          service: moongchijang-be
+          env: prod
+          domain: payment
+        annotations:
+          summary: "[prod][payment][critical] 결제 API 5xx 증가"
+          description: "5분 동안 결제 핵심 API 5xx 비율이 1%를 초과했습니다."
+
+      - alert: PaymentCompleteLatencyP95Warning
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (instance, le) (rate(http_server_requests_seconds_bucket{job="app",uri=~".*(/payments/portone/complete).*"}[5m]))
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+          domain: payment
+        annotations:
+          summary: "[prod][payment][warning] 결제 완료 API 지연 증가"
+          description: "10분 동안 결제 완료 API p95 지연시간이 2초를 초과했습니다."
+
+      - alert: PaymentWebhookFailureRateWarning
+        expr: |
+          (
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/webhook).*",status=~"4..|5.."}[10m]))
+            /
+            sum by (instance) (rate(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/webhook).*"}[10m]))
+          ) > 0.05
+          and
+          sum by (instance) (increase(http_server_requests_seconds_count{job="app",uri=~".*(/payments/portone/webhook).*"}[10m])) >= 10
+        for: 10m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+          domain: payment
+        annotations:
+          summary: "[prod][payment][warning] 결제 웹훅 실패율 증가"
+          description: "10분 동안 결제 웹훅 실패율(4xx+5xx)이 5%를 초과했습니다."
+
+      - alert: RefundProcessingFailureStreakWarning
+        expr: |
+          increase(http_server_requests_seconds_count{job="app",uri=~".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*",status=~"5.."}[15m]) >= 5
+        for: 15m
+        labels:
+          severity: warning
+          service: moongchijang-be
+          env: prod
+          domain: payment
+        annotations:
+          summary: "[prod][payment][warning] 환불 처리 실패 연속 발생"
+          description: "15분 동안 환불 처리 API 5xx 실패가 5건 이상 발생했습니다."
