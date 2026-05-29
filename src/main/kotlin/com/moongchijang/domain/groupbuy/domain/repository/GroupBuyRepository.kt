@@ -112,9 +112,9 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
     fun findWithLockById(id: Long): Optional<GroupBuy>
 
     /**
-     * ngram FULLTEXT 인덱스로 매칭되는 공구 id 만 반환한다.
+     * 상품명 FULLTEXT 인덱스(`idx_group_buys_product_name`) 매칭 공구 id 를 deadline ASC 로 반환한다.
      *
-     * status/deadline 필터를 각 UNION 분기 안에 둬서 매칭 후 집계되는 임시 테이블 크기를 줄인다.
+     * 인덱스 단위 매칭 여부를 호출 측에서 직접 확인할 수 있도록 매장/주소 인덱스와 분리한다.
      * store fetch 는 [findAllWithStoreByIdIn] 으로 별도 수행해 native + lazy 조합의 N+1 을 회피한다.
      *
      * @param query   FullTextQueryBuilder.toBooleanQuery 로 변환된 BOOLEAN MODE 쿼리. 빈 문자열이면 빈 결과.
@@ -124,24 +124,45 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
      */
     @Query(
         value = """
-            SELECT id FROM (
-                SELECT gb.id, gb.deadline FROM group_buys gb
-                WHERE MATCH(gb.product_name) AGAINST(:query IN BOOLEAN MODE)
-                  AND gb.status = :status
-                  AND gb.deadline > :now
-                UNION
-                SELECT gb.id, gb.deadline FROM group_buys gb
-                JOIN stores s ON gb.store_id = s.id
-                WHERE MATCH(s.name, s.address) AGAINST(:query IN BOOLEAN MODE)
-                  AND gb.status = :status
-                  AND gb.deadline > :now
-            ) AS merged
-            ORDER BY merged.deadline ASC
+            SELECT gb.id FROM group_buys gb
+            WHERE MATCH(gb.product_name) AGAINST(:query IN BOOLEAN MODE)
+              AND gb.status = :status
+              AND gb.deadline > :now
+            ORDER BY gb.deadline ASC
             LIMIT :limit
         """,
         nativeQuery = true
     )
-    fun searchIdsByFullText(
+    fun searchProductIdsByFullText(
+        @Param("query") query: String,
+        @Param("status") status: String,
+        @Param("now") now: LocalDateTime,
+        @Param("limit") limit: Int,
+    ): List<Long>
+
+    /**
+     * 매장 FULLTEXT 인덱스(`idx_stores_name_address`) 매칭 공구 id 를 deadline ASC 로 반환한다.
+     *
+     * 인덱스 단위 매칭 여부를 호출 측에서 직접 확인할 수 있도록 상품명 인덱스와 분리한다.
+     *
+     * @param query   FullTextQueryBuilder.toBooleanQuery 로 변환된 BOOLEAN MODE 쿼리. 빈 문자열이면 빈 결과.
+     * @param status  노출 허용 상태 (보통 IN_PROGRESS)
+     * @param now     마감 비교 기준 시각 (deadline > now 인 공구만 반환)
+     * @param limit   반환할 최대 결과 수
+     */
+    @Query(
+        value = """
+            SELECT gb.id FROM group_buys gb
+            JOIN stores s ON gb.store_id = s.id
+            WHERE MATCH(s.name, s.address) AGAINST(:query IN BOOLEAN MODE)
+              AND gb.status = :status
+              AND gb.deadline > :now
+            ORDER BY gb.deadline ASC
+            LIMIT :limit
+        """,
+        nativeQuery = true
+    )
+    fun searchStoreIdsByFullText(
         @Param("query") query: String,
         @Param("status") status: String,
         @Param("now") now: LocalDateTime,
