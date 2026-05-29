@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
-import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.validation.annotation.Validated
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.*
 class SearchController(
     private val searchService: SearchService
 ) {
-    private val log = LoggerFactory.getLogger(SearchController::class.java)
 
     data class SearchRequest(@field:NotBlank val keyword: String)
 
@@ -31,9 +29,7 @@ class SearchController(
         @Valid @RequestBody request: SearchRequest,
         @AuthenticationPrincipal principal: CustomUserPrincipal?
     ): ResponseEntity<ApiResponse<SearchResponse>> {
-        log.info("[SearchController] 검색 요청: userId={}, keywordLength={}", principal?.id, request.keyword.length)
         val response = ResponseEntity.ok(ApiResponse.success(searchService.search(request.keyword, principal?.id)))
-        log.info("[SearchController] 검색 응답 완료: userId={}", principal?.id)
         return response
     }
 
@@ -42,9 +38,7 @@ class SearchController(
     fun getRecentSearches(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<ApiResponse<List<String>>> {
-        log.info("[SearchController] 최근 검색어 조회 요청: userId={}", principal.id)
         val response = ResponseEntity.ok(ApiResponse.success(searchService.getHistory(principal.id)))
-        log.info("[SearchController] 최근 검색어 조회 응답 완료: userId={}", principal.id)
         return response
     }
 
@@ -53,10 +47,8 @@ class SearchController(
     fun clearRecentSearches(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<ApiResponse<Nothing>> {
-        log.info("[SearchController] 최근 검색어 전체 삭제 요청: userId={}", principal.id)
         searchService.clearHistory(principal.id)
         val response = ResponseEntity.ok(ApiResponse.success())
-        log.info("[SearchController] 최근 검색어 전체 삭제 응답 완료: userId={}", principal.id)
         return response
     }
 
@@ -66,10 +58,8 @@ class SearchController(
         @PathVariable keyword: String,
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<ApiResponse<Nothing>> {
-        log.info("[SearchController] 최근 검색어 단건 삭제 요청: userId={}, keywordLength={}", principal.id, keyword.length)
         searchService.deleteHistory(principal.id, keyword)
         val response = ResponseEntity.ok(ApiResponse.success())
-        log.info("[SearchController] 최근 검색어 단건 삭제 응답 완료: userId={}", principal.id)
         return response
     }
 }
