@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -18,8 +19,14 @@ class AdminDashboardOrderMonitoringService(
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     fun getUnconfirmedOrders(pageable: Pageable): AdminDashboardUnconfirmedOrderResponse {
+        log.info(
+            "[AdminDashboardOrderMonitoringService] 미확정 주문 조회 시작: page={}, size={}",
+            pageable.pageNumber,
+            pageable.pageSize,
+        )
         val now = LocalDateTime.now(clock)
         val overdueBefore = now.minusHours(48)
         val page = groupBuyRepository.findAdminOrderPage(
@@ -41,7 +48,7 @@ class AdminDashboardOrderMonitoringService(
             overdueBefore = overdueBefore
         )
 
-        return AdminDashboardUnconfirmedOrderResponse.from(
+        val response = AdminDashboardUnconfirmedOrderResponse.from(
             page = page,
             pendingRefundCountsByGroupBuyId = pendingRefundCountsByGroupBuyId,
             totalUnconfirmedCount = page.totalElements,
@@ -49,5 +56,11 @@ class AdminDashboardOrderMonitoringService(
             now = now,
             overdueBefore = overdueBefore
         )
+        log.info(
+            "[AdminDashboardOrderMonitoringService] 미확정 주문 조회 완료: totalUnconfirmedCount={}, overdueCount={}",
+            response.totalUnconfirmedCount,
+            response.overdueCount,
+        )
+        return response
     }
 }

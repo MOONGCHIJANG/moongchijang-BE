@@ -16,6 +16,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -30,14 +31,16 @@ class PickupService(
     private val userRepository: UserRepository,
     private val storeStaffRepository: StoreStaffRepository,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional(readOnly = true)
     fun getPickupGuide(participationId: Long, userId: Long): PickupGuideResponse {
+        log.info("[PickupService] 픽업 가이드 조회 시작: participationId={}, userId={}", participationId, userId)
         val participation = findOwnedParticipation(participationId, userId)
         val groupBuy = participation.groupBuy
         val store = groupBuy.store
 
-        return PickupGuideResponse(
+        val response = PickupGuideResponse(
             participationId = participation.id,
             availabilityStatus = participation.availabilityStatus(),
             pickupStatus = participation.pickupStatus,
@@ -57,16 +60,22 @@ class PickupService(
             remainingMinutes = participation.remainingPickupMinutes(),
             pickedUpAt = participation.pickedUpAt,
         )
+        log.info("[PickupService] 픽업 가이드 조회 완료: participationId={}, userId={}", participationId, userId)
+        return response
     }
 
     @Transactional
     fun getPickupQr(participationId: Long, userId: Long): PickupQrResponse {
+        log.info("[PickupService] 픽업 QR 조회 시작: participationId={}, userId={}", participationId, userId)
         val participation = findOwnedParticipation(participationId, userId)
-        return buildPickupQrResponse(participation)
+        val response = buildPickupQrResponse(participation)
+        log.info("[PickupService] 픽업 QR 조회 완료: participationId={}, userId={}", participationId, userId)
+        return response
     }
 
     @Transactional
     fun getNearestPickupQr(userId: Long): NearestPickupQrResponse {
+        log.info("[PickupService] 가장 가까운 픽업 QR 조회 시작: userId={}", userId)
         val today = todayKst()
         val candidates = participationRepository.findNearestPickupQrCandidates(
             userId = userId,
@@ -76,23 +85,31 @@ class PickupService(
         )
 
         if (candidates.isEmpty()) {
-            return NearestPickupQrResponse(
+            val response = NearestPickupQrResponse(
                 hasCandidate = false,
                 hasMultipleToday = false,
                 reason = NearestPickupQrReason.NO_AVAILABLE_PICKUP,
                 item = null,
             )
+            log.info("[PickupService] 가장 가까운 픽업 QR 조회 완료: userId={}, hasCandidate=false", userId)
+            return response
         }
 
         val todayCandidates = candidates.filter { it.groupBuy.pickupDate == today }
         val selected = todayCandidates.firstOrNull() ?: candidates.first()
 
-        return NearestPickupQrResponse(
+        val response = NearestPickupQrResponse(
             hasCandidate = true,
             hasMultipleToday = todayCandidates.size > 1,
             reason = if (todayCandidates.isEmpty()) NearestPickupQrReason.ONLY_FUTURE_PICKUP else null,
             item = buildPickupQrResponse(selected),
         )
+        log.info(
+            "[PickupService] 가장 가까운 픽업 QR 조회 완료: userId={}, hasCandidate=true, hasMultipleToday={}",
+            userId,
+            response.hasMultipleToday,
+        )
+        return response
     }
 
     private fun buildPickupQrResponse(participation: Participation): PickupQrResponse {
@@ -126,6 +143,7 @@ class PickupService(
 
     @Transactional
     fun verifyPickup(qrCode: String, processedByUserId: Long): PickupVerifyResponse {
+        log.info("[PickupService] 픽업 검증 시작: processedByUserId={}", processedByUserId)
         val participation = participationRepository.findByPickupTokenForUpdate(qrCode)
             ?: throw CustomException(ErrorCode.PICKUP_QR_NOT_FOUND)
 
@@ -146,7 +164,7 @@ class PickupService(
         val pickedUpAt = nowKst()
         participation.markPickedUp(processedBy, pickedUpAt)
 
-        return PickupVerifyResponse(
+        val response = PickupVerifyResponse(
             participationId = participation.id,
             pickupStatus = participation.pickupStatus,
             userName = participation.user.nickname,
@@ -155,6 +173,12 @@ class PickupService(
             pickedUpAt = pickedUpAt,
             pickupProcessedByUserId = processedBy.id,
         )
+        log.info(
+            "[PickupService] 픽업 검증 완료: participationId={}, processedByUserId={}",
+            participation.id,
+            processedByUserId,
+        )
+        return response
     }
 
     private fun findOwnedParticipation(participationId: Long, userId: Long): Participation {

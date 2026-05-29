@@ -6,19 +6,26 @@ import com.moongchijang.domain.user.application.dto.BusinessRegistrationStatus
 import com.moongchijang.domain.user.application.port.BusinessRegistrationLookupPort
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class BusinessRegistrationLookupService(
     private val businessRegistrationLookupPort: BusinessRegistrationLookupPort,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     fun lookup(request: BusinessRegistrationLookupRequest): BusinessRegistrationLookupResponse {
         val businessRegistrationNumber = normalize(request.businessRegistrationNumber)
+        log.info(
+            "[BusinessRegistrationLookupService] 사업자등록 조회 시작: registrationNumberSuffix={}",
+            businessRegistrationNumber.takeLast(4),
+        )
         validateBusinessRegistrationNumberFormat(businessRegistrationNumber)
 
         val result = businessRegistrationLookupPort.lookup(businessRegistrationNumber)
 
-        return BusinessRegistrationLookupResponse(
+        val response = BusinessRegistrationLookupResponse(
             businessRegistrationNumber = format(businessRegistrationNumber),
             status = result.status,
             message = result.status.notFoundMessage(),
@@ -26,6 +33,12 @@ class BusinessRegistrationLookupService(
             ownerName = result.ownerName?.trim()?.takeIf { it.isNotBlank() },
             storeAddress = result.storeAddress?.trim()?.takeIf { it.isNotBlank() },
         )
+        log.info(
+            "[BusinessRegistrationLookupService] 사업자등록 조회 완료: registrationNumberSuffix={}, status={}",
+            businessRegistrationNumber.takeLast(4),
+            response.status,
+        )
+        return response
     }
 
     private fun normalize(raw: String): String = raw.replace(Regex("[^0-9]"), "")

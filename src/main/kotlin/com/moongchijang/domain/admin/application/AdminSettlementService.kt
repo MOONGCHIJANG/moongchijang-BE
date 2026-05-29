@@ -15,6 +15,7 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,11 +29,13 @@ class AdminSettlementService(
     private val participationRepository: ParticipationRepository,
     private val clock: Clock,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     fun getDashboard(
         year: Int,
         month: Int,
     ): AdminSettlementDashboardResponse {
+        log.info("[AdminSettlementService] 정산 대시보드 조회 시작: year={}, month={}", year, month)
         val yearMonth = validateYearMonth(year, month)
         val today = LocalDate.now(clock)
         val range = yearMonth.toDateRange()
@@ -45,7 +48,7 @@ class AdminSettlementService(
             pickupDateTo = range.to
         )
 
-        return AdminSettlementDashboardResponse(
+        val response = AdminSettlementDashboardResponse(
             year = year,
             month = month,
             completedSettlementAmount = aggregations
@@ -57,6 +60,8 @@ class AdminSettlementService(
             platformFeeAmount = 0L,
             totalTransactionAmount = aggregations.sumOf { it.totalPaymentAmount }
         )
+        log.info("[AdminSettlementService] 정산 대시보드 조회 완료: year={}, month={}", year, month)
+        return response
     }
 
     fun getSettlements(
@@ -65,6 +70,14 @@ class AdminSettlementService(
         status: AdminSettlementStatusFilter,
         pageable: Pageable,
     ): AdminSettlementPageResponse {
+        log.info(
+            "[AdminSettlementService] 정산 목록 조회 시작: year={}, month={}, status={}, page={}, size={}",
+            year,
+            month,
+            status,
+            pageable.pageNumber,
+            pageable.pageSize,
+        )
         val yearMonth = validateYearMonth(year, month)
         val today = LocalDate.now(clock)
         val range = yearMonth.toDateRange().filterByStatus(status, today)
@@ -78,10 +91,19 @@ class AdminSettlementService(
             pageable = pageable
         )
 
-        return AdminSettlementPageResponse.from(page, today)
+        val response = AdminSettlementPageResponse.from(page, today)
+        log.info(
+            "[AdminSettlementService] 정산 목록 조회 완료: year={}, month={}, status={}, totalElements={}",
+            year,
+            month,
+            status,
+            response.totalElements,
+        )
+        return response
     }
 
     fun getSettlementDetail(settlementId: Long): AdminSettlementDetailResponse {
+        log.info("[AdminSettlementService] 정산 상세 조회 시작: settlementId={}", settlementId)
         val today = LocalDate.now(clock)
         val aggregation = participationRepository.findAdminSettlementDetail(
             groupBuyId = settlementId,
@@ -91,7 +113,9 @@ class AdminSettlementService(
             refundStatuses = REFUND_STATUSES,
         ) ?: throw CustomException(ErrorCode.GROUPBUY_NOT_FOUND)
 
-        return AdminSettlementListItemResponse.from(aggregation, today)
+        val response = AdminSettlementListItemResponse.from(aggregation, today)
+        log.info("[AdminSettlementService] 정산 상세 조회 완료: settlementId={}", settlementId)
+        return response
     }
 
     private fun validateYearMonth(year: Int, month: Int): YearMonth {

@@ -13,6 +13,7 @@ import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -23,9 +24,11 @@ class MypageService(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val paymentOrderRepository: PaymentOrderRepository
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
-    fun getSummary(userId: Long): MypageSummaryResponse =
-        MypageSummaryResponse(
+    fun getSummary(userId: Long): MypageSummaryResponse {
+        log.info("[MypageService] 마이페이지 요약 조회 시작: userId={}", userId)
+        val response = MypageSummaryResponse(
             inProgressCount = participationRepository.countByUserIdAndStatusInAndPickupStatusIn(
                 userId = userId,
                 statuses = IN_PROGRESS_PARTICIPATION_STATUSES,
@@ -47,8 +50,12 @@ class MypageService(
             ),
             requestCount = groupBuyRequestRepository.countByUserId(userId)
         )
+        log.info("[MypageService] 마이페이지 요약 조회 완료: userId={}", userId)
+        return response
+    }
 
     fun getRefunds(userId: Long): List<MypageRefundResponse> {
+        log.info("[MypageService] 환불 목록 조회 시작: userId={}", userId)
         val participations = participationRepository.findByUserIdAndStatusInOrderByRefundedAtDescCreatedAtDesc(
             userId = userId,
             statuses = REFUND_PARTICIPATION_STATUSES,
@@ -56,24 +63,30 @@ class MypageService(
         )
         val paymentInfoByParticipationId = paymentInfoByParticipationId(participations)
 
-        return participations.map {
+        val responses = participations.map {
             MypageRefundResponse.from(
                 participation = it,
                 paymentInfo = paymentInfoByParticipationId[it.id]
             )
         }
+        log.info("[MypageService] 환불 목록 조회 완료: userId={}, count={}", userId, responses.size)
+        return responses
     }
 
     fun getParticipations(
         userId: Long,
         status: MypageParticipationStatusFilter
-    ): List<MypageParticipationResponse> =
-        when (status) {
+    ): List<MypageParticipationResponse> {
+        log.info("[MypageService] 참여 목록 조회 시작: userId={}, status={}", userId, status)
+        val responses = when (status) {
             MypageParticipationStatusFilter.IN_PROGRESS -> getInProgressParticipations(userId)
             MypageParticipationStatusFilter.PICKUP_WAITING -> getPickupWaitingParticipations(userId)
             MypageParticipationStatusFilter.PICKUP_COMPLETED -> getPickupCompletedParticipations(userId)
             MypageParticipationStatusFilter.CANCELLED_OR_REFUNDED -> getCancelledOrRefundedParticipations(userId)
         }
+        log.info("[MypageService] 참여 목록 조회 완료: userId={}, status={}, count={}", userId, status, responses.size)
+        return responses
+    }
 
     fun getInProgressParticipations(userId: Long): List<MypageParticipationResponse> {
         val participations = participationRepository.findByUserIdAndStatusInAndPickupStatusInOrderByCreatedAtDesc(
@@ -120,10 +133,14 @@ class MypageService(
             .findByUserIdAndStatusInOrderByCreatedAtDesc(userId, CANCELLED_OR_REFUNDED_PARTICIPATION_STATUSES)
             .let(::withPaymentInfo)
 
-    fun getGroupBuyRequests(userId: Long): List<MypageGroupBuyRequestResponse> =
-        groupBuyRequestRepository
+    fun getGroupBuyRequests(userId: Long): List<MypageGroupBuyRequestResponse> {
+        log.info("[MypageService] 요청공구 목록 조회 시작: userId={}", userId)
+        val responses = groupBuyRequestRepository
             .findByUserIdOrderByCreatedAtDesc(userId)
             .map(MypageGroupBuyRequestResponse::from)
+        log.info("[MypageService] 요청공구 목록 조회 완료: userId={}, count={}", userId, responses.size)
+        return responses
+    }
 
     private fun withPaymentInfo(participations: List<Participation>): List<MypageParticipationResponse> {
         val paymentInfoByParticipationId = paymentInfoByParticipationId(participations)

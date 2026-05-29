@@ -17,6 +17,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusH
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionSynchronization
@@ -36,8 +37,10 @@ class GroupBuyRequestService(
     private val userRepository: UserRepository,
     private val clock: Clock,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
+        log.info("[GroupBuyRequestService] 공구요청 생성 시작: userId={}", userId)
         if (!request.desiredPickupDate.isAfter(LocalDate.now())) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE)
         }
@@ -74,11 +77,14 @@ class GroupBuyRequestService(
             )
         )
 
-        return GroupBuyRequestIdResponse(saved.id)
+        val response = GroupBuyRequestIdResponse(saved.id)
+        log.info("[GroupBuyRequestService] 공구요청 생성 완료: userId={}, requestId={}", userId, saved.id)
+        return response
     }
 
     @Transactional(readOnly = true)
     fun getMyRequests(userId: Long): List<GroupBuyRequestResponse> {
+        log.info("[GroupBuyRequestService] 내 공구요청 목록 조회 시작: userId={}", userId)
         val requests = groupBuyRequestRepository.findByUserIdOrderByCreatedAtDesc(userId)
         if (requests.isEmpty()) return emptyList()
 
@@ -86,11 +92,14 @@ class GroupBuyRequestService(
             .findByGroupBuyRequestIdInOrderByChangedAtAsc(requests.map { it.id })
             .groupBy { it.groupBuyRequestId }
 
-        return requests.map { GroupBuyRequestResponse.from(it, historyMap[it.id] ?: emptyList()) }
+        val responses = requests.map { GroupBuyRequestResponse.from(it, historyMap[it.id] ?: emptyList()) }
+        log.info("[GroupBuyRequestService] 내 공구요청 목록 조회 완료: userId={}, count={}", userId, responses.size)
+        return responses
     }
 
     @Transactional(readOnly = true)
     fun getDetail(userId: Long, requestId: Long): GroupBuyRequestResponse {
+        log.info("[GroupBuyRequestService] 공구요청 상세 조회 시작: userId={}, requestId={}", userId, requestId)
         val request = groupBuyRequestRepository.findById(requestId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
 
@@ -101,7 +110,9 @@ class GroupBuyRequestService(
         val history = groupBuyRequestStatusHistoryRepository
             .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
 
-        return GroupBuyRequestResponse.from(request, history)
+        val response = GroupBuyRequestResponse.from(request, history)
+        log.info("[GroupBuyRequestService] 공구요청 상세 조회 완료: userId={}, requestId={}", userId, requestId)
+        return response
     }
 
     @Transactional(readOnly = true)
@@ -110,6 +121,12 @@ class GroupBuyRequestService(
         keyword: String?,
         pageable: Pageable
     ): AdminGroupBuyRequestPageResponse {
+        log.info(
+            "[GroupBuyRequestService] 관리자 공구요청 목록 조회 시작: status={}, page={}, size={}",
+            status,
+            pageable.pageNumber,
+            pageable.pageSize,
+        )
         val normalizedKeyword = keyword?.trim()?.takeIf { it.isNotBlank() }
         val requestIdKeyword = normalizedKeyword?.toLongOrNull()
         val page = groupBuyRequestRepository.searchAdminRequests(
@@ -129,21 +146,35 @@ class GroupBuyRequestService(
         }
         val groupBuysById = findOpenedGroupBuys(page.content)
 
-        return AdminGroupBuyRequestPageResponse.from(page, usersById, groupBuysById, LocalDateTime.now(clock))
+        val response = AdminGroupBuyRequestPageResponse.from(page, usersById, groupBuysById, LocalDateTime.now(clock))
+        log.info(
+            "[GroupBuyRequestService] 관리자 공구요청 목록 조회 완료: status={}, totalElements={}",
+            status,
+            response.totalElements,
+        )
+        return response
     }
 
     @Transactional(readOnly = true)
     fun getAdminDetail(requestId: Long): AdminGroupBuyRequestDetailResponse {
+        log.info("[GroupBuyRequestService] 관리자 공구요청 상세 조회 시작: requestId={}", requestId)
         val request = groupBuyRequestRepository.findById(requestId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
         val requester = userRepository.findById(request.userId).orElse(null)
         val history = groupBuyRequestStatusHistoryRepository
             .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
 
-        return AdminGroupBuyRequestDetailResponse.from(request, requester, history)
+        val response = AdminGroupBuyRequestDetailResponse.from(request, requester, history)
+        log.info("[GroupBuyRequestService] 관리자 공구요청 상세 조회 완료: requestId={}", requestId)
+        return response
     }
 
     fun updateStatus(requestId: Long, request: GroupBuyRequestStatusUpdateRequest): GroupBuyRequestResponse {
+        log.info(
+            "[GroupBuyRequestService] 공구요청 상태 변경 시작: requestId={}, targetStatus={}",
+            requestId,
+            request.targetStatus,
+        )
         val groupBuyRequest = groupBuyRequestRepository.findById(requestId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
 
@@ -191,7 +222,13 @@ class GroupBuyRequestService(
         val history = groupBuyRequestStatusHistoryRepository
             .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
 
-        return GroupBuyRequestResponse.from(groupBuyRequest, history)
+        val response = GroupBuyRequestResponse.from(groupBuyRequest, history)
+        log.info(
+            "[GroupBuyRequestService] 공구요청 상태 변경 완료: requestId={}, status={}",
+            requestId,
+            response.status,
+        )
+        return response
     }
 
     private fun validateTransition(
