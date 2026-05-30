@@ -536,14 +536,20 @@ class UserService(
         email: String,
         nickname: String,
     ): User {
+        val sanitizedNickname = sanitizeKakaoNicknameForPreload(nickname)
         val newUser = User.newKakaoUser(
             providerId = providerId,
             email = email,
-            nickname = nickname,
+            nickname = sanitizedNickname,
         )
         val savedUser = userRepository.save(newUser)
         log.info("[UserService] 신규 카카오 사용자 생성 완료: userId={}", savedUser.id)
         return savedUser
+    }
+
+    private fun sanitizeKakaoNicknameForPreload(rawNickname: String?): String? {
+        val nickname = rawNickname?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        return if (KAKAO_PRELOAD_NICKNAME_REGEX.matches(nickname)) nickname else null
     }
 
     private fun validateRejoinAvailable(deletedAt: LocalDateTime) {
@@ -603,5 +609,6 @@ class UserService(
     companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
         private val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$")
+        private val KAKAO_PRELOAD_NICKNAME_REGEX = Regex("^[A-Za-z0-9가-힣]{2,10}$")
     }
 }
