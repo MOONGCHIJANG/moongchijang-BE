@@ -125,7 +125,7 @@ class UserServiceTest {
         Mockito.`when`(
             userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(AuthProvider.KAKAO, "kakao-valid"),
         ).thenReturn(null)
-        Mockito.`when`(userRepository.save(userCaptor.capture())).thenReturn(savedUser)
+        Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
         userService.findOrCreateKakaoUser(
             providerId = "kakao-valid",
@@ -133,6 +133,7 @@ class UserServiceTest {
             nickname = "정상닉네임",
         )
 
+        Mockito.verify(userRepository).save(userCaptor.capture())
         Assertions.assertEquals("정상닉네임", userCaptor.value.nickname)
     }
 
@@ -152,7 +153,7 @@ class UserServiceTest {
         Mockito.`when`(
             userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(AuthProvider.KAKAO, "kakao-invalid"),
         ).thenReturn(null)
-        Mockito.`when`(userRepository.save(userCaptor.capture())).thenReturn(savedUser)
+        Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
         userService.findOrCreateKakaoUser(
             providerId = "kakao-invalid",
@@ -160,6 +161,7 @@ class UserServiceTest {
             nickname = "너무긴닉네임입니다초과",
         )
 
+        Mockito.verify(userRepository).save(userCaptor.capture())
         Assertions.assertEquals(null, userCaptor.value.nickname)
     }
 
