@@ -165,7 +165,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        assertNoDuplicateNickname(request.nickname, user.id, user.nickname)
+        assertNoDuplicateNickname(request.nickname, user.nickname)
 
         user.completeSignup(request.nickname, request.phoneNumber)
         log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
@@ -295,7 +295,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        assertNoDuplicateNickname(request.nickname, user.id, user.nickname)
+        assertNoDuplicateNickname(request.nickname, user.nickname)
 
         user.nickname = request.nickname
         log.info("[UserService] 닉네임 변경 처리 완료: userId={}", userId)
@@ -567,12 +567,12 @@ class UserService(
         }
     }
 
-    private fun assertNoDuplicateNickname(nickname: String, userId: Long?, currentNickname: String?) {
+    private fun assertNoDuplicateNickname(nickname: String, currentNickname: String?) {
         if (currentNickname == nickname) {
             return
         }
 
-        if (isNicknameDuplicated(nickname, userId)) {
+        if (userRepository.existsByNicknameAndDeletedAtIsNull(nickname)) {
             throw CustomException(ErrorCode.DUPLICATE_NICKNAME)
         }
     }
