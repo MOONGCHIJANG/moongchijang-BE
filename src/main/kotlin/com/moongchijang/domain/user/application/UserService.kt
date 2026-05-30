@@ -116,9 +116,9 @@ class UserService(
     }
 
     @Transactional(readOnly = true)
-    fun checkNicknameAvailability(nickname: String): NicknameAvailabilityResponse {
+    fun checkNicknameAvailability(nickname: String, userId: Long?): NicknameAvailabilityResponse {
         validateNicknameFormat(nickname)
-        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
+        val duplicated = isNicknameDuplicated(nickname, userId)
         return NicknameAvailabilityResponse(
             nickname = nickname,
             available = !duplicated,
@@ -165,11 +165,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(request.nickname) &&
-            user.nickname != request.nickname
-        if (duplicated) {
-            throw CustomException(ErrorCode.DUPLICATE_NICKNAME)
-        }
+        assertNoDuplicateNickname(request.nickname, user.nickname)
 
         user.completeSignup(request.nickname, request.phoneNumber)
         log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
@@ -299,11 +295,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(request.nickname) &&
-            user.nickname != request.nickname
-        if (duplicated) {
-            throw CustomException(ErrorCode.DUPLICATE_NICKNAME)
-        }
+        assertNoDuplicateNickname(request.nickname, user.nickname)
 
         user.nickname = request.nickname
         log.info("[UserService] 닉네임 변경 처리 완료: userId={}", userId)
@@ -573,6 +565,24 @@ class UserService(
         if (!phoneRegex.matches(phoneNumber)) {
             throw CustomException(ErrorCode.INVALID_PHONE_NUMBER_FORMAT)
         }
+    }
+
+    private fun assertNoDuplicateNickname(nickname: String, currentNickname: String?) {
+        if (currentNickname == nickname) {
+            return
+        }
+
+        if (userRepository.existsByNicknameAndDeletedAtIsNull(nickname)) {
+            throw CustomException(ErrorCode.DUPLICATE_NICKNAME)
+        }
+    }
+
+    private fun isNicknameDuplicated(nickname: String, userId: Long?): Boolean {
+        if (userId == null) {
+            return userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
+        }
+
+        return userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull(nickname, userId)
     }
 
     private fun validateEmailFormat(email: String) {

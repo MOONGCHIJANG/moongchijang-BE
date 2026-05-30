@@ -189,6 +189,26 @@ class UserServiceTest {
     }
 
     @Test
+    fun `닉네임 중복 확인 시 로그인 사용자 본인 닉네임이면 사용 가능`() {
+        Mockito.`when`(userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull("내닉네임", 61L)).thenReturn(false)
+
+        val response = userService.checkNicknameAvailability("내닉네임", 61L)
+
+        Assertions.assertTrue(response.available)
+        Assertions.assertEquals("내닉네임", response.nickname)
+    }
+
+    @Test
+    fun `닉네임 중복 확인 시 비로그인 사용자는 중복 닉네임이면 사용 불가`() {
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("중복닉네임")).thenReturn(true)
+
+        val response = userService.checkNicknameAvailability("중복닉네임", null)
+
+        Assertions.assertFalse(response.available)
+        Assertions.assertEquals("중복닉네임", response.nickname)
+    }
+
+    @Test
     fun `이메일 중복 확인 시 중복이면 false`() {
         Mockito.`when`(
             userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),

@@ -72,8 +72,9 @@ class UserController(
     )
     fun checkNicknameAvailability(
         @RequestParam nickname: String,
+        @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ApiResponse<NicknameAvailabilityResponse> {
-        val response = userService.checkNicknameAvailability(nickname)
+        val response = userService.checkNicknameAvailability(nickname, principal?.id)
         return ApiResponse.success(response)
     }
 
