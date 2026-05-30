@@ -131,15 +131,9 @@ class UserServiceTest {
             email = "dup@example.com",
             nickname = "기존닉네임"
         )
-        val anotherUser = UserFixture.createKakaoUser(
-            id = 2L,
-            providerId = "kakao-another",
-            email = "another@example.com",
-            nickname = "중복닉네임",
-        )
 
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
-        Mockito.`when`(userRepository.findByNicknameAndDeletedAtIsNull("중복닉네임")).thenReturn(anotherUser)
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("중복닉네임")).thenReturn(true)
 
         val exception = assertThrows<CustomException> {
             userService.updateAdditionalInfo(
@@ -196,12 +190,7 @@ class UserServiceTest {
 
     @Test
     fun `닉네임 중복 확인 시 로그인 사용자 본인 닉네임이면 사용 가능`() {
-        val user = UserFixture.createKakaoUser(
-            id = 61L,
-            providerId = "kakao-61",
-            nickname = "내닉네임",
-        )
-        Mockito.`when`(userRepository.findByNicknameAndDeletedAtIsNull("내닉네임")).thenReturn(user)
+        Mockito.`when`(userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull("내닉네임", 61L)).thenReturn(false)
 
         val response = userService.checkNicknameAvailability("내닉네임", 61L)
 
@@ -345,7 +334,7 @@ class UserServiceTest {
     fun `닉네임 변경할 때 정상 요청이면 닉네임이 변경됨`() {
         val user = UserFixture.createKakaoUser(id = 51L, providerId = "kakao-51", nickname = "기존닉네임")
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(51L)).thenReturn(user)
-        Mockito.`when`(userRepository.findByNicknameAndDeletedAtIsNull("새닉네임")).thenReturn(null)
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("새닉네임")).thenReturn(false)
 
         val response = userService.updateNickname(
             request = NicknameUpdateRequest(nickname = "새닉네임"),
@@ -360,9 +349,8 @@ class UserServiceTest {
     @Test
     fun `닉네임 변경할 때 중복 닉네임이면 예외`() {
         val user = UserFixture.createKakaoUser(id = 52L, providerId = "kakao-52", nickname = "기존닉네임")
-        val duplicatedUser = UserFixture.createKakaoUser(id = 70L, providerId = "kakao-70", nickname = "중복닉네임")
         Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(52L)).thenReturn(user)
-        Mockito.`when`(userRepository.findByNicknameAndDeletedAtIsNull("중복닉네임")).thenReturn(duplicatedUser)
+        Mockito.`when`(userRepository.existsByNicknameAndDeletedAtIsNull("중복닉네임")).thenReturn(true)
 
         val exception = assertThrows<CustomException> {
             userService.updateNickname(

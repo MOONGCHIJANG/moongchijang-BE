@@ -582,8 +582,7 @@ class UserService(
             return userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
         }
 
-        val nicknameOwner = userRepository.findByNicknameAndDeletedAtIsNull(nickname)
-        return nicknameOwner != null && nicknameOwner.id != userId
+        return userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull(nickname, userId)
     }
 
     private fun validateEmailFormat(email: String) {
