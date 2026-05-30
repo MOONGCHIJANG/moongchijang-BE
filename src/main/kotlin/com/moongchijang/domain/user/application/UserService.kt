@@ -116,9 +116,14 @@ class UserService(
     }
 
     @Transactional(readOnly = true)
-    fun checkNicknameAvailability(nickname: String): NicknameAvailabilityResponse {
+    fun checkNicknameAvailability(nickname: String, userId: Long?): NicknameAvailabilityResponse {
         validateNicknameFormat(nickname)
-        val duplicated = userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
+        val duplicated = if (userId == null) {
+            userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
+        } else {
+            val nicknameOwner = userRepository.findByNicknameAndDeletedAtIsNull(nickname)
+            nicknameOwner != null && nicknameOwner.id != userId
+        }
         return NicknameAvailabilityResponse(
             nickname = nickname,
             available = !duplicated,
