@@ -31,6 +31,7 @@ import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.ArgumentCaptor
 import org.mockito.Mockito
 import org.springframework.security.crypto.password.PasswordEncoder
 import java.time.LocalDateTime
@@ -109,6 +110,62 @@ class UserServiceTest {
     }
 
     @Test
+    fun `신규 카카오 사용자 생성 시 닉네임이 형식 조건을 만족하면 선저장한다`() {
+        val savedUser = UserFixture.createKakaoUser(
+            id = 11L,
+            providerId = "kakao-valid",
+            email = "valid@example.com",
+            nickname = "정상닉네임",
+        )
+        val userCaptor: ArgumentCaptor<User> = ArgumentCaptor.forClass(User::class.java)
+
+        Mockito.`when`(
+            userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-valid"),
+        ).thenReturn(null)
+        Mockito.`when`(
+            userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(AuthProvider.KAKAO, "kakao-valid"),
+        ).thenReturn(null)
+        Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
+
+        userService.findOrCreateKakaoUser(
+            providerId = "kakao-valid",
+            email = "valid@example.com",
+            nickname = "정상닉네임",
+        )
+
+        Mockito.verify(userRepository).save(userCaptor.capture())
+        Assertions.assertEquals("정상닉네임", userCaptor.value.nickname)
+    }
+
+    @Test
+    fun `신규 카카오 사용자 생성 시 닉네임이 형식 조건을 벗어나면 null로 선저장한다`() {
+        val savedUser = UserFixture.createKakaoUser(
+            id = 12L,
+            providerId = "kakao-invalid",
+            email = "invalid@example.com",
+            nickname = "임시닉네임",
+        )
+        val userCaptor: ArgumentCaptor<User> = ArgumentCaptor.forClass(User::class.java)
+
+        Mockito.`when`(
+            userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-invalid"),
+        ).thenReturn(null)
+        Mockito.`when`(
+            userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(AuthProvider.KAKAO, "kakao-invalid"),
+        ).thenReturn(null)
+        Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
+
+        userService.findOrCreateKakaoUser(
+            providerId = "kakao-invalid",
+            email = "invalid@example.com",
+            nickname = "너무긴닉네임입니다초과",
+        )
+
+        Mockito.verify(userRepository).save(userCaptor.capture())
+        Assertions.assertEquals(null, userCaptor.value.nickname)
+    }
+
+    @Test
     fun `추가정보 입력 시 닉네임 형식 오류 예외`() {
         val exception = assertThrows<CustomException> {
             userService.updateAdditionalInfo(
@@ -174,6 +231,34 @@ class UserServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.REJOIN_NOT_AVAILABLE_YET, exception.errorCode)
+    }
+
+    @Test
+    fun `탈퇴 복구 시 기존 닉네임이 비어있고 카카오 닉네임이 무효면 null 유지`() {
+        val deletedUser = UserFixture.createKakaoUser(
+            id = 21L,
+            providerId = "kakao-restore",
+            email = "restore@example.com",
+            nickname = "",
+            deletedAt = LocalDateTime.now().minusDays(40),
+        )
+
+        Mockito.`when`(
+            userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-restore"),
+        ).thenReturn(null)
+        Mockito.`when`(
+            userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(AuthProvider.KAKAO, "kakao-restore"),
+        ).thenReturn(deletedUser)
+
+        val (restoredUser, isNewUser) = userService.findOrCreateKakaoUser(
+            providerId = "kakao-restore",
+            email = "restore@example.com",
+            nickname = "invalid-nickname-too-long",
+        )
+
+        Assertions.assertFalse(isNewUser)
+        Assertions.assertEquals(null, restoredUser.nickname)
+        Assertions.assertEquals(null, restoredUser.deletedAt)
     }
 
     @Test
