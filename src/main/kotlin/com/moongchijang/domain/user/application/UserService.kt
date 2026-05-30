@@ -522,8 +522,9 @@ class UserService(
 
         deletedUser.deletedAt = null
         deletedUser.email = email
+        val sanitizedNickname = sanitizeKakaoNicknameForPreload(nickname)
         if (deletedUser.nickname.isNullOrBlank()) {
-            deletedUser.nickname = nickname
+            deletedUser.nickname = sanitizedNickname
         }
         deletedUser.signupCompleted = false
         deletedUser.sellerSignupCompleted = false
@@ -536,14 +537,20 @@ class UserService(
         email: String,
         nickname: String,
     ): User {
+        val sanitizedNickname = sanitizeKakaoNicknameForPreload(nickname)
         val newUser = User.newKakaoUser(
             providerId = providerId,
             email = email,
-            nickname = nickname,
+            nickname = sanitizedNickname,
         )
         val savedUser = userRepository.save(newUser)
         log.info("[UserService] 신규 카카오 사용자 생성 완료: userId={}", savedUser.id)
         return savedUser
+    }
+
+    private fun sanitizeKakaoNicknameForPreload(rawNickname: String): String? {
+        val nickname = rawNickname.trim()
+        return if (NICKNAME_REGEX.matches(nickname)) nickname else null
     }
 
     private fun validateRejoinAvailable(deletedAt: LocalDateTime) {
@@ -554,8 +561,7 @@ class UserService(
     }
 
     private fun validateNicknameFormat(nickname: String) {
-        val nicknameRegex = Regex("^[A-Za-z0-9가-힣]{2,10}$")
-        if (!nicknameRegex.matches(nickname)) {
+        if (!NICKNAME_REGEX.matches(nickname)) {
             throw CustomException(ErrorCode.INVALID_NICKNAME_FORMAT)
         }
     }
@@ -603,5 +609,6 @@ class UserService(
     companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
         private val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$")
+        private val NICKNAME_REGEX = Regex("^[A-Za-z0-9가-힣]{2,10}$")
     }
 }
