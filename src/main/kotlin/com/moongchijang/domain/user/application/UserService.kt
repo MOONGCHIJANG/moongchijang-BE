@@ -522,8 +522,9 @@ class UserService(
 
         deletedUser.deletedAt = null
         deletedUser.email = email
+        val sanitizedNickname = sanitizeKakaoNicknameForPreload(nickname)
         if (deletedUser.nickname.isNullOrBlank()) {
-            deletedUser.nickname = nickname
+            deletedUser.nickname = sanitizedNickname
         }
         deletedUser.signupCompleted = false
         deletedUser.sellerSignupCompleted = false
