@@ -30,6 +30,8 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -73,6 +75,24 @@ class AdminOwnerGroupBuyRequestServiceTest {
     }
 
     @Test
+    fun `목록 검색어가 숫자이면 요청 ID 파라미터로 조회하고 동일 가격 할인율은 null로 반환한다`() {
+        val pageable = PageRequest.of(0, 20)
+        val request = ownerRequest(
+            status = OwnerGroupBuyRequestStatus.PENDING,
+            originalPrice = 9900,
+            price = 9900,
+        ).apply { id = 10L }
+        `when`(ownerGroupBuyRequestRepository.searchAdminRequests(null, 10L, "10", pageable))
+            .thenReturn(PageImpl(listOf(request), pageable, 1))
+
+        val result = service.getRequests(status = null, keyword = " 10 ", pageable = pageable)
+
+        assertEquals(1, result.content.size)
+        assertNull(result.content.first().discountRate)
+        verify(ownerGroupBuyRequestRepository).searchAdminRequests(null, 10L, "10", pageable)
+    }
+
+    @Test
     fun `사장님 요청을 승인하면 요청 정보로 공구와 이미지를 생성하고 APPROVED로 전환한다`() {
         val requestId = 10L
         val request = ownerRequest(status = OwnerGroupBuyRequestStatus.PENDING).apply { id = requestId }
@@ -112,6 +132,29 @@ class AdminOwnerGroupBuyRequestServiceTest {
     }
 
     @Test
+    fun `픽업일이 모집 마감일과 같아도 픽업 시작 시간이 이후이면 승인할 수 있다`() {
+        val requestId = 13L
+        val deadline = LocalDateTime.of(2026, 6, 10, 12, 0)
+        val request = ownerRequest(
+            status = OwnerGroupBuyRequestStatus.PENDING,
+            deadline = deadline,
+            pickupDate = deadline.toLocalDate(),
+            pickupTimeStart = LocalTime.of(13, 0),
+            pickupTimeEnd = LocalTime.of(18, 0),
+        ).apply { id = requestId }
+        `when`(ownerGroupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(request))
+        `when`(ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)).thenReturn(emptyList())
+        `when`(groupBuyRepository.save(any(GroupBuy::class.java))).thenAnswer {
+            (it.arguments[0] as GroupBuy).apply { id = 33L }
+        }
+
+        val result = service.approve(requestId)
+
+        assertEquals(OwnerGroupBuyRequestStatus.APPROVED, result.status)
+        assertEquals(33L, result.groupBuyId)
+    }
+
+    @Test
     fun `이미 처리된 사장님 요청은 승인할 수 없다`() {
         val requestId = 11L
         val request = ownerRequest(status = OwnerGroupBuyRequestStatus.APPROVED).apply { id = requestId }
@@ -140,7 +183,15 @@ class AdminOwnerGroupBuyRequestServiceTest {
         assertNull(request.approvedGroupBuy)
     }
 
-    private fun ownerRequest(status: OwnerGroupBuyRequestStatus): OwnerGroupBuyRequest =
+    private fun ownerRequest(
+        status: OwnerGroupBuyRequestStatus,
+        originalPrice: Int? = 12000,
+        price: Int = 9900,
+        deadline: LocalDateTime = LocalDateTime.of(2026, 6, 10, 18, 0),
+        pickupDate: LocalDate = LocalDate.of(2026, 6, 12),
+        pickupTimeStart: LocalTime = LocalTime.of(12, 0),
+        pickupTimeEnd: LocalTime = LocalTime.of(18, 0),
+    ): OwnerGroupBuyRequest =
         OwnerGroupBuyRequest(
             owner = UserFixture.createKakaoUser(id = 1L, nickname = "은서사장").apply {
                 role = UserRole.SELLER
@@ -149,16 +200,16 @@ class AdminOwnerGroupBuyRequestServiceTest {
             store = store(),
             productName = "두쫀쿠 세트",
             productDescription = "두바이 초코 쿠키 세트",
-            originalPrice = 12000,
-            price = 9900,
+            originalPrice = originalPrice,
+            price = price,
             targetQuantity = 20,
             maxQuantity = 50,
             perUserLimit = 2,
             thumbnailKey = "owner-thumb.jpg",
-            deadline = LocalDateTime.of(2026, 6, 10, 18, 0),
-            pickupDate = LocalDate.of(2026, 6, 12),
-            pickupTimeStart = LocalTime.of(12, 0),
-            pickupTimeEnd = LocalTime.of(18, 0),
+            deadline = deadline,
+            pickupDate = pickupDate,
+            pickupTimeStart = pickupTimeStart,
+            pickupTimeEnd = pickupTimeEnd,
             pickupLocation = "서울 성동구 성수이로 1",
             pickupContact = "01012345678",
             status = status,

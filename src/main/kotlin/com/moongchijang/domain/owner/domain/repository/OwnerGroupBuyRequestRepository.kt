@@ -62,10 +62,10 @@ interface OwnerGroupBuyRequestRepository : JpaRepository<OwnerGroupBuyRequest, L
             WHERE (:status IS NULL OR r.status = :status)
               AND (
                 :keyword IS NULL
+                OR (:requestId IS NOT NULL AND r.id = :requestId)
                 OR LOWER(r.productName) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(r.owner.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(r.store.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR str(r.id) = :keyword
               )
             ORDER BY r.createdAt DESC
         """,
@@ -74,15 +74,16 @@ interface OwnerGroupBuyRequestRepository : JpaRepository<OwnerGroupBuyRequest, L
             WHERE (:status IS NULL OR r.status = :status)
               AND (
                 :keyword IS NULL
+                OR (:requestId IS NOT NULL AND r.id = :requestId)
                 OR LOWER(r.productName) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(r.owner.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(r.store.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR str(r.id) = :keyword
               )
         """
     )
     fun searchAdminRequests(
         @Param("status") status: OwnerGroupBuyRequestStatus?,
+        @Param("requestId") requestId: Long?,
         @Param("keyword") keyword: String?,
         pageable: Pageable
     ): Page<OwnerGroupBuyRequest>

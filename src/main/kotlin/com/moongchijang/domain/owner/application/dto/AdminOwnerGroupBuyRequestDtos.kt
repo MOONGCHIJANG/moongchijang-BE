@@ -198,7 +198,7 @@ private const val REQUEST_TYPE = "OWNER"
 
 private fun OwnerGroupBuyRequest.discountRate(): Int? {
     val original = originalPrice ?: return null
-    if (original <= 0 || original < price) {
+    if (original <= price) {
         return null
     }
     return ((original - price) * 100) / original

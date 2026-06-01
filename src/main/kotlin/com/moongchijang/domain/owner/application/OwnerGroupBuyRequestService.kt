@@ -187,9 +187,19 @@ class OwnerGroupBuyRequestService(
             throw CustomException(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_TIME)
         }
 
-        if (!request.pickupDate.isAfter(request.deadline.toLocalDate())) {
+        if (!isPickupAfterDeadline(request.deadline, request.pickupDate, request.pickupTimeStart)) {
             throw CustomException(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_DATE)
         }
+    }
+
+    private fun isPickupAfterDeadline(
+        deadline: LocalDateTime,
+        pickupDate: java.time.LocalDate,
+        pickupTimeStart: java.time.LocalTime
+    ): Boolean {
+        val deadlineDate = deadline.toLocalDate()
+        return pickupDate.isAfter(deadlineDate) ||
+            (pickupDate.isEqual(deadlineDate) && pickupTimeStart.isAfter(deadline.toLocalTime()))
     }
 
     private companion object {

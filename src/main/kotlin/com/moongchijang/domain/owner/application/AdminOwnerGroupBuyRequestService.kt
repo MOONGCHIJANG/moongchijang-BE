@@ -49,7 +49,12 @@ class AdminOwnerGroupBuyRequestService(
             pageable.pageNumber,
             pageable.pageSize,
         )
-        val page = ownerGroupBuyRequestRepository.searchAdminRequests(status, normalizedKeyword, pageable)
+        val page = ownerGroupBuyRequestRepository.searchAdminRequests(
+            status = status,
+            requestId = normalizedKeyword?.toLongOrNull(),
+            keyword = normalizedKeyword,
+            pageable = pageable
+        )
         val response = AdminOwnerGroupBuyRequestPageResponse.from(page, LocalDateTime.now(clock))
         log.info(
             "[AdminOwnerGroupBuyRequestService] 사장님 공구 요청 목록 조회 완료: totalElements={}",
@@ -177,10 +182,20 @@ class AdminOwnerGroupBuyRequestService(
         ) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_INVALID_QUANTITY)
         }
-        if (!request.pickupDate.isAfter(request.deadline.toLocalDate()) ||
-            !request.pickupTimeStart.isBefore(request.pickupTimeEnd)
+        if (!request.pickupTimeStart.isBefore(request.pickupTimeEnd) ||
+            !isPickupAfterDeadline(request.deadline, request.pickupDate, request.pickupTimeStart)
         ) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_INVALID_PICKUP)
         }
+    }
+
+    private fun isPickupAfterDeadline(
+        deadline: LocalDateTime,
+        pickupDate: java.time.LocalDate,
+        pickupTimeStart: java.time.LocalTime
+    ): Boolean {
+        val deadlineDate = deadline.toLocalDate()
+        return pickupDate.isAfter(deadlineDate) ||
+            (pickupDate.isEqual(deadlineDate) && pickupTimeStart.isAfter(deadline.toLocalTime()))
     }
 }
