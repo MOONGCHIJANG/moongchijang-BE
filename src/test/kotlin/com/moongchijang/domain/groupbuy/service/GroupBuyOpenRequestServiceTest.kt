@@ -207,8 +207,11 @@ class GroupBuyOpenRequestServiceTest {
 
     @Test
     fun `공구 개설 알림 발송 성공 시 PENDING 요청을 SENT 처리`() {
-        val openRequest = GroupBuyOpenRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), region = "성수", productName = "소금빵")
-        val user = createUser(id = 1L, phoneNumber = "01012345678")
+        val openRequest = GroupBuyOpenRequest(
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L).apply { phoneNumber = "01012345678" },
+            region = "성수",
+            productName = "소금빵"
+        )
 
         `when`(
             openRequestRepository.findAllByRegionInAndProductNameAndNotificationStatus(
@@ -217,7 +220,6 @@ class GroupBuyOpenRequestServiceTest {
                 NotificationStatus.PENDING,
             )
         ).thenReturn(listOf(openRequest))
-        `when`(userRepository.findByIdInAndDeletedAtIsNull(setOf(1L))).thenReturn(listOf(user))
         `when`(aligoAlimtalkClient.send("01012345678", "[뭉치장] 요청하신 성수 소금빵 공구가 열렸어요."))
             .thenReturn(true)
 
@@ -233,8 +235,11 @@ class GroupBuyOpenRequestServiceTest {
 
     @Test
     fun `공구 개설 알림 발송 실패 시 FAILED 처리`() {
-        val openRequest = GroupBuyOpenRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), region = "성수", productName = "소금빵")
-        val user = createUser(id = 1L, phoneNumber = "01012345678")
+        val openRequest = GroupBuyOpenRequest(
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L).apply { phoneNumber = "01012345678" },
+            region = "성수",
+            productName = "소금빵"
+        )
 
         `when`(
             openRequestRepository.findAllByRegionInAndProductNameAndNotificationStatus(
@@ -243,7 +248,6 @@ class GroupBuyOpenRequestServiceTest {
                 NotificationStatus.PENDING,
             )
         ).thenReturn(listOf(openRequest))
-        `when`(userRepository.findByIdInAndDeletedAtIsNull(setOf(1L))).thenReturn(listOf(user))
         `when`(aligoAlimtalkClient.send("01012345678", "[뭉치장] 요청하신 성수 소금빵 공구가 열렸어요."))
             .thenReturn(false)
 
@@ -258,8 +262,11 @@ class GroupBuyOpenRequestServiceTest {
 
     @Test
     fun `전화번호가 없으면 알리고 호출 없이 FAILED 처리`() {
-        val openRequest = GroupBuyOpenRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), region = "성수", productName = "소금빵")
-        val user = createUser(id = 1L, phoneNumber = null)
+        val openRequest = GroupBuyOpenRequest(
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L).apply { phoneNumber = null },
+            region = "성수",
+            productName = "소금빵"
+        )
 
         `when`(
             openRequestRepository.findAllByRegionInAndProductNameAndNotificationStatus(
@@ -268,8 +275,6 @@ class GroupBuyOpenRequestServiceTest {
                 NotificationStatus.PENDING,
             )
         ).thenReturn(listOf(openRequest))
-        `when`(userRepository.findByIdInAndDeletedAtIsNull(setOf(1L))).thenReturn(listOf(user))
-
         val result = service.notifyOpened(region = "성수", productName = "소금빵")
 
         assertEquals(NotificationStatus.FAILED, openRequest.notificationStatus)
@@ -282,9 +287,16 @@ class GroupBuyOpenRequestServiceTest {
 
     @Test
     fun `공구 기준 알림은 매장 지역과 세부지역을 모두 매칭하고 사용자별 중복 발송을 막는다`() {
-        val regionRequest = GroupBuyOpenRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), region = "SEOUL_ALL", productName = "소금빵").apply { id = 10L }
-        val districtRequest = GroupBuyOpenRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), region = "SEOUL_SEONGSU_GEONDAE_GWANGJIN", productName = "소금빵").apply { id = 11L }
-        val user = createUser(id = 1L, phoneNumber = "01012345678")
+        val regionRequest = GroupBuyOpenRequest(
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L).apply { phoneNumber = "01012345678" },
+            region = "SEOUL_ALL",
+            productName = "소금빵"
+        ).apply { id = 10L }
+        val districtRequest = GroupBuyOpenRequest(
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L).apply { phoneNumber = "01012345678" },
+            region = "SEOUL_SEONGSU_GEONDAE_GWANGJIN",
+            productName = "소금빵"
+        ).apply { id = 11L }
         val groupBuy = createGroupBuy(productName = "소금빵")
 
         `when`(
@@ -294,7 +306,6 @@ class GroupBuyOpenRequestServiceTest {
                 NotificationStatus.PENDING,
             )
         ).thenReturn(listOf(regionRequest, districtRequest))
-        `when`(userRepository.findByIdInAndDeletedAtIsNull(setOf(1L))).thenReturn(listOf(user))
         `when`(aligoAlimtalkClient.send("01012345678", "[뭉치장] 요청하신 서울 전체 소금빵 공구가 열렸어요."))
             .thenReturn(true)
 
@@ -313,14 +324,6 @@ class GroupBuyOpenRequestServiceTest {
         assertEquals(listOf(1L), invocation.arguments[1])
         assertTrue(invocation.arguments[2] is LocalDateTime)
     }
-
-    private fun createUser(id: Long, phoneNumber: String?): User =
-        User(
-            provider = AuthProvider.EMAIL,
-            email = "$id@example.com",
-            passwordHash = "password",
-            phoneNumber = phoneNumber,
-        ).apply { this.id = id }
 
     private fun createGroupBuy(productName: String): GroupBuy =
         GroupBuy(

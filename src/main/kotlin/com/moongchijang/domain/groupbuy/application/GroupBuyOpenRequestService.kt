@@ -104,15 +104,13 @@ class GroupBuyOpenRequestService(
         )
 
         val requestsByUserId = pendingRequests.groupBy { requireUserId(it) }
-        val usersById = userRepository.findByIdInAndDeletedAtIsNull(requestsByUserId.keys)
-            .associateBy { it.id }
 
         val targetUserIds = requestsByUserId.keys.toList()
         var sentCount = 0
         var failedCount = 0
 
         requestsByUserId.forEach { (userId, userRequests) ->
-            val receiverPhone = usersById[userId]?.phoneNumber
+            val receiverPhone = userRequests.first().user.phoneNumber
             val message = buildOpenNotificationMessage(userRequests.first().region, productName)
 
             val sent = if (receiverPhone.isNullOrBlank()) {
