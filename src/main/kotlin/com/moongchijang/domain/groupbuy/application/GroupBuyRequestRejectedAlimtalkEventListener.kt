@@ -36,12 +36,13 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
         runCatching {
             val request = groupBuyRequestRepository.findById(requestId)
                 .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
-            val user = userRepository.findByIdAndDeletedAtIsNull(request.userId)
+            val userId = requireNotNull(request.user.id) { "GroupBuyRequest.user.id must not be null" }
+            val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             if (user == null) {
                 log.warn(
                     "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(사용자 없음): requestId={}, userId={}",
                     requestId,
-                    request.userId,
+                    userId,
                 )
                 return
             }
@@ -50,7 +51,7 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
                 log.warn(
                     "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(전화번호 없음): requestId={}, userId={}",
                     requestId,
-                    request.userId,
+                    userId,
                 )
                 return
             }

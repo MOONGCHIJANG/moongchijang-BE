@@ -46,7 +46,7 @@ data class AdminGroupBuyRequestPageResponse(
                 content = page.content.map {
                     AdminGroupBuyRequestListItemResponse.from(
                         request = it,
-                        requester = usersById[it.userId],
+                        requester = usersById[requesterId(it)],
                         groupBuy = it.openedGroupBuyId?.let(groupBuysById::get),
                         now = now
                     )
@@ -88,7 +88,7 @@ data class AdminGroupBuyRequestListItemResponse(
                 desiredQuantity = request.desiredQuantity,
                 desiredPickupDate = request.desiredPickupDate,
                 status = request.status,
-                requesterId = request.userId,
+                requesterId = requesterId(request),
                 requesterName = requester?.nickname,
                 originalPrice = groupBuy?.originalPrice,
                 price = groupBuy?.price,
@@ -128,7 +128,7 @@ data class AdminGroupBuyRequestDetailResponse(
         ): AdminGroupBuyRequestDetailResponse =
             AdminGroupBuyRequestDetailResponse(
                 requestId = request.id,
-                requester = AdminGroupBuyRequestRequesterResponse.from(request.userId, requester),
+                requester = AdminGroupBuyRequestRequesterResponse.from(requesterId(request), requester),
                 storeName = request.storeName,
                 storeAddress = request.storeAddress,
                 placeId = request.placeId,
@@ -183,3 +183,6 @@ data class AdminGroupBuyRequestStatusHistoryResponse(
             )
     }
 }
+
+private fun requesterId(request: GroupBuyRequest): Long =
+    requireNotNull(request.user.id) { "GroupBuyRequest.user.id must not be null" }

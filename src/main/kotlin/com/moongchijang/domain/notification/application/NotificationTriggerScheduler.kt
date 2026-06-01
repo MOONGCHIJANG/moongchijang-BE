@@ -73,10 +73,11 @@ class NotificationTriggerScheduler(
         )
 
         requests.forEach { request ->
+            val requesterUserId = requireNotNull(request.user.id) { "GroupBuyRequest.user.id must not be null" }
             notificationEventPublisher.publishScheduledTrigger(
                 triggerType = NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS,
                 targetId = request.id,
-                userIds = listOf(request.userId),
+                userIds = listOf(requesterUserId),
                 scheduleKey = "request-deadline-d3:${request.id}:$targetDate",
                 occurredAt = now
             )
