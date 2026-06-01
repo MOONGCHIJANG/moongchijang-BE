@@ -11,6 +11,7 @@ import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.user.application.dto.AdditionalInfoUpsertRequest
 import com.moongchijang.domain.user.application.dto.NicknameUpdateRequest
 import com.moongchijang.domain.user.application.dto.PasswordChangeRequest
@@ -49,6 +50,7 @@ class UserServiceTest {
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
     private val favoriteRepository: FavoriteRepository = Mockito.mock(FavoriteRepository::class.java)
     private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
+    private val adminDiscordAlertService: AdminDiscordAlertService = Mockito.mock(AdminDiscordAlertService::class.java)
     private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
     private val userService = UserService(
         userRepository,
@@ -60,6 +62,7 @@ class UserServiceTest {
         favoriteRepository,
         paymentService,
         passwordEncoder,
+        adminDiscordAlertService,
     )
 
     @Test

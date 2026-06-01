@@ -1,6 +1,7 @@
 package com.moongchijang.domain.groupbuy.application
 
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -20,6 +21,7 @@ class GroupBuyStatusTransitionService(
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val adminDiscordAlertService: AdminDiscordAlertService,
     private val transactionManager: PlatformTransactionManager,
     @Value("\${groupbuy.status-transition.batch-size:500}")
     private val batchSize: Int
@@ -81,7 +83,9 @@ class GroupBuyStatusTransitionService(
                 GroupBuyStatus.IN_PROGRESS -> {
                     groupBuy.transitionToFailedByDeadline(now)
                     markParticipationsRefundPending(groupBuy.id, now)
-                    publishApplyGroupBuyFailedEvent(groupBuy.id, now)
+                    val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuy.id)
+                    publishApplyGroupBuyFailedEvent(groupBuy.id, participantUserIds, now)
+                    adminDiscordAlertService.sendGroupBuyFailed(groupBuy, participantUserIds.size)
                     inProgressToFailed++
                 }
                 GroupBuyStatus.ACHIEVED -> {
@@ -104,8 +108,7 @@ class GroupBuyStatusTransitionService(
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRES_NEW
         }
 
-    private fun publishApplyGroupBuyFailedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
-        val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
+    private fun publishApplyGroupBuyFailedEvent(groupBuyId: Long, participantUserIds: List<Long>, occurredAt: LocalDateTime) {
         if (participantUserIds.isEmpty()) return
 
         notificationEventPublisher.publishApplyGroupBuyFailed(

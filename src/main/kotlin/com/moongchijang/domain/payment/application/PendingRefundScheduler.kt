@@ -1,6 +1,7 @@
 package com.moongchijang.domain.payment.application
 
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component
 class PendingRefundScheduler(
     private val paymentService: PaymentService,
     private val redisLockUtil: RedisLockUtil,
+    private val adminDiscordAlertService: AdminDiscordAlertService,
     @Value("\${payment.pending-refund.batch-size:100}")
     private val batchSize: Int,
     @Value("\${payment.pending-refund.lock.wait-ms:100}")
@@ -42,6 +44,9 @@ class PendingRefundScheduler(
                     result.successCount,
                     result.failedCount
                 )
+                if (result.failedCount > 0) {
+                    adminDiscordAlertService.sendRefundFailedSummary(result.failedCount)
+                }
             }
         } finally {
             val unlocked = redisLockUtil.unlock(PENDING_REFUND_LOCK_KEY, token)

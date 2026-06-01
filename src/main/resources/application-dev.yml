@@ -89,6 +89,13 @@ aligo:
   template-code-pickup-day-reminder: ${ALIGO_TEMPLATE_PICKUP_DAY_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE}}}
   sender: ${ALIGO_SENDER}
 
+discord:
+  enabled: ${DISCORD_ENABLED:false}
+  webhook:
+    refund: ${DISCORD_WEBHOOK_REFUND:}
+    groupbuy: ${DISCORD_WEBHOOK_GROUPBUY:}
+    onboarding: ${DISCORD_WEBHOOK_ONBOARDING:}
+
 ses:
   enabled: ${SES_ENABLED:false}
   region: ${SES_REGION}
