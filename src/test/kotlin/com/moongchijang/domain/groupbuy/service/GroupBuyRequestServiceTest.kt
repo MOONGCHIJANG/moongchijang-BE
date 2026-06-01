@@ -11,6 +11,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHisto
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -55,6 +56,9 @@ class GroupBuyRequestServiceTest {
 
     @Mock
     private lateinit var clock: Clock
+
+    @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
 
     @InjectMocks
     private lateinit var service: GroupBuyRequestService

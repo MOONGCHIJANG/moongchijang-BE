@@ -1,6 +1,7 @@
 package com.moongchijang.domain.notification.infrastructure.discord
 
 import com.moongchijang.domain.notification.application.discord.AdminDiscordChannel
+import com.moongchijang.domain.notification.application.discord.DiscordMessageSender
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -10,10 +11,10 @@ import org.springframework.web.client.RestClient
 class DiscordWebhookClient(
     private val restClient: RestClient,
     private val discordProperties: DiscordProperties,
-) {
+) : DiscordMessageSender {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun send(channel: AdminDiscordChannel, message: String): Boolean {
+    override fun send(channel: AdminDiscordChannel, message: String): Boolean {
         if (!discordProperties.enabled) {
             log.debug("[DiscordWebhookClient] 비활성화 상태로 전송을 건너뜁니다: channel={}", channel)
             return false

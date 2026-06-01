@@ -3,6 +3,7 @@ package com.moongchijang.domain.groupbuy.service
 import com.moongchijang.domain.groupbuy.application.GroupBuyStatusTransitionService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -40,6 +41,9 @@ class GroupBuyStatusTransitionServiceTest {
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
+    @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
+
     private lateinit var service: GroupBuyStatusTransitionService
 
     @BeforeEach
@@ -49,6 +53,7 @@ class GroupBuyStatusTransitionServiceTest {
             groupBuyRepository,
             participationRepository,
             notificationEventPublisher,
+            adminDiscordAlertService,
             transactionManager,
             500
         )
@@ -151,6 +156,7 @@ class GroupBuyStatusTransitionServiceTest {
             groupBuyRepository,
             participationRepository,
             notificationEventPublisher,
+            adminDiscordAlertService,
             transactionManager,
             2
         )

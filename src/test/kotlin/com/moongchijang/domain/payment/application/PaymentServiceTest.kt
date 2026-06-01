@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
@@ -95,6 +96,9 @@ class PaymentServiceTest {
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
     @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
+
+    @Mock
     private lateinit var refundRequestSyncService: RefundRequestSyncService
 
     @Mock
@@ -119,6 +123,7 @@ class PaymentServiceTest {
             transactionManager = transactionManager,
             redisLockUtil = redisLockUtil,
             notificationEventPublisher = notificationEventPublisher,
+            adminDiscordAlertService = adminDiscordAlertService,
             refundRequestSyncService = refundRequestSyncService,
             s3ImageReferenceResolver = s3ImageReferenceResolver
         )
