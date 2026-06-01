@@ -5,7 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.NotificationStatus
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface GroupBuyOpenRequestRepository : JpaRepository<GroupBuyOpenRequest, Long> {
-    fun existsByUserIdAndRegionAndProductName(userId: Long, region: String, productName: String): Boolean
+    fun existsByUser_IdAndRegionAndProductName(userId: Long, region: String, productName: String): Boolean
 
     fun findAllByRegionAndProductNameAndNotificationStatus(
         region: String,
