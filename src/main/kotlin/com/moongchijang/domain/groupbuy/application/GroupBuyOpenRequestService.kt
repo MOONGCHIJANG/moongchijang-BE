@@ -77,8 +77,9 @@ class GroupBuyOpenRequestService(
             productName = groupBuy.productName,
         )
         if (result.targetUserIds.isNotEmpty()) {
+            val requestId = groupBuy.groupBuyRequest?.id ?: return result
             notificationEventPublisher.publishRequestOpened(
-                requestId = groupBuy.groupBuyRequest.id,
+                requestId = requestId,
                 requesterUserIds = result.targetUserIds,
                 occurredAt = java.time.LocalDateTime.now()
             )

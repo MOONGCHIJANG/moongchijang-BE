@@ -444,8 +444,9 @@ class PaymentService(
         participation: Participation,
         occurredAt: LocalDateTime
     ) {
-        val requesterUserId = groupBuy.groupBuyRequest.user.id ?: return
-        val requestId = groupBuy.groupBuyRequest.id
+        val groupBuyRequest = groupBuy.groupBuyRequest ?: return
+        val requesterUserId = groupBuyRequest.user.id ?: return
+        val requestId = groupBuyRequest.id
         val participantUserId = participation.user.id ?: return
         if (requesterUserId == participantUserId) return
 
@@ -458,8 +459,9 @@ class PaymentService(
     }
 
     private fun publishRequestTargetAchievedEvent(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
-        val requesterUserId = groupBuy.groupBuyRequest.user.id ?: return
-        val requestId = groupBuy.groupBuyRequest.id
+        val groupBuyRequest = groupBuy.groupBuyRequest ?: return
+        val requesterUserId = groupBuyRequest.user.id ?: return
+        val requestId = groupBuyRequest.id
         notificationEventPublisher.publishRequestTargetAchieved(
             requestId = requestId,
             requesterUserId = requesterUserId,

@@ -16,8 +16,8 @@ class GroupBuy(
     var store: Store,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_buy_request_id", nullable = false)
-    var groupBuyRequest: GroupBuyRequest,
+    @JoinColumn(name = "group_buy_request_id")
+    var groupBuyRequest: GroupBuyRequest? = null,
 
     @Column(length = 500)
     var thumbnailKey: String? = null,
