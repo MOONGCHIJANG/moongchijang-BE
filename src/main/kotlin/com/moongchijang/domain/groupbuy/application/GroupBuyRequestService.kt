@@ -72,7 +72,7 @@ class GroupBuyRequestService(
 
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = saved.id,
+                groupBuyRequest = saved,
                 status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = saved.createdAt ?: LocalDateTime.now()
             )
@@ -90,8 +90,8 @@ class GroupBuyRequestService(
         if (requests.isEmpty()) return emptyList()
 
         val historyMap = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdInOrderByChangedAtAsc(requests.map { it.id })
-            .groupBy { it.groupBuyRequestId }
+            .findByGroupBuyRequest_IdInOrderByChangedAtAsc(requests.map { it.id })
+            .groupBy { it.groupBuyRequest.id }
 
         val responses = requests.map { GroupBuyRequestResponse.from(it, historyMap[it.id] ?: emptyList()) }
         log.info("[GroupBuyRequestService] 내 공구요청 목록 조회 완료: userId={}, count={}", userId, responses.size)
@@ -109,7 +109,7 @@ class GroupBuyRequestService(
         }
 
         val history = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
+            .findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId)
 
         val response = GroupBuyRequestResponse.from(request, history)
         log.info("[GroupBuyRequestService] 공구요청 상세 조회 완료: userId={}, requestId={}", userId, requestId)
@@ -163,7 +163,7 @@ class GroupBuyRequestService(
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
         val requester = request.user
         val history = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
+            .findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId)
 
         val response = AdminGroupBuyRequestDetailResponse.from(request, requester, history)
         log.info("[GroupBuyRequestService] 관리자 공구요청 상세 조회 완료: requestId={}", requestId)
@@ -213,7 +213,7 @@ class GroupBuyRequestService(
         groupBuyRequest.status = request.targetStatus
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = groupBuyRequest.id,
+                groupBuyRequest = groupBuyRequest,
                 status = request.targetStatus,
                 changedAt = LocalDateTime.now()
             )
@@ -221,7 +221,7 @@ class GroupBuyRequestService(
         openedGroupBuyForNotification?.let { notifyOpenedAfterCommit(it) }
 
         val history = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
+            .findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId)
 
         val response = GroupBuyRequestResponse.from(groupBuyRequest, history)
         log.info(

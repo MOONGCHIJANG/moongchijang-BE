@@ -32,7 +32,7 @@ class GroupBuyRequestStatusCommandService(
         request.markRejected(reason)
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = request.id,
+                groupBuyRequest = request,
                 status = GroupBuyRequestStatus.REJECTED,
                 changedAt = changedAt
             )

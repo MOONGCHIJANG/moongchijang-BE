@@ -7,8 +7,9 @@ import java.time.LocalDateTime
 @Table(name = "group_buy_request_status_histories")
 class GroupBuyRequestStatusHistory(
 
-    @Column(nullable = false)
-    val groupBuyRequestId: Long,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_buy_request_id", nullable = false)
+    val groupBuyRequest: GroupBuyRequest,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
