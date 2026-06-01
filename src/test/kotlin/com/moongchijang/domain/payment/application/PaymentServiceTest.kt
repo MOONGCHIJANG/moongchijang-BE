@@ -368,7 +368,7 @@ class PaymentServiceTest {
         val participantUser = UserFixture.createKakaoUser(id = 2L)
         val groupBuy = createGroupBuy().apply {
             groupBuyRequest = GroupBuyRequest(
-                userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
                 storeName = "뭉치장 베이커리",
                 storeAddress = "서울 성동구",
                 productName = "두쫀쿠",
@@ -999,7 +999,7 @@ class PaymentServiceTest {
 
     private fun createGroupBuyRequest(): GroupBuyRequest =
         GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "뭉치장 베이커리",
             storeAddress = "서울 성동구",
             productName = "두쫀쿠",

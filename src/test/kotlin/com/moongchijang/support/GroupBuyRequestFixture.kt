@@ -41,7 +41,7 @@ object GroupBuyRequestFixture {
         storeAddress: String? = null
     ): GroupBuyRequest {
         return GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = storeName,
             storeAddress = storeAddress,
             productName = productName,

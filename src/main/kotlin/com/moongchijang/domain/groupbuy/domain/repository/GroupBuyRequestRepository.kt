@@ -64,7 +64,6 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
     ): Page<GroupBuyRequest>
 
     fun countByUser_Id(userId: Long): Long
-
     fun countByStatusIn(statuses: Collection<GroupBuyRequestStatus>): Long
 
     @Query(

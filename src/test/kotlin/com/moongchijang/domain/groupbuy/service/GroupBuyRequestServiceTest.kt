@@ -63,6 +63,8 @@ class GroupBuyRequestServiceTest {
     fun setUpClock() {
         lenient().`when`(clock.instant()).thenReturn(Instant.parse("2026-05-27T04:00:00Z"))
         lenient().`when`(clock.zone).thenReturn(ZoneId.of("Asia/Seoul"))
+        lenient().`when`(userRepository.findByIdAndDeletedAtIsNull(anyLong()))
+            .thenAnswer { UserFixture.createKakaoUser(id = it.getArgument(0)) }
     }
 
     @Test
@@ -72,7 +74,7 @@ class GroupBuyRequestServiceTest {
             desiredPickupDate = LocalDate.now().plusDays(3)
         )
         val saved = GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = request.storeName,
             storeAddress = request.storeAddress,
             productName = request.productName,
@@ -83,7 +85,14 @@ class GroupBuyRequestServiceTest {
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = 42L, status = GroupBuyRequestStatus.IN_REVIEW)
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = 42L }, status = GroupBuyRequestStatus.IN_REVIEW)
         )
 
         val result = service.create(userId, request)
@@ -109,7 +118,7 @@ class GroupBuyRequestServiceTest {
             longitude = 127.0
         )
         val saved = GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = request.storeName,
             storeAddress = request.roadAddress,
             placeId = request.placeId,
@@ -125,7 +134,14 @@ class GroupBuyRequestServiceTest {
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = 43L, status = GroupBuyRequestStatus.IN_REVIEW)
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = 43L }, status = GroupBuyRequestStatus.IN_REVIEW)
         )
 
         val result = service.create(userId, request)
@@ -153,7 +169,7 @@ class GroupBuyRequestServiceTest {
             longitude = 127.0
         )
         val saved = GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = request.storeName,
             storeAddress = request.storeAddress,
             productName = request.productName,
@@ -163,7 +179,14 @@ class GroupBuyRequestServiceTest {
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = 44L, status = GroupBuyRequestStatus.IN_REVIEW)
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = 44L }, status = GroupBuyRequestStatus.IN_REVIEW)
         )
 
         service.create(userId, request)
@@ -190,7 +213,7 @@ class GroupBuyRequestServiceTest {
             longitude = 127.0
         )
         val saved = GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = request.storeName,
             storeAddress = request.lotAddress,
             productName = request.productName,
@@ -200,7 +223,14 @@ class GroupBuyRequestServiceTest {
 
         `when`(groupBuyRequestRepository.save(any())).thenReturn(saved)
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = 45L, status = GroupBuyRequestStatus.IN_REVIEW)
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = 45L }, status = GroupBuyRequestStatus.IN_REVIEW)
         )
 
         service.create(userId, request)
@@ -230,13 +260,20 @@ class GroupBuyRequestServiceTest {
     fun `내 요청 목록 조회 시 본인 요청만 반환`() {
         val userId = 1L
         val requests = listOf(
-            GroupBuyRequest(userId = userId, storeName = "성심당", productName = "튀김소보로",
+            GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId), storeName = "성심당", productName = "튀김소보로",
                 desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5)).apply { id = 1L }
         )
-        `when`(groupBuyRequestRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(requests)
-        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdInOrderByChangedAtAsc(listOf(1L)))
+        `when`(groupBuyRequestRepository.findByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(requests)
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequest_IdInOrderByChangedAtAsc(listOf(1L)))
             .thenReturn(listOf(
-                GroupBuyRequestStatusHistory(groupBuyRequestId = 1L, status = GroupBuyRequestStatus.IN_REVIEW,
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = 1L }, status = GroupBuyRequestStatus.IN_REVIEW,
                     changedAt = LocalDateTime.now())
             ))
 
@@ -250,7 +287,7 @@ class GroupBuyRequestServiceTest {
 
     @Test
     fun `요청 목록이 없으면 빈 리스트 반환`() {
-        `when`(groupBuyRequestRepository.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(emptyList())
+        `when`(groupBuyRequestRepository.findByUser_IdOrderByCreatedAtDesc(1L)).thenReturn(emptyList())
 
         val result = service.getMyRequests(1L)
 
@@ -261,19 +298,33 @@ class GroupBuyRequestServiceTest {
     fun `상세 조회 시 statusHistory 포함 반환`() {
         val userId = 1L
         val requestId = 10L
-        val groupBuyRequest = GroupBuyRequest(userId = userId, storeName = "뚜레쥬르", productName = "크림빵",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId), storeName = "뚜레쥬르", productName = "크림빵",
             desiredQuantity = 1, desiredPickupDate = LocalDate.now().plusDays(7),
             placeId = "naver-place-2", roadAddress = "서울 강남구 도산대로 1",
             lotAddress = "서울 강남구 신사동 1", latitude = 37.1, longitude = 127.1).apply { id = requestId }
         val history = listOf(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW,
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = LocalDateTime.now().minusDays(2)),
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT,
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_CONTACT,
                 changedAt = LocalDateTime.now().minusDays(1))
         )
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
-        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId))
             .thenReturn(history)
 
         val result = service.getDetail(userId, requestId)
@@ -300,7 +351,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `다른 사용자의 요청 조회 시 GROUPBUY_REQUEST_FORBIDDEN 예외`() {
         val requestId = 10L
-        val groupBuyRequest = GroupBuyRequest(userId = 2L, storeName = "파리바게뜨", productName = "단팥빵",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 2L), storeName = "파리바게뜨", productName = "단팥빵",
             desiredQuantity = 1, desiredPickupDate = LocalDate.now().plusDays(5)).apply { id = requestId }
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
@@ -314,7 +365,7 @@ class GroupBuyRequestServiceTest {
         val pageable = PageRequest.of(0, 20)
         val requester = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
         val request = GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "성심당",
             productName = "튀김소보로",
             desiredQuantity = 20,
@@ -347,7 +398,7 @@ class GroupBuyRequestServiceTest {
     fun `운영자는 상태별 공구 요청 목록을 페이징 조회한다`() {
         val pageable = PageRequest.of(1, 10)
         val request = GroupBuyRequest(
-            userId = 2L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 2L),
             storeName = "파리바게뜨",
             productName = "단팥빵",
             desiredQuantity = 5,
@@ -390,7 +441,7 @@ class GroupBuyRequestServiceTest {
     fun `운영자 공구 요청 목록은 검색어와 승인 공구 가격을 반영한다`() {
         val pageable = PageRequest.of(0, 20)
         val request = GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "성심당",
             productName = "튀김소보로",
             desiredQuantity = 20,
@@ -429,7 +480,7 @@ class GroupBuyRequestServiceTest {
             nickname = "요청자"
         ).apply { phoneNumber = "01012345678" }
         val request = GroupBuyRequest(
-            userId = 3L,
+            user = requester,
             storeName = "뚜레쥬르",
             storeAddress = "서울 성동구",
             placeId = "place-1",
@@ -445,20 +496,31 @@ class GroupBuyRequestServiceTest {
         ).apply { id = requestId }
         val history = listOf(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = requestId,
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId },
                 status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = LocalDateTime.now().minusDays(1)
             ),
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = requestId,
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId },
                 status = GroupBuyRequestStatus.IN_CONTACT,
                 changedAt = LocalDateTime.now()
             )
         )
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(request))
-        `when`(userRepository.findById(3L)).thenReturn(Optional.of(requester))
-        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId))
             .thenReturn(history)
 
         val result = service.getAdminDetail(requestId)
@@ -482,17 +544,38 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `IN_REVIEW 요청을 IN_CONTACT로 변경하면 상태와 히스토리를 저장한다`() {
         val requestId = 10L
-        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5)).apply { id = requestId }
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT)
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_CONTACT)
         )
-        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId))
             .thenReturn(listOf(
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW),
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT)
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_REVIEW),
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_CONTACT)
             ))
 
         val result = service.updateStatus(
@@ -505,7 +588,7 @@ class GroupBuyRequestServiceTest {
         assertEquals(2, result.statusHistory.size)
         val captor = argumentCaptor<GroupBuyRequestStatusHistory>()
         verify(groupBuyRequestStatusHistoryRepository).save(captor.capture())
-        assertEquals(requestId, captor.value.groupBuyRequestId)
+        assertEquals(requestId, captor.value.groupBuyRequest.id)
         assertEquals(GroupBuyRequestStatus.IN_CONTACT, captor.value.status)
         assertNotNull(captor.value.changedAt)
     }
@@ -513,7 +596,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `IN_CONTACT 요청을 REJECTED로 변경할 때 거절 사유를 저장한다`() {
         val requestId = 11L
-        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
             status = GroupBuyRequestStatus.IN_CONTACT).apply {
             id = requestId
@@ -522,13 +605,41 @@ class GroupBuyRequestServiceTest {
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.REJECTED)
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.REJECTED)
         )
-        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId))
             .thenReturn(listOf(
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW),
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT),
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.REJECTED)
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_REVIEW),
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_CONTACT),
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.REJECTED)
             ))
 
         val result = service.updateStatus(
@@ -548,7 +659,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `REJECTED 변경 시 거절 사유가 없으면 GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED 예외`() {
         val requestId = 12L
-        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
             status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
 
@@ -572,7 +683,7 @@ class GroupBuyRequestServiceTest {
     fun `IN_CONTACT 요청을 OPENED로 변경할 때 공구 id가 있으면 존재 검증 후 저장한다`() {
         val requestId = 13L
         val openedGroupBuyId = 100L
-        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
             status = GroupBuyRequestStatus.IN_CONTACT).apply {
             id = requestId
@@ -587,13 +698,41 @@ class GroupBuyRequestServiceTest {
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))
         `when`(groupBuyRepository.findWithStoreById(openedGroupBuyId)).thenReturn(Optional.of(openedGroupBuy))
         `when`(groupBuyRequestStatusHistoryRepository.save(any())).thenReturn(
-            GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.OPENED)
+            GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.OPENED)
         )
-        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequestIdOrderByChangedAtAsc(requestId))
+        `when`(groupBuyRequestStatusHistoryRepository.findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId))
             .thenReturn(listOf(
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_REVIEW),
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.IN_CONTACT),
-                GroupBuyRequestStatusHistory(groupBuyRequestId = requestId, status = GroupBuyRequestStatus.OPENED)
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_REVIEW),
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.IN_CONTACT),
+                GroupBuyRequestStatusHistory(
+                    groupBuyRequest = GroupBuyRequest(
+                        user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
+                        storeName = "stub",
+                        productName = "stub",
+                        desiredQuantity = 1,
+                        desiredPickupDate = java.time.LocalDate.now()
+                    ).apply { id = requestId }, status = GroupBuyRequestStatus.OPENED)
             ))
 
         val result = service.updateStatus(
@@ -615,7 +754,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `OPENED 변경 시 공구 id가 없으면 GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED 예외`() {
         val requestId = 14L
-        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
             status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
 
@@ -637,7 +776,7 @@ class GroupBuyRequestServiceTest {
     fun `OPENED 변경 시 공구 id가 존재하지 않으면 GROUPBUY_NOT_FOUND 예외`() {
         val requestId = 15L
         val openedGroupBuyId = 100L
-        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5),
             status = GroupBuyRequestStatus.IN_CONTACT).apply { id = requestId }
 
@@ -662,7 +801,7 @@ class GroupBuyRequestServiceTest {
     @Test
     fun `허용되지 않는 상태 전이는 GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION 예외`() {
         val requestId = 16L
-        val groupBuyRequest = GroupBuyRequest(userId = 1L, storeName = "성심당", productName = "튀김소보로",
+        val groupBuyRequest = GroupBuyRequest(user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L), storeName = "성심당", productName = "튀김소보로",
             desiredQuantity = 2, desiredPickupDate = LocalDate.now().plusDays(5)).apply { id = requestId }
 
         `when`(groupBuyRequestRepository.findById(requestId)).thenReturn(Optional.of(groupBuyRequest))

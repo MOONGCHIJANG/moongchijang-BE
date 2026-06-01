@@ -245,7 +245,7 @@ class AdminGroupBuyRequestActionServiceTest {
 
     private fun groupBuyRequest(status: GroupBuyRequestStatus): GroupBuyRequest =
         GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "뭉치장 베이커리",
             storeAddress = "서울 성동구 성수이로 1",
             productName = "두쫀쿠",

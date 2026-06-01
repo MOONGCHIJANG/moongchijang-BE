@@ -72,7 +72,7 @@ object ParticipationFixture {
             district = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG
         )
         val request = GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "사이드템포",
             productName = "두쫀쿠 오리지널 1개",
             desiredQuantity = 50,

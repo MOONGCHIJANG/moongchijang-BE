@@ -181,7 +181,7 @@ class NotificationTriggerSchedulerTest {
     fun `요청공구 D3 스케줄러를 실행할 때 요청자 대상 알림 발행`() {
         val now = LocalDateTime.of(2026, 5, 23, 7, 0)
         val request = GroupBuyRequest(
-            userId = 7L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 7L),
             storeName = "테스트 매장",
             storeAddress = "서울",
             productName = "소금빵",
