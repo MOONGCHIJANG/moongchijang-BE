@@ -1283,6 +1283,26 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/admin/dashboard/urgent-refunds:
+    get:
+      tags: [Admin]
+      summary: 대시보드 긴급 환불 요청 조회 (운영자)
+      description: 요청 후 1시간을 초과한 REFUND_PENDING 환불 요청을 조회한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 긴급 환불 요청 목록과 요약
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminDashboardUrgentRefunds'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /api/v1/admin/orders:
     get:
       tags: [Admin]
@@ -5501,6 +5521,58 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    ApiResponseAdminDashboardUrgentRefunds:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [totalUrgentCount, hasUrgentRefunds, content, totalElements, totalPages, number, size]
+          properties:
+            totalUrgentCount:
+              type: integer
+              format: int64
+              description: 요청 후 1시간을 초과한 환불 요청 건수
+            hasUrgentRefunds:
+              type: boolean
+              description: 긴급 환불 요청 존재 여부
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/AdminDashboardUrgentRefundItem'
+            totalElements: { type: integer, format: int64 }
+            totalPages: { type: integer }
+            number: { type: integer }
+            size: { type: integer }
+        error: { nullable: true, example: null }
+
+    AdminDashboardUrgentRefundItem:
+      type: object
+      required: [requestId, caseFilter, consumerName, groupBuyName, refundAmount, requestedAt, slaElapsedHours]
+      properties:
+        requestId:
+          type: integer
+          format: int64
+          description: 환불 요청 ID. 현재는 participationId와 동일
+        caseFilter:
+          type: string
+          enum: [ALL, PRE_ACHIEVEMENT_FREE_CANCEL, POST_ACHIEVEMENT_CANCEL, PICKUP_PERIOD_NO_SHOW, OWNER_FAULT_CANCEL, TARGET_NOT_MET, DISPUTE_OR_DROPOUT_REFUND]
+          description: 환불 케이스
+        consumerName: { type: string }
+        groupBuyName: { type: string }
+        refundAmount:
+          type: integer
+          description: 승인 전에는 환불 가능 예상 금액, 승인 후에는 승인 환불 금액
+        requestedAt:
+          type: string
+          format: date-time
+          description: 환불 요청 일시
+        slaElapsedHours:
+          type: integer
+          format: int64
+          description: 요청 후 경과 시간(시간)
 
     ApiResponseAdminOrderPage:
       type: object

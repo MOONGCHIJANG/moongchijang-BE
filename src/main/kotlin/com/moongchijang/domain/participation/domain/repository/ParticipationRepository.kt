@@ -603,6 +603,35 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
     ): Page<Participation>
 
     @Query(
+        value = """
+        select p
+        from Participation p
+        join fetch p.user
+        join fetch p.groupBuy gb
+        where p.status = :status
+          and (
+            (p.cancelledAt is not null and p.cancelledAt <= :requestedBefore)
+            or (p.cancelledAt is null and p.createdAt <= :requestedBefore)
+          )
+        order by coalesce(p.cancelledAt, p.createdAt) asc, p.id asc
+        """,
+        countQuery = """
+        select count(p)
+        from Participation p
+        where p.status = :status
+          and (
+            (p.cancelledAt is not null and p.cancelledAt <= :requestedBefore)
+            or (p.cancelledAt is null and p.createdAt <= :requestedBefore)
+          )
+        """
+    )
+    fun findDashboardUrgentRefundRequests(
+        @Param("status") status: ParticipationStatus,
+        @Param("requestedBefore") requestedBefore: LocalDateTime,
+        pageable: Pageable,
+    ): Page<Participation>
+
+    @Query(
         """
         select p
         from Participation p
