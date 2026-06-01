@@ -38,6 +38,19 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_test_bu
   }
 }
 
+// S3 CORS 설정 (Presigned PUT 업로드용)
+resource "aws_s3_bucket_cors_configuration" "terraform_test_bucket" {
+  bucket = aws_s3_bucket.terraform_test_bucket.id
+
+  cors_rule {
+    allowed_methods = ["PUT", "GET", "HEAD"]
+    allowed_origins = var.s3_cors_allowed_origins
+    allowed_headers = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
 // 애플리케이션 서버 보안 그룹 설정
 resource "aws_security_group" "app_sg" {
   name        = "${var.project_name}-app-sg"
