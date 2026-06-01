@@ -55,13 +55,13 @@ class GroupBuyOpenRequestService(
     }
 
     fun create(userId: Long, request: CreateGroupBuyOpenRequestRequest) {
-        if (openRequestRepository.existsByUserIdAndRegionAndProductName(userId, request.region, request.productName)) {
+        if (openRequestRepository.existsByUser_IdAndRegionAndProductName(userId, request.region, request.productName)) {
             throw CustomException(ErrorCode.DUPLICATE_OPEN_REQUEST)
         }
         try {
             openRequestRepository.saveAndFlush(
                 GroupBuyOpenRequest(
-                    userId = userId,
+                    user = findUser(userId),
                     region = request.region,
                     productName = request.productName
                 )
@@ -103,16 +103,14 @@ class GroupBuyOpenRequestService(
             notificationStatus = NotificationStatus.PENDING,
         )
 
-        val requestsByUserId = pendingRequests.groupBy { it.userId }
-        val usersById = userRepository.findByIdInAndDeletedAtIsNull(requestsByUserId.keys)
-            .associateBy { it.id }
+        val requestsByUserId = pendingRequests.groupBy { requireUserId(it) }
 
         val targetUserIds = requestsByUserId.keys.toList()
         var sentCount = 0
         var failedCount = 0
 
         requestsByUserId.forEach { (userId, userRequests) ->
-            val receiverPhone = usersById[userId]?.phoneNumber
+            val receiverPhone = userRequests.first().user.phoneNumber
             val message = buildOpenNotificationMessage(userRequests.first().region, productName)
 
             val sent = if (receiverPhone.isNullOrBlank()) {
@@ -364,6 +362,13 @@ class GroupBuyOpenRequestService(
 
     private fun elapsedMillis(startedAt: Long): Long =
         ((System.nanoTime() - startedAt) / 1_000_000.0).roundToLong()
+
+    private fun findUser(userId: Long) =
+        userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+    private fun requireUserId(openRequest: GroupBuyOpenRequest): Long =
+        openRequest.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
     private data class StoreRecommendationCandidate(
         val naverRank: Int,

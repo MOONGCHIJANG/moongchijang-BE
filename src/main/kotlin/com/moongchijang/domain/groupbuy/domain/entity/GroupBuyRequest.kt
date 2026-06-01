@@ -1,5 +1,6 @@
 package com.moongchijang.domain.groupbuy.domain.entity
 
+import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDate
@@ -8,8 +9,9 @@ import java.time.LocalDate
 @Table(name = "group_buy_requests")
 class GroupBuyRequest(
 
-    @Column(nullable = false)
-    val userId: Long,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    val user: User,
 
     @Column(nullable = false, length = 100)
     val storeName: String,

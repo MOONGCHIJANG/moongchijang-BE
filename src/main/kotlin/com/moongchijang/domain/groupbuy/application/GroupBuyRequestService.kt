@@ -14,6 +14,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHisto
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -54,7 +55,7 @@ class GroupBuyRequestService(
 
         val saved = groupBuyRequestRepository.save(
             GroupBuyRequest(
-                userId = userId,
+                user = findUser(userId),
                 storeName = request.storeName,
                 storeAddress = storeAddress,
                 placeId = placeId,
@@ -71,7 +72,7 @@ class GroupBuyRequestService(
 
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = saved.id,
+                groupBuyRequest = saved,
                 status = GroupBuyRequestStatus.IN_REVIEW,
                 changedAt = saved.createdAt ?: LocalDateTime.now()
             )
@@ -85,12 +86,12 @@ class GroupBuyRequestService(
     @Transactional(readOnly = true)
     fun getMyRequests(userId: Long): List<GroupBuyRequestResponse> {
         log.info("[GroupBuyRequestService] 내 공구요청 목록 조회 시작: userId={}", userId)
-        val requests = groupBuyRequestRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        val requests = groupBuyRequestRepository.findByUser_IdOrderByCreatedAtDesc(userId)
         if (requests.isEmpty()) return emptyList()
 
         val historyMap = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdInOrderByChangedAtAsc(requests.map { it.id })
-            .groupBy { it.groupBuyRequestId }
+            .findByGroupBuyRequest_IdInOrderByChangedAtAsc(requests.map { it.id })
+            .groupBy { it.groupBuyRequest.id }
 
         val responses = requests.map { GroupBuyRequestResponse.from(it, historyMap[it.id] ?: emptyList()) }
         log.info("[GroupBuyRequestService] 내 공구요청 목록 조회 완료: userId={}, count={}", userId, responses.size)
@@ -103,12 +104,12 @@ class GroupBuyRequestService(
         val request = groupBuyRequestRepository.findById(requestId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
 
-        if (request.userId != userId) {
+        if (requesterId(request) != userId) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_FORBIDDEN)
         }
 
         val history = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
+            .findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId)
 
         val response = GroupBuyRequestResponse.from(request, history)
         log.info("[GroupBuyRequestService] 공구요청 상세 조회 완료: userId={}, requestId={}", userId, requestId)
@@ -136,17 +137,9 @@ class GroupBuyRequestService(
             pageable = pageable
         )
 
-        val userIds = page.content.map { it.userId }.distinct()
-        val usersById = if (userIds.isEmpty()) {
-            emptyMap()
-        } else {
-            userRepository.findAllById(userIds)
-                .mapNotNull { user -> user.id?.let { it to user } }
-                .toMap()
-        }
         val groupBuysById = findOpenedGroupBuys(page.content)
 
-        val response = AdminGroupBuyRequestPageResponse.from(page, usersById, groupBuysById, LocalDateTime.now(clock))
+        val response = AdminGroupBuyRequestPageResponse.from(page, groupBuysById, LocalDateTime.now(clock))
         log.info(
             "[GroupBuyRequestService] 관리자 공구요청 목록 조회 완료: status={}, totalElements={}",
             status,
@@ -160,9 +153,9 @@ class GroupBuyRequestService(
         log.info("[GroupBuyRequestService] 관리자 공구요청 상세 조회 시작: requestId={}", requestId)
         val request = groupBuyRequestRepository.findById(requestId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
-        val requester = userRepository.findById(request.userId).orElse(null)
+        val requester = request.user
         val history = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
+            .findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId)
 
         val response = AdminGroupBuyRequestDetailResponse.from(request, requester, history)
         log.info("[GroupBuyRequestService] 관리자 공구요청 상세 조회 완료: requestId={}", requestId)
@@ -212,7 +205,7 @@ class GroupBuyRequestService(
         groupBuyRequest.status = request.targetStatus
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = groupBuyRequest.id,
+                groupBuyRequest = groupBuyRequest,
                 status = request.targetStatus,
                 changedAt = LocalDateTime.now()
             )
@@ -220,7 +213,7 @@ class GroupBuyRequestService(
         openedGroupBuyForNotification?.let { notifyOpenedAfterCommit(it) }
 
         val history = groupBuyRequestStatusHistoryRepository
-            .findByGroupBuyRequestIdOrderByChangedAtAsc(requestId)
+            .findByGroupBuyRequest_IdOrderByChangedAtAsc(requestId)
 
         val response = GroupBuyRequestResponse.from(groupBuyRequest, history)
         log.info(
@@ -271,4 +264,11 @@ class GroupBuyRequestService(
 
         return groupBuyRepository.findAllById(openedGroupBuyIds).associateBy { it.id }
     }
+
+    private fun findUser(userId: Long): User =
+        userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+    private fun requesterId(request: GroupBuyRequest): Long =
+        request.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 }

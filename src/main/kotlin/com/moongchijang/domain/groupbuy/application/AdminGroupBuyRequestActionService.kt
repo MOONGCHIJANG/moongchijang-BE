@@ -197,7 +197,7 @@ class AdminGroupBuyRequestActionService(
         groupBuyRequest.rejectionReason = rejectionReason
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = groupBuyRequest.id,
+                groupBuyRequest = groupBuyRequest,
                 status = status,
                 changedAt = LocalDateTime.now()
             )

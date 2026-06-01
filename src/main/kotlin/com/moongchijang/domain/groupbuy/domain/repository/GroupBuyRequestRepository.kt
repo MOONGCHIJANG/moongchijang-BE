@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
-    fun findByUserIdOrderByCreatedAtDesc(userId: Long): List<GroupBuyRequest>
+    fun findByUser_IdOrderByCreatedAtDesc(userId: Long): List<GroupBuyRequest>
 
     fun findAllByOrderByCreatedAtDesc(pageable: Pageable): Page<GroupBuyRequest>
 
@@ -27,7 +27,7 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
         value = """
             SELECT request
             FROM GroupBuyRequest request
-            LEFT JOIN User requester ON requester.id = request.userId
+            LEFT JOIN FETCH request.user requester
             WHERE (:status IS NULL OR request.status = :status)
               AND (
                 :keyword IS NULL
@@ -43,7 +43,7 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
         countQuery = """
             SELECT COUNT(request)
             FROM GroupBuyRequest request
-            LEFT JOIN User requester ON requester.id = request.userId
+            LEFT JOIN request.user requester
             WHERE (:status IS NULL OR request.status = :status)
               AND (
                 :keyword IS NULL
@@ -63,8 +63,7 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
         pageable: Pageable
     ): Page<GroupBuyRequest>
 
-    fun countByUserId(userId: Long): Long
-
+    fun countByUser_Id(userId: Long): Long
     fun countByStatusIn(statuses: Collection<GroupBuyRequestStatus>): Long
 
     @Query(

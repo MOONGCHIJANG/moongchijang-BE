@@ -50,7 +50,7 @@ class MypageService(
                 userId = userId,
                 statuses = CANCELLED_OR_REFUNDED_PARTICIPATION_STATUSES
             ),
-            requestCount = groupBuyRequestRepository.countByUserId(userId)
+            requestCount = groupBuyRequestRepository.countByUser_Id(userId)
         )
         log.info("[MypageService] 마이페이지 요약 조회 완료: userId={}", userId)
         return response
@@ -140,7 +140,7 @@ class MypageService(
     fun getGroupBuyRequests(userId: Long): List<MypageGroupBuyRequestResponse> {
         log.info("[MypageService] 요청공구 목록 조회 시작: userId={}", userId)
         val responses = groupBuyRequestRepository
-            .findByUserIdOrderByCreatedAtDesc(userId)
+            .findByUser_IdOrderByCreatedAtDesc(userId)
             .map(MypageGroupBuyRequestResponse::from)
         log.info("[MypageService] 요청공구 목록 조회 완료: userId={}, count={}", userId, responses.size)
         return responses

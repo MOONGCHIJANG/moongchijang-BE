@@ -8,8 +8,8 @@ import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 interface GroupBuyRequestStatusHistoryRepository : JpaRepository<GroupBuyRequestStatusHistory, Long> {
-    fun findByGroupBuyRequestIdOrderByChangedAtAsc(groupBuyRequestId: Long): List<GroupBuyRequestStatusHistory>
-    fun findByGroupBuyRequestIdInOrderByChangedAtAsc(groupBuyRequestIds: List<Long>): List<GroupBuyRequestStatusHistory>
+    fun findByGroupBuyRequest_IdOrderByChangedAtAsc(groupBuyRequestId: Long): List<GroupBuyRequestStatusHistory>
+    fun findByGroupBuyRequest_IdInOrderByChangedAtAsc(groupBuyRequestIds: List<Long>): List<GroupBuyRequestStatusHistory>
     @Query(
         """
         select count(history)

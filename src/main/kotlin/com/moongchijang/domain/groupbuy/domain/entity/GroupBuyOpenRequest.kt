@@ -1,5 +1,6 @@
 package com.moongchijang.domain.groupbuy.domain.entity
 
+import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.*
 
@@ -14,8 +15,9 @@ import jakarta.persistence.*
     ]
 )
 class GroupBuyOpenRequest(
-    @Column(name = "user_id", nullable = false)
-    val userId: Long,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    val user: User,
 
     @Column(nullable = false, length = 50)
     val region: String,

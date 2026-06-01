@@ -464,7 +464,7 @@ class PickupServiceTest {
 
     private fun createGroupBuyRequest(pickupDate: LocalDate): GroupBuyRequest =
         GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "뭉치장 베이커리",
             storeAddress = "서울 성동구 성수동",
             productName = "두쫀쿠",
