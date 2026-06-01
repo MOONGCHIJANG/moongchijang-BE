@@ -390,13 +390,12 @@ class PaymentService(
         publishApplyPaymentSuccessEvent(order, approvedAt)
 
         if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
-            publishApplyGroupBuyAchievedEvent(groupBuy.id, approvedAt)
+            val participantUserIds = publishApplyGroupBuyAchievedEvent(groupBuy.id, approvedAt)
             publishWishTargetAchievedEvent(groupBuy.id, approvedAt)
             publishRequestTargetAchievedEvent(groupBuy, approvedAt)
-        }
-        if (achievedNow) {
-            val participantCount = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuy.id).size
-            adminDiscordAlertService.sendGroupBuyAchieved(groupBuy, participantCount)
+            if (achievedNow) {
+                adminDiscordAlertService.sendGroupBuyAchieved(groupBuy, participantUserIds.size)
+            }
         }
 
         publishRequestNewParticipantEvent(groupBuy, participation, approvedAt)
@@ -424,15 +423,16 @@ class PaymentService(
         )
     }
 
-    private fun publishApplyGroupBuyAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
+    private fun publishApplyGroupBuyAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime): List<Long> {
         val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
-        if (participantUserIds.isEmpty()) return
+        if (participantUserIds.isEmpty()) return emptyList()
 
         notificationEventPublisher.publishApplyGroupBuyAchieved(
             groupBuyId = groupBuyId,
             participantUserIds = participantUserIds,
             occurredAt = occurredAt
         )
+        return participantUserIds
     }
 
     private fun publishWishTargetAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {

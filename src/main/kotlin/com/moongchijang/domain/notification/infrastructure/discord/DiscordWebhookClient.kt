@@ -9,10 +9,11 @@ import org.springframework.web.client.RestClient
 
 @Component
 class DiscordWebhookClient(
-    private val restClient: RestClient,
+    restClientBuilder: RestClient.Builder,
     private val discordProperties: DiscordProperties,
 ) : DiscordMessageSender {
     private val log = LoggerFactory.getLogger(javaClass)
+    private val restClient: RestClient = restClientBuilder.build()
 
     override fun send(channel: AdminDiscordChannel, message: String): Boolean {
         if (!discordProperties.enabled) {
