@@ -14,6 +14,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHisto
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
@@ -37,6 +38,7 @@ class GroupBuyRequestService(
     private val groupBuyOpenRequestService: GroupBuyOpenRequestService,
     private val userRepository: UserRepository,
     private val clock: Clock,
+    private val adminDiscordAlertService: AdminDiscordAlertService,
 ) {
     private val log = LoggerFactory.getLogger(GroupBuyRequestService::class.java)
 
@@ -77,6 +79,7 @@ class GroupBuyRequestService(
                 changedAt = saved.createdAt ?: LocalDateTime.now()
             )
         )
+        adminDiscordAlertService.sendNewGroupBuyRequest(saved)
 
         val response = GroupBuyRequestIdResponse(saved.id)
         log.info("[GroupBuyRequestService] 공구요청 생성 완료: userId={}, requestId={}", userId, saved.id)

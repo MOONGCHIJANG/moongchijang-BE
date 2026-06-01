@@ -2,6 +2,7 @@ package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
 import com.moongchijang.domain.auth.application.TokenService
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -57,6 +58,7 @@ class UserService(
     private val favoriteRepository: FavoriteRepository,
     private val paymentService: PaymentService,
     private val passwordEncoder: PasswordEncoder,
+    private val adminDiscordAlertService: AdminDiscordAlertService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -404,6 +406,9 @@ class UserService(
         user.role = UserRole.SELLER
         user.saveLastRole(UserRole.SELLER)
         user.completeSellerSignup()
+        sellerBusinessProfileRepository.findByUserId(userId)?.let { profile ->
+            adminDiscordAlertService.sendNewSellerSignup(profile)
+        }
 
         log.info("[UserService] 사장님 정산 정보 저장 완료: userId={}", userId)
         return SellerSignupStatusResponse(
