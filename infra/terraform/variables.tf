@@ -13,6 +13,16 @@ variable "bucket_name" {
   type        = string
 }
 
+variable "s3_cors_allowed_origins" {
+  description = "Allowed origins for S3 presigned upload CORS"
+  type        = list(string)
+  default = [
+    "http://localhost:3000",
+    "https://moongchijang.com",
+    "https://www.moongchijang.com",
+  ]
+}
+
 variable "ec2_instance_type" {
   description = "EC2 instance type"
   type        = string
