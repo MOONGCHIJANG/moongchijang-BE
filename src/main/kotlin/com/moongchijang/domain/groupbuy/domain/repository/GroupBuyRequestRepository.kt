@@ -27,7 +27,7 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
         value = """
             SELECT request
             FROM GroupBuyRequest request
-            LEFT JOIN request.user requester
+            LEFT JOIN FETCH request.user requester
             WHERE (:status IS NULL OR request.status = :status)
               AND (
                 :keyword IS NULL

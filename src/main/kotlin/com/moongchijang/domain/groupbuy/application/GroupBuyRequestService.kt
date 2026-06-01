@@ -137,17 +137,9 @@ class GroupBuyRequestService(
             pageable = pageable
         )
 
-        val userIds = page.content.map { requesterId(it) }.distinct()
-        val usersById = if (userIds.isEmpty()) {
-            emptyMap()
-        } else {
-            userRepository.findAllById(userIds)
-                .mapNotNull { user -> user.id?.let { it to user } }
-                .toMap()
-        }
         val groupBuysById = findOpenedGroupBuys(page.content)
 
-        val response = AdminGroupBuyRequestPageResponse.from(page, usersById, groupBuysById, LocalDateTime.now(clock))
+        val response = AdminGroupBuyRequestPageResponse.from(page, groupBuysById, LocalDateTime.now(clock))
         log.info(
             "[GroupBuyRequestService] 관리자 공구요청 목록 조회 완료: status={}, totalElements={}",
             status,

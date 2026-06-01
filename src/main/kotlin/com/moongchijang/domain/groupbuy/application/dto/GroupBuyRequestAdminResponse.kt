@@ -38,7 +38,6 @@ data class AdminGroupBuyRequestPageResponse(
     companion object {
         fun from(
             page: Page<GroupBuyRequest>,
-            usersById: Map<Long, User>,
             groupBuysById: Map<Long, GroupBuy>,
             now: LocalDateTime
         ): AdminGroupBuyRequestPageResponse =
@@ -46,7 +45,7 @@ data class AdminGroupBuyRequestPageResponse(
                 content = page.content.map {
                     AdminGroupBuyRequestListItemResponse.from(
                         request = it,
-                        requester = usersById[requesterId(it)],
+                        requester = it.user,
                         groupBuy = it.openedGroupBuyId?.let(groupBuysById::get),
                         now = now
                     )
