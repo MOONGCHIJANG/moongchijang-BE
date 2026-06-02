@@ -97,6 +97,129 @@ class NotificationQueryServiceTest {
     }
 
     @Test
+    fun `카테고리 TODAY_PICKUP으로 조회할 때 사장님 당일 픽업 triggerType 필터 적용`() {
+        `when`(
+            notificationRepository.findForListByTriggerTypes(
+                userId = 21L,
+                triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING),
+                cursorOccurredAt = null,
+                cursorId = null,
+                pageable = PageRequest.of(0, 21)
+            )
+        ).thenReturn(emptyList())
+
+        service.getNotifications(
+            userId = 21L,
+            category = NotificationCategory.TODAY_PICKUP,
+            cursor = null,
+            limit = 20
+        )
+
+        verify(notificationRepository).findForListByTriggerTypes(
+            userId = 21L,
+            triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING),
+            cursorOccurredAt = null,
+            cursorId = null,
+            pageable = PageRequest.of(0, 21)
+        )
+    }
+
+    @Test
+    fun `카테고리 REMINDER로 조회할 때 사장님 전날 픽업 triggerType 필터 적용`() {
+        `when`(
+            notificationRepository.findForListByTriggerTypes(
+                userId = 22L,
+                triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING),
+                cursorOccurredAt = null,
+                cursorId = null,
+                pageable = PageRequest.of(0, 21)
+            )
+        ).thenReturn(emptyList())
+
+        service.getNotifications(
+            userId = 22L,
+            category = NotificationCategory.REMINDER,
+            cursor = null,
+            limit = 20
+        )
+
+        verify(notificationRepository).findForListByTriggerTypes(
+            userId = 22L,
+            triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING),
+            cursorOccurredAt = null,
+            cursorId = null,
+            pageable = PageRequest.of(0, 21)
+        )
+    }
+
+    @Test
+    fun `카테고리 CONFIRMED로 조회할 때 사장님 확정 triggerType 필터 적용`() {
+        val confirmedTriggerTypes = setOf(
+            NotificationTriggerType.OWNER_GROUPBUY_ACHIEVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE
+        )
+        `when`(
+            notificationRepository.findForListByTriggerTypes(
+                userId = 23L,
+                triggerTypes = confirmedTriggerTypes,
+                cursorOccurredAt = null,
+                cursorId = null,
+                pageable = PageRequest.of(0, 21)
+            )
+        ).thenReturn(emptyList())
+
+        service.getNotifications(
+            userId = 23L,
+            category = NotificationCategory.CONFIRMED,
+            cursor = null,
+            limit = 20
+        )
+
+        verify(notificationRepository).findForListByTriggerTypes(
+            userId = 23L,
+            triggerTypes = confirmedTriggerTypes,
+            cursorOccurredAt = null,
+            cursorId = null,
+            pageable = PageRequest.of(0, 21)
+        )
+    }
+
+    @Test
+    fun `카테고리 CANCELLED로 조회할 때 사장님 취소 triggerType 필터 적용`() {
+        val cancelledTriggerTypes = setOf(
+            NotificationTriggerType.OWNER_GROUPBUY_FAILED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE
+        )
+        `when`(
+            notificationRepository.findForListByTriggerTypes(
+                userId = 24L,
+                triggerTypes = cancelledTriggerTypes,
+                cursorOccurredAt = null,
+                cursorId = null,
+                pageable = PageRequest.of(0, 21)
+            )
+        ).thenReturn(emptyList())
+
+        service.getNotifications(
+            userId = 24L,
+            category = NotificationCategory.CANCELLED,
+            cursor = null,
+            limit = 20
+        )
+
+        verify(notificationRepository).findForListByTriggerTypes(
+            userId = 24L,
+            triggerTypes = cancelledTriggerTypes,
+            cursorOccurredAt = null,
+            cursorId = null,
+            pageable = PageRequest.of(0, 21)
+        )
+    }
+
+    @Test
     fun `커서 기반으로 조회할 때 hasNext와 nextCursor 반환`() {
         val user = UserFixture.createEmailUser(id = 3L)
         val now = LocalDateTime.now().withNano(0)
