@@ -138,6 +138,13 @@ class OwnerSettlementService(
             pickupDateFrom = pickupDateFrom,
             pickupDateTo = pickupDateTo,
         )
+        if (aggregations.isEmpty()) {
+            return OwnerSettlementItemListResponse(
+                year = year,
+                month = month,
+                items = emptyList(),
+            )
+        }
         val pendingRefundCountByGroupBuyId = participationRepository.countPendingRefundsByGroupBuyIdIn(
             aggregations.map { it.groupBuyId },
         ).associate { it.groupBuyId to it.pendingRefundCount }
