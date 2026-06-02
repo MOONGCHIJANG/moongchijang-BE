@@ -35,6 +35,10 @@ class Notification(
     @Column(nullable = false, length = 20)
     var type: NotificationType,
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var scope: NotificationScope = NotificationScope.BUYER,
+
     @Column(nullable = false, length = 120)
     var title: String,
 
