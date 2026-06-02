@@ -3,7 +3,6 @@ package com.moongchijang.domain.notification.application
 import com.moongchijang.domain.notification.application.dto.NotificationUnreadCountResponse
 import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
-import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -77,10 +76,6 @@ class NotificationCommandService(
     private fun resolveNotificationScope(userId: Long): NotificationScope {
         val userRole = userRepository.findByIdAndDeletedAtIsNull(userId)?.role
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-        return when (userRole) {
-            UserRole.BUYER -> NotificationScope.BUYER
-            UserRole.SELLER -> NotificationScope.OWNER
-            UserRole.ADMIN -> NotificationScope.BUYER
-        }
+        return NotificationScope.from(userRole)
     }
 }

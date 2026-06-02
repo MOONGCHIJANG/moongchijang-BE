@@ -6,7 +6,6 @@ import com.moongchijang.domain.notification.application.dto.NotificationItemResp
 import com.moongchijang.domain.notification.application.dto.NotificationListResponse
 import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
-import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -49,7 +48,7 @@ class NotificationQueryService(
         }
 
         val pageable = PageRequest.of(0, safeLimit + 1)
-        val scope = currentRole.toNotificationScope()
+        val scope = NotificationScope.from(currentRole)
         val notifications = category.ownerTriggerTypesOrNull()?.let { ownerTriggerTypes ->
             notificationRepository.findForListByScopeAndTriggerTypes(
                 userId = userId,
@@ -91,13 +90,5 @@ class NotificationQueryService(
     companion object {
         private const val MIN_LIMIT = 1
         private const val MAX_LIMIT = 100
-    }
-
-    private fun UserRole.toNotificationScope(): NotificationScope {
-        return when (this) {
-            UserRole.BUYER -> NotificationScope.BUYER
-            UserRole.SELLER -> NotificationScope.OWNER
-            UserRole.ADMIN -> NotificationScope.BUYER
-        }
     }
 }
