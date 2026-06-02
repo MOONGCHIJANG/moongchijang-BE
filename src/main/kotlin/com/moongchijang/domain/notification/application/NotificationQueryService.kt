@@ -36,12 +36,21 @@ class NotificationQueryService(
             safeLimit
         )
 
-        val notifications = notificationRepository.findForList(
+        val pageable = PageRequest.of(0, safeLimit + 1)
+        val notifications = category.ownerTriggerTypesOrNull()?.let { ownerTriggerTypes ->
+            notificationRepository.findForListByTriggerTypes(
+                userId = userId,
+                triggerTypes = ownerTriggerTypes,
+                cursorOccurredAt = decodedCursor?.occurredAt,
+                cursorId = decodedCursor?.id,
+                pageable = pageable
+            )
+        } ?: notificationRepository.findForList(
             userId = userId,
             type = category.toNotificationTypeOrNull(),
             cursorOccurredAt = decodedCursor?.occurredAt,
             cursorId = decodedCursor?.id,
-            pageable = PageRequest.of(0, safeLimit + 1)
+            pageable = pageable
         )
 
         val hasNext = notifications.size > safeLimit

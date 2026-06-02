@@ -1,6 +1,7 @@
 package com.moongchijang.domain.notification.domain.repository
 
 import com.moongchijang.domain.notification.domain.entity.Notification
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.domain.Pageable
@@ -27,6 +28,27 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
     fun findForList(
         @Param("userId") userId: Long,
         @Param("type") type: NotificationType?,
+        @Param("cursorOccurredAt") cursorOccurredAt: LocalDateTime?,
+        @Param("cursorId") cursorId: Long?,
+        pageable: Pageable
+    ): List<Notification>
+
+    @Query(
+        """
+        SELECT n FROM Notification n
+        WHERE n.user.id = :userId
+          AND n.triggerType IN :triggerTypes
+          AND (
+                :cursorOccurredAt IS NULL
+                OR n.occurredAt < :cursorOccurredAt
+                OR (n.occurredAt = :cursorOccurredAt AND n.id < :cursorId)
+          )
+        ORDER BY n.occurredAt DESC, n.id DESC
+        """
+    )
+    fun findForListByTriggerTypes(
+        @Param("userId") userId: Long,
+        @Param("triggerTypes") triggerTypes: Collection<NotificationTriggerType>,
         @Param("cursorOccurredAt") cursorOccurredAt: LocalDateTime?,
         @Param("cursorId") cursorId: Long?,
         pageable: Pageable
