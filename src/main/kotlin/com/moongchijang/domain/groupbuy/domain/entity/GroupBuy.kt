@@ -85,6 +85,16 @@ class GroupBuy(
     var closeRequestedAt: LocalDateTime? = null,
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "close_request_review_status", length = 20)
+    var closeRequestReviewStatus: GroupBuyCloseRequestReviewStatus? = null,
+
+    @Column(name = "close_request_rejection_reason", length = 200)
+    var closeRequestRejectionReason: String? = null,
+
+    @Column(name = "close_reviewed_at")
+    var closeReviewedAt: LocalDateTime? = null,
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "closed_by_type", length = 20)
     var closedByType: GroupBuyClosedByType? = null,
 
