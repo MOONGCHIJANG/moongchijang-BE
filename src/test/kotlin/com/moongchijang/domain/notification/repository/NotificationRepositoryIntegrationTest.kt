@@ -2,6 +2,7 @@ package com.moongchijang.domain.notification.repository
 
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
 import com.moongchijang.domain.user.domain.entity.AuthProvider
@@ -39,8 +40,9 @@ class NotificationRepositoryIntegrationTest {
 
         flushAndClear()
 
-        val result = notificationRepository.findForList(
+        val result = notificationRepository.findForListByScope(
             userId = user.id!!,
+            scope = NotificationScope.BUYER,
             type = null,
             cursorOccurredAt = null,
             cursorId = null,
@@ -58,8 +60,9 @@ class NotificationRepositoryIntegrationTest {
 
         flushAndClear()
 
-        val result = notificationRepository.findForList(
+        val result = notificationRepository.findForListByScope(
             userId = user.id!!,
+            scope = NotificationScope.BUYER,
             type = NotificationType.APPLY,
             cursorOccurredAt = null,
             cursorId = null,
@@ -82,8 +85,9 @@ class NotificationRepositoryIntegrationTest {
 
         flushAndClear()
 
-        val result = notificationRepository.findForList(
+        val result = notificationRepository.findForListByScope(
             userId = user.id!!,
+            scope = NotificationScope.BUYER,
             type = null,
             cursorOccurredAt = base,
             cursorId = sameTimeHighId.id,
@@ -100,7 +104,7 @@ class NotificationRepositoryIntegrationTest {
 
         flushAndClear()
 
-        val unreadCount = notificationRepository.countUnreadByUserId(user.id!!)
+        val unreadCount = notificationRepository.countUnreadByUserIdAndScope(user.id!!, NotificationScope.BUYER)
 
         assertThat(unreadCount).isEqualTo(2L)
     }
@@ -112,9 +116,9 @@ class NotificationRepositoryIntegrationTest {
 
         flushAndClear()
 
-        val updatedCount = notificationRepository.markAllAsReadByUserId(user.id!!)
+        val updatedCount = notificationRepository.markAllAsReadByUserIdAndScope(user.id!!, NotificationScope.BUYER)
         flushAndClear()
-        val unreadAfterUpdate = notificationRepository.countUnreadByUserId(user.id!!)
+        val unreadAfterUpdate = notificationRepository.countUnreadByUserIdAndScope(user.id!!, NotificationScope.BUYER)
 
         assertThat(updatedCount).isEqualTo(2)
         assertThat(unreadAfterUpdate).isEqualTo(0L)
@@ -134,9 +138,9 @@ class NotificationRepositoryIntegrationTest {
 
         flushAndClear()
 
-        val updatedCount = notificationRepository.markAllAsReadByUserId(user.id!!)
+        val updatedCount = notificationRepository.markAllAsReadByUserIdAndScope(user.id!!, NotificationScope.BUYER)
         flushAndClear()
-        val unreadAfterUpdate = notificationRepository.countUnreadByUserId(user.id!!)
+        val unreadAfterUpdate = notificationRepository.countUnreadByUserIdAndScope(user.id!!, NotificationScope.BUYER)
 
         assertThat(updatedCount).isEqualTo(BULK_NOTIFICATION_COUNT)
         assertThat(unreadAfterUpdate).isZero()

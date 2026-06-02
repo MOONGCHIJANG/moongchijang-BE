@@ -178,7 +178,7 @@ class NotificationTemplateRegistry {
         NotificationTemplateType.OWNER_ORDER_CANCELLED to NotificationTemplate(
             type = NotificationTemplateType.OWNER_ORDER_CANCELLED,
             titleTemplate = "발주가 취소됐어요.",
-            bodyTemplate = "{상품명} 발주 미확정으로 인해 발주가 취소됐어요.\n패널티가 1회 누적됐어요. (3회 누적 시 공구 개설 제한)",
+            bodyTemplate = "{상품명} 발주 미확정으로 인해 발주가 취소됐어요.",
             deeplinkType = NotificationDeeplinkType.GROUPBUY_DETAIL,
         ),
     )

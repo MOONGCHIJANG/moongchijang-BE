@@ -2,6 +2,7 @@ package com.moongchijang.support
 
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.user.domain.entity.User
@@ -13,6 +14,7 @@ object NotificationFixture {
         user: User,
         id: Long = 0L,
         type: NotificationType = NotificationType.PICKUP,
+        scope: NotificationScope = NotificationScope.BUYER,
         title: String = "알림 제목",
         body: String = "알림 본문",
         isRead: Boolean = false,
@@ -24,6 +26,7 @@ object NotificationFixture {
         return Notification(
             user = user,
             type = type,
+            scope = scope,
             title = title,
             body = body,
             isRead = isRead,

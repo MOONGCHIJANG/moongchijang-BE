@@ -77,4 +77,18 @@ class NotificationTemplateRendererTest {
 
         assertTrue(rendered.body.contains("2026-05-28 10:00"))
     }
+
+    @Test
+    fun `사장님 발주 취소 템플릿 렌더링 시 패널티 문구 없이 본문 반환`() {
+        val rendered = renderer.render(
+            template = registry.getTemplateByType(NotificationTemplateType.OWNER_ORDER_CANCELLED),
+            variables = mapOf(
+                "상품명" to "소금빵"
+            )
+        )
+
+        assertEquals("발주가 취소됐어요.", rendered.title)
+        assertEquals("소금빵 발주 미확정으로 인해 발주가 취소됐어요.", rendered.body)
+        assertTrue(rendered.body.contains("발주 미확정"))
+    }
 }

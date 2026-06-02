@@ -22,7 +22,8 @@ import java.time.LocalDateTime
     indexes = [
         Index(name = "idx_notifications_user_occurred_at", columnList = "user_id,occurred_at"),
         Index(name = "idx_notifications_user_type_occurred_at", columnList = "user_id,type,occurred_at"),
-        Index(name = "idx_notifications_user_is_read_occurred_at", columnList = "user_id,is_read,occurred_at")
+        Index(name = "idx_notifications_user_is_read_occurred_at", columnList = "user_id,is_read,occurred_at"),
+        Index(name = "idx_notifications_user_scope_occurred_at", columnList = "user_id,scope,occurred_at")
     ]
 )
 class Notification(
@@ -34,6 +35,10 @@ class Notification(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var type: NotificationType,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var scope: NotificationScope = NotificationScope.BUYER,
 
     @Column(nullable = false, length = 120)
     var title: String,

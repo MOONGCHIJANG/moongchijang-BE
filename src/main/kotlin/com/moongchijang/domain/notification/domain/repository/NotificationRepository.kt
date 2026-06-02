@@ -1,6 +1,8 @@
 package com.moongchijang.domain.notification.domain.repository
 
 import com.moongchijang.domain.notification.domain.entity.Notification
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.domain.Pageable
@@ -15,6 +17,7 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
         """
         SELECT n FROM Notification n
         WHERE n.user.id = :userId
+          AND n.scope = :scope
           AND (:type IS NULL OR n.type = :type)
           AND (
                 :cursorOccurredAt IS NULL
@@ -24,9 +27,33 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
         ORDER BY n.occurredAt DESC, n.id DESC
         """
     )
-    fun findForList(
+    fun findForListByScope(
         @Param("userId") userId: Long,
+        @Param("scope") scope: NotificationScope,
         @Param("type") type: NotificationType?,
+        @Param("cursorOccurredAt") cursorOccurredAt: LocalDateTime?,
+        @Param("cursorId") cursorId: Long?,
+        pageable: Pageable
+    ): List<Notification>
+
+    @Query(
+        """
+        SELECT n FROM Notification n
+        WHERE n.user.id = :userId
+          AND n.scope = :scope
+          AND n.triggerType IN :triggerTypes
+          AND (
+                :cursorOccurredAt IS NULL
+                OR n.occurredAt < :cursorOccurredAt
+                OR (n.occurredAt = :cursorOccurredAt AND n.id < :cursorId)
+          )
+        ORDER BY n.occurredAt DESC, n.id DESC
+        """
+    )
+    fun findForListByScopeAndTriggerTypes(
+        @Param("userId") userId: Long,
+        @Param("scope") scope: NotificationScope,
+        @Param("triggerTypes") triggerTypes: Collection<NotificationTriggerType>,
         @Param("cursorOccurredAt") cursorOccurredAt: LocalDateTime?,
         @Param("cursorId") cursorId: Long?,
         pageable: Pageable
@@ -38,18 +65,26 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
         UPDATE Notification n
         SET n.isRead = true
         WHERE n.user.id = :userId
+          AND n.scope = :scope
           AND n.isRead = false
         """
     )
-    fun markAllAsReadByUserId(@Param("userId") userId: Long): Int
+    fun markAllAsReadByUserIdAndScope(
+        @Param("userId") userId: Long,
+        @Param("scope") scope: NotificationScope,
+    ): Int
 
     @Query(
         """
         SELECT COUNT(n)
         FROM Notification n
         WHERE n.user.id = :userId
+          AND n.scope = :scope
           AND n.isRead = false
         """
     )
-    fun countUnreadByUserId(@Param("userId") userId: Long): Long
+    fun countUnreadByUserIdAndScope(
+        @Param("userId") userId: Long,
+        @Param("scope") scope: NotificationScope,
+    ): Long
 }
