@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestRejectRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
@@ -58,6 +59,9 @@ class AdminOwnerGroupBuyRequestServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
+    @Mock
+    private lateinit var notificationEventPublisher: NotificationEventPublisher
+
     private val clock: Clock = Clock.fixed(Instant.parse("2026-06-01T03:00:00Z"), ZoneId.of("Asia/Seoul"))
 
     private lateinit var service: AdminOwnerGroupBuyRequestService
@@ -69,6 +73,7 @@ class AdminOwnerGroupBuyRequestServiceTest {
             ownerGroupBuyRequestImageRepository = ownerGroupBuyRequestImageRepository,
             groupBuyRepository = groupBuyRepository,
             groupBuyImageRepository = groupBuyImageRepository,
+            notificationEventPublisher = notificationEventPublisher,
             s3ImageReferenceResolver = s3ImageReferenceResolver,
             clock = clock,
         )
@@ -115,6 +120,7 @@ class AdminOwnerGroupBuyRequestServiceTest {
         assertEquals(LocalDateTime.of(2026, 6, 1, 12, 0), request.reviewedAt)
         assertEquals(30L, request.approvedGroupBuy?.id)
         assertNull(request.rejectionReason)
+        verify(notificationEventPublisher).publishOwnerOpenRequestApproved(requestId, 1L, LocalDateTime.of(2026, 6, 1, 12, 0))
 
         val groupBuyCaptor = argumentCaptor<GroupBuy>()
         verify(groupBuyRepository).save(groupBuyCaptor.capture())
@@ -181,6 +187,7 @@ class AdminOwnerGroupBuyRequestServiceTest {
         assertEquals("이미지 품질 보완 필요", request.rejectionReason)
         assertEquals(LocalDateTime.of(2026, 6, 1, 12, 0), request.reviewedAt)
         assertNull(request.approvedGroupBuy)
+        verify(notificationEventPublisher).publishOwnerOpenRequestRejected(requestId, 1L, LocalDateTime.of(2026, 6, 1, 12, 0))
     }
 
     private fun ownerRequest(

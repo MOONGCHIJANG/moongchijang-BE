@@ -7,8 +7,10 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
@@ -23,6 +25,8 @@ import java.time.LocalDateTime
 class AdminOrderService(
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
+    private val storeStaffRepository: StoreStaffRepository,
+    private val notificationEventPublisher: NotificationEventPublisher,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(AdminOrderService::class.java)
@@ -105,6 +109,7 @@ class AdminOrderService(
         val groupBuy = findOrderForUpdate(orderId)
         validatePendingOrder(groupBuy)
         groupBuy.cancelOrder(now)
+        publishOwnerOrderCancelled(groupBuy, now)
 
         val response = AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
         log.info("[AdminOrderService] 주문 취소 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
@@ -135,6 +140,17 @@ class AdminOrderService(
             groupBuyId = groupBuyId,
             statuses = listOf(ParticipationStatus.REFUND_PENDING)
         )
+
+    private fun publishOwnerOrderCancelled(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
+        val ownerUserIds = storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id).distinct()
+        if (ownerUserIds.isEmpty()) return
+
+        notificationEventPublisher.publishOwnerOrderCancelled(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = ownerUserIds,
+            occurredAt = occurredAt
+        )
+    }
 
     private fun AdminOrderStatusFilter.toOrderStatuses(): List<GroupBuyOrderStatus> =
         when (this) {

@@ -3,6 +3,7 @@ package com.moongchijang.domain.owner.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageDetailResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageListItemResponse
@@ -42,7 +43,8 @@ class OwnerGroupBuyService(
     private val groupBuyRepository: GroupBuyRepository,
     private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
     private val participationRepository: ParticipationRepository,
-    private val paymentRepository: PaymentRepository
+    private val paymentRepository: PaymentRepository,
+    private val notificationEventPublisher: NotificationEventPublisher,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -239,6 +241,11 @@ class OwnerGroupBuyService(
             requestedAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
         )
         groupBuyRepository.save(groupBuy)
+        notificationEventPublisher.publishOwnerCloseRequestApproved(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = listOf(ownerId),
+            occurredAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
+        )
         log.info(
             "[OwnerGroupBuyService] 사장님 공구 마감 요청 완료: ownerId={}, groupBuyId={}, reason={}, reasonDetail={}",
             ownerId,

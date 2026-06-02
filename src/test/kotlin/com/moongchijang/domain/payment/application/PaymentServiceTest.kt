@@ -28,6 +28,7 @@ import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
@@ -75,6 +76,9 @@ class PaymentServiceTest {
     private lateinit var favoriteRepository: FavoriteRepository
 
     @Mock
+    private lateinit var storeStaffRepository: StoreStaffRepository
+
+    @Mock
     private lateinit var paymentOrderRepository: PaymentOrderRepository
 
     @Mock
@@ -116,6 +120,7 @@ class PaymentServiceTest {
             userRepository = userRepository,
             participationRepository = participationRepository,
             favoriteRepository = favoriteRepository,
+            storeStaffRepository = storeStaffRepository,
             paymentOrderRepository = paymentOrderRepository,
             paymentRepository = paymentRepository,
             portOnePaymentPort = portOnePaymentPort,

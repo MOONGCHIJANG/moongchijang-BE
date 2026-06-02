@@ -86,6 +86,12 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         statuses: Collection<GroupBuyStatus>
     ): List<GroupBuy>
 
+    @EntityGraph(attributePaths = ["store"])
+    fun findByStatusInAndPickupDate(
+        statuses: Collection<GroupBuyStatus>,
+        pickupDate: LocalDate
+    ): List<GroupBuy>
+
     fun existsByStoreIdInAndStatusIn(
         storeIds: Collection<Long>,
         statuses: Collection<GroupBuyStatus>

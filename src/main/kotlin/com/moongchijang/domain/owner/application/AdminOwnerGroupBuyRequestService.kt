@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestActionResponse
 import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestDetailResponse
 import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestPageResponse
@@ -30,6 +31,7 @@ class AdminOwnerGroupBuyRequestService(
     private val ownerGroupBuyRequestImageRepository: OwnerGroupBuyRequestImageRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val groupBuyImageRepository: GroupBuyImageRepository,
+    private val notificationEventPublisher: NotificationEventPublisher,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     private val clock: Clock,
 ) {
@@ -124,6 +126,12 @@ class AdminOwnerGroupBuyRequestService(
         request.rejectionReason = null
         request.reviewedAt = now
 
+        notificationEventPublisher.publishOwnerOpenRequestApproved(
+            requestId = request.id,
+            ownerUserId = request.owner.id!!,
+            occurredAt = now
+        )
+
         val response = AdminOwnerGroupBuyRequestActionResponse(
             requestId = request.id,
             status = request.status,
@@ -149,8 +157,15 @@ class AdminOwnerGroupBuyRequestService(
 
         request.status = OwnerGroupBuyRequestStatus.REJECTED
         request.rejectionReason = reason
-        request.reviewedAt = LocalDateTime.now(clock)
+        val reviewedAt = LocalDateTime.now(clock)
+        request.reviewedAt = reviewedAt
         request.approvedGroupBuy = null
+
+        notificationEventPublisher.publishOwnerOpenRequestRejected(
+            requestId = request.id,
+            ownerUserId = request.owner.id!!,
+            occurredAt = reviewedAt
+        )
 
         val response = AdminOwnerGroupBuyRequestActionResponse(
             requestId = request.id,
