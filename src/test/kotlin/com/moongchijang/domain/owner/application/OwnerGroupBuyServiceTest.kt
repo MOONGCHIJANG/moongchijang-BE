@@ -11,6 +11,7 @@ import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyExtensionReque
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -59,6 +60,9 @@ class OwnerGroupBuyServiceTest {
 
     @Mock
     private lateinit var paymentRepository: PaymentRepository
+
+    @Mock
+    private lateinit var notificationEventPublisher: NotificationEventPublisher
 
     @InjectMocks
     private lateinit var service: OwnerGroupBuyService
