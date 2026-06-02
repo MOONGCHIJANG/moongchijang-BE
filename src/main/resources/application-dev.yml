@@ -36,7 +36,7 @@ app:
   share:
     base-url: ${APP_SHARE_BASE_URL:https://moongchijang.com}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,https://app.moongchijang.com}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
     allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept}
     allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
