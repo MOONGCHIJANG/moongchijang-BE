@@ -77,6 +77,13 @@ class GroupBuyStatusTransitionService(
             return BatchTransitionResult.EMPTY
         }
 
+        val ownerUserIdsByStoreId = storeStaffRepository.findStoreStaffMappingsByStoreIdIn(
+            targets.map { it.store.id }.distinct()
+        ).groupBy(
+            keySelector = { it.storeId },
+            valueTransform = { it.userId }
+        )
+
         var inProgressToFailed = 0
         var achievedToCompleted = 0
 
@@ -87,7 +94,11 @@ class GroupBuyStatusTransitionService(
                     markParticipationsRefundPending(groupBuy.id, now)
                     val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuy.id)
                     publishApplyGroupBuyFailedEvent(groupBuy.id, participantUserIds, now)
-                    publishOwnerGroupBuyFailedEvent(groupBuy.id, groupBuy.store.id, now)
+                    publishOwnerGroupBuyFailedEvent(
+                        groupBuyId = groupBuy.id,
+                        ownerUserIds = ownerUserIdsByStoreId[groupBuy.store.id].orEmpty().distinct(),
+                        occurredAt = now
+                    )
                     adminDiscordAlertService.sendGroupBuyFailed(groupBuy, participantUserIds.size)
                     inProgressToFailed++
                 }
@@ -121,8 +132,7 @@ class GroupBuyStatusTransitionService(
         )
     }
 
-    private fun publishOwnerGroupBuyFailedEvent(groupBuyId: Long, storeId: Long, occurredAt: LocalDateTime) {
-        val ownerUserIds = storeStaffRepository.findUserIdsByStoreId(storeId).distinct()
+    private fun publishOwnerGroupBuyFailedEvent(groupBuyId: Long, ownerUserIds: List<Long>, occurredAt: LocalDateTime) {
         if (ownerUserIds.isEmpty()) return
 
         notificationEventPublisher.publishOwnerGroupBuyFailed(
