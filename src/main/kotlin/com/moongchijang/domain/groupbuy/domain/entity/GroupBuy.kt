@@ -181,8 +181,25 @@ class GroupBuy(
         closeReason = reason
         closeReasonDetail = reasonDetail
         closeRequestedAt = requestedAt
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.APPROVED
+        closeRequestRejectionReason = null
+        closeReviewedAt = requestedAt
         closedByType = GroupBuyClosedByType.OWNER
         transitionToClosed()
+    }
+
+    fun requestCloseReview(
+        reason: GroupBuyCloseReason,
+        reasonDetail: String?,
+        requestedAt: LocalDateTime = LocalDateTime.now()
+    ) {
+        closeReason = reason
+        closeReasonDetail = reasonDetail
+        closeRequestedAt = requestedAt
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.PENDING
+        closeRequestRejectionReason = null
+        closeReviewedAt = null
+        closedByType = null
     }
 
     fun isTerminalStatus(): Boolean {
