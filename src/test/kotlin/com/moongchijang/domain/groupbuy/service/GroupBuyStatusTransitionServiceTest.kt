@@ -8,6 +8,7 @@ import com.moongchijang.domain.notification.application.NotificationEventPublish
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffUserMapping
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -213,7 +214,14 @@ class GroupBuyStatusTransitionServiceTest {
                 pageable
             )
         ).thenReturn(listOf(groupBuy))
-        `when`(storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id)).thenReturn(listOf(91L))
+        `when`(storeStaffRepository.findStoreStaffMappingsByStoreIdIn(listOf(groupBuy.store.id))).thenReturn(
+            listOf(
+                object : StoreStaffUserMapping {
+                    override val storeId: Long = groupBuy.store.id
+                    override val userId: Long = 91L
+                }
+            )
+        )
         service.transitionExpiredGroupBuysAt(now)
 
         assertEquals(GroupBuyStatus.FAILED, groupBuy.status)
