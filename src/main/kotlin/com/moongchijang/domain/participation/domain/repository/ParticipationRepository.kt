@@ -469,6 +469,36 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
                0 as platformFeeAmount
         from GroupBuy gb
         left join Participation p on p.groupBuy = gb
+        where gb.store.id in :storeIds
+          and gb.status in :groupBuyStatuses
+          and gb.pickupDate >= :pickupDateFrom
+          and gb.pickupDate < :pickupDateTo
+        group by gb.id, gb.store.name, gb.productName, gb.pickupDate
+        order by gb.pickupDate desc, gb.id desc
+        """
+    )
+    fun findOwnerSettlementAggregations(
+        @Param("storeIds") storeIds: Collection<Long>,
+        @Param("groupBuyStatuses") groupBuyStatuses: Collection<GroupBuyStatus>,
+        @Param("transactionStatuses") transactionStatuses: Collection<ParticipationStatus>,
+        @Param("revenueStatuses") revenueStatuses: Collection<ParticipationStatus>,
+        @Param("refundStatuses") refundStatuses: Collection<ParticipationStatus>,
+        @Param("pickupDateFrom") pickupDateFrom: LocalDate,
+        @Param("pickupDateTo") pickupDateTo: LocalDate,
+    ): List<AdminSettlementAggregation>
+
+    @Query(
+        """
+        select gb.id as groupBuyId,
+               gb.store.name as storeName,
+               gb.productName as productName,
+               gb.pickupDate as pickupCompletedDate,
+               coalesce(sum(case when p.status in :revenueStatuses then 1 else 0 end), 0) as participantCount,
+               coalesce(sum(case when p.status in :transactionStatuses then p.totalAmount else 0 end), 0) as totalPaymentAmount,
+               coalesce(sum(case when p.status in :refundStatuses then p.totalAmount else 0 end), 0) as refundDeductionAmount,
+               0 as platformFeeAmount
+        from GroupBuy gb
+        left join Participation p on p.groupBuy = gb
         where gb.id = :groupBuyId
           and gb.status in :groupBuyStatuses
         group by gb.id, gb.store.name, gb.productName, gb.pickupDate
