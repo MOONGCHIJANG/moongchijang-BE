@@ -6,7 +6,7 @@ import com.moongchijang.domain.notification.application.dto.NotificationItemResp
 import com.moongchijang.domain.notification.application.dto.NotificationListResponse
 import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
-import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
@@ -19,13 +19,13 @@ import java.time.ZoneId
 @Service
 class NotificationQueryService(
     private val notificationRepository: NotificationRepository,
-    private val userRepository: UserRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional(readOnly = true)
     fun getNotifications(
         userId: Long,
+        currentRole: UserRole,
         category: NotificationCategory,
         cursor: String?,
         limit: Int
@@ -41,8 +41,6 @@ class NotificationQueryService(
             safeLimit
         )
 
-        val currentRole = userRepository.findByIdAndDeletedAtIsNull(userId)?.role
-            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
         if (!category.supportsRole(currentRole)) {
             throw CustomException(ErrorCode.INVALID_INPUT, "category is not supported for current role")
         }

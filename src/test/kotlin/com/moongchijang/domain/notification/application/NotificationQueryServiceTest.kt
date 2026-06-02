@@ -6,7 +6,7 @@ import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
-import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.support.NotificationFixture
 import com.moongchijang.support.UserFixture
 import org.assertj.core.api.Assertions.assertThat
@@ -26,10 +26,7 @@ class NotificationQueryServiceTest {
     @Mock
     private lateinit var notificationRepository: NotificationRepository
 
-    @Mock
-    private lateinit var userRepository: UserRepository
-
-    private val service by lazy { NotificationQueryService(notificationRepository, userRepository) }
+    private val service by lazy { NotificationQueryService(notificationRepository) }
 
     @Test
     fun `카테고리 ALL로 조회할 때 type 필터 없는 목록 반환`() {
@@ -54,10 +51,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(notifications)
-        `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
-
         val result = service.getNotifications(
             userId = 1L,
+            currentRole = UserRole.BUYER,
             category = NotificationCategory.ALL,
             cursor = null,
             limit = 20
@@ -88,10 +84,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
-        `when`(userRepository.findByIdAndDeletedAtIsNull(2L)).thenReturn(UserFixture.createEmailUser(id = 2L))
-
         service.getNotifications(
             userId = 2L,
+            currentRole = UserRole.BUYER,
             category = NotificationCategory.APPLY,
             cursor = null,
             limit = 20
@@ -119,12 +114,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
-        `when`(userRepository.findByIdAndDeletedAtIsNull(21L)).thenReturn(
-            UserFixture.createEmailUser(id = 21L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
-        )
-
         service.getNotifications(
             userId = 21L,
+            currentRole = UserRole.SELLER,
             category = NotificationCategory.TODAY_PICKUP,
             cursor = null,
             limit = 20
@@ -152,12 +144,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
-        `when`(userRepository.findByIdAndDeletedAtIsNull(22L)).thenReturn(
-            UserFixture.createEmailUser(id = 22L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
-        )
-
         service.getNotifications(
             userId = 22L,
+            currentRole = UserRole.SELLER,
             category = NotificationCategory.REMINDER,
             cursor = null,
             limit = 20
@@ -190,12 +179,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
-        `when`(userRepository.findByIdAndDeletedAtIsNull(23L)).thenReturn(
-            UserFixture.createEmailUser(id = 23L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
-        )
-
         service.getNotifications(
             userId = 23L,
+            currentRole = UserRole.SELLER,
             category = NotificationCategory.CONFIRMED,
             cursor = null,
             limit = 20
@@ -229,12 +215,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
-        `when`(userRepository.findByIdAndDeletedAtIsNull(24L)).thenReturn(
-            UserFixture.createEmailUser(id = 24L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
-        )
-
         service.getNotifications(
             userId = 24L,
+            currentRole = UserRole.SELLER,
             category = NotificationCategory.CANCELLED,
             cursor = null,
             limit = 20
@@ -269,10 +252,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 3)
             )
         ).thenReturn(listOf(n1, n2, n3))
-        `when`(userRepository.findByIdAndDeletedAtIsNull(3L)).thenReturn(user)
-
         val result = service.getNotifications(
             userId = 3L,
+            currentRole = UserRole.BUYER,
             category = NotificationCategory.ALL,
             cursor = cursor,
             limit = 2
@@ -313,10 +295,9 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(listOf(today, yesterday, older))
-        `when`(userRepository.findByIdAndDeletedAtIsNull(4L)).thenReturn(user)
-
         val result = service.getNotifications(
             userId = 4L,
+            currentRole = UserRole.BUYER,
             category = NotificationCategory.ALL,
             cursor = null,
             limit = 20
@@ -347,16 +328,16 @@ class NotificationQueryServiceTest {
                 pageable = PageRequest.of(0, 101)
             )
         ).thenReturn(emptyList())
-        `when`(userRepository.findByIdAndDeletedAtIsNull(5L)).thenReturn(UserFixture.createEmailUser(id = 5L))
-
         service.getNotifications(
             userId = 5L,
+            currentRole = UserRole.BUYER,
             category = NotificationCategory.ALL,
             cursor = null,
             limit = 0
         )
         service.getNotifications(
             userId = 5L,
+            currentRole = UserRole.BUYER,
             category = NotificationCategory.ALL,
             cursor = null,
             limit = 999
