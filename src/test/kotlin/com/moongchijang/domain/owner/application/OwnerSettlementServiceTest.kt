@@ -5,6 +5,8 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestTab
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewActionType
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitRequest
+import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementStatus
+import com.moongchijang.domain.participation.domain.repository.AdminSettlementAggregation
 import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
@@ -110,6 +112,162 @@ class OwnerSettlementServiceTest {
         assertEquals(2, result.chips.size)
         assertEquals("2026년 5월", result.chips[0].label)
         assertEquals("2026년 4월", result.chips[1].label)
+    }
+
+    @Test
+    fun `정산 공구 카드 목록은 정산완료 상태를 반환한다`() {
+        val owner = seller()
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val pickupDate = today.minusDays(4)
+        val year = pickupDate.year
+        val month = pickupDate.monthValue
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
+        `when`(
+            participationRepository.findOwnerSettlementAggregations(
+                defaultStoreIds(),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                listOf(ParticipationStatus.CONFIRMED, ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                LocalDate.of(year, month, 1),
+                LocalDate.of(year, month, 1).plusMonths(1),
+            )
+        ).thenReturn(
+            listOf(
+                settlementAggregation(
+                    groupBuyId = 901001L,
+                    productName = "딸기 타르트",
+                    pickupDate = pickupDate,
+                    participantCount = 18L,
+                    totalPaymentAmount = 432000L,
+                    refundDeductionAmount = 0L,
+                )
+            )
+        )
+        `when`(participationRepository.countPendingRefundsByGroupBuyIdIn(listOf(901001L))).thenReturn(emptyList())
+
+        val result = service.getSettlementItems(owner.id!!, year, month)
+
+        assertEquals(1, result.items.size)
+        assertEquals(OwnerSettlementStatus.SETTLEMENT_COMPLETED, result.items[0].settlementStatus)
+        assertEquals(432000L, result.items[0].amount)
+    }
+
+    @Test
+    fun `정산 공구 카드 목록은 정산대기 상태를 반환한다`() {
+        val owner = seller()
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val pickupDate = today.minusDays(1)
+        val year = pickupDate.year
+        val month = pickupDate.monthValue
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
+        `when`(
+            participationRepository.findOwnerSettlementAggregations(
+                defaultStoreIds(),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                listOf(ParticipationStatus.CONFIRMED, ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                LocalDate.of(year, month, 1),
+                LocalDate.of(year, month, 1).plusMonths(1),
+            )
+        ).thenReturn(
+            listOf(
+                settlementAggregation(
+                    groupBuyId = 901002L,
+                    productName = "크로아상 3개입",
+                    pickupDate = pickupDate,
+                    participantCount = 18L,
+                    totalPaymentAmount = 720000L,
+                    refundDeductionAmount = 0L,
+                )
+            )
+        )
+        `when`(participationRepository.countPendingRefundsByGroupBuyIdIn(listOf(901002L))).thenReturn(emptyList())
+
+        val result = service.getSettlementItems(owner.id!!, year, month)
+
+        assertEquals(OwnerSettlementStatus.SETTLEMENT_PENDING, result.items[0].settlementStatus)
+    }
+
+    @Test
+    fun `정산 공구 카드 목록은 환불처리 상태를 우선 반환한다`() {
+        val owner = seller()
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val pickupDate = today.minusDays(5)
+        val year = pickupDate.year
+        val month = pickupDate.monthValue
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
+        `when`(
+            participationRepository.findOwnerSettlementAggregations(
+                defaultStoreIds(),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                listOf(ParticipationStatus.CONFIRMED, ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                LocalDate.of(year, month, 1),
+                LocalDate.of(year, month, 1).plusMonths(1),
+            )
+        ).thenReturn(
+            listOf(
+                settlementAggregation(
+                    groupBuyId = 901003L,
+                    productName = "레몬 마들렌",
+                    pickupDate = pickupDate,
+                    participantCount = 10L,
+                    totalPaymentAmount = 300000L,
+                    refundDeductionAmount = 24000L,
+                )
+            )
+        )
+        `when`(participationRepository.countPendingRefundsByGroupBuyIdIn(listOf(901003L))).thenReturn(emptyList())
+
+        val result = service.getSettlementItems(owner.id!!, year, month)
+
+        assertEquals(OwnerSettlementStatus.REFUND_PROCESSING, result.items[0].settlementStatus)
+        assertEquals(276000L, result.items[0].amount)
+    }
+
+    @Test
+    fun `정산 공구 카드 목록은 환불 대기 건이 있으면 정산완료보다 환불처리를 우선한다`() {
+        val owner = seller()
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val pickupDate = today.minusDays(7)
+        val year = pickupDate.year
+        val month = pickupDate.monthValue
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
+        `when`(
+            participationRepository.findOwnerSettlementAggregations(
+                defaultStoreIds(),
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                listOf(ParticipationStatus.CONFIRMED, ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                LocalDate.of(year, month, 1),
+                LocalDate.of(year, month, 1).plusMonths(1),
+            )
+        ).thenReturn(
+            listOf(
+                settlementAggregation(
+                    groupBuyId = 901004L,
+                    productName = "버터 스콘",
+                    pickupDate = pickupDate,
+                    participantCount = 8L,
+                    totalPaymentAmount = 160000L,
+                    refundDeductionAmount = 0L,
+                )
+            )
+        )
+        `when`(participationRepository.countPendingRefundsByGroupBuyIdIn(listOf(901004L))).thenReturn(
+            listOf(object : com.moongchijang.domain.participation.domain.repository.GroupBuyPendingRefundCount {
+                override val groupBuyId: Long = 901004L
+                override val pendingRefundCount: Long = 1L
+            })
+        )
+
+        val result = service.getSettlementItems(owner.id!!, year, month)
+
+        assertEquals(OwnerSettlementStatus.REFUND_PROCESSING, result.items[0].settlementStatus)
     }
 
     @Test
@@ -262,6 +420,26 @@ class OwnerSettlementServiceTest {
             id = id,
         ).also {
             setAuditFields(it, LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1))
+        }
+    }
+
+    private fun settlementAggregation(
+        groupBuyId: Long,
+        productName: String,
+        pickupDate: LocalDate,
+        participantCount: Long,
+        totalPaymentAmount: Long,
+        refundDeductionAmount: Long,
+    ): AdminSettlementAggregation {
+        return object : AdminSettlementAggregation {
+            override val groupBuyId: Long = groupBuyId
+            override val storeName: String = "남남베이커리"
+            override val productName: String = productName
+            override val pickupCompletedDate: LocalDate = pickupDate
+            override val participantCount: Long = participantCount
+            override val totalPaymentAmount: Long = totalPaymentAmount
+            override val refundDeductionAmount: Long = refundDeductionAmount
+            override val platformFeeAmount: Long = 0L
         }
     }
 

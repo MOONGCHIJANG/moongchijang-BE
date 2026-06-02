@@ -6,6 +6,7 @@ import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestLi
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestTab
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitRequest
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitResponse
+import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementItemListResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthChipListResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthlySummaryResponse
 import com.moongchijang.global.response.ApiResponse
@@ -72,6 +73,27 @@ class OwnerSettlementController(
         log.info("[OwnerSettlementController] 정산 월 칩 조회 요청 수신: ownerId={}", principal.id)
         val response = ownerSettlementService.getSettlementMonthChips(principal.id)
         log.info("[OwnerSettlementController] 정산 월 칩 조회 응답 완료: ownerId={}, count={}", principal.id, response.chips.size)
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @GetMapping("/items")
+    @Operation(summary = "사장님 정산 공구 카드 목록 조회")
+    @ApiResponses(
+        value = [
+            SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+            SwaggerApiResponse(responseCode = "400", description = "요청 파라미터 오류", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "401", description = "인증 필요", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+            SwaggerApiResponse(responseCode = "403", description = "사장님 권한 없음", content = [Content(schema = Schema(implementation = ApiResponse::class))]),
+        ],
+    )
+    fun getSettlementItems(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @RequestParam year: Int,
+        @RequestParam month: Int,
+    ): ResponseEntity<ApiResponse<OwnerSettlementItemListResponse>> {
+        log.info("[OwnerSettlementController] 정산 공구 카드 목록 조회 요청 수신: ownerId={}, year={}, month={}", principal.id, year, month)
+        val response = ownerSettlementService.getSettlementItems(principal.id, year, month)
+        log.info("[OwnerSettlementController] 정산 공구 카드 목록 조회 응답 완료: ownerId={}, year={}, month={}, count={}", principal.id, year, month, response.items.size)
         return ResponseEntity.ok(ApiResponse.success(response))
     }
 

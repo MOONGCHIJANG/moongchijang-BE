@@ -17,6 +17,8 @@ info:
   version: v1
 
 servers:
+  - url: https://api.moongchijang.com
+    description: 운영 서버
   - url: https://api.moongchijang.com/dev
     description: 개발 서버
   - url: http://localhost:8080
@@ -2255,6 +2257,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseOwnerSettlementMonthChipList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/owner/settlements/items:
+    get:
+      tags: [Owner]
+      summary: 사장님 정산 공구 카드 목록 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 2000
+            maximum: 2100
+            example: 2026
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 5
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOwnerSettlementItemList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -5060,6 +5099,43 @@ components:
         year: { type: integer, example: 2026 }
         month: { type: integer, example: 5 }
         label: { type: string, example: "2026년 5월" }
+
+    ApiResponseOwnerSettlementItemList:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OwnerSettlementItemList'
+        error: { nullable: true, example: null }
+
+    OwnerSettlementItemList:
+      type: object
+      required: [year, month, items]
+      properties:
+        year: { type: integer, example: 2026 }
+        month: { type: integer, example: 5 }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerSettlementItem'
+
+    OwnerSettlementItem:
+      type: object
+      required: [groupBuyId, productName, participantCount, pickupDate, amount, settlementStatus]
+      properties:
+        groupBuyId: { type: integer, format: int64, example: 901001 }
+        productName: { type: string, example: "딸기 타르트" }
+        participantCount: { type: integer, example: 18 }
+        pickupDate: { type: string, format: date, example: "2026-05-02" }
+        amount: { type: integer, format: int64, example: 432000 }
+        settlementStatus:
+          $ref: '#/components/schemas/OwnerSettlementStatus'
+
+    OwnerSettlementStatus:
+      type: string
+      description: 사장님 공구 정산 상태
+      enum: [SETTLEMENT_COMPLETED, SETTLEMENT_PENDING, REFUND_PROCESSING]
 
     ApiResponseOwnerRefundRequestList:
       type: object
