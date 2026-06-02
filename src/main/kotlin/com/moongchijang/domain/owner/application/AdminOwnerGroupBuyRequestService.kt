@@ -126,13 +126,11 @@ class AdminOwnerGroupBuyRequestService(
         request.rejectionReason = null
         request.reviewedAt = now
 
-        request.owner.id?.let { ownerUserId ->
-            notificationEventPublisher.publishOwnerOpenRequestApproved(
-                requestId = request.id,
-                ownerUserId = ownerUserId,
-                occurredAt = now
-            )
-        }
+        notificationEventPublisher.publishOwnerOpenRequestApproved(
+            requestId = request.id,
+            ownerUserId = request.owner.id!!,
+            occurredAt = now
+        )
 
         val response = AdminOwnerGroupBuyRequestActionResponse(
             requestId = request.id,
@@ -163,13 +161,11 @@ class AdminOwnerGroupBuyRequestService(
         request.reviewedAt = reviewedAt
         request.approvedGroupBuy = null
 
-        request.owner.id?.let { ownerUserId ->
-            notificationEventPublisher.publishOwnerOpenRequestRejected(
-                requestId = request.id,
-                ownerUserId = ownerUserId,
-                occurredAt = reviewedAt
-            )
-        }
+        notificationEventPublisher.publishOwnerOpenRequestRejected(
+            requestId = request.id,
+            ownerUserId = request.owner.id!!,
+            occurredAt = reviewedAt
+        )
 
         val response = AdminOwnerGroupBuyRequestActionResponse(
             requestId = request.id,
