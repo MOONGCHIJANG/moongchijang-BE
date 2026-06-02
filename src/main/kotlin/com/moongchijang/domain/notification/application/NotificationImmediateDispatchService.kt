@@ -10,6 +10,7 @@ import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchStatus
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
@@ -108,6 +109,7 @@ class NotificationImmediateDispatchService(
 
     private fun toNotificationMeta(triggerType: NotificationTriggerType, targetId: Long): NotificationMeta {
         val notificationType = toNotificationType(triggerType)
+        val notificationScope = toNotificationScope(triggerType)
         val template = notificationTemplateRegistry.getTemplateByTriggerType(triggerType)
         val rendered = notificationTemplateRenderer.render(
             template = template,
@@ -115,6 +117,7 @@ class NotificationImmediateDispatchService(
         )
         return NotificationMeta(
             type = notificationType,
+            scope = notificationScope,
             title = rendered.title,
             body = rendered.body,
             deeplinkType = rendered.deeplinkType
@@ -153,8 +156,26 @@ class NotificationImmediateDispatchService(
         }
     }
 
+    private fun toNotificationScope(triggerType: NotificationTriggerType): NotificationScope {
+        return when (triggerType) {
+            NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING,
+            NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING,
+            NotificationTriggerType.OWNER_GROUPBUY_ACHIEVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_GROUPBUY_FAILED_IMMEDIATE,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE -> NotificationScope.OWNER
+
+            else -> NotificationScope.BUYER
+        }
+    }
+
     private data class NotificationMeta(
         val type: NotificationType,
+        val scope: NotificationScope,
         val title: String,
         val body: String,
         val deeplinkType: NotificationDeeplinkType,
@@ -270,6 +291,7 @@ class NotificationImmediateDispatchService(
                 Notification(
                     user = user,
                     type = meta.type,
+                    scope = meta.scope,
                     title = meta.title,
                     body = meta.body,
                     occurredAt = event.occurredAt,
