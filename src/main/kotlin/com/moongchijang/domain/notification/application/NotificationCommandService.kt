@@ -1,7 +1,10 @@
 package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.notification.application.dto.NotificationUnreadCountResponse
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
+import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
@@ -10,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class NotificationCommandService(
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val userRepository: UserRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -42,11 +46,13 @@ class NotificationCommandService(
     fun markAllAsRead(userId: Long): Int {
         log.info("[NotificationCommandService] 알림 전체 읽음 처리 시작: userId={}", userId)
 
-        val updatedCount = notificationRepository.markAllAsReadByUserId(userId)
+        val scope = resolveNotificationScope(userId)
+        val updatedCount = notificationRepository.markAllAsReadByUserIdAndScope(userId, scope)
 
         log.info(
-            "[NotificationCommandService] 알림 전체 읽음 처리 완료: userId={}, updatedCount={}",
+            "[NotificationCommandService] 알림 전체 읽음 처리 완료: userId={}, scope={}, updatedCount={}",
             userId,
+            scope,
             updatedCount
         )
         return updatedCount
@@ -56,13 +62,25 @@ class NotificationCommandService(
     fun getUnreadCount(userId: Long): NotificationUnreadCountResponse {
         log.info("[NotificationCommandService] 미읽음 알림 개수 조회 시작: userId={}", userId)
 
-        val count = notificationRepository.countUnreadByUserId(userId)
+        val scope = resolveNotificationScope(userId)
+        val count = notificationRepository.countUnreadByUserIdAndScope(userId, scope)
 
         log.info(
-            "[NotificationCommandService] 미읽음 알림 개수 조회 완료: userId={}, count={}",
+            "[NotificationCommandService] 미읽음 알림 개수 조회 완료: userId={}, scope={}, count={}",
             userId,
+            scope,
             count
         )
         return NotificationUnreadCountResponse(count = count)
+    }
+
+    private fun resolveNotificationScope(userId: Long): NotificationScope {
+        val userRole = userRepository.findByIdAndDeletedAtIsNull(userId)?.role
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        return when (userRole) {
+            UserRole.BUYER -> NotificationScope.BUYER
+            UserRole.SELLER -> NotificationScope.OWNER
+            UserRole.ADMIN -> NotificationScope.BUYER
+        }
     }
 }

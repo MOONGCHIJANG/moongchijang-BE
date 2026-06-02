@@ -2,9 +2,11 @@ package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.notification.application.dto.NotificationCategory
 import com.moongchijang.domain.notification.application.dto.NotificationCursor
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.support.NotificationFixture
 import com.moongchijang.support.UserFixture
 import org.assertj.core.api.Assertions.assertThat
@@ -24,7 +26,10 @@ class NotificationQueryServiceTest {
     @Mock
     private lateinit var notificationRepository: NotificationRepository
 
-    private val service by lazy { NotificationQueryService(notificationRepository) }
+    @Mock
+    private lateinit var userRepository: UserRepository
+
+    private val service by lazy { NotificationQueryService(notificationRepository, userRepository) }
 
     @Test
     fun `카테고리 ALL로 조회할 때 type 필터 없는 목록 반환`() {
@@ -40,14 +45,16 @@ class NotificationQueryServiceTest {
         )
 
         `when`(
-            notificationRepository.findForList(
+            notificationRepository.findForListByScope(
                 userId = 1L,
+                scope = NotificationScope.BUYER,
                 type = null,
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(notifications)
+        `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
 
         val result = service.getNotifications(
             userId = 1L,
@@ -56,8 +63,9 @@ class NotificationQueryServiceTest {
             limit = 20
         )
 
-        verify(notificationRepository).findForList(
+        verify(notificationRepository).findForListByScope(
             userId = 1L,
+            scope = NotificationScope.BUYER,
             type = null,
             cursorOccurredAt = null,
             cursorId = null,
@@ -71,14 +79,16 @@ class NotificationQueryServiceTest {
     @Test
     fun `카테고리 APPLY로 조회할 때 APPLY type 필터 적용 검증`() {
         `when`(
-            notificationRepository.findForList(
+            notificationRepository.findForListByScope(
                 userId = 2L,
+                scope = NotificationScope.BUYER,
                 type = NotificationType.APPLY,
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
+        `when`(userRepository.findByIdAndDeletedAtIsNull(2L)).thenReturn(UserFixture.createEmailUser(id = 2L))
 
         service.getNotifications(
             userId = 2L,
@@ -87,8 +97,9 @@ class NotificationQueryServiceTest {
             limit = 20
         )
 
-        verify(notificationRepository).findForList(
+        verify(notificationRepository).findForListByScope(
             userId = 2L,
+            scope = NotificationScope.BUYER,
             type = NotificationType.APPLY,
             cursorOccurredAt = null,
             cursorId = null,
@@ -99,14 +110,18 @@ class NotificationQueryServiceTest {
     @Test
     fun `카테고리 TODAY_PICKUP으로 조회할 때 사장님 당일 픽업 triggerType 필터 적용`() {
         `when`(
-            notificationRepository.findForListByTriggerTypes(
+            notificationRepository.findForListByScopeAndTriggerTypes(
                 userId = 21L,
+                scope = NotificationScope.OWNER,
                 triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING),
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
+        `when`(userRepository.findByIdAndDeletedAtIsNull(21L)).thenReturn(
+            UserFixture.createEmailUser(id = 21L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
+        )
 
         service.getNotifications(
             userId = 21L,
@@ -115,8 +130,9 @@ class NotificationQueryServiceTest {
             limit = 20
         )
 
-        verify(notificationRepository).findForListByTriggerTypes(
+        verify(notificationRepository).findForListByScopeAndTriggerTypes(
             userId = 21L,
+            scope = NotificationScope.OWNER,
             triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING),
             cursorOccurredAt = null,
             cursorId = null,
@@ -127,14 +143,18 @@ class NotificationQueryServiceTest {
     @Test
     fun `카테고리 REMINDER로 조회할 때 사장님 전날 픽업 triggerType 필터 적용`() {
         `when`(
-            notificationRepository.findForListByTriggerTypes(
+            notificationRepository.findForListByScopeAndTriggerTypes(
                 userId = 22L,
+                scope = NotificationScope.OWNER,
                 triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING),
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
+        `when`(userRepository.findByIdAndDeletedAtIsNull(22L)).thenReturn(
+            UserFixture.createEmailUser(id = 22L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
+        )
 
         service.getNotifications(
             userId = 22L,
@@ -143,8 +163,9 @@ class NotificationQueryServiceTest {
             limit = 20
         )
 
-        verify(notificationRepository).findForListByTriggerTypes(
+        verify(notificationRepository).findForListByScopeAndTriggerTypes(
             userId = 22L,
+            scope = NotificationScope.OWNER,
             triggerTypes = setOf(NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING),
             cursorOccurredAt = null,
             cursorId = null,
@@ -160,14 +181,18 @@ class NotificationQueryServiceTest {
             NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE
         )
         `when`(
-            notificationRepository.findForListByTriggerTypes(
+            notificationRepository.findForListByScopeAndTriggerTypes(
                 userId = 23L,
+                scope = NotificationScope.OWNER,
                 triggerTypes = confirmedTriggerTypes,
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
+        `when`(userRepository.findByIdAndDeletedAtIsNull(23L)).thenReturn(
+            UserFixture.createEmailUser(id = 23L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
+        )
 
         service.getNotifications(
             userId = 23L,
@@ -176,8 +201,9 @@ class NotificationQueryServiceTest {
             limit = 20
         )
 
-        verify(notificationRepository).findForListByTriggerTypes(
+        verify(notificationRepository).findForListByScopeAndTriggerTypes(
             userId = 23L,
+            scope = NotificationScope.OWNER,
             triggerTypes = confirmedTriggerTypes,
             cursorOccurredAt = null,
             cursorId = null,
@@ -194,14 +220,18 @@ class NotificationQueryServiceTest {
             NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE
         )
         `when`(
-            notificationRepository.findForListByTriggerTypes(
+            notificationRepository.findForListByScopeAndTriggerTypes(
                 userId = 24L,
+                scope = NotificationScope.OWNER,
                 triggerTypes = cancelledTriggerTypes,
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(emptyList())
+        `when`(userRepository.findByIdAndDeletedAtIsNull(24L)).thenReturn(
+            UserFixture.createEmailUser(id = 24L).apply { role = com.moongchijang.domain.user.domain.entity.UserRole.SELLER }
+        )
 
         service.getNotifications(
             userId = 24L,
@@ -210,8 +240,9 @@ class NotificationQueryServiceTest {
             limit = 20
         )
 
-        verify(notificationRepository).findForListByTriggerTypes(
+        verify(notificationRepository).findForListByScopeAndTriggerTypes(
             userId = 24L,
+            scope = NotificationScope.OWNER,
             triggerTypes = cancelledTriggerTypes,
             cursorOccurredAt = null,
             cursorId = null,
@@ -229,14 +260,16 @@ class NotificationQueryServiceTest {
         val cursor = NotificationCursor(now, 100L).encode()
 
         `when`(
-            notificationRepository.findForList(
+            notificationRepository.findForListByScope(
                 userId = 3L,
+                scope = NotificationScope.BUYER,
                 type = null,
                 cursorOccurredAt = now,
                 cursorId = 100L,
                 pageable = PageRequest.of(0, 3)
             )
         ).thenReturn(listOf(n1, n2, n3))
+        `when`(userRepository.findByIdAndDeletedAtIsNull(3L)).thenReturn(user)
 
         val result = service.getNotifications(
             userId = 3L,
@@ -271,14 +304,16 @@ class NotificationQueryServiceTest {
         )
 
         `when`(
-            notificationRepository.findForList(
+            notificationRepository.findForListByScope(
                 userId = 4L,
+                scope = NotificationScope.BUYER,
                 type = null,
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 21)
             )
         ).thenReturn(listOf(today, yesterday, older))
+        `when`(userRepository.findByIdAndDeletedAtIsNull(4L)).thenReturn(user)
 
         val result = service.getNotifications(
             userId = 4L,
@@ -293,8 +328,9 @@ class NotificationQueryServiceTest {
     @Test
     fun `limit 범위를 벗어나 조회할 때 최소 최대 보정 적용`() {
         `when`(
-            notificationRepository.findForList(
+            notificationRepository.findForListByScope(
                 userId = 5L,
+                scope = NotificationScope.BUYER,
                 type = null,
                 cursorOccurredAt = null,
                 cursorId = null,
@@ -302,14 +338,16 @@ class NotificationQueryServiceTest {
             )
         ).thenReturn(emptyList())
         `when`(
-            notificationRepository.findForList(
+            notificationRepository.findForListByScope(
                 userId = 5L,
+                scope = NotificationScope.BUYER,
                 type = null,
                 cursorOccurredAt = null,
                 cursorId = null,
                 pageable = PageRequest.of(0, 101)
             )
         ).thenReturn(emptyList())
+        `when`(userRepository.findByIdAndDeletedAtIsNull(5L)).thenReturn(UserFixture.createEmailUser(id = 5L))
 
         service.getNotifications(
             userId = 5L,
@@ -324,15 +362,17 @@ class NotificationQueryServiceTest {
             limit = 999
         )
 
-        verify(notificationRepository).findForList(
+        verify(notificationRepository).findForListByScope(
             userId = 5L,
+            scope = NotificationScope.BUYER,
             type = null,
             cursorOccurredAt = null,
             cursorId = null,
             pageable = PageRequest.of(0, 2)
         )
-        verify(notificationRepository).findForList(
+        verify(notificationRepository).findForListByScope(
             userId = 5L,
+            scope = NotificationScope.BUYER,
             type = null,
             cursorOccurredAt = null,
             cursorId = null,

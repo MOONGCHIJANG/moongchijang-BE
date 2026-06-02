@@ -2,6 +2,7 @@ package com.moongchijang.domain.notification.application.dto
 
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import io.swagger.v3.oas.annotations.media.Schema
@@ -58,6 +59,14 @@ enum class NotificationCategory {
     }
 
     fun isOwnerFilter(): Boolean = ownerTriggerTypesOrNull() != null
+
+    fun supportsRole(role: UserRole): Boolean {
+        return when (role) {
+            UserRole.BUYER -> this in setOf(ALL, WISH, APPLY, PICKUP, REQUEST)
+            UserRole.SELLER -> this in setOf(ALL, TODAY_PICKUP, REMINDER, CONFIRMED, CANCELLED)
+            UserRole.ADMIN -> this == ALL
+        }
+    }
 
     companion object {
         fun from(value: String): NotificationCategory {

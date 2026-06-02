@@ -4,7 +4,12 @@ import com.moongchijang.domain.notification.application.dto.NotificationCategory
 import com.moongchijang.domain.notification.application.dto.NotificationCursor
 import com.moongchijang.domain.notification.application.dto.NotificationItemResponse
 import com.moongchijang.domain.notification.application.dto.NotificationListResponse
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
+import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -14,7 +19,8 @@ import java.time.ZoneId
 
 @Service
 class NotificationQueryService(
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val userRepository: UserRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -36,17 +42,26 @@ class NotificationQueryService(
             safeLimit
         )
 
+        val currentRole = userRepository.findByIdAndDeletedAtIsNull(userId)?.role
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        if (!category.supportsRole(currentRole)) {
+            throw CustomException(ErrorCode.INVALID_INPUT, "category is not supported for current role")
+        }
+
         val pageable = PageRequest.of(0, safeLimit + 1)
+        val scope = currentRole.toNotificationScope()
         val notifications = category.ownerTriggerTypesOrNull()?.let { ownerTriggerTypes ->
-            notificationRepository.findForListByTriggerTypes(
+            notificationRepository.findForListByScopeAndTriggerTypes(
                 userId = userId,
+                scope = scope,
                 triggerTypes = ownerTriggerTypes,
                 cursorOccurredAt = decodedCursor?.occurredAt,
                 cursorId = decodedCursor?.id,
                 pageable = pageable
             )
-        } ?: notificationRepository.findForList(
+        } ?: notificationRepository.findForListByScope(
             userId = userId,
+            scope = scope,
             type = category.toNotificationTypeOrNull(),
             cursorOccurredAt = decodedCursor?.occurredAt,
             cursorId = decodedCursor?.id,
@@ -76,5 +91,13 @@ class NotificationQueryService(
     companion object {
         private const val MIN_LIMIT = 1
         private const val MAX_LIMIT = 100
+    }
+
+    private fun UserRole.toNotificationScope(): NotificationScope {
+        return when (this) {
+            UserRole.BUYER -> NotificationScope.BUYER
+            UserRole.SELLER -> NotificationScope.OWNER
+            UserRole.ADMIN -> NotificationScope.BUYER
+        }
     }
 }
