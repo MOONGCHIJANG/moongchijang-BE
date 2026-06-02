@@ -14,5 +14,15 @@ enum class NotificationTemplateType {
     REQUEST_REJECTED,                         // ⑪
     REQUEST_NEW_PARTICIPANT,                  // ⑫
     REQUEST_TARGET_ACHIEVED,                  // ⑬
-    REQUEST_DEADLINE_MINUS_3_DAYS             // ⑭
+    REQUEST_DEADLINE_MINUS_3_DAYS,            // ⑭
+    OWNER_PICKUP_SAME_DAY_REMINDER,           // ⑮
+    OWNER_PICKUP_DAY_BEFORE_REMINDER,         // ⑯
+    OWNER_GROUPBUY_ACHIEVED,                  // ⑰
+    OWNER_GROUPBUY_FAILED,                    // ⑱
+    OWNER_CLOSE_REQUEST_APPROVED,             // ⑲
+    OWNER_CLOSE_REQUEST_REJECTED,             // ⑳
+    OWNER_OPEN_REQUEST_APPROVED,              // ㉑
+    OWNER_OPEN_REQUEST_REJECTED,              // ㉒
+    OWNER_ORDER_CONFIRM_REQUIRED,             // ㉓
+    OWNER_ORDER_CANCELLED                     // ㉔
 }

@@ -123,7 +123,9 @@ class NotificationImmediateDispatchService(
         return when (triggerType) {
             NotificationTriggerType.PICKUP_SAME_DAY_MORNING,
             NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING,
-            NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF -> NotificationType.PICKUP
+            NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF,
+            NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING,
+            NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING -> NotificationType.PICKUP
 
             NotificationTriggerType.WISH_DEADLINE_MINUS_3_DAYS,
             NotificationTriggerType.WISH_DEADLINE_MINUS_1_DAY,
@@ -131,13 +133,21 @@ class NotificationImmediateDispatchService(
 
             NotificationTriggerType.APPLY_PAYMENT_SUCCESS_IMMEDIATE,
             NotificationTriggerType.APPLY_GROUPBUY_ACHIEVED_IMMEDIATE,
-            NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE -> NotificationType.APPLY
+            NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE,
+            NotificationTriggerType.OWNER_GROUPBUY_ACHIEVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_GROUPBUY_FAILED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE -> NotificationType.APPLY
 
             NotificationTriggerType.REQUEST_OPENED_IMMEDIATE,
             NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
             NotificationTriggerType.REQUEST_NEW_PARTICIPANT_IMMEDIATE,
             NotificationTriggerType.REQUEST_TARGET_ACHIEVED_IMMEDIATE,
-            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> NotificationType.REQUEST
+            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE -> NotificationType.REQUEST
         }
     }
 
