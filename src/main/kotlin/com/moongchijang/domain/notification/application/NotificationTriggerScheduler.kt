@@ -9,6 +9,7 @@ import com.moongchijang.domain.notification.domain.entity.NotificationTriggerTyp
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -24,6 +25,7 @@ class NotificationTriggerScheduler(
     private val groupBuyRepository: GroupBuyRepository,
     private val favoriteRepository: FavoriteRepository,
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
+    private val storeStaffRepository: StoreStaffRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -46,6 +48,18 @@ class NotificationTriggerScheduler(
             pickupDate = tomorrow,
             triggerType = NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING,
             scheduleKeyPrefix = "pickup-day-before-morning",
+            occurredAt = now
+        )
+        dispatchOwnerPickupReminder(
+            pickupDate = today,
+            triggerType = NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING,
+            scheduleKeyPrefix = "owner-pickup-same-day-morning",
+            occurredAt = now
+        )
+        dispatchOwnerPickupReminder(
+            pickupDate = tomorrow,
+            triggerType = NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING,
+            scheduleKeyPrefix = "owner-pickup-day-before-morning",
             occurredAt = now
         )
     }
@@ -198,6 +212,46 @@ class NotificationTriggerScheduler(
         )
     }
 
+    private fun dispatchOwnerPickupReminder(
+        pickupDate: LocalDate,
+        triggerType: NotificationTriggerType,
+        scheduleKeyPrefix: String,
+        occurredAt: LocalDateTime
+    ) {
+        val groupBuys = groupBuyRepository.findByStatusInAndPickupDate(
+            statuses = OWNER_PICKUP_GROUP_BUY_STATUSES,
+            pickupDate = pickupDate
+        )
+        if (groupBuys.isEmpty()) {
+            log.info(
+                "[NotificationTriggerScheduler] 사장님 픽업 리마인드 알림 트리거 완료: triggerType={}, pickupDate={}, groupBuyCount={}",
+                triggerType, pickupDate, 0
+            )
+            return
+        }
+
+        val storeIds = groupBuys.map { it.store.id }.distinct()
+        val ownerUserIdsByStoreId = storeStaffRepository.findStoreStaffMappingsByStoreIdIn(storeIds)
+            .groupBy(keySelector = { it.storeId }, valueTransform = { it.userId })
+
+        groupBuys.forEach { groupBuy ->
+            val ownerUserIds = ownerUserIdsByStoreId[groupBuy.store.id].orEmpty().distinct()
+            if (ownerUserIds.isEmpty()) return@forEach
+
+            notificationEventPublisher.publishScheduledTrigger(
+                triggerType = triggerType,
+                targetId = groupBuy.id,
+                userIds = ownerUserIds,
+                scheduleKey = "$scheduleKeyPrefix:${groupBuy.id}:$pickupDate",
+                occurredAt = occurredAt
+            )
+        }
+        log.info(
+            "[NotificationTriggerScheduler] 사장님 픽업 리마인드 알림 트리거 완료: triggerType={}, pickupDate={}, groupBuyCount={}",
+            triggerType, pickupDate, groupBuys.size
+        )
+    }
+
     private fun nowKst(): LocalDateTime = LocalDateTime.now(ZoneId.of(KST_ZONE_ID))
 
     private enum class ReminderOffset(
@@ -212,5 +266,6 @@ class NotificationTriggerScheduler(
     companion object {
         private const val KST_ZONE_ID = "Asia/Seoul"
         private const val WINDOW_MINUTES = 10
+        private val OWNER_PICKUP_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
     }
 }

@@ -6,6 +6,7 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -20,6 +21,7 @@ import java.time.LocalDateTime
 class GroupBuyStatusTransitionService(
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
+    private val storeStaffRepository: StoreStaffRepository,
     private val notificationEventPublisher: NotificationEventPublisher,
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val transactionManager: PlatformTransactionManager,
@@ -85,6 +87,7 @@ class GroupBuyStatusTransitionService(
                     markParticipationsRefundPending(groupBuy.id, now)
                     val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuy.id)
                     publishApplyGroupBuyFailedEvent(groupBuy.id, participantUserIds, now)
+                    publishOwnerGroupBuyFailedEvent(groupBuy.id, groupBuy.store.id, now)
                     adminDiscordAlertService.sendGroupBuyFailed(groupBuy, participantUserIds.size)
                     inProgressToFailed++
                 }
@@ -114,6 +117,17 @@ class GroupBuyStatusTransitionService(
         notificationEventPublisher.publishApplyGroupBuyFailed(
             groupBuyId = groupBuyId,
             participantUserIds = participantUserIds,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishOwnerGroupBuyFailedEvent(groupBuyId: Long, storeId: Long, occurredAt: LocalDateTime) {
+        val ownerUserIds = storeStaffRepository.findUserIdsByStoreId(storeId).distinct()
+        if (ownerUserIds.isEmpty()) return
+
+        notificationEventPublisher.publishOwnerGroupBuyFailed(
+            groupBuyId = groupBuyId,
+            ownerUserIds = ownerUserIds,
             occurredAt = occurredAt
         )
     }

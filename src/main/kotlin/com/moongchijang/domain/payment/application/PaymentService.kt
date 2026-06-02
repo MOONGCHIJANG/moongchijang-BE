@@ -29,6 +29,7 @@ import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentRepository
 import com.moongchijang.domain.refund.application.RefundRequestSyncService
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
@@ -51,6 +52,7 @@ class PaymentService(
     private val userRepository: UserRepository,
     private val participationRepository: ParticipationRepository,
     private val favoriteRepository: FavoriteRepository,
+    private val storeStaffRepository: StoreStaffRepository,
     private val paymentOrderRepository: PaymentOrderRepository,
     private val paymentRepository: PaymentRepository,
     private val portOnePaymentPort: PortOnePaymentPort,
@@ -394,6 +396,7 @@ class PaymentService(
             publishWishTargetAchievedEvent(groupBuy.id, approvedAt)
             publishRequestTargetAchievedEvent(groupBuy, approvedAt)
             if (achievedNow) {
+                publishOwnerGroupBuyAchievedEvents(groupBuy.id, approvedAt)
                 adminDiscordAlertService.sendGroupBuyAchieved(groupBuy, participantUserIds.size)
             }
         }
@@ -472,6 +475,23 @@ class PaymentService(
         notificationEventPublisher.publishRequestTargetAchieved(
             requestId = requestId,
             requesterUserId = requesterUserId,
+            occurredAt = occurredAt
+        )
+    }
+
+    private fun publishOwnerGroupBuyAchievedEvents(groupBuyId: Long, occurredAt: LocalDateTime) {
+        val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId).orElse(null) ?: return
+        val ownerUserIds = storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id).distinct()
+        if (ownerUserIds.isEmpty()) return
+
+        notificationEventPublisher.publishOwnerGroupBuyAchieved(
+            groupBuyId = groupBuyId,
+            ownerUserIds = ownerUserIds,
+            occurredAt = occurredAt
+        )
+        notificationEventPublisher.publishOwnerOrderConfirmRequired(
+            groupBuyId = groupBuyId,
+            ownerUserIds = ownerUserIds,
             occurredAt = occurredAt
         )
     }

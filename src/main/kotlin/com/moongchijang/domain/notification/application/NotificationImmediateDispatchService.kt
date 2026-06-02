@@ -5,6 +5,7 @@ import com.moongchijang.domain.notification.application.template.NotificationTem
 import com.moongchijang.domain.notification.application.template.NotificationTemplateRenderer
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
@@ -31,6 +32,7 @@ class NotificationImmediateDispatchService(
     private val userRepository: UserRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
+    private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
     private val notificationTemplateRegistry: NotificationTemplateRegistry,
     private val notificationTemplateRenderer: NotificationTemplateRenderer,
 ) {
@@ -182,6 +184,19 @@ class NotificationImmediateDispatchService(
                         variables["현재참여개수"] = groupBuy.currentQuantity.toString()
                     }
                 }
+            }
+
+            NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE -> {
+                val ownerRequest = ownerGroupBuyRequestRepository.findById(targetId)
+                    .orElseThrow {
+                        CustomException(
+                            ErrorCode.NOTIFICATION_NOT_FOUND,
+                            "알림 템플릿 대상 사장님 공구요청을 찾을 수 없습니다. targetId=$targetId, triggerType=$triggerType"
+                        )
+                    }
+                variables["상품명"] = ownerRequest.productName
+                ownerRequest.rejectionReason?.let { variables["반려사유"] = it }
             }
 
             else -> {

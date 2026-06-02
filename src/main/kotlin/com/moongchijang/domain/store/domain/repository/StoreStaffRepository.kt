@@ -14,4 +14,15 @@ interface StoreStaffRepository : JpaRepository<StoreStaff, Long> {
 
     @Query("SELECT ss.store.id FROM StoreStaff ss WHERE ss.user.id = :userId")
     fun findStoreIdsByUserId(@Param("userId") userId: Long): List<Long>
+
+    @Query("SELECT ss.user.id FROM StoreStaff ss WHERE ss.store.id = :storeId")
+    fun findUserIdsByStoreId(@Param("storeId") storeId: Long): List<Long>
+
+    @Query("SELECT ss.store.id as storeId, ss.user.id as userId FROM StoreStaff ss WHERE ss.store.id IN :storeIds")
+    fun findStoreStaffMappingsByStoreIdIn(@Param("storeIds") storeIds: Collection<Long>): List<StoreStaffUserMapping>
+}
+
+interface StoreStaffUserMapping {
+    val storeId: Long
+    val userId: Long
 }
