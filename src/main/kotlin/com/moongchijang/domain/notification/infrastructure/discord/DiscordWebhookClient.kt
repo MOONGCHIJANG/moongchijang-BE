@@ -45,6 +45,7 @@ class DiscordWebhookClient(
     private fun resolveWebhookUrl(channel: AdminDiscordChannel): String =
         when (channel) {
             AdminDiscordChannel.REFUND -> discordProperties.webhook.refund
+            AdminDiscordChannel.PAYMENT -> discordProperties.webhook.payment
             AdminDiscordChannel.GROUPBUY -> discordProperties.webhook.groupbuy
             AdminDiscordChannel.ONBOARDING -> discordProperties.webhook.onboarding
         }.trim()

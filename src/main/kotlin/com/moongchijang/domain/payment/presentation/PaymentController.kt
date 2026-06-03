@@ -79,7 +79,7 @@ class PaymentController(
         } catch (e: RuntimeException) {
             throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
         }
-        paymentService.handlePortOneWebhook(request)
+        paymentService.handlePortOneWebhook(request, rawPayload)
         val response = ResponseEntity.ok(ApiResponse.success(PortOneWebhookResponse()))
         return response
     }

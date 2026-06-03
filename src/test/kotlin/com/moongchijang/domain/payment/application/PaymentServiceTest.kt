@@ -85,6 +85,9 @@ class PaymentServiceTest {
     private lateinit var paymentRepository: PaymentRepository
 
     @Mock
+    private lateinit var paymentAuditLogService: PaymentAuditLogService
+
+    @Mock
     private lateinit var portOnePaymentPort: PortOnePaymentPort
 
     @Mock
@@ -123,6 +126,7 @@ class PaymentServiceTest {
             storeStaffRepository = storeStaffRepository,
             paymentOrderRepository = paymentOrderRepository,
             paymentRepository = paymentRepository,
+            paymentAuditLogService = paymentAuditLogService,
             portOnePaymentPort = portOnePaymentPort,
             portOneProperties = portOneProperties,
             transactionManager = transactionManager,

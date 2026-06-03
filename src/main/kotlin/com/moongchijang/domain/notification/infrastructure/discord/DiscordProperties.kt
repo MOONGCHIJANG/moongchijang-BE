@@ -9,6 +9,7 @@ data class DiscordProperties(
 ) {
     data class Webhook(
         val refund: String = "",
+        val payment: String = "",
         val groupbuy: String = "",
         val onboarding: String = "",
     )

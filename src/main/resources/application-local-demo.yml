@@ -120,5 +120,6 @@ discord:
   enabled: ${DISCORD_ENABLED:false}
   webhook:
     refund: ${DISCORD_WEBHOOK_REFUND:}
+    payment: ${DISCORD_WEBHOOK_PAYMENT:}
     groupbuy: ${DISCORD_WEBHOOK_GROUPBUY:}
     onboarding: ${DISCORD_WEBHOOK_ONBOARDING:}
