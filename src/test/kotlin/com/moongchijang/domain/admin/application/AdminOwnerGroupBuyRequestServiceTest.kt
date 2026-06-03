@@ -1,11 +1,11 @@
-package com.moongchijang.domain.owner.application
+package com.moongchijang.domain.admin.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestRejectRequest
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestRejectRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus

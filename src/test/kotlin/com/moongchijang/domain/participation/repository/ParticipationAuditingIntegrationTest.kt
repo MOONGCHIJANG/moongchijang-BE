@@ -98,6 +98,7 @@ class ParticipationAuditingIntegrationTest {
             currentQuantity = 0,
             maxQuantity = 100,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = LocalDateTime.now(),
             deadline = LocalDateTime.now().plusDays(3),
             pickupDate = LocalDate.now().plusDays(5),
             pickupTimeStart = LocalTime.of(14, 0),

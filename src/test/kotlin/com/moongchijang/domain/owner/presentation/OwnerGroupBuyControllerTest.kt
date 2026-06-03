@@ -127,6 +127,8 @@ class OwnerGroupBuyControllerTest {
         val response = OwnerGroupBuyManageDetailResponse(
             groupBuyId = 101L,
             status = OwnerGroupBuyManageFilterType.IN_PROGRESS,
+            recruitmentStartDate = LocalDate.of(2026, 5, 30),
+            recruitmentEndDate = LocalDate.of(2026, 6, 1),
             participantSummary = OwnerGroupBuyManageParticipantSummary(totalCount = 20, completedCount = 8, waitingCount = 12),
             participants = emptyList()
         )
@@ -144,6 +146,8 @@ class OwnerGroupBuyControllerTest {
         val response = OwnerGroupBuyManageDetailResponse(
             groupBuyId = 102L,
             status = OwnerGroupBuyManageFilterType.ACHIEVED,
+            recruitmentStartDate = LocalDate.of(2026, 5, 30),
+            recruitmentEndDate = LocalDate.of(2026, 6, 1),
             participantSummary = OwnerGroupBuyManageParticipantSummary(totalCount = 20, completedCount = 8, waitingCount = 12),
             participants = emptyList()
         )

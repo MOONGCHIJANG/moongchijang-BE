@@ -67,6 +67,7 @@ class GroupBuyFeedItemResponseTest {
             currentQuantity = 28,
             maxQuantity = 45,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = deadline.minusDays(1),
             deadline = deadline,
             pickupDate = LocalDate.of(2026, 5, 26),
             pickupTimeStart = LocalTime.of(12, 0),

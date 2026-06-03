@@ -5108,13 +5108,15 @@ components:
 
     OwnerGroupBuyManageDetail:
       type: object
-      required: [groupBuyId, status, participantSummary, participants]
+      required: [groupBuyId, status, recruitmentStartDate, recruitmentEndDate, participantSummary, participants]
       properties:
         groupBuyId: { type: integer, format: int64, example: 101 }
         status:
           type: string
           enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
           example: IN_PROGRESS
+        recruitmentStartDate: { type: string, format: date, example: "2026-06-01" }
+        recruitmentEndDate: { type: string, format: date, example: "2026-06-07" }
         participantSummary:
           $ref: '#/components/schemas/OwnerGroupBuyManageParticipantSummary'
         participants:
