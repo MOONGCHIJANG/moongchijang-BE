@@ -88,6 +88,7 @@ object ParticipationFixture {
             currentQuantity = currentQuantity,
             maxQuantity = 100,
             status = groupBuyStatus,
+            recruitmentStartAt = deadline.minusDays(1),
             deadline = deadline,
             pickupDate = pickupDate,
             pickupTimeStart = pickupTimeStart,

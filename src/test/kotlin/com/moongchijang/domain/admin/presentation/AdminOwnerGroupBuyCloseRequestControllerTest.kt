@@ -1,10 +1,10 @@
-package com.moongchijang.domain.owner.presentation
+package com.moongchijang.domain.admin.presentation
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseRequestReviewStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
-import com.moongchijang.domain.owner.application.AdminOwnerGroupBuyCloseRequestService
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyCloseRequestActionResponse
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyCloseRequestRejectRequest
+import com.moongchijang.domain.admin.application.AdminOwnerGroupBuyCloseRequestService
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequestActionResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequestRejectRequest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock

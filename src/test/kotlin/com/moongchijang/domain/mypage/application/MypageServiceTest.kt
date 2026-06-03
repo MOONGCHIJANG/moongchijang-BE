@@ -394,6 +394,7 @@ class MypageServiceTest {
             targetQuantity = 10,
             maxQuantity = 20,
             status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = LocalDate.now().minusDays(1).atStartOfDay(),
             deadline = LocalDate.now().plusDays(1).atTime(23, 59),
             pickupDate = LocalDate.of(2026, 5, 25),
             pickupTimeStart = LocalTime.of(13, 0),

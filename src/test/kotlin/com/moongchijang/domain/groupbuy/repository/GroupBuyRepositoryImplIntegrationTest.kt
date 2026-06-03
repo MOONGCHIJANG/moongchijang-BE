@@ -257,6 +257,7 @@ class GroupBuyRepositoryImplIntegrationTest {
             currentQuantity = currentQuantity,
             maxQuantity = 200,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = deadline.minusDays(1),
             deadline = deadline,
             pickupDate = LocalDate.now().plusDays(5),
             pickupTimeStart = LocalTime.of(10, 0),

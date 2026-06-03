@@ -346,6 +346,7 @@ class GroupBuyOpenRequestServiceTest {
             targetQuantity = 10,
             maxQuantity = 20,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = LocalDateTime.now(),
             deadline = LocalDateTime.now().plusDays(1),
             pickupDate = LocalDate.now().plusDays(3),
             pickupTimeStart = LocalTime.of(13, 0),

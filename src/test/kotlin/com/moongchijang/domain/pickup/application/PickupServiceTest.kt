@@ -441,6 +441,7 @@ class PickupServiceTest {
             currentQuantity = 50,
             maxQuantity = 100,
             status = GroupBuyStatus.ACHIEVED,
+            recruitmentStartAt = LocalDateTime.now().minusDays(2),
             deadline = LocalDateTime.now().minusDays(1),
             pickupDate = pickupDate,
             pickupTimeStart = pickupTimeStart,
