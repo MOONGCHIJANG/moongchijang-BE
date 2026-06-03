@@ -26,7 +26,9 @@ import com.moongchijang.domain.user.application.dto.SellerSignupStatusResponse
 import com.moongchijang.domain.user.application.dto.OwnerWithdrawRequest
 import com.moongchijang.domain.user.application.dto.WithdrawRequest
 import com.moongchijang.domain.user.application.dto.WithdrawalContextResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -276,6 +278,7 @@ class UserController(
 
     @GetMapping("/me/seller/settlement-account")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.SELLER)
     @Operation(summary = "사장님 입금 계좌 조회", description = "사장님의 현재 입금 계좌 정보를 조회합니다.")
     @ApiResponses(
         value = [
@@ -296,6 +299,7 @@ class UserController(
 
     @PatchMapping("/me/seller/settlement-account")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.SELLER)
     @Operation(summary = "사장님 입금 계좌 변경", description = "사장님의 입금 계좌 정보를 변경합니다.")
     @ApiResponses(
         value = [
@@ -318,6 +322,7 @@ class UserController(
 
     @GetMapping("/me/seller/business-profile")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.SELLER)
     @Operation(summary = "사장님 사업자 정보 조회", description = "사장님의 현재 사업자 정보를 조회합니다.")
     @ApiResponses(
         value = [
@@ -338,6 +343,7 @@ class UserController(
 
     @PatchMapping("/me/seller/business-profile")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.SELLER)
     @Operation(summary = "사장님 사업자 정보 변경", description = "사장님의 사업자 정보를 변경합니다.")
     @ApiResponses(
         value = [
@@ -380,6 +386,7 @@ class UserController(
 
     @DeleteMapping("/me/seller")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.SELLER)
     @Operation(summary = "사장님 회원 탈퇴", description = "사장님 회원 탈퇴를 처리합니다.")
     @ApiResponses(
         value = [
