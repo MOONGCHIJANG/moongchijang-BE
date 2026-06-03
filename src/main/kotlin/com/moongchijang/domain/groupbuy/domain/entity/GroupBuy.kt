@@ -193,6 +193,15 @@ class GroupBuy(
         reasonDetail: String?,
         requestedAt: LocalDateTime = LocalDateTime.now()
     ) {
+        require(status == GroupBuyStatus.IN_PROGRESS || status == GroupBuyStatus.ACHIEVED) {
+            "IN_PROGRESS 또는 ACHIEVED 상태에서만 마감 요청을 할 수 있습니다."
+        }
+        require(reason == GroupBuyCloseReason.OTHER) {
+            "기타(OTHER) 사유만 검토 요청을 할 수 있습니다."
+        }
+        require(closeRequestReviewStatus != GroupBuyCloseRequestReviewStatus.PENDING) {
+            "이미 검토 대기 중인 마감 요청이 존재합니다."
+        }
         closeReason = reason
         closeReasonDetail = reasonDetail
         closeRequestedAt = requestedAt
