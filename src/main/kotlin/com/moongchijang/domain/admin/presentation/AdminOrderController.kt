@@ -4,7 +4,9 @@ import com.moongchijang.domain.admin.application.AdminOrderService
 import com.moongchijang.domain.admin.application.dto.AdminOrderDetailResponse
 import com.moongchijang.domain.admin.application.dto.AdminOrderPageResponse
 import com.moongchijang.domain.admin.application.dto.AdminOrderStatusFilter
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Pageable
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/admin/orders")
+@RequireCurrentRole(UserRole.ADMIN)
 @Tag(name = "Admin", description = "운영자 관리")
 class AdminOrderController(
     private val adminOrderService: AdminOrderService,

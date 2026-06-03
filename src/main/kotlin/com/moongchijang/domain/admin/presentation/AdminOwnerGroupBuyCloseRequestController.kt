@@ -3,7 +3,9 @@ package com.moongchijang.domain.admin.presentation
 import com.moongchijang.domain.admin.application.AdminOwnerGroupBuyCloseRequestService
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequestActionResponse
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequestRejectRequest
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/admin/owner-group-buys")
+@RequireCurrentRole(UserRole.ADMIN)
 @Tag(name = "AdminOwnerGroupBuyCloseRequest", description = "어드민 사장님 공구 마감 요청 관리")
 class AdminOwnerGroupBuyCloseRequestController(
     private val adminOwnerGroupBuyCloseRequestService: AdminOwnerGroupBuyCloseRequestService
