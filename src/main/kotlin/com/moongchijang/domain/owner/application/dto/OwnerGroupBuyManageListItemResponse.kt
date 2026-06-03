@@ -5,8 +5,11 @@ import java.time.LocalDate
 
 @Schema(description = "사장님 공구 관리 목록 아이템 응답")
 data class OwnerGroupBuyManageListItemResponse(
-    @field:Schema(description = "공구 ID", example = "101")
-    val groupBuyId: Long,
+    @field:Schema(description = "공구 ID (실제 공구 항목일 때만 값 존재)", example = "101", nullable = true)
+    val groupBuyId: Long? = null,
+
+    @field:Schema(description = "공구 개설 요청 ID (승인대기 항목일 때만 값 존재)", example = "55", nullable = true)
+    val requestId: Long? = null,
 
     @field:Schema(description = "공구명", example = "두쫀쿠 세트")
     val productName: String,

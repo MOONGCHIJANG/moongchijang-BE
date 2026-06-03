@@ -1,4 +1,4 @@
-package com.moongchijang.domain.owner.application.dto
+package com.moongchijang.domain.admin.application.dto
 
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage

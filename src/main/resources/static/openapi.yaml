@@ -5090,9 +5090,20 @@ components:
 
     OwnerGroupBuyManageListItem:
       type: object
-      required: [groupBuyId, productName, price, pickupDate, status]
+      required: [productName, price, pickupDate, status]
       properties:
-        groupBuyId: { type: integer, format: int64, example: 101 }
+        groupBuyId:
+          type: integer
+          format: int64
+          nullable: true
+          description: 실제 공구 항목일 때 사용하는 공구 ID. PENDING_APPROVAL 항목에서는 null
+          example: 101
+        requestId:
+          type: integer
+          format: int64
+          nullable: true
+          description: 승인대기(PENDING_APPROVAL) 항목일 때 사용하는 공구 개설 요청 ID. 실제 공구 항목에서는 null
+          example: 55
         productName: { type: string, example: 두쫀쿠 세트 }
         price: { type: integer, example: 9900 }
         pickupDate: { type: string, format: date, example: "2026-06-01" }
@@ -5116,13 +5127,15 @@ components:
 
     OwnerGroupBuyManageDetail:
       type: object
-      required: [groupBuyId, status, participantSummary, participants]
+      required: [groupBuyId, status, recruitmentStartDate, recruitmentEndDate, participantSummary, participants]
       properties:
         groupBuyId: { type: integer, format: int64, example: 101 }
         status:
           type: string
           enum: [ALL, IN_PROGRESS, ACHIEVED, ENDED, PENDING_APPROVAL]
           example: IN_PROGRESS
+        recruitmentStartDate: { type: string, format: date, example: "2026-06-01" }
+        recruitmentEndDate: { type: string, format: date, example: "2026-06-07" }
         participantSummary:
           $ref: '#/components/schemas/OwnerGroupBuyManageParticipantSummary'
         participants:

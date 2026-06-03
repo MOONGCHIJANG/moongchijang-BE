@@ -1,8 +1,8 @@
-package com.moongchijang.domain.owner.presentation
+package com.moongchijang.domain.admin.presentation
 
-import com.moongchijang.domain.owner.application.AdminOwnerGroupBuyCloseRequestService
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyCloseRequestActionResponse
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyCloseRequestRejectRequest
+import com.moongchijang.domain.admin.application.AdminOwnerGroupBuyCloseRequestService
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequestActionResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequestRejectRequest
 import com.moongchijang.global.response.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag

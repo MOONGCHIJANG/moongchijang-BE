@@ -1,11 +1,11 @@
-package com.moongchijang.domain.owner.application
+package com.moongchijang.domain.admin.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseRequestReviewStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyCloseRequestRejectRequest
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequestRejectRequest
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode

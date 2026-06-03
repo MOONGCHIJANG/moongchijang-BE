@@ -1,8 +1,8 @@
-package com.moongchijang.domain.owner.presentation
+package com.moongchijang.domain.admin.presentation
 
-import com.moongchijang.domain.owner.application.AdminOwnerGroupBuyRequestService
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestActionResponse
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestRejectRequest
+import com.moongchijang.domain.admin.application.AdminOwnerGroupBuyRequestService
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestActionResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestRejectRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

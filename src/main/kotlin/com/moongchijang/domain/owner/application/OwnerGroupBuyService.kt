@@ -147,7 +147,7 @@ class OwnerGroupBuyService(
                     .findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(ownerId, storeIds, OwnerGroupBuyRequestStatus.PENDING)
                     .map {
                         OwnerGroupBuyManageListItemResponse(
-                            groupBuyId = it.id,
+                            requestId = it.id,
                             productName = it.productName,
                             price = it.price,
                             pickupDate = it.pickupDate,
@@ -318,6 +318,8 @@ class OwnerGroupBuyService(
         val response = OwnerGroupBuyManageDetailResponse(
             groupBuyId = groupBuy.id,
             status = toManageFilterType(groupBuy.status),
+            recruitmentStartDate = groupBuy.recruitmentStartAt.toLocalDate(),
+            recruitmentEndDate = groupBuy.deadline.toLocalDate(),
             participantSummary = OwnerGroupBuyManageParticipantSummary(
                 totalCount = totalCount,
                 completedCount = completedCount,

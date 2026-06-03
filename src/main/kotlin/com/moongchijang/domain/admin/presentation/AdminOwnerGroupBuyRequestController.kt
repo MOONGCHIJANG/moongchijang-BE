@@ -1,10 +1,10 @@
-package com.moongchijang.domain.owner.presentation
+package com.moongchijang.domain.admin.presentation
 
-import com.moongchijang.domain.owner.application.AdminOwnerGroupBuyRequestService
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestActionResponse
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestDetailResponse
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestPageResponse
-import com.moongchijang.domain.owner.application.dto.AdminOwnerGroupBuyRequestRejectRequest
+import com.moongchijang.domain.admin.application.AdminOwnerGroupBuyRequestService
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestActionResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestDetailResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestPageResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestRejectRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import com.moongchijang.global.response.ApiResponse
 import io.swagger.v3.oas.annotations.Operation

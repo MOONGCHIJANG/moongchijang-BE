@@ -51,6 +51,7 @@ object SearchTestFixtures {
         currentQuantity = 10,
         maxQuantity = 100,
         status = status,
+        recruitmentStartAt = deadline.minusDays(1),
         deadline = deadline,
         pickupDate = LocalDate.now().plusDays(5),
         pickupTimeStart = LocalTime.of(14, 0),
