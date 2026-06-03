@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface SearchCorrectionRepository : JpaRepository<SearchCorrection, Long> {
     fun findBySourceKeywordAndEnabledTrue(sourceKeyword: String): SearchCorrection?
+    fun findAllByEnabledTrue(): List<SearchCorrection>
 }
