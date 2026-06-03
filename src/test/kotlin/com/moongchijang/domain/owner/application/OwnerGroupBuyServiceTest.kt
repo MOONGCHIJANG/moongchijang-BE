@@ -12,6 +12,7 @@ import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyExtensionReque
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
+import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
@@ -221,6 +222,24 @@ class OwnerGroupBuyServiceTest {
     fun `사장님 공구 관리 승인대기 목록 조회`() {
         val owner = seller()
         val storeIds = listOf(1L)
+        val pendingRequest = OwnerGroupBuyRequest(
+            owner = owner,
+            store = groupBuy(id = 999L, status = GroupBuyStatus.IN_PROGRESS, currentQuantity = 1, targetQuantity = 10, price = 1000).store,
+            productName = "승인대기 공구",
+            productDescription = "설명",
+            price = 9900,
+            targetQuantity = 20,
+            maxQuantity = 30,
+            thumbnailKey = "owner-thumb.jpg",
+            deadline = LocalDateTime.of(2026, 6, 10, 18, 0),
+            pickupDate = LocalDate.of(2026, 6, 12),
+            pickupTimeStart = java.time.LocalTime.of(12, 0),
+            pickupTimeEnd = java.time.LocalTime.of(18, 0),
+            pickupLocation = "서울 성동구"
+        ).apply {
+            id = 55L
+            status = OwnerGroupBuyRequestStatus.PENDING
+        }
         mockSellerAndStoreIds(owner.id!!, owner, storeIds)
         `when`(
             ownerGroupBuyRequestRepository.findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(
@@ -228,11 +247,14 @@ class OwnerGroupBuyServiceTest {
                 storeIds,
                 OwnerGroupBuyRequestStatus.PENDING
             )
-        ).thenReturn(emptyList())
+        ).thenReturn(listOf(pendingRequest))
 
         val result = service.getManageGroupBuys(owner.id!!, OwnerGroupBuyManageFilterType.PENDING_APPROVAL)
 
-        assertEquals(0, result.size)
+        assertEquals(1, result.size)
+        assertNull(result[0].groupBuyId)
+        assertEquals(55L, result[0].requestId)
+        assertEquals(OwnerGroupBuyManageFilterType.PENDING_APPROVAL, result[0].status)
     }
 
     @Test

@@ -101,6 +101,27 @@ class OwnerGroupBuyControllerTest {
     }
 
     @Test
+    fun `사장님 공구 관리 승인대기 목록은 requestId를 포함한다`() {
+        val principal = CustomUserPrincipal(id = 1L, email = "seller@example.com", role = UserRole.SELLER)
+        val response = listOf(
+            OwnerGroupBuyManageListItemResponse(
+                requestId = 55L,
+                productName = "승인대기 공구",
+                price = 9900,
+                pickupDate = LocalDate.of(2026, 6, 12),
+                status = OwnerGroupBuyManageFilterType.PENDING_APPROVAL
+            )
+        )
+        `when`(ownerGroupBuyService.getManageGroupBuys(1L, OwnerGroupBuyManageFilterType.PENDING_APPROVAL)).thenReturn(response)
+
+        val result = controller.getManageGroupBuys(principal, OwnerGroupBuyManageFilterType.PENDING_APPROVAL)
+
+        assertEquals(55L, result.body?.data?.first()?.requestId)
+        assertNull(result.body?.data?.first()?.groupBuyId)
+        verify(ownerGroupBuyService).getManageGroupBuys(1L, OwnerGroupBuyManageFilterType.PENDING_APPROVAL)
+    }
+
+    @Test
     fun `사장님 모집중 공구 상세를 조회한다`() {
         val principal = CustomUserPrincipal(id = 1L, email = "seller@example.com", role = UserRole.SELLER)
         val response = OwnerGroupBuyManageDetailResponse(
