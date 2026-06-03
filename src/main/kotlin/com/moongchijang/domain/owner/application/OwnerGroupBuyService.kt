@@ -147,7 +147,7 @@ class OwnerGroupBuyService(
                     .findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(ownerId, storeIds, OwnerGroupBuyRequestStatus.PENDING)
                     .map {
                         OwnerGroupBuyManageListItemResponse(
-                            groupBuyId = it.id,
+                            requestId = it.id,
                             productName = it.productName,
                             price = it.price,
                             pickupDate = it.pickupDate,
