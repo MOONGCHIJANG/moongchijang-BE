@@ -53,7 +53,7 @@ class SearchCorrectionServiceTest {
             .thenReturn(null)
         Mockito.`when`(searchCorrectionRepository.findAllByEnabledTrue())
             .thenReturn(listOf(correction))
-        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS"))
+        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS", 500))
             .thenReturn(emptyList())
 
         val corrected = service.correct("카례")
@@ -68,7 +68,7 @@ class SearchCorrectionServiceTest {
             .thenReturn(null)
         Mockito.`when`(searchCorrectionRepository.findAllByEnabledTrue())
             .thenReturn(emptyList())
-        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS"))
+        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS", 500))
             .thenReturn(listOf("카레라면"))
 
         val corrected = service.correct("카례")
@@ -83,7 +83,7 @@ class SearchCorrectionServiceTest {
             .thenReturn(null)
         Mockito.`when`(searchCorrectionRepository.findAllByEnabledTrue())
             .thenReturn(emptyList())
-        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS"))
+        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS", 500))
             .thenReturn(listOf("양즈간루"))
 
         val corrected = service.correct("앙즈간루")

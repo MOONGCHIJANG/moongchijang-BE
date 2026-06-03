@@ -30,13 +30,14 @@ class SearchCorrectionService(
             return null
         }
 
+        val maxDistance = maxDistance(normalized.length)
         return correctionCandidates(normalized.length)
             .asSequence()
             .filter { it != normalized }
             .mapNotNull { candidate ->
-                val distance = jamoEditDistance(normalized, candidate)
-                candidate.takeIf { distance <= maxDistance(normalized.length) }
-                    ?.let { SimilarCandidate(candidate = it, distance = distance) }
+                val distance = jamoEditDistance(normalized, candidate, maxDistance)
+                    ?: return@mapNotNull null
+                SimilarCandidate(candidate = candidate, distance = distance)
             }
             .minWithOrNull(
                 compareBy<SimilarCandidate> { it.distance }
@@ -50,12 +51,16 @@ class SearchCorrectionService(
         val dictionaryTargets = searchCorrectionRepository.findAllByEnabledTrue()
             .map { SearchQueryNormalizer.normalize(it.targetKeyword) }
 
-        val activeFeedTerms = groupBuyRepository.findActiveSearchKeywords(GroupBuyStatus.IN_PROGRESS.name)
+        val activeFeedTerms = groupBuyRepository.findActiveSearchKeywords(
+            status = GroupBuyStatus.IN_PROGRESS.name,
+            limit = ACTIVE_KEYWORD_LIMIT,
+        )
             .flatMap { extractTerms(SearchQueryNormalizer.normalize(it), queryLength) }
 
         return (dictionaryTargets + activeFeedTerms)
             .filter { it.length >= MIN_SIMILARITY_QUERY_LENGTH }
             .distinct()
+            .take(MAX_SIMILARITY_CANDIDATES)
     }
 
     private fun extractTerms(productName: String, queryLength: Int): List<String> {
@@ -67,7 +72,7 @@ class SearchCorrectionService(
             .filter { it >= MIN_SIMILARITY_QUERY_LENGTH }
             .filter { it <= productName.length }
 
-        return buildList {
+        return buildSet {
             if (productName.length <= queryLength + 1) {
                 add(productName)
             }
@@ -76,7 +81,7 @@ class SearchCorrectionService(
                     add(productName.substring(start, start + size))
                 }
             }
-        }
+        }.toList()
     }
 
     private fun maxDistance(queryLength: Int): Int = when {
@@ -85,30 +90,40 @@ class SearchCorrectionService(
         else -> 3
     }
 
-    private fun jamoEditDistance(source: String, target: String): Int {
+    private fun jamoEditDistance(source: String, target: String, maxDistance: Int): Int? {
         val left = decomposeHangul(source)
         val right = decomposeHangul(target)
-        val dp = Array(left.size + 1) { IntArray(right.size + 1) }
-
-        for (i in 0..left.size) {
-            dp[i][0] = i
+        if (kotlin.math.abs(left.size - right.size) > maxDistance) {
+            return null
         }
+
+        var previous = IntArray(right.size + 1) { it }
+        var current = IntArray(right.size + 1)
         for (j in 0..right.size) {
-            dp[0][j] = j
+            previous[j] = j
         }
 
         for (i in 1..left.size) {
+            current[0] = i
+            var rowMin = current[0]
             for (j in 1..right.size) {
                 val cost = if (left[i - 1] == right[j - 1]) 0 else 1
-                dp[i][j] = minOf(
-                    dp[i - 1][j] + 1,
-                    dp[i][j - 1] + 1,
-                    dp[i - 1][j - 1] + cost
+                current[j] = minOf(
+                    previous[j] + 1,
+                    current[j - 1] + 1,
+                    previous[j - 1] + cost
                 )
+                rowMin = minOf(rowMin, current[j])
             }
+            if (rowMin > maxDistance) {
+                return null
+            }
+            val swap = previous
+            previous = current
+            current = swap
         }
 
-        return dp[left.size][right.size]
+        return previous[right.size].takeIf { it <= maxDistance }
     }
 
     private fun decomposeHangul(value: String): List<Int> = buildList {
@@ -134,6 +149,8 @@ class SearchCorrectionService(
 
     companion object {
         private const val MIN_SIMILARITY_QUERY_LENGTH = 2
+        private const val ACTIVE_KEYWORD_LIMIT = 500
+        private const val MAX_SIMILARITY_CANDIDATES = 2_000
         private const val HANGUL_BASE = 0xAC00
         private const val HANGUL_SYLLABLE_COUNT = 11172
         private const val CHO_COUNT = 19

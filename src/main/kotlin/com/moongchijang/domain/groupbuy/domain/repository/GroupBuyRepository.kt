@@ -179,35 +179,45 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
      * 검색 보정 fallback 에서 사용할 현재 피드 검색 후보를 반환한다.
      *
      * FULLTEXT 검색 대상과 동일하게 진행 중이고 마감 전인 공구의 상품명, 매장명, 주소를 후보로 제한한다.
+     * 후보 전체 로딩을 피하기 위해 호출 측에서 limit 을 지정한다.
      */
     @Query(
         value = """
-            SELECT DISTINCT gb.product_name AS keyword
-            FROM group_buys gb
-            WHERE gb.status = :status
-              AND gb.deadline > CURRENT_TIMESTAMP
-              AND gb.product_name IS NOT NULL
-              AND gb.product_name <> ''
-            UNION
-            SELECT DISTINCT s.name AS keyword
-            FROM group_buys gb
-            JOIN stores s ON gb.store_id = s.id
-            WHERE gb.status = :status
-              AND gb.deadline > CURRENT_TIMESTAMP
-              AND s.name IS NOT NULL
-              AND s.name <> ''
-            UNION
-            SELECT DISTINCT s.address AS keyword
-            FROM group_buys gb
-            JOIN stores s ON gb.store_id = s.id
-            WHERE gb.status = :status
-              AND gb.deadline > CURRENT_TIMESTAMP
-              AND s.address IS NOT NULL
-              AND s.address <> ''
+            SELECT keyword
+            FROM (
+                SELECT gb.product_name AS keyword, gb.deadline AS deadline
+                FROM group_buys gb
+                WHERE gb.status = :status
+                  AND gb.deadline > CURRENT_TIMESTAMP
+                  AND gb.product_name IS NOT NULL
+                  AND gb.product_name <> ''
+                UNION ALL
+                SELECT s.name AS keyword, gb.deadline AS deadline
+                FROM group_buys gb
+                JOIN stores s ON gb.store_id = s.id
+                WHERE gb.status = :status
+                  AND gb.deadline > CURRENT_TIMESTAMP
+                  AND s.name IS NOT NULL
+                  AND s.name <> ''
+                UNION ALL
+                SELECT s.address AS keyword, gb.deadline AS deadline
+                FROM group_buys gb
+                JOIN stores s ON gb.store_id = s.id
+                WHERE gb.status = :status
+                  AND gb.deadline > CURRENT_TIMESTAMP
+                  AND s.address IS NOT NULL
+                  AND s.address <> ''
+            ) active_keywords
+            GROUP BY keyword
+            ORDER BY MIN(deadline) ASC
+            LIMIT :limit
         """,
         nativeQuery = true
     )
-    fun findActiveSearchKeywords(@Param("status") status: String): List<String>
+    fun findActiveSearchKeywords(
+        @Param("status") status: String,
+        @Param("limit") limit: Int,
+    ): List<String>
 
     /**
      * 주어진 id 목록의 GroupBuy 를 store 와 함께 한 번에 로드한다.
