@@ -38,7 +38,7 @@ class AdminOwnerGroupBuyCloseRequestService(
 
         val response = AdminOwnerGroupBuyCloseRequestActionResponse(
             groupBuyId = groupBuy.id,
-            reviewStatus = groupBuy.closeRequestReviewStatus!!,
+            reviewStatus = GroupBuyCloseRequestReviewStatus.APPROVED,
             groupBuyStatus = groupBuy.status
         )
         log.info(
@@ -66,7 +66,7 @@ class AdminOwnerGroupBuyCloseRequestService(
 
         val response = AdminOwnerGroupBuyCloseRequestActionResponse(
             groupBuyId = groupBuy.id,
-            reviewStatus = groupBuy.closeRequestReviewStatus!!,
+            reviewStatus = GroupBuyCloseRequestReviewStatus.REJECTED,
             groupBuyStatus = groupBuy.status
         )
         log.info(
