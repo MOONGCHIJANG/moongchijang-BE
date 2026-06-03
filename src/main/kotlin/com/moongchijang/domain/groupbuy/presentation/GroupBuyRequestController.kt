@@ -4,7 +4,9 @@ import com.moongchijang.domain.groupbuy.application.GroupBuyRequestService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestCreateRequest
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestIdResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyRequestResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/group-buy-requests")
+@RequireCurrentRole(UserRole.BUYER)
 @Tag(name = "GroupBuyRequest", description = "공구 개설 요청 (소비자)")
 class GroupBuyRequestController(
     private val groupBuyRequestService: GroupBuyRequestService

@@ -5,7 +5,9 @@ import com.moongchijang.domain.favorite.application.WishlistQueryService
 import com.moongchijang.domain.favorite.application.dto.WishFilterType
 import com.moongchijang.domain.favorite.application.dto.WishSortType
 import com.moongchijang.domain.favorite.application.dto.WishlistPageResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1")
+@RequireCurrentRole(UserRole.BUYER)
 @Tag(name = "Wishlist", description = "찜 추가 · 해제 · 목록")
 class WishlistController(
     private val wishlistQueryService: WishlistQueryService,

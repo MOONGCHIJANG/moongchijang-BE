@@ -17,10 +17,11 @@ class NotificationCommandService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun markAsRead(userId: Long, notificationId: Long) {
+    fun markAsRead(userId: Long, currentRole: UserRole, notificationId: Long) {
         log.info(
-            "[NotificationCommandService] 알림 단건 읽음 처리 시작: userId={}, notificationId={}",
+            "[NotificationCommandService] 알림 단건 읽음 처리 시작: userId={}, scope={}, notificationId={}",
             userId,
+            currentRole,
             notificationId
         )
 
@@ -30,11 +31,15 @@ class NotificationCommandService(
         if (notification.user.id != userId) {
             throw CustomException(ErrorCode.NOTIFICATION_FORBIDDEN)
         }
+        if (notification.scope != NotificationScope.from(currentRole)) {
+            throw CustomException(ErrorCode.NOTIFICATION_FORBIDDEN)
+        }
         notification.markAsRead()
 
         log.info(
-            "[NotificationCommandService] 알림 단건 읽음 처리 완료: userId={}, notificationId={}, isRead={}",
+            "[NotificationCommandService] 알림 단건 읽음 처리 완료: userId={}, scope={}, notificationId={}, isRead={}",
             userId,
+            currentRole,
             notificationId,
             notification.isRead
         )

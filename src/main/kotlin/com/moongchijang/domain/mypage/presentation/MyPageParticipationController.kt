@@ -3,7 +3,9 @@ package com.moongchijang.domain.mypage.presentation
 import com.moongchijang.domain.mypage.application.MyPageParticipationQueryService
 import com.moongchijang.domain.participation.application.dto.InProgressParticipationPageResponse
 import com.moongchijang.domain.participation.application.dto.PickupWaitingParticipationPageResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/users/me/participations")
+@RequireCurrentRole(UserRole.BUYER)
 @Tag(name = "MyPage", description = "마이페이지 API")
 class MyPageParticipationController(
     private val myPageParticipationQueryService: MyPageParticipationQueryService

@@ -6,7 +6,9 @@ import com.moongchijang.domain.admin.application.AdminDashboardUrgentRefundServi
 import com.moongchijang.domain.admin.application.dto.AdminDashboardUnconfirmedOrderResponse
 import com.moongchijang.domain.admin.application.dto.AdminDashboardSummaryResponse
 import com.moongchijang.domain.admin.application.dto.AdminDashboardUrgentRefundResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Pageable
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/admin")
+@RequireCurrentRole(UserRole.ADMIN)
 @Tag(name = "Admin", description = "운영자 관리")
 class AdminDashboardController(
     private val adminDashboardSummaryService: AdminDashboardSummaryService,

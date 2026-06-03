@@ -5,7 +5,9 @@ import com.moongchijang.domain.image.application.dto.ImageDeleteRequest
 import com.moongchijang.domain.image.application.dto.ImageDeleteResponse
 import com.moongchijang.domain.image.application.dto.ImagePresignedUploadRequest
 import com.moongchijang.domain.image.application.dto.ImagePresignedUploadResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/images")
+@RequireCurrentRole(UserRole.BUYER, UserRole.SELLER, UserRole.ADMIN)
 @Tag(name = "ImageUpload", description = "이미지 업로드")
 class ImageUploadController(
     private val s3ImageUploadService: S3ImageUploadService,

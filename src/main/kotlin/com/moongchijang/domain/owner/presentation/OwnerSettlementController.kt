@@ -9,7 +9,9 @@ import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSub
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementItemListResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthChipListResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthlySummaryResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -31,6 +33,7 @@ import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/api/v1/owner/settlements")
+@RequireCurrentRole(UserRole.SELLER)
 @Tag(name = "OwnerSettlement", description = "사장님 정산/환불 확인")
 class OwnerSettlementController(
     private val ownerSettlementService: OwnerSettlementService,

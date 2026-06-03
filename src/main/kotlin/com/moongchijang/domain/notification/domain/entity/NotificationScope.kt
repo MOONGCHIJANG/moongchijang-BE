@@ -1,6 +1,8 @@
 package com.moongchijang.domain.notification.domain.entity
 
 import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 
 enum class NotificationScope {
     BUYER,
@@ -11,7 +13,7 @@ enum class NotificationScope {
             return when (role) {
                 UserRole.BUYER -> BUYER
                 UserRole.SELLER -> OWNER
-                UserRole.ADMIN -> BUYER
+                UserRole.ADMIN -> throw CustomException(ErrorCode.FORBIDDEN)
             }
         }
     }
