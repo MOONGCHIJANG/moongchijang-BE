@@ -586,6 +586,7 @@ class UserServiceTest {
             )
         )
         Mockito.verify(favoriteRepository).deleteByUserId(1L)
+        Mockito.verify(tokenService).deleteByUserId(1L)
         Assertions.assertEquals(true, user.deletedAt != null)
     }
 
@@ -617,6 +618,7 @@ class UserServiceTest {
 
         Mockito.verifyNoInteractions(paymentService)
         Mockito.verify(favoriteRepository).deleteByUserId(2L)
+        Mockito.verify(tokenService).deleteByUserId(2L)
         Assertions.assertEquals(true, user.deletedAt != null)
     }
 

@@ -13,6 +13,7 @@ import com.moongchijang.domain.auth.application.port.EmailSignupTokenStore
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.application.UserService
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
@@ -29,6 +30,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 class AuthService(
     private val kakaoAuthService: KakaoAuthService,
     private val userService: UserService,
+    private val userRepository: UserRepository,
     private val emailSignupTokenStore: EmailSignupTokenStore,
     private val tokenService: TokenService,
     private val jwtTokenProvider: JwtTokenProvider,
@@ -88,6 +90,12 @@ class AuthService(
 
             val userId = tokenService.getUserIdByRefreshToken(refreshToken)
                 ?: throw CustomException(ErrorCode.INVALID_REFRESH_TOKEN)
+
+            val activeUser = userRepository.findByIdAndDeletedAtIsNull(userId)
+            if (activeUser == null) {
+                tokenService.deleteByUserId(userId)
+                throw CustomException(ErrorCode.INVALID_REFRESH_TOKEN)
+            }
 
             val newRefreshToken = tokenService.reissueRefreshToken(userId, refreshToken)
             val accessToken = jwtTokenProvider.generateAccessToken(userId)

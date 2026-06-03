@@ -437,6 +437,7 @@ class UserService(
             reasonDetail = normalizedReasonDetail(request),
         )
         userRepository.save(user)
+        tokenService.deleteByUserId(userId)
 
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
     }

@@ -22,6 +22,7 @@ class OwnerWithdrawService(
     private val storeStaffRepository: StoreStaffRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
+    private val tokenService: com.moongchijang.domain.auth.application.TokenService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -43,6 +44,7 @@ class OwnerWithdrawService(
             reasonDetail = normalizedReasonDetail(request),
         )
         userRepository.save(owner)
+        tokenService.deleteByUserId(ownerId)
         log.info("[OwnerWithdrawService] 사장님 회원탈퇴 처리 완료: ownerId={}", ownerId)
     }
 
