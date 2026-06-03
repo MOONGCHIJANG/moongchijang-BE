@@ -8,6 +8,7 @@ import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
 import org.aspectj.lang.reflect.MethodSignature
+import org.springframework.aop.support.AopUtils
 import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
@@ -34,12 +35,9 @@ class CurrentRoleAuthorizationAspect {
     private fun resolveRequiredRoles(joinPoint: JoinPoint): Set<UserRole> {
         val method = (joinPoint.signature as MethodSignature).method
         val targetClass = joinPoint.target.javaClass
+        val targetMethod = AopUtils.getMostSpecificMethod(method, targetClass)
 
-        val methodAnnotation = AnnotatedElementUtils.findMergedAnnotation(method, RequireCurrentRole::class.java)
-            ?: AnnotatedElementUtils.findMergedAnnotation(
-                targetClass.getMethod(method.name, *method.parameterTypes),
-                RequireCurrentRole::class.java,
-            )
+        val methodAnnotation = AnnotatedElementUtils.findMergedAnnotation(targetMethod, RequireCurrentRole::class.java)
         if (methodAnnotation != null) {
             return methodAnnotation.value.toSet()
         }
