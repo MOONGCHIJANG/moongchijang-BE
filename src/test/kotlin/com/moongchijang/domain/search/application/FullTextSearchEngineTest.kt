@@ -20,7 +20,8 @@ class FullTextSearchEngineTest {
 
     private val groupBuyRepository: GroupBuyRepository = Mockito.mock(GroupBuyRepository::class.java)
     private val s3ImageReferenceResolver: S3ImageReferenceResolver = Mockito.mock(S3ImageReferenceResolver::class.java)
-    private val engine = FullTextSearchEngine(groupBuyRepository, s3ImageReferenceResolver)
+    private val searchCorrectionService: SearchCorrectionService = Mockito.mock(SearchCorrectionService::class.java)
+    private val engine = FullTextSearchEngine(groupBuyRepository, s3ImageReferenceResolver, searchCorrectionService)
 
     private fun stubProductIds(vararg sequentialReturns: List<Long>) {
         val stubbing = Mockito.`when`(
@@ -70,6 +71,7 @@ class FullTextSearchEngineTest {
         assertThat(response.confidence).isEqualTo(0.5)
         assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
         assertThat(response.results.map { it.id }).containsExactly(10L)
+        Mockito.verifyNoInteractions(searchCorrectionService)
     }
 
     @Test
@@ -88,6 +90,7 @@ class FullTextSearchEngineTest {
         assertThat(response.confidence).isEqualTo(0.5)
         assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
         assertThat(response.results.map { it.id }).containsExactly(20L)
+        Mockito.verifyNoInteractions(searchCorrectionService)
     }
 
     @Test
@@ -117,6 +120,7 @@ class FullTextSearchEngineTest {
         assertThat(response.totalCount).isEqualTo(2)
         // deadline ASC 정렬 검증 (saltBread = +1일, seongsuBagel = +2일)
         assertThat(response.results.map { it.id }).containsExactly(10L, 20L)
+        Mockito.verifyNoInteractions(searchCorrectionService)
     }
 
     @Test
@@ -184,5 +188,44 @@ class FullTextSearchEngineTest {
             .searchProductIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
         Mockito.verify(groupBuyRepository, Mockito.times(2))
             .searchStoreIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+        Mockito.verifyNoInteractions(searchCorrectionService)
+    }
+
+    @Test
+    @DisplayName("strict/fallback 검색 결과가 0건이면 보정어로 한 번 더 FULLTEXT 검색한다")
+    fun `empty first pass searches once more with corrected query`() {
+        val groupBuy = SearchTestFixtures.groupBuy(id = 30L, productName = "카레라면")
+        stubProductIds(emptyList(), emptyList(), listOf(30L))
+        stubStoreIds(emptyList(), emptyList(), emptyList())
+        Mockito.`when`(searchCorrectionService.correct("카래")).thenReturn("카레")
+        stubFetch(listOf(groupBuy))
+
+        val response = engine.search("카래")
+
+        assertThat(response.uiState).isEqualTo(SearchUiState.RESULTS)
+        assertThat(response.searchCase).isEqualTo(SearchCase.PRODUCT_ONLY)
+        assertThat(response.detectedProduct).isEqualTo("카레")
+        assertThat(response.totalCount).isEqualTo(1)
+        assertThat(response.results.map { it.productName }).containsExactly("카레라면")
+        Mockito.verify(searchCorrectionService).correct("카래")
+        Mockito.verify(groupBuyRepository, Mockito.times(3))
+            .searchProductIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+        Mockito.verify(groupBuyRepository, Mockito.times(3))
+            .searchStoreIdsByFullText(anyString(), anyString(), anyLocalDateTime(), anyInt())
+    }
+
+    @Test
+    @DisplayName("보정어가 없으면 EMPTY_CAN_REQUEST 응답을 그대로 반환한다")
+    fun `empty first pass without correction remains empty`() {
+        stubProductIds(emptyList(), emptyList())
+        stubStoreIds(emptyList(), emptyList())
+        Mockito.`when`(searchCorrectionService.correct("없는상품")).thenReturn(null)
+
+        val response = engine.search("없는상품")
+
+        assertThat(response.uiState).isEqualTo(SearchUiState.EMPTY_CAN_REQUEST)
+        assertThat(response.totalCount).isZero
+        Mockito.verify(searchCorrectionService).correct("없는상품")
+        Mockito.verify(groupBuyRepository, Mockito.never()).findAllWithStoreByIdIn(anyLongList())
     }
 }

@@ -8,6 +8,7 @@ import com.moongchijang.domain.search.application.dto.SearchCase
 import com.moongchijang.domain.search.application.dto.SearchResponse
 import com.moongchijang.domain.search.domain.SearchUiState
 import com.moongchijang.global.util.S3ImageReferenceResolver
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -19,14 +20,18 @@ import java.time.LocalDateTime
  *
  * 1차: strict AND 쿼리(`+token*`)로 정확 매칭 우선.
  * 2차: 1차에서 양쪽 인덱스 모두 0건이면 fallback OR 쿼리로 재조회. 합성어/부분 매칭 케이스를 잡는다.
+ * 3차: 1·2차 모두 0건이면 correction dictionary 로 보정한 검색어를 한 번 더 조회한다.
  *
- * 1·2차 모두 0건이거나 사용자 입력이 빈 토큰뿐이면 [emptyResponse] 를 반환한다.
+ * 모든 단계가 0건이거나 사용자 입력이 빈 토큰뿐이면 [emptyResponse] 를 반환한다.
  */
 @Component
 class FullTextSearchEngine(
     private val groupBuyRepository: GroupBuyRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val searchCorrectionService: SearchCorrectionService,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     companion object {
         private const val DEFAULT_LIMIT = 50
         private const val CONFIDENCE_BOTH = 1.0
@@ -35,8 +40,38 @@ class FullTextSearchEngine(
     }
 
     fun search(query: String): SearchResponse {
+        val startedAt = System.nanoTime()
         val now = LocalDateTime.now()
+        val response = searchByFullText(query, now)
+        if (response.totalCount > 0) {
+            return response
+        }
 
+        val normalizedQuery = SearchQueryNormalizer.normalize(query)
+        val correctedQuery = searchCorrectionService.correct(query)
+            ?.takeIf { it != normalizedQuery }
+            ?: return response.also {
+                logEmptyResult(
+                    query = query,
+                    normalizedQuery = normalizedQuery,
+                    correctedQuery = null,
+                    startedAt = startedAt,
+                )
+            }
+
+        val correctedResponse = searchByFullText(correctedQuery, now)
+        log.info(
+            "search_correction fallback=true originalQuery={} normalizedQuery={} correctedQuery={} resultCount={} latencyMs={}",
+            query,
+            normalizedQuery,
+            correctedQuery,
+            correctedResponse.totalCount,
+            elapsedMillis(startedAt)
+        )
+        return correctedResponse
+    }
+
+    private fun searchByFullText(query: String, now: LocalDateTime): SearchResponse {
         val (strictQuery, fallbackQuery) = FullTextQueryBuilder.buildQueries(query)
         if (strictQuery.isEmpty()) {
             return emptyResponse()
@@ -114,6 +149,24 @@ class FullTextSearchEngine(
         productHit || storeHit -> CONFIDENCE_SINGLE
         else -> CONFIDENCE_NONE
     }
+
+    private fun logEmptyResult(
+        query: String,
+        normalizedQuery: String,
+        correctedQuery: String?,
+        startedAt: Long,
+    ) {
+        log.info(
+            "search_correction fallback=false originalQuery={} normalizedQuery={} correctedQuery={} resultCount=0 latencyMs={}",
+            query,
+            normalizedQuery,
+            correctedQuery,
+            elapsedMillis(startedAt)
+        )
+    }
+
+    private fun elapsedMillis(startedAt: Long): Long =
+        (System.nanoTime() - startedAt) / 1_000_000
 
     private fun emptyResponse() = SearchResponse(
         searchCase = SearchCase.NONE_DETECTED,
