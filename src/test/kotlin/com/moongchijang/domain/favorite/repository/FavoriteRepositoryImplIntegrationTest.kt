@@ -104,6 +104,7 @@ class FavoriteRepositoryImplIntegrationTest {
             currentQuantity = 10,
             maxQuantity = 100,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = LocalDateTime.of(2026, 5, 27, 9, 0),
             deadline = LocalDateTime.of(2026, 5, 30, 21, 0),
             pickupDate = LocalDate.of(2026, 6, 1),
             pickupTimeStart = LocalTime.of(10, 0),
