@@ -53,12 +53,20 @@ class PaymentAuditLogService(
         }
 
         if (record.notifyFailure) {
-            adminDiscordAlertService.sendPaymentFailed(
-                orderId = record.orderId ?: record.paymentOrder?.orderId,
-                pgPaymentId = record.pgPaymentId,
-                pgStatus = record.pgStatus,
-                reason = record.reason,
-            )
+            try {
+                adminDiscordAlertService.sendPaymentFailed(
+                    orderId = record.orderId ?: record.paymentOrder?.orderId,
+                    pgPaymentId = record.pgPaymentId,
+                    pgStatus = record.pgStatus,
+                    reason = record.reason,
+                )
+            } catch (e: Exception) {
+                log.warn(
+                    "[PaymentAuditLogService] 결제 실패 Discord 알림 발행 실패: orderId={}",
+                    record.orderId ?: record.paymentOrder?.orderId,
+                    e
+                )
+            }
         }
     }
 }

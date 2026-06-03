@@ -18,7 +18,11 @@ class PortOneWebhookSignatureVerifier(
 ) {
 
     fun verify(headers: HttpHeaders, rawPayload: String) {
-        val secret = portOneProperties.webhookSecret?.takeIf { it.isNotBlank() } ?: return
+        if (!portOneProperties.webhookSignatureVerificationEnabled) {
+            return
+        }
+        val secret = portOneProperties.webhookSecret?.takeIf { it.isNotBlank() }
+            ?: throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
         val webhookId = headers.getFirst(WEBHOOK_ID_HEADER)
             ?: throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
         val timestamp = headers.getFirst(WEBHOOK_TIMESTAMP_HEADER)?.toLongOrNull()
@@ -45,14 +49,13 @@ class PortOneWebhookSignatureVerifier(
         signatureHeader
             .split(" ")
             .asSequence()
-            .flatMap { entry ->
-                entry.split(",")
-                    .map(String::trim)
-                    .filter(String::isNotBlank)
-                    .windowed(size = 2, step = 2, partialWindows = false)
-                    .asSequence()
-                    .filter { it[0] == SIGNATURE_VERSION }
-                    .map { it[1] }
+            .mapNotNull { entry ->
+                val parts = entry.split(",", limit = 2).map(String::trim)
+                if (parts.size == 2 && parts[0] == SIGNATURE_VERSION && parts[1].isNotBlank()) {
+                    parts[1]
+                } else {
+                    null
+                }
             }
 
     private fun hmacSha256Base64(secret: String, payload: String): String {

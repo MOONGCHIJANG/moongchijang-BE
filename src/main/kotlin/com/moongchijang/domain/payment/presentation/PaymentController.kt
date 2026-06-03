@@ -1,5 +1,6 @@
 package com.moongchijang.domain.payment.presentation
 
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.payment.application.PortOneWebhookSignatureVerifier
@@ -76,7 +77,7 @@ class PaymentController(
         portOneWebhookSignatureVerifier.verify(headers, rawPayload)
         val request = try {
             objectMapper.readValue(rawPayload, PortOneWebhookRequest::class.java)
-        } catch (e: RuntimeException) {
+        } catch (e: JsonProcessingException) {
             throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
         }
         paymentService.handlePortOneWebhook(request, rawPayload)

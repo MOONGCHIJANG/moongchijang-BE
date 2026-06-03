@@ -20,12 +20,23 @@ class PortOneWebhookSignatureVerifierTest {
     private val rawPayload = """{"type":"Transaction.Paid","paymentId":"MCJ-10-test"}"""
 
     @Test
-    fun `webhook secret이 없으면 검증을 건너뛴다`() {
-        val verifier = verifier(secret = null)
+    fun `signature 검증이 비활성화되어 있으면 검증을 건너뛴다`() {
+        val verifier = verifier(secret = null, enabled = false)
 
         assertThatCode {
             verifier.verify(HttpHeaders(), rawPayload)
         }.doesNotThrowAnyException()
+    }
+
+    @Test
+    fun `signature 검증이 활성화되어 있는데 webhook secret이 없으면 웹훅 invalid 예외를 던진다`() {
+        val verifier = verifier(secret = null)
+
+        assertThatThrownBy {
+            verifier.verify(HttpHeaders(), rawPayload)
+        }.isInstanceOf(CustomException::class.java)
+            .extracting("errorCode")
+            .isEqualTo(ErrorCode.PAYMENT_WEBHOOK_INVALID)
     }
 
     @Test
@@ -111,12 +122,13 @@ class PortOneWebhookSignatureVerifierTest {
         }.doesNotThrowAnyException()
     }
 
-    private fun verifier(secret: String?): PortOneWebhookSignatureVerifier =
+    private fun verifier(secret: String?, enabled: Boolean = true): PortOneWebhookSignatureVerifier =
         PortOneWebhookSignatureVerifier(
             portOneProperties = PortOneProperties(
                 storeId = "store-test",
                 channelKey = "channel-test",
                 apiSecret = "api-secret",
+                webhookSignatureVerificationEnabled = enabled,
                 webhookSecret = secret,
             ),
             clock = clock,
