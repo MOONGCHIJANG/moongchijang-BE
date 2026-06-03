@@ -47,15 +47,23 @@ class FullTextSearchEngine(
             return response
         }
 
+        val normalizedQuery = SearchQueryNormalizer.normalize(query)
         val correctedQuery = searchCorrectionService.correct(query)
-            ?.takeIf { it != SearchQueryNormalizer.normalize(query) }
-            ?: return response.also { logEmptyResult(query, correctedQuery = null, startedAt = startedAt) }
+            ?.takeIf { it != normalizedQuery }
+            ?: return response.also {
+                logEmptyResult(
+                    query = query,
+                    normalizedQuery = normalizedQuery,
+                    correctedQuery = null,
+                    startedAt = startedAt,
+                )
+            }
 
         val correctedResponse = searchByFullText(correctedQuery, now)
         log.info(
             "search_correction fallback=true originalQuery={} normalizedQuery={} correctedQuery={} resultCount={} latencyMs={}",
             query,
-            SearchQueryNormalizer.normalize(query),
+            normalizedQuery,
             correctedQuery,
             correctedResponse.totalCount,
             elapsedMillis(startedAt)
@@ -142,11 +150,16 @@ class FullTextSearchEngine(
         else -> CONFIDENCE_NONE
     }
 
-    private fun logEmptyResult(query: String, correctedQuery: String?, startedAt: Long) {
+    private fun logEmptyResult(
+        query: String,
+        normalizedQuery: String,
+        correctedQuery: String?,
+        startedAt: Long,
+    ) {
         log.info(
             "search_correction fallback=false originalQuery={} normalizedQuery={} correctedQuery={} resultCount=0 latencyMs={}",
             query,
-            SearchQueryNormalizer.normalize(query),
+            normalizedQuery,
             correctedQuery,
             elapsedMillis(startedAt)
         )
