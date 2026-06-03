@@ -64,7 +64,7 @@ enum class NotificationCategory {
         return when (role) {
             UserRole.BUYER -> this in setOf(ALL, WISH, APPLY, PICKUP, REQUEST)
             UserRole.SELLER -> this in setOf(ALL, TODAY_PICKUP, REMINDER, CONFIRMED, CANCELLED)
-            UserRole.ADMIN -> this == ALL
+            UserRole.ADMIN -> false
         }
     }
 
