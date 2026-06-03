@@ -51,7 +51,7 @@ class GroupBuy(
     var status: GroupBuyStatus,
 
     @Column(name = "recruitment_start_at", nullable = false)
-    var recruitmentStartAt: LocalDateTime = LocalDateTime.now(),
+    var recruitmentStartAt: LocalDateTime,
 
     @Column(nullable = false)
     var deadline: LocalDateTime,
