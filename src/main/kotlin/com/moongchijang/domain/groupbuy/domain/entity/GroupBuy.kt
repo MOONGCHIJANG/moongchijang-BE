@@ -202,6 +202,30 @@ class GroupBuy(
         closedByType = null
     }
 
+    fun approveCloseReview(reviewedAt: LocalDateTime = LocalDateTime.now()) {
+        require(closeRequestReviewStatus == GroupBuyCloseRequestReviewStatus.PENDING) {
+            "PENDING 상태의 마감 요청만 승인할 수 있습니다."
+        }
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.APPROVED
+        closeRequestRejectionReason = null
+        closeReviewedAt = reviewedAt
+        closedByType = GroupBuyClosedByType.OWNER
+        transitionToClosed()
+    }
+
+    fun rejectCloseReview(
+        rejectionReason: String,
+        reviewedAt: LocalDateTime = LocalDateTime.now()
+    ) {
+        require(closeRequestReviewStatus == GroupBuyCloseRequestReviewStatus.PENDING) {
+            "PENDING 상태의 마감 요청만 반려할 수 있습니다."
+        }
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.REJECTED
+        closeRequestRejectionReason = rejectionReason
+        closeReviewedAt = reviewedAt
+        closedByType = null
+    }
+
     fun isTerminalStatus(): Boolean {
         return status == GroupBuyStatus.COMPLETED || status == GroupBuyStatus.FAILED || status == GroupBuyStatus.CLOSED
     }

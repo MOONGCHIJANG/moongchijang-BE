@@ -167,6 +167,20 @@ class NotificationEventPublisher(
         )
     }
 
+    fun publishOwnerCloseRequestRejected(
+        groupBuyId: Long,
+        ownerUserIds: List<Long>,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = ownerUserIds,
+            scheduleKey = "owner-close-rejected:$groupBuyId:$occurredAt",
+            occurredAt = occurredAt
+        )
+    }
+
     fun publishOwnerOpenRequestApproved(
         requestId: Long,
         ownerUserId: Long,
