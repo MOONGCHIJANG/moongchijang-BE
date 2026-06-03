@@ -5,9 +5,11 @@ import com.moongchijang.domain.pickup.application.dto.NearestPickupQrResponse
 import com.moongchijang.domain.pickup.application.dto.PickupGuideResponse
 import com.moongchijang.domain.pickup.application.dto.PickupQrResponse
 import com.moongchijang.domain.pickup.application.dto.PickupVerifyResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -24,6 +26,7 @@ class PickupController(
 ) {
 
     @GetMapping("/participations/{participationId}/pickup")
+    @RequireCurrentRole(UserRole.BUYER)
     fun getPickupGuide(
         @PathVariable participationId: Long,
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
@@ -34,6 +37,7 @@ class PickupController(
     }
 
     @GetMapping("/participations/{participationId}/qr")
+    @RequireCurrentRole(UserRole.BUYER)
     fun getPickupQr(
         @PathVariable participationId: Long,
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
@@ -44,6 +48,7 @@ class PickupController(
     }
 
     @GetMapping("/pickups/me/nearest-qr")
+    @RequireCurrentRole(UserRole.BUYER)
     fun getNearestPickupQr(
         @AuthenticationPrincipal principal: CustomUserPrincipal?,
     ): ResponseEntity<ApiResponse<NearestPickupQrResponse>> {
@@ -53,6 +58,7 @@ class PickupController(
     }
 
     @PostMapping("/pickups/{qrCode}/verify")
+    @RequireCurrentRole(UserRole.SELLER, UserRole.ADMIN)
     fun verifyPickup(
         @PathVariable qrCode: String,
         @AuthenticationPrincipal principal: CustomUserPrincipal?,

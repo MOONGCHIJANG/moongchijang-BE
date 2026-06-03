@@ -366,6 +366,7 @@ class UserController(
 
     @DeleteMapping("/me")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.BUYER)
     @Operation(summary = "회원 탈퇴", description = "회원 탈퇴를 처리합니다.")
     @ApiResponses(
         value = [

@@ -6,7 +6,9 @@ import com.moongchijang.domain.mypage.application.dto.MypageParticipationRespons
 import com.moongchijang.domain.mypage.application.dto.MypageParticipationStatusFilter
 import com.moongchijang.domain.mypage.application.dto.MypageRefundResponse
 import com.moongchijang.domain.mypage.application.dto.MypageSummaryResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1")
+@RequireCurrentRole(UserRole.BUYER)
 @Tag(name = "MyPage", description = "마이페이지")
 class MypageController(
     private val mypageService: MypageService
