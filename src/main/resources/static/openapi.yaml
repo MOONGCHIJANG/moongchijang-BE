@@ -2192,6 +2192,9 @@ paths:
     post:
       tags: [Owner]
       summary: 사장님 공구 마감 요청
+      description: |
+        사장님 공구 마감 요청을 접수한다.
+        `SOLD_OUT`, `STORE_CONDITION`은 즉시 마감 처리되며, `OTHER`는 즉시 마감되지 않고 운영자 검토 대기 상태로 저장된다.
       security:
         - bearerAuth: []
       parameters:
@@ -2210,6 +2213,76 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SuccessNoData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/owner-group-buys/{groupBuyId}/close-requests/approve:
+    post:
+      tags: [Admin]
+      summary: 사장님 공구 마감 요청 승인 (운영자)
+      description: |
+        `OTHER` 사유로 접수된 사장님 공구 마감 요청을 승인한다.
+        승인 시 공구는 실제로 CLOSED 상태로 전환되고 사장님에게 승인 알림이 발송된다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 마감 요청 승인 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminOwnerGroupBuyCloseRequestAction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/owner-group-buys/{groupBuyId}/close-requests/reject:
+    post:
+      tags: [Admin]
+      summary: 사장님 공구 마감 요청 반려 (운영자)
+      description: |
+        `OTHER` 사유로 접수된 사장님 공구 마감 요청을 반려한다.
+        반려 시 공구 상태는 유지되며 반려 사유가 저장되고 사장님에게 반려 알림이 발송된다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: groupBuyId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminOwnerGroupBuyCloseRequestReject'
+      responses:
+        '200':
+          description: 마감 요청 반려 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminOwnerGroupBuyCloseRequestAction'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -5072,6 +5145,11 @@ components:
       type: string
       enum: [SOLD_OUT, STORE_CONDITION, OTHER]
 
+    GroupBuyCloseRequestReviewStatus:
+      type: string
+      description: 사장님 공구 마감 요청 검토 상태
+      enum: [PENDING, APPROVED, REJECTED]
+
     OwnerGroupBuyCloseRequest:
       type: object
       required: [reason]
@@ -5084,6 +5162,42 @@ components:
           maxLength: 100
           description: reason이 OTHER일 때 필수
           example: 재고 수급 이슈로 조기 마감합니다.
+
+    AdminOwnerGroupBuyCloseRequestReject:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          maxLength: 200
+          description: 운영자 반려 사유
+          example: 증빙 정보가 부족해 반려합니다.
+
+    ApiResponseAdminOwnerGroupBuyCloseRequestAction:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/AdminOwnerGroupBuyCloseRequestAction'
+        error: { nullable: true, example: null }
+
+    AdminOwnerGroupBuyCloseRequestAction:
+      type: object
+      required: [groupBuyId, reviewStatus, groupBuyStatus]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+          description: 마감 요청을 처리한 공구 ID
+          example: 21
+        reviewStatus:
+          $ref: '#/components/schemas/GroupBuyCloseRequestReviewStatus'
+        groupBuyStatus:
+          type: string
+          description: 처리 후 공구 상태
+          enum: [IN_PROGRESS, ACHIEVED, COMPLETED, FAILED, CLOSED]
+          example: CLOSED
 
     ApiResponseOwnerSettlementMonthlySummary:
       type: object

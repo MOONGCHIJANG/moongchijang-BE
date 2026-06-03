@@ -1,6 +1,7 @@
 package com.moongchijang.domain.owner.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseRequestReviewStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyClosedByType
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -314,8 +315,14 @@ class OwnerGroupBuyServiceTest {
         assertEquals(GroupBuyStatus.CLOSED, groupBuy.status)
         assertEquals(GroupBuyCloseReason.STORE_CONDITION, groupBuy.closeReason)
         assertEquals(GroupBuyClosedByType.OWNER, groupBuy.closedByType)
+        assertEquals(GroupBuyCloseRequestReviewStatus.APPROVED, groupBuy.closeRequestReviewStatus)
         assertNull(groupBuy.closeReasonDetail)
         verify(groupBuyRepository).save(groupBuy)
+        verify(notificationEventPublisher).publishOwnerCloseRequestApproved(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = listOf(owner.id!!),
+            occurredAt = groupBuy.closeReviewedAt!!
+        )
     }
 
     @Test
@@ -342,6 +349,41 @@ class OwnerGroupBuyServiceTest {
         }
 
         assertEquals(ErrorCode.INVALID_INPUT, ex.errorCode)
+    }
+
+    @Test
+    fun `사장님 공구 마감 요청에서 기타 사유는 검토 대기로 전환한다`() {
+        val owner = seller()
+        val groupBuy = groupBuy(
+            id = 14L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            currentQuantity = 12,
+            targetQuantity = 20,
+            price = 9900
+        )
+        val request = OwnerGroupBuyCloseRequest(
+            reason = OwnerGroupBuyCloseReasonType.OTHER,
+            reasonDetail = "운영 사정으로 검토가 필요합니다."
+        )
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(groupBuyRepository.findWithStoreById(groupBuy.id)).thenReturn(Optional.of(groupBuy))
+
+        service.requestGroupBuyClose(owner.id!!, groupBuy.id, request)
+
+        assertEquals(GroupBuyStatus.IN_PROGRESS, groupBuy.status)
+        assertEquals(GroupBuyCloseReason.OTHER, groupBuy.closeReason)
+        assertEquals("운영 사정으로 검토가 필요합니다.", groupBuy.closeReasonDetail)
+        assertEquals(GroupBuyCloseRequestReviewStatus.PENDING, groupBuy.closeRequestReviewStatus)
+        assertNull(groupBuy.closedByType)
+        assertNull(groupBuy.closeReviewedAt)
+        verify(groupBuyRepository).save(groupBuy)
+        verify(notificationEventPublisher, never()).publishOwnerCloseRequestApproved(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = listOf(owner.id!!),
+            occurredAt = groupBuy.closeRequestedAt!!
+        )
     }
 
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {

@@ -234,24 +234,38 @@ class OwnerGroupBuyService(
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
         validateCloseReason(request)
+        val requestedAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
+        val reason = toGroupBuyCloseReason(request.reason)
+        val reasonDetail = request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
 
-        groupBuy.closeByOwner(
-            reason = toGroupBuyCloseReason(request.reason),
-            reasonDetail = request.reasonDetail?.trim()?.takeIf { it.isNotBlank() },
-            requestedAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
-        )
+        if (request.reason == OwnerGroupBuyCloseReasonType.OTHER) {
+            groupBuy.requestCloseReview(
+                reason = reason,
+                reasonDetail = reasonDetail,
+                requestedAt = requestedAt
+            )
+        } else {
+            groupBuy.closeByOwner(
+                reason = reason,
+                reasonDetail = reasonDetail,
+                requestedAt = requestedAt
+            )
+        }
         groupBuyRepository.save(groupBuy)
-        notificationEventPublisher.publishOwnerCloseRequestApproved(
-            groupBuyId = groupBuy.id,
-            ownerUserIds = listOf(ownerId),
-            occurredAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
-        )
+        if (request.reason != OwnerGroupBuyCloseReasonType.OTHER) {
+            notificationEventPublisher.publishOwnerCloseRequestApproved(
+                groupBuyId = groupBuy.id,
+                ownerUserIds = listOf(ownerId),
+                occurredAt = requestedAt
+            )
+        }
         log.info(
-            "[OwnerGroupBuyService] 사장님 공구 마감 요청 완료: ownerId={}, groupBuyId={}, reason={}, reasonDetail={}",
+            "[OwnerGroupBuyService] 사장님 공구 마감 요청 완료: ownerId={}, groupBuyId={}, reason={}, reasonDetail={}, reviewStatus={}",
             ownerId,
             groupBuyId,
             request.reason,
-            request.reasonDetail
+            request.reasonDetail,
+            groupBuy.closeRequestReviewStatus
         )
     }
 
