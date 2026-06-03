@@ -1,6 +1,8 @@
 package com.moongchijang.domain.payment.presentation
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.moongchijang.domain.payment.application.PaymentService
+import com.moongchijang.domain.payment.application.PortOneWebhookSignatureVerifier
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
 import com.moongchijang.domain.payment.application.dto.CancelParticipationResponse
 import com.moongchijang.domain.payment.application.dto.CheckoutInfoResponse
@@ -10,9 +12,12 @@ import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderRequest
 import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderResponse
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookRequest
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookResponse
+import com.moongchijang.global.exception.CustomException
+import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.validation.Valid
+import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.access.prepost.PreAuthorize
@@ -20,6 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -28,6 +34,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1")
 class PaymentController(
     private val paymentService: PaymentService,
+    private val portOneWebhookSignatureVerifier: PortOneWebhookSignatureVerifier,
+    private val objectMapper: ObjectMapper,
 ) {
 
     @GetMapping("/group-buys/{groupBuyId}/checkout")
@@ -62,8 +70,15 @@ class PaymentController(
 
     @PostMapping("/payments/portone/webhook")
     fun handlePortOneWebhook(
-        @RequestBody request: PortOneWebhookRequest,
+        @RequestBody rawPayload: String,
+        @RequestHeader headers: HttpHeaders,
     ): ResponseEntity<ApiResponse<PortOneWebhookResponse>> {
+        portOneWebhookSignatureVerifier.verify(headers, rawPayload)
+        val request = try {
+            objectMapper.readValue(rawPayload, PortOneWebhookRequest::class.java)
+        } catch (e: RuntimeException) {
+            throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
+        }
         paymentService.handlePortOneWebhook(request)
         val response = ResponseEntity.ok(ApiResponse.success(PortOneWebhookResponse()))
         return response

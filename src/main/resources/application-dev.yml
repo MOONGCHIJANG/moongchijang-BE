@@ -51,6 +51,8 @@ portone:
   channel-key: ${PORTONE_CHANNEL_KEY}
   api-secret: ${PORTONE_API_SECRET}
   payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+  webhook-secret: ${PORTONE_WEBHOOK_SECRET:}
+  webhook-timestamp-tolerance-seconds: ${PORTONE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS:300}
 
 springdoc:
   swagger-ui:

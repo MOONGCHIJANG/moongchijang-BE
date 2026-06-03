@@ -69,6 +69,8 @@ portone:
   channel-key: ${PORTONE_CHANNEL_KEY:channel-dummy}
   api-secret: ${PORTONE_API_SECRET:portone-api-secret-dummy}
   payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+  webhook-secret: ${PORTONE_WEBHOOK_SECRET:}
+  webhook-timestamp-tolerance-seconds: ${PORTONE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS:300}
 
 ses:
   enabled: ${SES_ENABLED:false}

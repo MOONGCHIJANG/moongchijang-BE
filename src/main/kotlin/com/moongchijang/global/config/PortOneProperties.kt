@@ -8,4 +8,6 @@ data class PortOneProperties(
     val channelKey: String,
     val apiSecret: String,
     val paymentApiBaseUrl: String = "https://api.portone.io",
+    val webhookSecret: String? = null,
+    val webhookTimestampToleranceSeconds: Long = 300,
 )

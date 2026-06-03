@@ -1621,7 +1621,26 @@ paths:
     post:
       tags: [Participation]
       summary: PortOne 결제 웹훅 수신
-      description: 웹훅 본문만 신뢰하지 않고 서버에서 PortOne 결제 단건 조회 후 상태를 동기화한다.
+      description: 웹훅 signature를 검증한 뒤, 본문만 신뢰하지 않고 서버에서 PortOne 결제 단건 조회 후 상태를 동기화한다. signature 검증은 PORTONE_WEBHOOK_SECRET 설정 시 활성화된다.
+      parameters:
+        - name: webhook-id
+          in: header
+          required: false
+          schema:
+            type: string
+          description: PortOne 웹훅 메시지 ID. PORTONE_WEBHOOK_SECRET 설정 시 필요하다.
+        - name: webhook-timestamp
+          in: header
+          required: false
+          schema:
+            type: string
+          description: PortOne 웹훅 signature 생성 기준 시각. PORTONE_WEBHOOK_SECRET 설정 시 필요하다.
+        - name: webhook-signature
+          in: header
+          required: false
+          schema:
+            type: string
+          description: PortOne 웹훅 signature. PORTONE_WEBHOOK_SECRET 설정 시 필요하다.
       requestBody:
         required: true
         content:
