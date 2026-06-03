@@ -18,7 +18,7 @@ class AdminOwnerGroupBuyCloseRequestControllerTest {
     private val controller = AdminOwnerGroupBuyCloseRequestController(service)
 
     @Test
-    fun `사장님 공구 마감 요청 승인 시 201과 CLOSED 상태를 반환한다`() {
+    fun `사장님 공구 마감 요청 승인 시 200과 CLOSED 상태를 반환한다`() {
         val response = AdminOwnerGroupBuyCloseRequestActionResponse(
             groupBuyId = 21L,
             reviewStatus = GroupBuyCloseRequestReviewStatus.APPROVED,
@@ -28,7 +28,7 @@ class AdminOwnerGroupBuyCloseRequestControllerTest {
 
         val result = controller.approve(21L)
 
-        assertEquals(HttpStatus.CREATED, result.statusCode)
+        assertEquals(HttpStatus.OK, result.statusCode)
         assertEquals(response, result.body?.data)
         verify(service).approve(21L)
     }
