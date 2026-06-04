@@ -12,6 +12,9 @@ import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 interface NotificationRepository : JpaRepository<Notification, Long> {
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Notification n WHERE n.user.id = :userId")
+    fun deleteByUserId(@Param("userId") userId: Long): Long
 
     @Query(
         """

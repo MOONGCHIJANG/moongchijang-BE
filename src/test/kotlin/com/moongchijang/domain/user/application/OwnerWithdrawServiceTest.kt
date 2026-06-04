@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.auth.application.TokenService
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.application.dto.OwnerWithdrawRequest
 import com.moongchijang.domain.user.domain.entity.OwnerWithdrawalReason
@@ -24,12 +25,23 @@ class OwnerWithdrawServiceTest {
     private val storeStaffRepository: StoreStaffRepository = Mockito.mock(StoreStaffRepository::class.java)
     private val groupBuyRepository: GroupBuyRepository = Mockito.mock(GroupBuyRepository::class.java)
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
+    private val tokenService: TokenService = Mockito.mock(TokenService::class.java)
+    private val withdrawnAccountCommandService: WithdrawnAccountCommandService =
+        Mockito.mock(WithdrawnAccountCommandService::class.java)
+    private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService =
+        Mockito.mock(WithdrawalLegalRetentionCommandService::class.java)
+    private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService =
+        Mockito.mock(WithdrawalImmediateCleanupService::class.java)
 
     private val ownerWithdrawService = OwnerWithdrawService(
         userRepository = userRepository,
         storeStaffRepository = storeStaffRepository,
         groupBuyRepository = groupBuyRepository,
         participationRepository = participationRepository,
+        tokenService = tokenService,
+        withdrawnAccountCommandService = withdrawnAccountCommandService,
+        withdrawalLegalRetentionCommandService = withdrawalLegalRetentionCommandService,
+        withdrawalImmediateCleanupService = withdrawalImmediateCleanupService,
     )
 
     @Test
@@ -162,9 +174,17 @@ class OwnerWithdrawServiceTest {
         )
 
         Mockito.verify(userRepository).save(owner)
+        Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(owner, requireNotNull(owner.deletedAt))
+        Mockito.verify(withdrawalLegalRetentionCommandService).retainForWithdrawal(13L, requireNotNull(owner.deletedAt))
+        Mockito.verify(withdrawalImmediateCleanupService).cleanup(13L)
+        Mockito.verify(tokenService).deleteByUserId(13L)
         Assertions.assertEquals(OwnerWithdrawalReason.PRIVACY_CONCERN, owner.ownerWithdrawalReason)
         Assertions.assertEquals(null, owner.ownerWithdrawalReasonDetail)
         Assertions.assertEquals(true, owner.deletedAt != null)
+        Assertions.assertEquals(null, owner.providerId)
+        Assertions.assertEquals(null, owner.email)
+        Assertions.assertEquals(null, owner.nickname)
+        Assertions.assertEquals(null, owner.phoneNumber)
     }
 
     @Test

@@ -378,9 +378,11 @@ class UserController(
     fun withdraw(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: WithdrawRequest,
+        response: HttpServletResponse,
     ): ApiResponse<Nothing> {
         log.info("[UserController] 회원탈퇴 요청 수신: userId={}", principal.id)
         userService.withdraw(principal.id, request)
+        tokenService.clearRefreshTokenCookie(response)
         log.info("[UserController] 회원탈퇴 응답 완료: userId={}", principal.id)
         return ApiResponse.success()
     }
@@ -400,9 +402,11 @@ class UserController(
     fun ownerWithdraw(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: OwnerWithdrawRequest,
+        response: HttpServletResponse,
     ): ApiResponse<Nothing> {
         log.info("[UserController] 사장님 회원탈퇴 요청 수신: userId={}", principal.id)
         ownerWithdrawService.withdraw(principal.id, request)
+        tokenService.clearRefreshTokenCookie(response)
         log.info("[UserController] 사장님 회원탈퇴 응답 완료: userId={}", principal.id)
         return ApiResponse.success()
     }

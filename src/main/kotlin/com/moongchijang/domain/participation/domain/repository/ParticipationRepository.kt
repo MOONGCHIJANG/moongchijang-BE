@@ -20,6 +20,7 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 interface ParticipationRepository : JpaRepository<Participation, Long> {
+    fun findAllByUserId(userId: Long): List<Participation>
 
     @Query(
         """
