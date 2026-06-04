@@ -64,4 +64,24 @@ class AdminDiscordAlertServiceTest {
         assertTrue(captor.value.message.contains("결제 실패"))
         assertTrue(captor.value.message.contains("MCJ-10-test"))
     }
+
+    @Test
+    fun `결제 성공 알림을 보낼 때 결제 채널로 전송되고 금액 문구가 포함됨`() {
+        val publisher = mock(ApplicationEventPublisher::class.java)
+        val service = AdminDiscordAlertService(publisher)
+
+        service.sendPaymentSucceeded(
+            orderId = "MCJ-10-test",
+            pgPaymentId = "portone-payment-id",
+            amount = 12000,
+            method = "CARD",
+        )
+
+        val captor = ArgumentCaptor.forClass(AdminDiscordAlertRequestedEvent::class.java)
+        verify(publisher).publishEvent(captor.capture())
+        assertEquals(AdminDiscordChannel.PAYMENT, captor.value.channel)
+        assertTrue(captor.value.message.contains("결제 성공"))
+        assertTrue(captor.value.message.contains("12,000원"))
+        assertTrue(captor.value.message.contains("CARD"))
+    }
 }

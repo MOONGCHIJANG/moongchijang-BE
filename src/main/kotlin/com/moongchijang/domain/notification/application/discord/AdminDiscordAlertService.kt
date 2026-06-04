@@ -69,6 +69,24 @@ class AdminDiscordAlertService(
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.PAYMENT, message))
     }
 
+    fun sendPaymentSucceeded(
+        orderId: String?,
+        pgPaymentId: String?,
+        amount: Int?,
+        method: String?,
+    ) {
+        val amountText = amount?.let { "${toWon(it)}원" } ?: "-"
+        val message = """
+            [성공] 결제 성공 이벤트 발생
+            주문 ID: ${orderId ?: "-"}
+            PG 결제 ID: ${pgPaymentId ?: "-"}
+            결제 금액: $amountText
+            결제 수단: ${method ?: "-"}
+            → 결제 감사 이력 기록 완료
+        """.trimIndent()
+        eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.PAYMENT, message))
+    }
+
     fun sendNewSellerSignup(profile: SellerBusinessProfile) {
         val ownerName = profile.ownerName.ifBlank { "이름미입력" }
         val message = """
