@@ -14,6 +14,12 @@ info:
     { "success": true, "data": { ... }, "error": null }
     { "success": false, "data": null, "error": { "code": "ERROR_CODE", "message": "설명", "detail": "상세" } }
     ```
+
+    ## 날짜/시간 처리 기준
+    - 서버 내부 저장 시각(`createdAt`, `updatedAt`, 상태 전이 시각 등)은 UTC 기준으로 저장합니다.
+    - 비즈니스 계산(D-day, 마감 여부, 픽업 오늘/내일 판단, 월별 집계)은 KST(`Asia/Seoul`) 기준으로 처리합니다.
+    - `format: date-time` 필드는 현재 `LocalDateTime` 직렬화 형식을 사용하므로 `yyyy-MM-dd'T'HH:mm:ss` 형태의 오프셋 없는 문자열로 응답합니다.
+    - 일정/픽업 관련 사용자 노출 시각은 KST 기준으로 해석하며, 감사/이력성 시각은 UTC 기준 저장값을 같은 형식으로 반환합니다.
   version: v1
 
 servers:
@@ -3865,12 +3871,15 @@ components:
           type: string
           format: date-time
           nullable: true
+          description: UTC 기준 삭제 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`
         createdAt:
           type: string
           format: date-time
+          description: UTC 기준 생성 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`
         updatedAt:
           type: string
           format: date-time
+          description: UTC 기준 수정 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`
 
     ApiResponseMyRegions:
       type: object
@@ -4320,8 +4329,8 @@ components:
               status:
                 type: string
                 enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
-              changedAt: { type: string, format: date-time }
-        createdAt: { type: string, format: date-time }
+              changedAt: { type: string, format: date-time, description: "UTC 기준 상태 변경 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
+        createdAt: { type: string, format: date-time, description: "UTC 기준 요청 생성 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
 
     ApiResponseGroupBuyRequestList:
       type: object
@@ -4486,7 +4495,7 @@ components:
             displayStatus: { type: string, example: "참여중 / 달성 전" }
             amount: { type: integer }
             method: { type: string, nullable: true, example: CARD }
-            approvedAt: { type: string, format: date-time }
+            approvedAt: { type: string, format: date-time, description: "UTC 기준 결제 승인 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         error: { nullable: true, example: null }
 
     ApiResponseCancelParticipation:
@@ -4502,8 +4511,8 @@ components:
             status:
               type: string
               enum: [REFUNDED]
-            cancelledAt: { type: string, format: date-time }
-            refundedAt: { type: string, format: date-time }
+            cancelledAt: { type: string, format: date-time, description: "UTC 기준 참여 취소 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
+            refundedAt: { type: string, format: date-time, description: "UTC 기준 환불 완료 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         error: { nullable: true, example: null }
 
     PortOneWebhook:
@@ -4558,9 +4567,9 @@ components:
                 type: string
                 nullable: true
                 description: 취소 상세 사유
-              paidAt: { type: string, format: date-time, nullable: true, description: 결제 일시 }
+              paidAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 결제 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
               paymentMethod: { type: string, nullable: true, description: 결제 수단 }
-              refundedAt: { type: string, format: date-time, nullable: true }
+              refundedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 환불 완료 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         error: { nullable: true, example: null }
 
     # ── Pickup & QR ────────────────────────────────────────────
@@ -4594,7 +4603,7 @@ components:
             pickupTimeEnd: { type: string, format: time }
             pickupLocation: { type: string }
             remainingMinutes: { type: integer, format: int64, nullable: true, description: "당일 픽업 종료까지 남은 분. 당일이 아니면 null" }
-            pickedUpAt: { type: string, format: date-time, nullable: true }
+            pickedUpAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 픽업 완료 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         error: { nullable: true, example: null }
 
     ApiResponseQrCode:
@@ -4625,7 +4634,7 @@ components:
             pickupTimeStart: { type: string, format: time, description: "픽업 시작 시각. 예) 13:00" }
             pickupTimeEnd: { type: string, format: time, description: "픽업 종료 시각. 예) 17:00" }
             dDay: { type: integer, format: int32, description: "KST 기준 픽업일까지 남은 날짜. 당일이면 0, 지난 픽업일이면 음수" }
-            pickedUpAt: { type: string, format: date-time, nullable: true }
+            pickedUpAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 픽업 완료 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         error: { nullable: true, example: null }
 
     ApiResponseNearestPickupQr:
@@ -5629,7 +5638,7 @@ components:
               example:
                 - https://cdn.example.com/owner-requests/1.jpg
                 - https://cdn.example.com/owner-requests/2.jpg
-            deadline: { type: string, format: date-time, example: "2026-06-02T23:59:00" }
+            deadline: { type: string, format: date-time, description: "KST 기준 모집 마감 일시. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`", example: "2026-06-02T23:59:00" }
             pickupDate: { type: string, format: date, example: "2026-06-03" }
             pickupTimeStart: { type: string, format: time, example: "12:00:00" }
             pickupTimeEnd: { type: string, format: time, example: "18:00:00" }
@@ -5640,8 +5649,8 @@ components:
               enum: [PENDING, APPROVED, REJECTED]
             rejectionReason: { type: string, nullable: true, example: 매장 사정으로 어렵습니다 }
             approvedGroupBuyId: { type: integer, format: int64, nullable: true, example: 300 }
-            reviewedAt: { type: string, format: date-time, nullable: true }
-            requestedAt: { type: string, format: date-time, nullable: true }
+            reviewedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 검토 완료 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
+            requestedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 요청 생성 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         error: { nullable: true, example: null }
     
     ApiResponseReservationPage:
@@ -6404,7 +6413,7 @@ components:
           example: 17
         targetQuantity: { type: integer, example: 20 }
         pickupDate: { type: string, format: date, example: "2026-06-12" }
-        requestedAt: { type: string, format: date-time, nullable: true }
+        requestedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 요청 생성 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         reviewElapsedMinutes:
           type: integer
           format: int64
@@ -6465,8 +6474,8 @@ components:
           type: integer
           format: int64
           nullable: true
-        reviewedAt: { type: string, format: date-time, nullable: true }
-        requestedAt: { type: string, format: date-time, nullable: true }
+        reviewedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 검토 완료 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
+        requestedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 요청 생성 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         actionable:
           type: boolean
           description: 승인/반려 작업 가능 여부
@@ -6527,11 +6536,11 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: 승인 후 생성된 공구의 모집 시작일시. 승인 전 요청은 null
+          description: 승인 후 생성된 공구의 KST 기준 모집 시작 일시. 승인 전 요청은 null
         deadline:
           type: string
           format: date-time
-          description: 모집 마감일시
+          description: KST 기준 모집 마감 일시
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
         pickupTimeEnd: { type: string, format: time }
