@@ -57,6 +57,7 @@ Use these project skills when they match the task:
 - `/feature-implementer`: implement or update a feature from a `.claude/features/**` spec.
 - `/spec-sync`: reconcile code, feature spec, and OpenAPI.
 - `/review-guardrails`: check changed code against project rules before commit.
+- `/issue-worktree-migration-sync`: start or continue Jira issue branches safely across worktrees and prevent Flyway migration version conflicts.
 - `/develop-merge`: prepare a direct commit/push to `develop` without PR.
 
 Use these project subagents when a task is self-contained:
