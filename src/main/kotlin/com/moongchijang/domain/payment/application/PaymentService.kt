@@ -526,6 +526,7 @@ class PaymentService(
             paymentResult = paymentResult,
             previousOrderStatus = previousStatus,
             currentOrderStatus = approvedOrder.status,
+            notifySuccess = true,
         )
 
         publishApplyPaymentSuccessEvent(order, approvedAt)
@@ -1075,6 +1076,7 @@ class PaymentService(
         reason: String? = null,
         rawPayload: String? = null,
         notifyFailure: Boolean = false,
+        notifySuccess: Boolean = false,
     ) {
         paymentAuditLogService.record(
             PaymentAuditRecord(
@@ -1086,9 +1088,12 @@ class PaymentService(
                 previousOrderStatus = previousOrderStatus,
                 currentOrderStatus = currentOrderStatus,
                 pgStatus = paymentResult?.status,
+                amount = paymentResult?.totalAmount,
+                method = paymentResult?.method,
                 reason = reason,
                 rawPayload = rawPayload,
                 notifyFailure = notifyFailure,
+                notifySuccess = notifySuccess,
             )
         )
     }
