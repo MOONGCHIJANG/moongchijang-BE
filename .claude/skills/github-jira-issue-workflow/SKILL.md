@@ -30,7 +30,7 @@ FEAT: 결제 성공 이벤트 감사 로그 및 Discord 알림 옵션 추가
 
 Required fields:
 
-- `상위 작업 Ticket Number`: parent Jira ticket such as `SCRUM-00`
+- `상위 작업 Ticket Number`: use `MCJ-7` by default unless the user explicitly provides another parent Jira ticket
 - `브랜치 전략(GitFlow)`: one of `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 - `📄 설명`: concise background and implementation scope
 - `✅ 작업할 내용`: checkbox list of implementation tasks
