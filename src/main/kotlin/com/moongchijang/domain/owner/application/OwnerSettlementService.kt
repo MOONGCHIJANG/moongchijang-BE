@@ -28,6 +28,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.TimePolicy
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -417,7 +418,7 @@ class OwnerSettlementService(
             ParticipationStatus.REFUNDED,
         )
         val REFUND_STATUSES = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
-        val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
+        val SEOUL_ZONE_ID: ZoneId = TimePolicy.BUSINESS_ZONE_ID
         const val OWNER_SETTLEMENT_DELAY_DAYS: Long = 3
         const val REFUND_LIST_LOOKBACK_MONTHS: Long = 6
     }

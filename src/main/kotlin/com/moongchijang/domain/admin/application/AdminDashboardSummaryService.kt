@@ -9,6 +9,8 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestReposit
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.global.time.kstNow
+import com.moongchijang.global.time.kstToday
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,8 +32,8 @@ class AdminDashboardSummaryService(
 
     fun getSummary(): AdminDashboardSummaryResponse {
         log.info("[AdminDashboardSummaryService] 관리자 대시보드 요약 조회 시작")
-        val now = LocalDateTime.now(clock)
-        val today = LocalDate.now(clock)
+        val now = clock.kstNow()
+        val today = clock.kstToday()
         val todayRange = today.toRange()
         val yesterdayRange = today.minusDays(1).toRange()
         val pendingApprovalStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)

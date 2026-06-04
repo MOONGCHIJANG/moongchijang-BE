@@ -18,13 +18,14 @@ import com.moongchijang.domain.notification.domain.repository.NotificationReposi
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.TimePolicy
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.DayOfWeek
 
 @Service
 class NotificationImmediateDispatchService(
@@ -44,7 +45,7 @@ class NotificationImmediateDispatchService(
     }
 
     private val log = LoggerFactory.getLogger(javaClass)
-    private val zoneId: ZoneId = ZoneId.of("Asia/Seoul")
+    private val zoneId: ZoneId = TimePolicy.BUSINESS_ZONE_ID
 
     @Transactional
     fun dispatch(event: NotificationImmediateTriggerEvent) {

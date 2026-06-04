@@ -17,6 +17,7 @@ import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepos
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
+import com.moongchijang.global.time.kstNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -57,7 +58,7 @@ class AdminOwnerGroupBuyRequestService(
             keyword = normalizedKeyword,
             pageable = pageable
         )
-        val response = AdminOwnerGroupBuyRequestPageResponse.from(page, LocalDateTime.now(clock))
+        val response = AdminOwnerGroupBuyRequestPageResponse.from(page, clock.kstNow())
         log.info(
             "[AdminOwnerGroupBuyRequestService] 사장님 공구 요청 목록 조회 완료: totalElements={}",
             response.totalElements,
@@ -86,7 +87,7 @@ class AdminOwnerGroupBuyRequestService(
         validatePending(request)
         validateApprovalSource(request)
 
-        val now = LocalDateTime.now(clock)
+        val now = clock.kstNow()
         val groupBuy = groupBuyRepository.save(
             GroupBuy(
                 store = request.store,
@@ -157,7 +158,7 @@ class AdminOwnerGroupBuyRequestService(
 
         request.status = OwnerGroupBuyRequestStatus.REJECTED
         request.rejectionReason = reason
-        val reviewedAt = LocalDateTime.now(clock)
+        val reviewedAt = clock.kstNow()
         request.reviewedAt = reviewedAt
         request.approvedGroupBuy = null
 

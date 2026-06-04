@@ -10,12 +10,14 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
+import com.moongchijang.global.time.TimePolicy
+import com.moongchijang.global.time.kstNow
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
 
 @Component
 class NotificationTriggerScheduler(
@@ -26,6 +28,7 @@ class NotificationTriggerScheduler(
     private val favoriteRepository: FavoriteRepository,
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val storeStaffRepository: StoreStaffRepository,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -252,7 +255,7 @@ class NotificationTriggerScheduler(
         )
     }
 
-    private fun nowKst(): LocalDateTime = LocalDateTime.now(ZoneId.of(KST_ZONE_ID))
+    private fun nowKst(): LocalDateTime = clock.kstNow()
 
     private enum class ReminderOffset(
         val hours: Long,
@@ -264,7 +267,7 @@ class NotificationTriggerScheduler(
     }
 
     companion object {
-        private const val KST_ZONE_ID = "Asia/Seoul"
+        private const val KST_ZONE_ID = TimePolicy.BUSINESS_TIME_ZONE_ID
         private const val WINDOW_MINUTES = 10
         private val OWNER_PICKUP_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
     }

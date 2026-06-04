@@ -1,11 +1,11 @@
 package com.moongchijang.domain.auth.infrastructure.email.store
 
 import com.moongchijang.domain.auth.application.port.EmailVerificationStore
+import com.moongchijang.global.time.TimePolicy
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.LocalDate
-import java.time.ZoneId
 
 @Component
 class RedisEmailVerificationStore(
@@ -48,7 +48,7 @@ class RedisEmailVerificationStore(
     private fun cooldownKey(email: String): String = "auth:email:verification:cooldown:$email"
 
     private fun dailyCountKey(email: String): String {
-        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val today = LocalDate.now(TimePolicy.BUSINESS_ZONE_ID)
         return "auth:email:verification:daily:$today:$email"
     }
 }
