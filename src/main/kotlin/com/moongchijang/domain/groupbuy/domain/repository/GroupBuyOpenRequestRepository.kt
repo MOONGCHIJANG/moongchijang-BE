@@ -3,12 +3,15 @@ package com.moongchijang.domain.groupbuy.domain.repository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOpenRequest
 import com.moongchijang.domain.groupbuy.domain.entity.NotificationStatus
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
 interface GroupBuyOpenRequestRepository : JpaRepository<GroupBuyOpenRequest, Long> {
     fun existsByUser_IdAndRegionAndProductName(userId: Long, region: String, productName: String): Boolean
-    fun deleteByUser_Id(userId: Long): Long
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM GroupBuyOpenRequest r WHERE r.user.id = :userId")
+    fun deleteByUser_Id(@Param("userId") userId: Long): Long
 
     fun findAllByRegionAndProductNameAndNotificationStatus(
         region: String,

@@ -2,11 +2,14 @@ package com.moongchijang.domain.owner.domain.repository
 
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
 interface OwnerGroupBuyRequestImageRepository : JpaRepository<OwnerGroupBuyRequestImage, Long> {
-    fun deleteByRequest_Owner_Id(ownerId: Long): Long
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM OwnerGroupBuyRequestImage i WHERE i.request.owner.id = :ownerId")
+    fun deleteByRequest_Owner_Id(@Param("ownerId") ownerId: Long): Long
 
     @Query("SELECT i FROM OwnerGroupBuyRequestImage i WHERE i.request.id = :requestId ORDER BY i.sortOrder ASC")
     fun findAllByRequestIdOrderBySortOrderAsc(@Param("requestId") requestId: Long): List<OwnerGroupBuyRequestImage>
