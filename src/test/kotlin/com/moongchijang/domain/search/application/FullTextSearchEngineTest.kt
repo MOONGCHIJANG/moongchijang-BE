@@ -14,6 +14,9 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDateTime
 
 class FullTextSearchEngineTest {
@@ -21,7 +24,8 @@ class FullTextSearchEngineTest {
     private val groupBuyRepository: GroupBuyRepository = Mockito.mock(GroupBuyRepository::class.java)
     private val s3ImageReferenceResolver: S3ImageReferenceResolver = Mockito.mock(S3ImageReferenceResolver::class.java)
     private val searchCorrectionService: SearchCorrectionService = Mockito.mock(SearchCorrectionService::class.java)
-    private val engine = FullTextSearchEngine(groupBuyRepository, s3ImageReferenceResolver, searchCorrectionService)
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-22T01:00:00Z"), ZoneOffset.UTC)
+    private val engine = FullTextSearchEngine(groupBuyRepository, s3ImageReferenceResolver, searchCorrectionService, clock)
 
     private fun stubProductIds(vararg sequentialReturns: List<Long>) {
         val stubbing = Mockito.`when`(

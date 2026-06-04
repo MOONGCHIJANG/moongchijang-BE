@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
+import com.moongchijang.global.time.TimePolicy
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -100,7 +101,8 @@ data class MypageParticipationResponse(
             participation: Participation,
             thumbnailUrl: String?,
             approvedPaymentGroupBuyIds: Set<Long> = emptySet(),
-            paymentInfo: MypageParticipationPaymentInfo? = null
+            paymentInfo: MypageParticipationPaymentInfo? = null,
+            today: LocalDate = LocalDate.now(TimePolicy.BUSINESS_ZONE_ID),
         ): MypageParticipationResponse {
             val groupBuy = participation.groupBuy
             val canViewPickupOrQr = participation.status == ParticipationStatus.CONFIRMED &&
@@ -125,14 +127,14 @@ data class MypageParticipationResponse(
                 paymentMethod = paymentInfo?.paymentMethod,
                 quantity = participation.quantity,
                 pickupStatus = participation.pickupStatus.name,
-                dDay = ChronoUnit.DAYS.between(LocalDate.now(), groupBuy.deadline.toLocalDate())
+                dDay = ChronoUnit.DAYS.between(today, groupBuy.deadline.toLocalDate())
                     .toInt()
                     .coerceAtLeast(0),
                 canCancel = participation.status == ParticipationStatus.PAID_WAITING_GOAL &&
                     groupBuy.id in approvedPaymentGroupBuyIds,
                 canViewPickup = canViewPickupOrQr,
                 canViewQr = canViewPickupOrQr,
-                qrAvailability = qrAvailability(participation)
+                qrAvailability = qrAvailability(participation, today)
             )
         }
 
@@ -157,11 +159,11 @@ data class MypageParticipationResponse(
                 else -> status.name
             }
 
-        private fun qrAvailability(participation: Participation): String =
+        private fun qrAvailability(participation: Participation, today: LocalDate): String =
             when {
                 participation.pickupStatus == PickupStatus.PICKED_UP -> "PICKED_UP"
                 participation.status != ParticipationStatus.CONFIRMED -> "UNAVAILABLE"
-                LocalDate.now().isBefore(participation.groupBuy.pickupDate) -> "LOCKED"
+                today.isBefore(participation.groupBuy.pickupDate) -> "LOCKED"
                 else -> "AVAILABLE"
             }
     }

@@ -3,6 +3,7 @@ package com.moongchijang.domain.groupbuy.application.dto
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
+import com.moongchijang.global.time.TimePolicy
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -113,7 +114,7 @@ data class GroupBuyDetailResponse(
             isWishlisted: Boolean,
             isParticipated: Boolean,
             canParticipate: Boolean,
-            now: LocalDateTime = LocalDateTime.now()
+            now: LocalDateTime = LocalDateTime.now(TimePolicy.BUSINESS_ZONE_ID)
         ): GroupBuyDetailResponse {
             val dDay = ChronoUnit.DAYS.between(now.toLocalDate(), groupBuy.deadline.toLocalDate()).toInt()
             val pickupDateLabel = formatPickupLabel(groupBuy.pickupDate)

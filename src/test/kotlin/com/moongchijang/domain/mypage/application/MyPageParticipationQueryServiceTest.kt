@@ -15,6 +15,9 @@ import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -25,8 +28,10 @@ class MyPageParticipationQueryServiceTest {
     @Mock
     private lateinit var participationRepository: ParticipationRepository
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-04-13T01:00:00Z"), ZoneOffset.UTC)
+
     private val service by lazy {
-        MyPageParticipationQueryService(participationRepository)
+        MyPageParticipationQueryService(participationRepository, clock)
     }
 
     @Test

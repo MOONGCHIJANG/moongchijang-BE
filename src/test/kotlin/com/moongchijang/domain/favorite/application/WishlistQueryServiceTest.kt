@@ -17,6 +17,9 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -29,7 +32,9 @@ class WishlistQueryServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
-    private val service by lazy { WishlistQueryService(favoriteRepository, s3ImageReferenceResolver) }
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-22T01:00:00Z"), ZoneOffset.UTC)
+
+    private val service by lazy { WishlistQueryService(favoriteRepository, s3ImageReferenceResolver, clock) }
 
     @Test
     fun `찜 목록 조회 요청 시 페이지 결과 반환`() {

@@ -13,10 +13,12 @@ import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.global.time.kstToday
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 
 @Service
 @Transactional(readOnly = true)
@@ -25,6 +27,7 @@ class MypageService(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val paymentOrderRepository: PaymentOrderRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(MypageService::class.java)
 
@@ -104,12 +107,14 @@ class MypageService(
             .filter { it.isApproved }
             .map { it.groupBuyId }
             .toSet()
+        val today = clock.kstToday()
         return participations.map {
             MypageParticipationResponse.from(
                 participation = it,
                 thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.groupBuy.thumbnailKey),
                 approvedPaymentGroupBuyIds = cancellableGroupBuyIds,
-                paymentInfo = paymentInfoByParticipationId[it.id]
+                paymentInfo = paymentInfoByParticipationId[it.id],
+                today = today,
             )
         }
     }
@@ -148,11 +153,13 @@ class MypageService(
 
     private fun withPaymentInfo(participations: List<Participation>): List<MypageParticipationResponse> {
         val paymentInfoByParticipationId = paymentInfoByParticipationId(participations)
+        val today = clock.kstToday()
         return participations.map {
             MypageParticipationResponse.from(
                 participation = it,
                 thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.groupBuy.thumbnailKey),
-                paymentInfo = paymentInfoByParticipationId[it.id]
+                paymentInfo = paymentInfoByParticipationId[it.id],
+                today = today,
             )
         }
     }

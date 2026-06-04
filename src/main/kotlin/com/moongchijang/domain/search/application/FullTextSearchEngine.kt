@@ -7,9 +7,11 @@ import com.moongchijang.domain.groupbuy.infrastructure.search.FullTextQueryBuild
 import com.moongchijang.domain.search.application.dto.SearchCase
 import com.moongchijang.domain.search.application.dto.SearchResponse
 import com.moongchijang.domain.search.domain.SearchUiState
+import com.moongchijang.global.time.kstNow
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.time.Clock
 import java.time.LocalDateTime
 
 /**
@@ -29,6 +31,7 @@ class FullTextSearchEngine(
     private val groupBuyRepository: GroupBuyRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     private val searchCorrectionService: SearchCorrectionService,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -41,7 +44,7 @@ class FullTextSearchEngine(
 
     fun search(query: String): SearchResponse {
         val startedAt = System.nanoTime()
-        val now = LocalDateTime.now()
+        val now = clock.kstNow()
         val response = searchByFullText(query, now)
         if (response.totalCount > 0) {
             return response

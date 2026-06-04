@@ -18,11 +18,11 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.global.time.kstToday
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.lenient
@@ -30,6 +30,9 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -49,12 +52,20 @@ class MypageServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
-    @InjectMocks
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-20T01:00:00Z"), ZoneOffset.UTC)
+
     private lateinit var mypageService: MypageService
 
     @org.junit.jupiter.api.BeforeEach
     fun setUp() {
         lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString())).thenAnswer { it.arguments[0] as String? }
+        mypageService = MypageService(
+            participationRepository = participationRepository,
+            groupBuyRequestRepository = groupBuyRequestRepository,
+            paymentOrderRepository = paymentOrderRepository,
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
+            clock = clock,
+        )
     }
 
     @Test
@@ -394,8 +405,8 @@ class MypageServiceTest {
             targetQuantity = 10,
             maxQuantity = 20,
             status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.IN_PROGRESS,
-            recruitmentStartAt = LocalDate.now().minusDays(1).atStartOfDay(),
-            deadline = LocalDate.now().plusDays(1).atTime(23, 59),
+            recruitmentStartAt = clock.kstToday().minusDays(1).atStartOfDay(),
+            deadline = clock.kstToday().plusDays(1).atTime(23, 59),
             pickupDate = LocalDate.of(2026, 5, 25),
             pickupTimeStart = LocalTime.of(13, 0),
             pickupTimeEnd = LocalTime.of(15, 0),

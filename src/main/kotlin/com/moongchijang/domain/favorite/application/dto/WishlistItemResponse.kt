@@ -2,6 +2,7 @@ package com.moongchijang.domain.favorite.application.dto
 
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.global.time.TimePolicy
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -65,7 +66,7 @@ data class WishlistItemResponse(
         fun from(
             groupBuy: GroupBuy,
             thumbnailUrl: String?,
-            now: LocalDateTime = LocalDateTime.now()
+            now: LocalDateTime = LocalDateTime.now(TimePolicy.BUSINESS_ZONE_ID)
         ): WishlistItemResponse {
             val dDay = ChronoUnit.DAYS.between(now.toLocalDate(), groupBuy.deadline.toLocalDate()).toInt()
             val achievementRate = GroupBuyProgressCalculator.achievementRate(

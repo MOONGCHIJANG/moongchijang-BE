@@ -10,6 +10,7 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.kstNow
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -29,6 +30,9 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -52,6 +56,8 @@ class GroupBuyServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-22T01:00:00Z"), ZoneOffset.UTC)
+
     private lateinit var service: GroupBuyService
 
     @BeforeEach
@@ -63,6 +69,7 @@ class GroupBuyServiceTest {
             favoriteRepository = favoriteRepository,
             participationRepository = participationRepository,
             s3ImageReferenceResolver = s3ImageReferenceResolver,
+            clock = clock,
             shareBaseUrl = "https://moongchijang.com"
         )
     }
@@ -261,7 +268,7 @@ class GroupBuyServiceTest {
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = groupBuyId,
             status = GroupBuyStatus.IN_PROGRESS,
-            deadline = LocalDateTime.now().minusMinutes(1)
+            deadline = clock.kstNow().minusMinutes(1)
         )
 
         `when`(groupBuyRepository.findWithStoreById(groupBuyId)).thenReturn(Optional.of(groupBuy))
@@ -321,7 +328,7 @@ class GroupBuyServiceTest {
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = groupBuyId,
             status = GroupBuyStatus.ACHIEVED,
-            deadline = LocalDateTime.now().minusMinutes(1)
+            deadline = clock.kstNow().minusMinutes(1)
         ).apply {
             currentQuantity = 50
             maxQuantity = 100

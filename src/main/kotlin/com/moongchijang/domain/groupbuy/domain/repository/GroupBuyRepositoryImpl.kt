@@ -18,16 +18,19 @@ import com.querydsl.core.types.dsl.BooleanExpression
 import com.querydsl.core.types.dsl.NumberExpression
 import com.querydsl.jpa.JPAExpressions
 import com.querydsl.jpa.impl.JPAQueryFactory
+import com.moongchijang.global.time.kstNow
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Repository
 class GroupBuyRepositoryImpl(
-    private val queryFactory: JPAQueryFactory
+    private val queryFactory: JPAQueryFactory,
+    private val clock: Clock,
 ) : GroupBuyRepositoryCustom {
 
     override fun searchFeed(
@@ -36,7 +39,7 @@ class GroupBuyRepositoryImpl(
         pageable: Pageable,
         sortMode: FeedSortMode,
     ): Page<GroupBuy> {
-        val now = LocalDateTime.now()
+        val now = clock.kstNow()
         val where = buildWhere(filter, districtFilters, now)
         val orderSpecifiers = buildOrderSpecifiers(sortMode)
 

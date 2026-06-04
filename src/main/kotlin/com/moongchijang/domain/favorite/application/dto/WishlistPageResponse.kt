@@ -1,6 +1,7 @@
 package com.moongchijang.domain.favorite.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.global.time.TimePolicy
 import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.data.domain.Page
 import java.time.LocalDateTime
@@ -30,7 +31,7 @@ data class WishlistPageResponse(
         fun from(
             page: Page<GroupBuy>,
             thumbnailUrlResolver: (GroupBuy) -> String?,
-            now: LocalDateTime = LocalDateTime.now(),
+            now: LocalDateTime = LocalDateTime.now(TimePolicy.BUSINESS_ZONE_ID),
             urgentCount: Int,
         ): WishlistPageResponse {
             return WishlistPageResponse(
