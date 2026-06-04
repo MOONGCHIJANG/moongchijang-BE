@@ -13,6 +13,8 @@ class PersonalInfoManager(
 
     fun hashEmail(normalizedEmail: String): String = hasher.hash(normalizedEmail)
 
+    fun isEncrypted(value: String): Boolean = encryptor.isEncrypted(value)
+
     fun decryptIfNeeded(value: String?): String? {
         if (value.isNullOrBlank()) {
             return value

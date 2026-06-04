@@ -2,6 +2,7 @@ package com.moongchijang.domain.user.domain.repository
 
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -57,4 +58,16 @@ interface UserRepository : JpaRepository<User, Long> {
     fun findByIdAndDeletedAtIsNull(id: Long): User?
 
     fun findByIdInAndDeletedAtIsNull(ids: Collection<Long>): List<User>
+
+    @Query(
+        """
+        select u
+        from User u
+        where
+          (u.email is not null and (u.emailHash is null or u.email not like 'enc:v1:%'))
+          or (u.phoneNumber is not null and u.phoneNumber not like 'enc:v1:%')
+        order by u.id asc
+        """
+    )
+    fun findPersonalInfoBackfillTargets(pageable: Pageable): List<User>
 }

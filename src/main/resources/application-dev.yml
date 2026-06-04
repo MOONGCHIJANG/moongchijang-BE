@@ -82,6 +82,11 @@ security:
   personal-info:
     secret-key: ${PERSONAL_INFO_SECRET_KEY}
 
+maintenance:
+  personal-info-backfill:
+    enabled: ${PERSONAL_INFO_BACKFILL_ENABLED:false}
+    batch-size: ${PERSONAL_INFO_BACKFILL_BATCH_SIZE:500}
+
 auth:
   refresh:
     expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
