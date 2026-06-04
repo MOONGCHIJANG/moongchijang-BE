@@ -28,6 +28,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -45,6 +46,7 @@ class OwnerGroupBuyService(
     private val participationRepository: ParticipationRepository,
     private val paymentRepository: PaymentRepository,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -302,7 +304,7 @@ class OwnerGroupBuyService(
             val payment = paymentByUserId[it.user.id!!]
             OwnerGroupBuyParticipantItemResponse(
                 name = it.user.nickname ?: "",
-                phoneNumber = it.user.phoneNumber ?: "",
+                phoneNumber = personalInfoManager.decryptIfNeeded(it.user.phoneNumber) ?: "",
                 productName = it.groupBuy.productName,
                 quantity = it.quantity,
                 paymentMethod = payment?.method ?: UNKNOWN_PAYMENT_METHOD,

@@ -17,6 +17,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.security.jwt.JwtTokenProvider
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.transaction.Transactional
@@ -36,6 +37,7 @@ class AuthService(
     private val jwtTokenProvider: JwtTokenProvider,
     private val passwordEncoder: PasswordEncoder,
     private val authMetricsRecorder: AuthMetricsRecorder,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -60,7 +62,7 @@ class AuthService(
                 tokenType = "Bearer",
                 expiresIn = expiresIn,
                 isNewUser = isNewUser,
-                user = AuthUserResponse.from(user),
+                user = toAuthUserResponse(user),
             )
 
             log.info(
@@ -159,7 +161,7 @@ class AuthService(
                 tokenType = "Bearer",
                 expiresIn = expiresIn,
                 isNewUser = true,
-                user = AuthUserResponse.from(user),
+                user = toAuthUserResponse(user),
             )
 
             log.info("[AuthService] 이메일 회원가입 처리 완료: userId={}", user.id)
@@ -209,7 +211,7 @@ class AuthService(
                 tokenType = "Bearer",
                 expiresIn = expiresIn,
                 isNewUser = false,
-                user = AuthUserResponse.from(user),
+                user = toAuthUserResponse(user),
             )
 
             log.info("[AuthService] 이메일 로그인 처리 완료: userId={}", user.id)
@@ -228,6 +230,13 @@ class AuthService(
     companion object {
         private val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$")
     }
+
+    private fun toAuthUserResponse(user: User): AuthUserResponse =
+        AuthUserResponse.from(
+            user = user,
+            email = personalInfoManager.decryptIfNeeded(user.email),
+            phoneNumber = personalInfoManager.decryptIfNeeded(user.phoneNumber),
+        )
 
     private fun recordAfterCommit(action: () -> Unit) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {

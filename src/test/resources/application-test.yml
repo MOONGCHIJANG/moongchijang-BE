@@ -19,6 +19,15 @@ jwt:
   access-token:
     expiration-minutes: 60
 
+security:
+  personal-info:
+    secret-key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+
+maintenance:
+  personal-info-backfill:
+    enabled: false
+    batch-size: 100
+
 auth:
   refresh:
     expiration-days: 14

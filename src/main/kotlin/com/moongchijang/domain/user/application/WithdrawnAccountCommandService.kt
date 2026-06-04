@@ -3,6 +3,7 @@ package com.moongchijang.domain.user.application
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.WithdrawnAccount
 import com.moongchijang.domain.user.domain.repository.WithdrawnAccountRepository
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -11,13 +12,14 @@ import java.time.LocalDateTime
 class WithdrawnAccountCommandService(
     private val withdrawnAccountRepository: WithdrawnAccountRepository,
     private val withdrawalIdentifierHasher: WithdrawalIdentifierHasher,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     @Transactional
     fun recordWithdrawal(user: User, withdrawnAt: LocalDateTime) {
         val identifierHash = withdrawalIdentifierHasher.hashForWithdrawal(
             provider = user.provider,
             providerId = user.providerId,
-            email = user.email,
+            email = personalInfoManager.decryptIfNeeded(user.email),
         )
         val existing = findExisting(user)
 
@@ -42,7 +44,7 @@ class WithdrawnAccountCommandService(
         val identifierHash = withdrawalIdentifierHasher.hashForWithdrawal(
             provider = user.provider,
             providerId = user.providerId,
-            email = user.email,
+            email = personalInfoManager.decryptIfNeeded(user.email),
         )
         if (!identifierHash.isNullOrBlank()) {
             return withdrawnAccountRepository.findByProviderAndIdentifierHash(user.provider, identifierHash)

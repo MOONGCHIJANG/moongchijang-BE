@@ -42,6 +42,7 @@ import com.moongchijang.domain.user.domain.repository.WithdrawnAccountRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -66,6 +67,7 @@ class UserService(
     private val withdrawalIdentifierHasher: WithdrawalIdentifierHasher,
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
     private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -90,13 +92,15 @@ class UserService(
         log.info("[UserService] 이메일 사용자 생성 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        if (userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail)) {
+        val emailHash = personalInfoManager.hashEmail(normalizedEmail)
+        if (userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(AuthProvider.EMAIL, emailHash, normalizedEmail)) {
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
         }
         validateEmailRejoinAvailable(normalizedEmail)
 
         val user = User.newEmailUser(
-            email = normalizedEmail,
+            email = personalInfoManager.encryptEmail(normalizedEmail),
+            emailHash = emailHash,
             passwordHash = passwordHash,
         )
         val savedUser = try {
@@ -115,9 +119,10 @@ class UserService(
         val normalizedEmail = normalizeEmail(email)
         validateEmailFormat(normalizedEmail)
 
-        return userRepository.findByProviderAndEmailAndDeletedAtIsNull(
+        return userRepository.findActiveByProviderAndEmailHashOrLegacyEmail(
             provider = AuthProvider.EMAIL,
-            email = normalizedEmail,
+            emailHash = personalInfoManager.hashEmail(normalizedEmail),
+            legacyEmail = normalizedEmail,
         )
     }
 
@@ -137,7 +142,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
         log.info("[UserService] 내 정보 조회 완료: userId={}", userId)
-        return AuthUserResponse.from(user)
+        return toAuthUserResponse(user)
     }
 
     @Transactional(readOnly = true)
@@ -146,7 +151,11 @@ class UserService(
         log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        val duplicated = userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail) ||
+        val duplicated = userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            AuthProvider.EMAIL,
+            personalInfoManager.hashEmail(normalizedEmail),
+            normalizedEmail,
+        ) ||
             isEmailRejoinBlocked(normalizedEmail)
         val response = EmailAvailabilityResponse(
             email = normalizedEmail,
@@ -174,9 +183,14 @@ class UserService(
 
         assertNoDuplicateNickname(request.nickname, userId)
 
-        user.completeSignup(request.nickname, request.phoneNumber)
+        user.completeSignup(request.nickname, personalInfoManager.encryptPhone(request.phoneNumber))
         log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
-        return AdditionalInfoUpdatedResponse.from(user)
+        return AdditionalInfoUpdatedResponse(
+            id = requireNotNull(user.id),
+            nickname = requireNotNull(user.nickname),
+            phoneNumber = request.phoneNumber,
+            signupCompleted = user.signupCompleted,
+        )
     }
 
     @Transactional
@@ -200,7 +214,7 @@ class UserService(
         user.role = targetRole
         user.saveLastRole(targetRole)
         log.info("[UserService] 마이페이지 역할 전환 완료: userId={}, targetRole={}", userId, targetRole)
-        return AuthUserResponse.from(user)
+        return toAuthUserResponse(user)
     }
 
     @Transactional(readOnly = true)
@@ -321,7 +335,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        user.phoneNumber = request.phoneNumber
+        user.phoneNumber = personalInfoManager.encryptPhone(request.phoneNumber)
         log.info("[UserService] 전화번호 변경 처리 완료: userId={}", userId)
         return PhoneNumberUpdateResponse(
             id = userId,
@@ -345,7 +359,7 @@ class UserService(
         }
 
         validatePasswordPolicyForChange(
-            email = user.email ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS),
+            email = personalInfoManager.decryptIfNeeded(user.email) ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS),
             newPassword = request.newPassword,
         )
 
@@ -540,7 +554,8 @@ class UserService(
         val sanitizedNickname = sanitizeKakaoNicknameForPreload(nickname)
         val newUser = User.newKakaoUser(
             providerId = providerId,
-            email = email,
+            email = personalInfoManager.encryptEmail(email),
+            emailHash = personalInfoManager.hashEmail(email),
             nickname = sanitizedNickname,
         )
         val savedUser = userRepository.save(newUser)
@@ -630,6 +645,13 @@ class UserService(
     }
 
     private fun normalizeEmail(raw: String): String = raw.trim().lowercase()
+
+    fun toAuthUserResponse(user: User): AuthUserResponse =
+        AuthUserResponse.from(
+            user = user,
+            email = personalInfoManager.decryptIfNeeded(user.email),
+            phoneNumber = personalInfoManager.decryptIfNeeded(user.phoneNumber),
+        )
 
     companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")

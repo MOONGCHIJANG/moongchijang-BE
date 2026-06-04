@@ -12,6 +12,10 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.security.jwt.JwtTokenProvider
 import com.moongchijang.support.UserFixture
 import jakarta.servlet.http.HttpServletRequest
@@ -32,6 +36,13 @@ class AuthServiceTest {
     private val jwtTokenProvider: JwtTokenProvider = Mockito.mock(JwtTokenProvider::class.java)
     private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
     private val authMetricsRecorder: AuthMetricsRecorder = Mockito.mock(AuthMetricsRecorder::class.java)
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
 
     private val authService = AuthService(
         kakaoAuthService = kakaoAuthService,
@@ -42,6 +53,7 @@ class AuthServiceTest {
         jwtTokenProvider = jwtTokenProvider,
         passwordEncoder = passwordEncoder,
         authMetricsRecorder = authMetricsRecorder,
+        personalInfoManager = personalInfoManager,
     )
 
     @Test

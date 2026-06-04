@@ -25,6 +25,10 @@ import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.NaverFixture
 import com.moongchijang.support.UserFixture
@@ -71,6 +75,14 @@ class GroupBuyOpenRequestServiceTest {
     @Mock
     private lateinit var recommendedStoreImageService: RecommendedStoreImageService
 
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
+
     private lateinit var service: GroupBuyOpenRequestService
 
     @BeforeEach
@@ -84,6 +96,7 @@ class GroupBuyOpenRequestServiceTest {
             aligoAlimtalkClient = aligoAlimtalkClient,
             notificationEventPublisher = notificationEventPublisher,
             recommendedStoreImageService = recommendedStoreImageService,
+            personalInfoManager = personalInfoManager,
         )
         lenient().`when`(userRepository.findByIdAndDeletedAtIsNull(anyLong()))
             .thenAnswer { UserFixture.createKakaoUser(id = it.getArgument(0)) }

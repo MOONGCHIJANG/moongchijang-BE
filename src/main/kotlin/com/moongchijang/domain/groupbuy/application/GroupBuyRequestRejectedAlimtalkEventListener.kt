@@ -8,6 +8,7 @@ import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFor
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
@@ -20,6 +21,7 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val aligoProperties: AligoProperties,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -44,7 +46,7 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
                 )
                 return
             }
-            val receiverPhone = user.phoneNumber?.trim().orEmpty()
+            val receiverPhone = personalInfoManager.decryptIfNeeded(user.phoneNumber)?.trim().orEmpty()
             if (receiverPhone.isBlank()) {
                 log.warn(
                     "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(전화번호 없음): requestId={}, userId={}",

@@ -98,7 +98,12 @@ data class AdminCsTicketDetailResponse(
     val actionable: Boolean,
 ) {
     companion object {
-        fun from(ticket: CsTicket, now: LocalDateTime): AdminCsTicketDetailResponse =
+        fun from(
+            ticket: CsTicket,
+            now: LocalDateTime,
+            consumerEmail: String?,
+            consumerPhoneNumber: String?,
+        ): AdminCsTicketDetailResponse =
             AdminCsTicketDetailResponse(
                 ticketId = ticket.id,
                 type = ticket.type,
@@ -113,8 +118,8 @@ data class AdminCsTicketDetailResponse(
                     AdminCsTicketUserResponse(
                         userId = user.id,
                         nickname = user.nickname,
-                        email = user.email,
-                        phoneNumber = user.phoneNumber
+                        email = consumerEmail,
+                        phoneNumber = consumerPhoneNumber
                     )
                 },
                 owner = ticket.groupBuy?.store?.let { store ->

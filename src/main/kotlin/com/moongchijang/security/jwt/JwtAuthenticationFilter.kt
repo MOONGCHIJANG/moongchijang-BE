@@ -2,6 +2,7 @@ package com.moongchijang.security.jwt
 
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider,
     private val userRepository: UserRepository,
+    private val personalInfoManager: PersonalInfoManager,
 ) : OncePerRequestFilter() {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -57,7 +59,7 @@ class JwtAuthenticationFilter(
                     if (user != null && user.deletedAt == null) {
                         val principal = CustomUserPrincipal(
                             id = user.id!!,
-                            email = user.email,
+                            email = personalInfoManager.decryptIfNeeded(user.email),
                             role = user.role,
                         )
 
