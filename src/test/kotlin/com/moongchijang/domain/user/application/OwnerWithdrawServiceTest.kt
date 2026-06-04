@@ -173,6 +173,10 @@ class OwnerWithdrawServiceTest {
         Assertions.assertEquals(OwnerWithdrawalReason.PRIVACY_CONCERN, owner.ownerWithdrawalReason)
         Assertions.assertEquals(null, owner.ownerWithdrawalReasonDetail)
         Assertions.assertEquals(true, owner.deletedAt != null)
+        Assertions.assertEquals(null, owner.providerId)
+        Assertions.assertEquals(null, owner.email)
+        Assertions.assertEquals(null, owner.nickname)
+        Assertions.assertEquals(null, owner.phoneNumber)
     }
 
     @Test

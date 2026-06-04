@@ -49,6 +49,7 @@ class OwnerWithdrawService(
             user = owner,
             withdrawnAt = requireNotNull(owner.deletedAt),
         )
+        owner.anonymizePersonalInfoForWithdrawal()
         tokenService.deleteByUserId(ownerId)
         log.info("[OwnerWithdrawService] 사장님 회원탈퇴 처리 완료: ownerId={}", ownerId)
     }

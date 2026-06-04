@@ -676,6 +676,10 @@ class UserServiceTest {
         Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(user, requireNotNull(user.deletedAt))
         Mockito.verify(tokenService).deleteByUserId(1L)
         Assertions.assertEquals(true, user.deletedAt != null)
+        Assertions.assertEquals(null, user.providerId)
+        Assertions.assertEquals(null, user.email)
+        Assertions.assertEquals(null, user.nickname)
+        Assertions.assertEquals(null, user.phoneNumber)
     }
 
     @Test
@@ -709,6 +713,10 @@ class UserServiceTest {
         Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(user, requireNotNull(user.deletedAt))
         Mockito.verify(tokenService).deleteByUserId(2L)
         Assertions.assertEquals(true, user.deletedAt != null)
+        Assertions.assertEquals(null, user.providerId)
+        Assertions.assertEquals(null, user.email)
+        Assertions.assertEquals(null, user.nickname)
+        Assertions.assertEquals(null, user.phoneNumber)
     }
 
     @Test

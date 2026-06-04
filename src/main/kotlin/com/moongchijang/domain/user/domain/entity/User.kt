@@ -119,6 +119,16 @@ class User(
         this.deletedAt = now
     }
 
+    fun anonymizePersonalInfoForWithdrawal() {
+        this.providerId = null
+        this.email = null
+        this.passwordHash = null
+        this.nickname = null
+        this.phoneNumber = null
+        this.signupCompleted = false
+        this.sellerSignupCompleted = false
+    }
+
     fun saveLastRole(role: UserRole) {
         this.lastRole = role
     }

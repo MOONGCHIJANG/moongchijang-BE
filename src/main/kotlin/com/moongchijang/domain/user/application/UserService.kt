@@ -443,6 +443,7 @@ class UserService(
             user = user,
             withdrawnAt = requireNotNull(user.deletedAt),
         )
+        user.anonymizePersonalInfoForWithdrawal()
         tokenService.deleteByUserId(userId)
 
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
