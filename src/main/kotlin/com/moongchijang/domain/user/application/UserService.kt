@@ -104,7 +104,7 @@ class UserService(
             passwordHash = passwordHash,
         )
         val savedUser = try {
-            userRepository.save(user)
+            userRepository.saveAndFlush(user)
         } catch (e: DataIntegrityViolationException) {
             // provider+email 유니크 인덱스 충돌(동시성 가입 요청) 시 도메인 예외로 변환
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)

@@ -443,11 +443,11 @@ class UserServiceTest {
                 withdrawalIdentifierHasher.hashEmail("new@example.com"),
             ),
         ).thenReturn(null)
-        Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
+        Mockito.`when`(userRepository.saveAndFlush(Mockito.any(User::class.java))).thenReturn(savedUser)
 
         val user = userService.createEmailUser("new@example.com", "hashed-password")
 
-        Mockito.verify(userRepository).save(userCaptor.capture())
+        Mockito.verify(userRepository).saveAndFlush(userCaptor.capture())
         Assertions.assertEquals(30L, user.id)
         Assertions.assertEquals(AuthProvider.EMAIL, user.provider)
         Assertions.assertEquals("new@example.com", personalInfoManager.decryptIfNeeded(user.email))
