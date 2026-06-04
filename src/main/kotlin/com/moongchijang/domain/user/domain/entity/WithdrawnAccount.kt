@@ -17,8 +17,7 @@ import java.time.LocalDateTime
 @Table(
     name = "withdrawn_accounts",
     uniqueConstraints = [
-        UniqueConstraint(name = "uidx_withdrawn_accounts_provider_provider_id", columnNames = ["provider", "provider_id"]),
-        UniqueConstraint(name = "uidx_withdrawn_accounts_provider_email", columnNames = ["provider", "email"]),
+        UniqueConstraint(name = "uidx_withdrawn_accounts_provider_identifier_hash", columnNames = ["provider", "identifier_hash"]),
     ],
     indexes = [
         Index(name = "idx_withdrawn_accounts_rejoin_available_at", columnList = "rejoin_available_at"),
