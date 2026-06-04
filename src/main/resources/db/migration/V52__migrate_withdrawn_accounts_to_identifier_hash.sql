@@ -10,7 +10,11 @@ SET identifier_hash = CASE
 END
 WHERE identifier_hash IS NULL;
 
+DELETE FROM withdrawn_accounts
+WHERE identifier_hash IS NULL;
+
 ALTER TABLE withdrawn_accounts
+    MODIFY COLUMN identifier_hash CHAR(64) NOT NULL,
     ADD UNIQUE KEY uidx_withdrawn_accounts_provider_identifier_hash (provider, identifier_hash);
 
 UPDATE withdrawn_accounts
