@@ -8,7 +8,9 @@ import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageDetailRe
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageListItemResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuySummaryResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/owner/group-buys")
+@RequireCurrentRole(UserRole.SELLER)
 @Tag(name = "OwnerGroupBuy", description = "사장님 공구 조회")
 class OwnerGroupBuyController(
     private val ownerGroupBuyService: OwnerGroupBuyService

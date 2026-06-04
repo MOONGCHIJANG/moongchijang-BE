@@ -125,6 +125,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseUserInfo'
+    delete:
+      tags: [Auth]
+      summary: 회원 탈퇴
+      description: |
+        소비자 현재 역할(BUYER)에서 회원 탈퇴를 처리한다.
+        - 탈퇴 진입 컨텍스트 조회 결과와 무관하게 실행 시점 최종 검증을 다시 수행한다.
+        - 수령 예정 공구(달성 완료 + 픽업 미완료)가 있으면 탈퇴할 수 없다.
+        - 참여 중 공구(PAID_WAITING_GOAL)는 자동 취소된다.
+        - 찜 목록은 모두 삭제된다.
+        - 동일 계정은 탈퇴 후 30일 이후 재가입 가능하다.
+        - 최종 검증 실패 시 409 에러를 반환한다. (예: WITHDRAWAL_BLOCKED_PENDING_PICKUP)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessNoData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /api/v1/users/me/role:
     patch:
       tags: [Auth]
@@ -151,32 +179,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-    delete:
-      tags: [Auth]
-      summary: 회원 탈퇴
-      description: |
-        회원 탈퇴를 처리한다.
-        - 탈퇴 진입 컨텍스트 조회 결과와 무관하게 실행 시점 최종 검증을 다시 수행한다.
-        - 수령 예정 공구(달성 완료 + 픽업 미완료)가 있으면 탈퇴할 수 없다.
-        - 참여 중 공구(PAID_WAITING_GOAL)는 자동 취소된다.
-        - 찜 목록은 모두 삭제된다.
-        - 동일 계정은 탈퇴 후 30일 이후 재가입 가능하다.
-        - 최종 검증 실패 시 409 에러를 반환한다. (예: WITHDRAWAL_BLOCKED_PENDING_PICKUP)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WithdrawRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/SuccessNoData'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '409':
-          $ref: '#/components/responses/Conflict'
   /api/v1/users/me/withdrawal-context:
     get:
       tags: [Auth]
@@ -263,7 +265,8 @@ paths:
       tags: [Auth]
       summary: 사업자등록번호 조회
       description: |
-        사업자등록번호를 조회해 상태를 반환한다.
+        사장님 가입 진행 중 사업자등록번호를 조회해 상태를 반환한다.
+        현재 활성 역할이 SELLER가 아니어도, 사장님 가입 흐름에서는 호출할 수 있다.
         - `VALID`: 정상 사업자(계속사업자)
         - `CLOSED`: 휴업/폐업
         - `NOT_FOUND`: 조회 불가/미확인
@@ -295,7 +298,9 @@ paths:
     patch:
       tags: [Auth]
       summary: 사장님 사업자 정보 저장
-      description: 사장님 가입의 사업자 정보를 저장한다.
+      description: |
+        사장님 가입 진행 중 사업자 정보를 저장한다.
+        현재 활성 역할이 SELLER가 아니어도, 사장님 가입 흐름에서는 호출할 수 있다.
       security:
         - bearerAuth: []
       requestBody:
@@ -320,7 +325,9 @@ paths:
     patch:
       tags: [Auth]
       summary: 사장님 정산 정보 저장
-      description: 사장님 정산 정보를 저장하고 사장님 가입 완료 상태를 반영한다.
+      description: |
+        사장님 가입 진행 중 정산 정보를 저장하고 사장님 가입 완료 상태를 반영한다.
+        현재 활성 역할이 SELLER가 아니어도, 사장님 가입 흐름에서는 호출할 수 있다.
       security:
         - bearerAuth: []
       requestBody:
@@ -344,7 +351,7 @@ paths:
     get:
       tags: [Auth]
       summary: 사장님 입금 계좌 조회
-      description: 사장님의 현재 입금 계좌 정보를 조회한다.
+      description: 현재 활성 역할이 SELLER일 때 사장님의 현재 입금 계좌 정보를 조회한다.
       security:
         - bearerAuth: []
       responses:
@@ -363,7 +370,7 @@ paths:
     patch:
       tags: [Auth]
       summary: 사장님 입금 계좌 변경
-      description: 사장님의 입금 계좌 정보를 변경한다.
+      description: 현재 활성 역할이 SELLER일 때 사장님의 입금 계좌 정보를 변경한다.
       security:
         - bearerAuth: []
       requestBody:
@@ -391,7 +398,7 @@ paths:
     get:
       tags: [Auth]
       summary: 사장님 사업자 정보 조회
-      description: 사장님의 현재 사업자 정보를 조회한다.
+      description: 현재 활성 역할이 SELLER일 때 사장님의 현재 사업자 정보를 조회한다.
       security:
         - bearerAuth: []
       responses:
@@ -410,7 +417,7 @@ paths:
     patch:
       tags: [Auth]
       summary: 사장님 사업자 정보 변경
-      description: 사장님의 사업자 정보를 변경한다.
+      description: 현재 활성 역할이 SELLER일 때 사장님의 사업자 정보를 변경한다.
       security:
         - bearerAuth: []
       requestBody:
@@ -440,7 +447,7 @@ paths:
       tags: [Auth]
       summary: 사장님 회원 탈퇴
       description: |
-        사장님 회원 탈퇴를 처리한다.
+        현재 활성 역할이 SELLER일 때 사장님 회원 탈퇴를 처리한다.
         - 탈퇴 진입 컨텍스트 조회 결과와 무관하게 실행 시점 최종 검증을 다시 수행한다.
         - 개설된 공구(IN_PROGRESS)가 있으면 탈퇴할 수 없다.
         - 달성 완료/완료 공구(ACHIEVED, COMPLETED)에 픽업 미완료 참여가 있으면 탈퇴할 수 없다.
@@ -1747,8 +1754,9 @@ paths:
       tags: [Pickup]
       summary: QR 코드 스캔 검증 및 수령 처리
       description: |
-        SELLER 권한 사용자가 본인 매장 공구의 소비자 QR을 스캔하면 READY → PICKED_UP으로 자동 전환한다.
-        ADMIN 권한 사용자는 운영 대리 처리 용도로 매장 소속 검증 없이 처리할 수 있다.
+        현재 활성 역할이 SELLER 또는 ADMIN일 때만 호출할 수 있다.
+        SELLER 역할 사용자가 본인 매장 공구의 소비자 QR을 스캔하면 READY → PICKED_UP으로 자동 전환한다.
+        ADMIN 역할 사용자는 운영 대리 처리 용도로 매장 소속 검증 없이 처리할 수 있다.
         응답에는 사장님 스캔 결과 화면에 필요한 유저이름, 상품명, 수량, 픽업 상태를 포함한다.
       security:
         - bearerAuth: []
@@ -1784,6 +1792,7 @@ paths:
         현재 로그인 사용자의 활성 역할 기준으로 알림 목록을 조회한다.
         - 소비자 역할(BUYER): 소비자 알림만 조회
         - 사장님 역할(SELLER): 사장님 알림만 조회
+        - 관리자 역할(ADMIN): 앱 내 알림 API를 사용할 수 없다.
         - 역할에 맞지 않는 `category`를 요청하면 400 오류를 반환한다.
       security:
         - bearerAuth: []
@@ -1830,7 +1839,10 @@ paths:
     get:
       tags: [Notification]
       summary: 미읽음 알림 개수 조회
-      description: 현재 로그인 사용자의 활성 역할 기준 scope에 해당하는 미읽음 알림 개수를 조회한다.
+      description: |
+        현재 로그인 사용자의 활성 역할 기준 scope에 해당하는 미읽음 알림 개수만 조회한다.
+        - BUYER면 소비자 알림 개수만 집계
+        - SELLER면 사장님 알림 개수만 집계
       security:
         - bearerAuth: []
       responses:
@@ -1847,7 +1859,10 @@ paths:
     patch:
       tags: [Notification]
       summary: 전체 알림 읽음 처리
-      description: 현재 로그인 사용자의 활성 역할 기준 scope에 해당하는 알림만 전체 읽음 처리한다.
+      description: |
+        현재 로그인 사용자의 활성 역할 기준 scope에 해당하는 알림만 전체 읽음 처리한다.
+        - BUYER면 소비자 알림만 읽음 처리
+        - SELLER면 사장님 알림만 읽음 처리
       security:
         - bearerAuth: []
       responses:
@@ -1860,6 +1875,7 @@ paths:
     patch:
       tags: [Notification]
       summary: 알림 단건 읽음 처리
+      description: 현재 로그인 사용자의 활성 역할 scope에 속한 본인 알림만 읽음 처리할 수 있다.
       security:
         - bearerAuth: []
       parameters:
@@ -2986,7 +3002,9 @@ paths:
     post:
       tags: [ImageUpload]
       summary: S3 이미지 업로드용 Presigned URL 발급
-      description: 썸네일(최대 1장), 상품 이미지(최대 10장)에 대한 업로드 URL을 발급한다.
+      description: |
+        인증된 사용자의 현재 역할이 BUYER, SELLER, ADMIN 중 하나이면 호출할 수 있다.
+        썸네일(최대 1장), 상품 이미지(최대 10장)에 대한 업로드 URL을 발급한다.
       security:
         - bearerAuth: []
       requestBody:
@@ -3011,7 +3029,9 @@ paths:
     delete:
       tags: [ImageUpload]
       summary: S3 업로드 이미지 삭제
-      description: 요청한 S3 key 목록을 삭제한다. 허용된 prefix 범위의 key만 삭제 가능하다.
+      description: |
+        인증된 사용자의 현재 역할이 BUYER, SELLER, ADMIN 중 하나이면 호출할 수 있다.
+        요청한 S3 key 목록을 삭제한다. 허용된 prefix 범위의 key만 삭제 가능하다.
       security:
         - bearerAuth: []
       requestBody:

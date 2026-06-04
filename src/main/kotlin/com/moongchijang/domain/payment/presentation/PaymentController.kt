@@ -13,9 +13,11 @@ import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderRequest
 import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderResponse
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookRequest
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import jakarta.validation.Valid
 import org.springframework.http.HttpHeaders
@@ -40,6 +42,7 @@ class PaymentController(
 ) {
 
     @GetMapping("/group-buys/{groupBuyId}/checkout")
+    @RequireCurrentRole(UserRole.BUYER)
     fun getCheckoutInfo(
         @PathVariable groupBuyId: Long,
         @RequestParam quantity: Int,
@@ -50,6 +53,7 @@ class PaymentController(
 
     @PostMapping("/group-buys/{groupBuyId}/payment-orders")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.BUYER)
     fun createPaymentOrder(
         @PathVariable groupBuyId: Long,
         @AuthenticationPrincipal principal: CustomUserPrincipal,
@@ -61,6 +65,7 @@ class PaymentController(
 
     @PostMapping("/payments/portone/complete")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.BUYER)
     fun completePortOnePayment(
         @AuthenticationPrincipal principal: CustomUserPrincipal,
         @Valid @RequestBody request: CompletePortOnePaymentRequest,
@@ -87,6 +92,7 @@ class PaymentController(
 
     @PostMapping("/participations/{participationId}/cancel")
     @PreAuthorize("isAuthenticated()")
+    @RequireCurrentRole(UserRole.BUYER)
     fun cancelParticipation(
         @PathVariable participationId: Long,
         @AuthenticationPrincipal principal: CustomUserPrincipal,

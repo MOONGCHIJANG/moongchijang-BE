@@ -7,7 +7,9 @@ import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestDe
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestPageResponse
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestRejectRequest
 import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTab
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/admin/refund-requests")
+@RequireCurrentRole(UserRole.ADMIN)
 @Tag(name = "Admin", description = "운영자 관리")
 class AdminRefundRequestController(
     private val adminRefundRequestService: AdminRefundRequestService,

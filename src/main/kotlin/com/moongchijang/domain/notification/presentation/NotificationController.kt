@@ -5,9 +5,11 @@ import com.moongchijang.domain.notification.application.NotificationQueryService
 import com.moongchijang.domain.notification.application.dto.NotificationCategory
 import com.moongchijang.domain.notification.application.dto.NotificationListResponse
 import com.moongchijang.domain.notification.application.dto.NotificationUnreadCountResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/notifications")
+@RequireCurrentRole(UserRole.BUYER, UserRole.SELLER)
 @Tag(name = "Notification", description = "알림 목록 조회 및 읽음 처리")
 class NotificationController(
     private val notificationQueryService: NotificationQueryService,
@@ -116,7 +119,11 @@ class NotificationController(
             notificationId
         )
 
-        notificationCommandService.markAsRead(userId = userId, notificationId = notificationId)
+        notificationCommandService.markAsRead(
+            userId = userId,
+            currentRole = principal.role,
+            notificationId = notificationId,
+        )
 
         log.info(
             "[NotificationController] 알림 단건 읽음 처리 응답 완료: userId={}, notificationId={}",

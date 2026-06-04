@@ -47,8 +47,8 @@ class NotificationCommandServiceTest {
         `when`(notificationRepository.findById(101L)).thenReturn(Optional.of(unread))
         `when`(notificationRepository.findById(102L)).thenReturn(Optional.of(alreadyRead))
 
-        assertDoesNotThrow { service.markAsRead(userId = 1L, notificationId = 101L) }
-        assertDoesNotThrow { service.markAsRead(userId = 1L, notificationId = 102L) }
+        assertDoesNotThrow { service.markAsRead(userId = 1L, currentRole = UserRole.BUYER, notificationId = 101L) }
+        assertDoesNotThrow { service.markAsRead(userId = 1L, currentRole = UserRole.BUYER, notificationId = 102L) }
 
         assertThat(unread.isRead).isTrue()
         assertThat(alreadyRead.isRead).isTrue()
@@ -65,7 +65,7 @@ class NotificationCommandServiceTest {
         `when`(notificationRepository.findById(201L)).thenReturn(Optional.of(notification))
 
         val exception = assertThrows(CustomException::class.java) {
-            service.markAsRead(userId = 999L, notificationId = 201L)
+            service.markAsRead(userId = 999L, currentRole = UserRole.BUYER, notificationId = 201L)
         }
 
         assertEquals(ErrorCode.NOTIFICATION_FORBIDDEN, exception.errorCode)
@@ -76,10 +76,28 @@ class NotificationCommandServiceTest {
         `when`(notificationRepository.findById(301L)).thenReturn(Optional.empty())
 
         val exception = assertThrows(CustomException::class.java) {
-            service.markAsRead(userId = 3L, notificationId = 301L)
+            service.markAsRead(userId = 3L, currentRole = UserRole.BUYER, notificationId = 301L)
         }
 
         assertEquals(ErrorCode.NOTIFICATION_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
+    fun `현재 역할 scope와 다른 알림을 읽음 처리할 때 권한 예외 반환`() {
+        val user = UserFixture.createEmailUser(id = 6L)
+        val ownerNotification = NotificationFixture.createNotification(
+            user = user,
+            id = 601L,
+            scope = com.moongchijang.domain.notification.domain.entity.NotificationScope.OWNER,
+            occurredAt = LocalDateTime.now()
+        )
+        `when`(notificationRepository.findById(601L)).thenReturn(Optional.of(ownerNotification))
+
+        val exception = assertThrows(CustomException::class.java) {
+            service.markAsRead(userId = 6L, currentRole = UserRole.BUYER, notificationId = 601L)
+        }
+
+        assertEquals(ErrorCode.NOTIFICATION_FORBIDDEN, exception.errorCode)
     }
 
     @Test
