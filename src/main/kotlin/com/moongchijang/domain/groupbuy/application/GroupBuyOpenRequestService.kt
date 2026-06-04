@@ -21,6 +21,8 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.security.crypto.PersonalInfoManager
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
@@ -40,6 +42,7 @@ class GroupBuyOpenRequestService(
     private val notificationEventPublisher: NotificationEventPublisher,
     private val recommendedStoreImageService: RecommendedStoreImageService,
     private val personalInfoManager: PersonalInfoManager,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -85,7 +88,7 @@ class GroupBuyOpenRequestService(
             notificationEventPublisher.publishRequestOpened(
                 requestId = requestId,
                 requesterUserIds = result.targetUserIds,
-                occurredAt = java.time.LocalDateTime.now()
+                occurredAt = clock.utcNow()
             )
         }
         return result

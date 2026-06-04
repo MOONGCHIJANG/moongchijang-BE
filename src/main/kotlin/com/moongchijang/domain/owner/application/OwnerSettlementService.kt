@@ -29,6 +29,8 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.time.TimePolicy
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -44,6 +46,7 @@ class OwnerSettlementService(
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
     private val refundRequestSyncService: RefundRequestSyncService,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -221,7 +224,7 @@ class OwnerSettlementService(
             groupBuyId = participation.groupBuy.id,
             productName = participation.groupBuy.productName,
             requesterName = participation.user.nickname ?: "",
-            requestedDate = (participation.cancelledAt ?: participation.createdAt ?: java.time.LocalDateTime.now()).toLocalDate(),
+            requestedDate = (participation.cancelledAt ?: participation.createdAt ?: clock.utcNow()).toLocalDate(),
             paymentAmount = participation.totalAmount,
             penaltyAmount = penaltyAmount,
             refundExpectedAmount = refundExpectedAmount,
@@ -263,7 +266,7 @@ class OwnerSettlementService(
             throw CustomException(ErrorCode.OWNER_REFUND_REVIEW_ALREADY_PROCESSED)
         }
 
-        val now = java.time.LocalDateTime.now()
+        val now = clock.utcNow()
         participation.ownerRefundReviewedAt = now
 
         when (request.action) {
@@ -308,7 +311,7 @@ class OwnerSettlementService(
     }
 
     private fun toRefundListItem(participation: Participation): OwnerRefundRequestListItemResponse {
-        val requestedAt = participation.cancelledAt ?: participation.createdAt ?: java.time.LocalDateTime.now()
+        val requestedAt = participation.cancelledAt ?: participation.createdAt ?: clock.utcNow()
         return OwnerRefundRequestListItemResponse(
             participationId = participation.id,
             groupBuyId = participation.groupBuy.id,
@@ -320,7 +323,7 @@ class OwnerSettlementService(
             requestedDate = requestedAt.toLocalDate(),
             status = toRefundStatus(participation.status),
             exceeded24Hours = participation.status == ParticipationStatus.REFUND_PENDING &&
-                requestedAt.isBefore(java.time.LocalDateTime.now().minusHours(24)),
+                requestedAt.isBefore(clock.utcNow().minusHours(24)),
         )
     }
 

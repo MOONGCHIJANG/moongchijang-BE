@@ -30,6 +30,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.domain.user.domain.repository.WithdrawnAccountRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.utcNow
 import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
 import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
 import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
@@ -41,7 +42,10 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito
 import org.springframework.security.crypto.password.PasswordEncoder
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 class UserServiceTest {
 
@@ -74,6 +78,8 @@ class UserServiceTest {
         AesGcmPersonalInfoEncryptor(personalInfoProperties),
         HmacSha256PersonalInfoHasher(personalInfoProperties),
     )
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val userService = UserService(
         userRepository,
         sellerBusinessProfileRepository,
@@ -91,6 +97,7 @@ class UserServiceTest {
         withdrawalLegalRetentionCommandService,
         withdrawalImmediateCleanupService,
         personalInfoManager,
+        clock,
     )
 
     @Test
@@ -291,7 +298,7 @@ class UserServiceTest {
             email = "restore@example.com",
             nickname = "새닉네임",
         )
-        val withdrawnAt = LocalDateTime.now().minusDays(40)
+        val withdrawnAt = clock.utcNow().minusDays(40)
         val withdrawnAccount = WithdrawnAccount(
             provider = AuthProvider.KAKAO,
             identifierHash = withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-restore"),

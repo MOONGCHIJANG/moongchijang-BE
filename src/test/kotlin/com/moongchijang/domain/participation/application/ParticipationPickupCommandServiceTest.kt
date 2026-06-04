@@ -11,6 +11,9 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -25,10 +28,13 @@ class ParticipationPickupCommandServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val service by lazy {
         ParticipationPickupCommandService(
             participationRepository = participationRepository,
-            userRepository = userRepository
+            userRepository = userRepository,
+            clock = clock
         )
     }
 

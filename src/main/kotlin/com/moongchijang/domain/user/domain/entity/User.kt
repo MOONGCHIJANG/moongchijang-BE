@@ -1,6 +1,7 @@
 package com.moongchijang.domain.user.domain.entity
 
 import com.moongchijang.global.entity.BaseEntity
+import com.moongchijang.global.time.TimePolicy
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -106,7 +107,7 @@ class User(
     fun withdraw(
         reason: WithdrawalReason?,
         reasonDetail: String?,
-        now: LocalDateTime = LocalDateTime.now(),
+        now: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID),
     ) {
         this.withdrawalReason = reason
         this.withdrawalReasonDetail = reasonDetail
@@ -116,7 +117,7 @@ class User(
     fun withdrawAsOwner(
         reason: OwnerWithdrawalReason?,
         reasonDetail: String?,
-        now: LocalDateTime = LocalDateTime.now(),
+        now: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID),
     ) {
         this.ownerWithdrawalReason = reason
         this.ownerWithdrawalReasonDetail = reasonDetail

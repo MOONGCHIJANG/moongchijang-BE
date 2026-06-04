@@ -23,7 +23,10 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionStatus
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 @ExtendWith(MockitoExtension::class)
 class GroupBuyStatusTransitionServiceTest {
@@ -49,6 +52,8 @@ class GroupBuyStatusTransitionServiceTest {
     @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private lateinit var service: GroupBuyStatusTransitionService
 
     @BeforeEach
@@ -61,6 +66,7 @@ class GroupBuyStatusTransitionServiceTest {
             notificationEventPublisher,
             adminDiscordAlertService,
             transactionManager,
+            clock,
             500
         )
     }
@@ -165,6 +171,7 @@ class GroupBuyStatusTransitionServiceTest {
             notificationEventPublisher,
             adminDiscordAlertService,
             transactionManager,
+            clock,
             2
         )
         val pageable = PageRequest.of(0, 2, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))

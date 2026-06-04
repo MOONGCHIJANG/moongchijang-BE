@@ -24,17 +24,20 @@ import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -55,8 +58,21 @@ class OwnerSettlementServiceTest {
     @Mock
     private lateinit var refundRequestSyncService: RefundRequestSyncService
 
-    @InjectMocks
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T04:00:00Z"), ZoneOffset.UTC)
+
     private lateinit var service: OwnerSettlementService
+
+    @BeforeEach
+    fun setUp() {
+        service = OwnerSettlementService(
+            userRepository = userRepository,
+            storeStaffRepository = storeStaffRepository,
+            groupBuyRepository = groupBuyRepository,
+            participationRepository = participationRepository,
+            refundRequestSyncService = refundRequestSyncService,
+            clock = clock,
+        )
+    }
 
     @Test
     fun `월별 정산 예정 금액을 조회한다`() {

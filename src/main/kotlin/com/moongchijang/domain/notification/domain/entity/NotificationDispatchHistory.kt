@@ -1,6 +1,7 @@
 package com.moongchijang.domain.notification.domain.entity
 
 import com.moongchijang.global.entity.BaseEntity
+import com.moongchijang.global.time.TimePolicy
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -68,7 +69,7 @@ class NotificationDispatchHistory(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
 ) : BaseEntity() {
-    fun markSuccess(processedAt: LocalDateTime = LocalDateTime.now()): NotificationDispatchHistory {
+    fun markSuccess(processedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)): NotificationDispatchHistory {
         status = NotificationDispatchStatus.SUCCESS
         this.processedAt = processedAt
         nextRetryAt = null

@@ -37,6 +37,8 @@ import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -67,6 +69,7 @@ class PaymentService(
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val refundRequestSyncService: RefundRequestSyncService,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -336,7 +339,7 @@ class PaymentService(
             val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
             if (paymentResult.status == PORTONE_STATUS_FAILED && lockedOrder.status == PaymentOrderStatus.READY) {
                 val previousStatus = lockedOrder.status
-                lockedOrder.fail(LocalDateTime.now())
+                lockedOrder.fail(clock.utcNow())
                 paymentOrderRepository.save(lockedOrder)
                 recordPaymentAudit(
                     source = PaymentAuditSource.WEBHOOK,
@@ -381,7 +384,7 @@ class PaymentService(
                 applyParticipationCancellation(
                     target = target,
                     request = request,
-                    cancelledAt = paymentResult.cancelledAt ?: LocalDateTime.now(),
+                    cancelledAt = paymentResult.cancelledAt ?: clock.utcNow(),
                 )
             } ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         }
@@ -443,7 +446,7 @@ class PaymentService(
         }
         if (paymentResult.totalAmount != order.totalAmount) {
             val previousStatus = order.status
-            order.fail(LocalDateTime.now())
+            order.fail(clock.utcNow())
             paymentOrderRepository.save(order)
             recordPaymentFailure(
                 source = source,
@@ -457,7 +460,7 @@ class PaymentService(
         }
         if (paymentResult.paymentId != order.orderId) {
             val previousStatus = order.status
-            order.fail(LocalDateTime.now())
+            order.fail(clock.utcNow())
             paymentOrderRepository.save(order)
             recordPaymentFailure(
                 source = source,
@@ -480,7 +483,7 @@ class PaymentService(
                 order.groupBuy.id, order.quantity, order.orderId
             )
             val previousStatus = order.status
-            order.fail(LocalDateTime.now())
+            order.fail(clock.utcNow())
             paymentOrderRepository.save(order)
             recordPaymentFailure(
                 source = source,
@@ -520,7 +523,7 @@ class PaymentService(
         if (groupBuy.status == GroupBuyStatus.ACHIEVED && groupBuy.currentQuantity >= groupBuy.maxQuantity) {
             groupBuy.transitionToCompletedWhenMaxQuantityReached()
         }
-        val approvedAt = paymentResult.paidAt ?: LocalDateTime.now()
+        val approvedAt = paymentResult.paidAt ?: clock.utcNow()
         val previousStatus = order.status
         order.approve(approvedAt)
         val approvedOrder = paymentOrderRepository.save(order)
@@ -661,7 +664,7 @@ class PaymentService(
             val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
             if (order.status == PaymentOrderStatus.READY) {
                 val previousStatus = order.status
-                order.fail(LocalDateTime.now())
+                order.fail(clock.utcNow())
                 paymentOrderRepository.save(order)
                 recordPaymentAudit(
                     source = PaymentAuditSource.COMPLETE_API,
@@ -681,9 +684,9 @@ class PaymentService(
             val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
             val previousStatus = order.status
             when (paymentResult.status) {
-                PORTONE_STATUS_CANCELLED -> order.cancel(paymentResult.cancelledAt ?: LocalDateTime.now())
-                PORTONE_STATUS_PARTIAL_CANCELLED -> order.partialCancel(paymentResult.cancelledAt ?: LocalDateTime.now())
-                else -> order.fail(LocalDateTime.now())
+                PORTONE_STATUS_CANCELLED -> order.cancel(paymentResult.cancelledAt ?: clock.utcNow())
+                PORTONE_STATUS_PARTIAL_CANCELLED -> order.partialCancel(paymentResult.cancelledAt ?: clock.utcNow())
+                else -> order.fail(clock.utcNow())
             }
             paymentOrderRepository.save(order)
             val eventType = when (paymentResult.status) {
@@ -705,7 +708,7 @@ class PaymentService(
     }
 
     private fun cancelPayment(order: PaymentOrder, paymentResult: PortOnePaymentResult, partial: Boolean) {
-        val cancelledAt = paymentResult.cancelledAt ?: LocalDateTime.now()
+        val cancelledAt = paymentResult.cancelledAt ?: clock.utcNow()
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
 
@@ -880,7 +883,7 @@ class PaymentService(
         return transactionTemplate().execute {
             applyPendingRefundCompletion(
                 target = target,
-                refundedAt = paymentResult.cancelledAt ?: LocalDateTime.now()
+                refundedAt = paymentResult.cancelledAt ?: clock.utcNow()
             )
             true
         } ?: false
@@ -973,7 +976,7 @@ class PaymentService(
             displayStatus = displayStatus(participation.status),
             amount = order.totalAmount,
             method = payment?.method,
-            approvedAt = order.approvedAt ?: LocalDateTime.now(),
+            approvedAt = order.approvedAt ?: clock.utcNow(),
         )
     }
 

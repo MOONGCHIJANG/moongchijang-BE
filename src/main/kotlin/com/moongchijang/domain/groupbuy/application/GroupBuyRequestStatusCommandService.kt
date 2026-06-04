@@ -7,9 +7,11 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusH
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.utcNow
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
@@ -17,6 +19,7 @@ class GroupBuyRequestStatusCommandService(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val groupBuyRequestStatusHistoryRepository: GroupBuyRequestStatusHistoryRepository,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -24,8 +27,9 @@ class GroupBuyRequestStatusCommandService(
     fun rejectRequest(
         requestId: Long,
         reason: String?,
-        changedAt: LocalDateTime = LocalDateTime.now()
+        changedAt: LocalDateTime? = null
     ) {
+        val effectiveChangedAt = changedAt ?: clock.utcNow()
         val request = groupBuyRequestRepository.findById(requestId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
 
@@ -34,14 +38,14 @@ class GroupBuyRequestStatusCommandService(
             GroupBuyRequestStatusHistory(
                 groupBuyRequest = request,
                 status = GroupBuyRequestStatus.REJECTED,
-                changedAt = changedAt
+                changedAt = effectiveChangedAt
             )
         )
 
         notificationEventPublisher.publishRequestRejected(
             requestId = request.id,
             requesterUserId = requireNotNull(request.user.id) { "GroupBuyRequest.user.id must not be null" },
-            occurredAt = changedAt
+            occurredAt = effectiveChangedAt
         )
         log.info(
             "[GroupBuyRequestStatusCommandService] 요청공구 거절 처리 및 알림 트리거 발행: requestId={}, requesterUserId={}",

@@ -4,6 +4,8 @@ import com.moongchijang.domain.user.domain.repository.WithdrawnAccountRepository
 import com.moongchijang.domain.user.domain.repository.WithdrawnParticipationRepository
 import com.moongchijang.domain.user.domain.repository.WithdrawnPaymentOrderRepository
 import com.moongchijang.domain.user.domain.repository.WithdrawnRefundRequestRepository
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,11 +24,12 @@ class WithdrawalRetentionPurgeService(
     private val withdrawnPaymentOrderRepository: WithdrawnPaymentOrderRepository,
     private val withdrawnParticipationRepository: WithdrawnParticipationRepository,
     private val withdrawnRefundRequestRepository: WithdrawnRefundRequestRepository,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun purgeExpired(now: LocalDateTime = LocalDateTime.now()): WithdrawalRetentionPurgeResult {
+    fun purgeExpired(now: LocalDateTime = clock.utcNow()): WithdrawalRetentionPurgeResult {
         val withdrawnRefundRequestsDeleted = withdrawnRefundRequestRepository.deleteByRetentionExpiresAtBefore(now)
         val withdrawnParticipationsDeleted = withdrawnParticipationRepository.deleteByRetentionExpiresAtBefore(now)
         val withdrawnPaymentOrdersDeleted = withdrawnPaymentOrderRepository.deleteByRetentionExpiresAtBefore(now)
