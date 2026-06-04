@@ -10,22 +10,26 @@ import java.time.LocalDateTime
 @Service
 class WithdrawnAccountCommandService(
     private val withdrawnAccountRepository: WithdrawnAccountRepository,
+    private val withdrawalIdentifierHasher: WithdrawalIdentifierHasher,
 ) {
     @Transactional
     fun recordWithdrawal(user: User, withdrawnAt: LocalDateTime) {
+        val identifierHash = withdrawalIdentifierHasher.hashForWithdrawal(
+            provider = user.provider,
+            providerId = user.providerId,
+            email = user.email,
+        )
         val existing = findExisting(user)
 
         val withdrawnAccount = existing?.apply {
             provider = user.provider
-            providerId = user.providerId
-            email = user.email
+            this.identifierHash = requireNotNull(identifierHash)
             withdrawnUserId = requireNotNull(user.id)
             this.withdrawnAt = withdrawnAt
             rejoinAvailableAt = withdrawnAt.plusDays(REJOIN_WAIT_DAYS)
         } ?: WithdrawnAccount(
             provider = user.provider,
-            providerId = user.providerId,
-            email = user.email,
+            identifierHash = requireNotNull(identifierHash),
             withdrawnUserId = requireNotNull(user.id),
             withdrawnAt = withdrawnAt,
             rejoinAvailableAt = withdrawnAt.plusDays(REJOIN_WAIT_DAYS),
@@ -35,14 +39,13 @@ class WithdrawnAccountCommandService(
     }
 
     private fun findExisting(user: User): WithdrawnAccount? {
-        val providerId = user.providerId
-        if (!providerId.isNullOrBlank()) {
-            return withdrawnAccountRepository.findByProviderAndProviderId(user.provider, providerId)
-        }
-
-        val email = user.email
-        if (!email.isNullOrBlank()) {
-            return withdrawnAccountRepository.findByProviderAndEmail(user.provider, email)
+        val identifierHash = withdrawalIdentifierHasher.hashForWithdrawal(
+            provider = user.provider,
+            providerId = user.providerId,
+            email = user.email,
+        )
+        if (!identifierHash.isNullOrBlank()) {
+            return withdrawnAccountRepository.findByProviderAndIdentifierHash(user.provider, identifierHash)
         }
 
         return withdrawnAccountRepository.findByWithdrawnUserId(requireNotNull(user.id))

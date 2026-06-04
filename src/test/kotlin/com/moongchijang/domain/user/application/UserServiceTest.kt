@@ -58,6 +58,7 @@ class UserServiceTest {
         Mockito.mock(WithdrawnAccountRepository::class.java)
     private val withdrawnAccountCommandService: WithdrawnAccountCommandService =
         Mockito.mock(WithdrawnAccountCommandService::class.java)
+    private val withdrawalIdentifierHasher = WithdrawalIdentifierHasher()
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService =
         Mockito.mock(WithdrawalLegalRetentionCommandService::class.java)
     private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService =
@@ -75,6 +76,7 @@ class UserServiceTest {
         adminDiscordAlertService,
         withdrawnAccountRepository,
         withdrawnAccountCommandService,
+        withdrawalIdentifierHasher,
         withdrawalLegalRetentionCommandService,
         withdrawalImmediateCleanupService,
     )
@@ -111,7 +113,10 @@ class UserServiceTest {
             userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-new"),
         ).thenReturn(null)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "kakao-new"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.KAKAO,
+                withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-new"),
+            ),
         ).thenReturn(null)
         Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
@@ -140,7 +145,10 @@ class UserServiceTest {
             userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-valid"),
         ).thenReturn(null)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "kakao-valid"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.KAKAO,
+                withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-valid"),
+            ),
         ).thenReturn(null)
         Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
@@ -168,7 +176,10 @@ class UserServiceTest {
             userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-invalid"),
         ).thenReturn(null)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "kakao-invalid"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.KAKAO,
+                withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-invalid"),
+            ),
         ).thenReturn(null)
         Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
@@ -233,8 +244,7 @@ class UserServiceTest {
         )
         val withdrawnAccount = WithdrawnAccount(
             provider = AuthProvider.KAKAO,
-            providerId = "kakao-deleted",
-            email = "deleted@example.com",
+            identifierHash = withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-deleted"),
             withdrawnUserId = 20L,
             withdrawnAt = requireNotNull(deletedUser.deletedAt),
             rejoinAvailableAt = requireNotNull(deletedUser.deletedAt).plusDays(30),
@@ -244,7 +254,10 @@ class UserServiceTest {
             userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-deleted"),
         ).thenReturn(null)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "kakao-deleted"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.KAKAO,
+                withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-deleted"),
+            ),
         ).thenReturn(withdrawnAccount)
 
         val exception = assertThrows<CustomException> {
@@ -269,8 +282,7 @@ class UserServiceTest {
         val withdrawnAt = LocalDateTime.now().minusDays(40)
         val withdrawnAccount = WithdrawnAccount(
             provider = AuthProvider.KAKAO,
-            providerId = "kakao-restore",
-            email = "restore@example.com",
+            identifierHash = withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-restore"),
             withdrawnUserId = 21L,
             withdrawnAt = withdrawnAt,
             rejoinAvailableAt = withdrawnAt.plusDays(30),
@@ -280,7 +292,10 @@ class UserServiceTest {
             userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(AuthProvider.KAKAO, "kakao-restore"),
         ).thenReturn(null)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "kakao-restore"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.KAKAO,
+                withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-restore"),
+            ),
         ).thenReturn(withdrawnAccount)
         Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
@@ -301,7 +316,10 @@ class UserServiceTest {
             userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "new@example.com"),
         ).thenReturn(false)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndEmail(AuthProvider.EMAIL, "new@example.com"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.EMAIL,
+                withdrawalIdentifierHasher.hashEmail("new@example.com"),
+            ),
         ).thenReturn(null)
 
         val response = userService.checkEmailAvailability("new@example.com")
@@ -336,7 +354,10 @@ class UserServiceTest {
             userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),
         ).thenReturn(true)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndEmail(AuthProvider.EMAIL, "dup@example.com"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.EMAIL,
+                withdrawalIdentifierHasher.hashEmail("dup@example.com"),
+            ),
         ).thenReturn(null)
 
         val response = userService.checkEmailAvailability("dup@example.com")
@@ -359,8 +380,7 @@ class UserServiceTest {
         val withdrawnAt = LocalDateTime.now().minusDays(5)
         val withdrawnAccount = WithdrawnAccount(
             provider = AuthProvider.EMAIL,
-            providerId = null,
-            email = "dup@example.com",
+            identifierHash = withdrawalIdentifierHasher.hashEmail("dup@example.com"),
             withdrawnUserId = 77L,
             withdrawnAt = withdrawnAt,
             rejoinAvailableAt = withdrawnAt.plusDays(30),
@@ -370,7 +390,10 @@ class UserServiceTest {
             userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),
         ).thenReturn(false)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndEmail(AuthProvider.EMAIL, "dup@example.com"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.EMAIL,
+                withdrawalIdentifierHasher.hashEmail("dup@example.com"),
+            ),
         ).thenReturn(withdrawnAccount)
 
         val response = userService.checkEmailAvailability("dup@example.com")
@@ -390,7 +413,10 @@ class UserServiceTest {
             userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "new@example.com"),
         ).thenReturn(false)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndEmail(AuthProvider.EMAIL, "new@example.com"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.EMAIL,
+                withdrawalIdentifierHasher.hashEmail("new@example.com"),
+            ),
         ).thenReturn(null)
         Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
 
@@ -408,7 +434,10 @@ class UserServiceTest {
             userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "dup@example.com"),
         ).thenReturn(true)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndEmail(AuthProvider.EMAIL, "dup@example.com"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.EMAIL,
+                withdrawalIdentifierHasher.hashEmail("dup@example.com"),
+            ),
         ).thenReturn(null)
 
         val exception = assertThrows<CustomException> {
@@ -423,8 +452,7 @@ class UserServiceTest {
         val withdrawnAt = LocalDateTime.now().minusDays(5)
         val withdrawnAccount = WithdrawnAccount(
             provider = AuthProvider.EMAIL,
-            providerId = null,
-            email = "rejoin-blocked@example.com",
+            identifierHash = withdrawalIdentifierHasher.hashEmail("rejoin-blocked@example.com"),
             withdrawnUserId = 88L,
             withdrawnAt = withdrawnAt,
             rejoinAvailableAt = withdrawnAt.plusDays(30),
@@ -434,7 +462,10 @@ class UserServiceTest {
             userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, "rejoin-blocked@example.com"),
         ).thenReturn(false)
         Mockito.`when`(
-            withdrawnAccountRepository.findByProviderAndEmail(AuthProvider.EMAIL, "rejoin-blocked@example.com"),
+            withdrawnAccountRepository.findByProviderAndIdentifierHash(
+                AuthProvider.EMAIL,
+                withdrawalIdentifierHasher.hashEmail("rejoin-blocked@example.com"),
+            ),
         ).thenReturn(withdrawnAccount)
 
         val exception = assertThrows<CustomException> {

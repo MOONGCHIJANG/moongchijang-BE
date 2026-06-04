@@ -6,9 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.time.LocalDateTime
 
 interface WithdrawnAccountRepository : JpaRepository<WithdrawnAccount, Long> {
-    fun findByProviderAndProviderId(provider: AuthProvider, providerId: String): WithdrawnAccount?
-
-    fun findByProviderAndEmail(provider: AuthProvider, email: String): WithdrawnAccount?
+    fun findByProviderAndIdentifierHash(provider: AuthProvider, identifierHash: String): WithdrawnAccount?
 
     fun findByWithdrawnUserId(withdrawnUserId: Long): WithdrawnAccount?
 

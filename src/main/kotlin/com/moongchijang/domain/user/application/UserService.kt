@@ -63,6 +63,7 @@ class UserService(
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val withdrawnAccountRepository: WithdrawnAccountRepository,
     private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
+    private val withdrawalIdentifierHasher: WithdrawalIdentifierHasher,
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
     private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
 ) {
@@ -524,16 +525,16 @@ class UserService(
     }
 
     private fun findWithdrawnKakaoAccount(providerId: String): WithdrawnAccount? {
-        return withdrawnAccountRepository.findByProviderAndProviderId(
+        return withdrawnAccountRepository.findByProviderAndIdentifierHash(
             provider = AuthProvider.KAKAO,
-            providerId = providerId,
+            identifierHash = withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, providerId),
         )
     }
 
     private fun findWithdrawnEmailAccount(email: String): WithdrawnAccount? {
-        return withdrawnAccountRepository.findByProviderAndEmail(
+        return withdrawnAccountRepository.findByProviderAndIdentifierHash(
             provider = AuthProvider.EMAIL,
-            email = email,
+            identifierHash = withdrawalIdentifierHasher.hashEmail(email),
         )
     }
 

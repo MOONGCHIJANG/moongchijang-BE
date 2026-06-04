@@ -30,11 +30,8 @@ class WithdrawnAccount(
     @Column(nullable = false, length = 20)
     var provider: AuthProvider,
 
-    @Column(name = "provider_id", length = 100)
-    var providerId: String? = null,
-
-    @Column(length = 255)
-    var email: String? = null,
+    @Column(name = "identifier_hash", nullable = false, length = 64)
+    var identifierHash: String,
 
     @Column(name = "withdrawn_user_id", nullable = false)
     var withdrawnUserId: Long,
