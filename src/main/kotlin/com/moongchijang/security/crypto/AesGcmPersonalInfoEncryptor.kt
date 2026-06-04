@@ -24,7 +24,7 @@ class AesGcmPersonalInfoEncryptor(
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, GCMParameterSpec(TAG_LENGTH_BIT, iv))
 
             val encrypted = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
-            Base64.getEncoder().encodeToString(iv + encrypted)
+            PREFIX + Base64.getEncoder().encodeToString(iv + encrypted)
         }.getOrElse {
             throw CustomException(ErrorCode.PERSONAL_INFO_ENCRYPTION_FAILED)
         }
@@ -32,7 +32,8 @@ class AesGcmPersonalInfoEncryptor(
 
     override fun decrypt(cipherText: String): String {
         return runCatching {
-            val decoded = Base64.getDecoder().decode(cipherText)
+            require(isEncrypted(cipherText)) { "Cipher text prefix is invalid" }
+            val decoded = Base64.getDecoder().decode(cipherText.removePrefix(PREFIX))
             require(decoded.size > IV_LENGTH) { "Cipher text is invalid" }
 
             val iv = decoded.copyOfRange(0, IV_LENGTH)
@@ -46,6 +47,8 @@ class AesGcmPersonalInfoEncryptor(
             throw CustomException(ErrorCode.PERSONAL_INFO_DECRYPTION_FAILED)
         }
     }
+
+    override fun isEncrypted(value: String): Boolean = value.startsWith(PREFIX)
 
     private fun decodeSecretKey(secretKey: String): ByteArray {
         val decoded = try {
@@ -68,6 +71,7 @@ class AesGcmPersonalInfoEncryptor(
     }
 
     companion object {
+        private const val PREFIX = "enc:v1:"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val KEY_ALGORITHM = "AES"
         private const val IV_LENGTH = 12

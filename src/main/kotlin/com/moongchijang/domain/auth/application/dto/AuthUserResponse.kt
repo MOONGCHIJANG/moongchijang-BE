@@ -61,13 +61,17 @@ data class AuthUserResponse(
     val updatedAt: LocalDateTime,
 ) {
     companion object {
-        fun from(user: User): AuthUserResponse = AuthUserResponse(
+        fun from(
+            user: User,
+            email: String? = user.email,
+            phoneNumber: String? = user.phoneNumber,
+        ): AuthUserResponse = AuthUserResponse(
             id = user.id!!,
             provider = user.provider,
             providerId = user.providerId,
-            email = user.email,
+            email = email,
             nickname = user.nickname,
-            phoneNumber = user.phoneNumber,
+            phoneNumber = phoneNumber,
             role = user.role,
             lastRole = user.lastRole,
             hasBuyerRole = user.hasRole(UserRole.BUYER),

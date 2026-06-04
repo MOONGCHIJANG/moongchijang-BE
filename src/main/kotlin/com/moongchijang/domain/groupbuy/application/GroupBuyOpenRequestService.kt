@@ -20,6 +20,7 @@ import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchIt
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
@@ -38,6 +39,7 @@ class GroupBuyOpenRequestService(
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val notificationEventPublisher: NotificationEventPublisher,
     private val recommendedStoreImageService: RecommendedStoreImageService,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -113,7 +115,7 @@ class GroupBuyOpenRequestService(
         var failedCount = 0
 
         requestsByUserId.forEach { (userId, userRequests) ->
-            val receiverPhone = userRequests.first().user.phoneNumber
+            val receiverPhone = personalInfoManager.decryptIfNeeded(userRequests.first().user.phoneNumber)
             val message = buildOpenNotificationMessage(userRequests.first().region, productName)
 
             val sent = if (receiverPhone.isNullOrBlank()) {

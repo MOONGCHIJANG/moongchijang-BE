@@ -7,6 +7,7 @@ import com.moongchijang.domain.admin.application.dto.csticket.AdminCsTicketUpdat
 import com.moongchijang.domain.csticket.domain.repository.CsTicketRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -19,6 +20,7 @@ import java.time.LocalDateTime
 class AdminCsTicketService(
     private val csTicketRepository: CsTicketRepository,
     private val clock: Clock,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(AdminCsTicketService::class.java)
 
@@ -51,7 +53,12 @@ class AdminCsTicketService(
         val ticket = csTicketRepository.findAdminDetailById(ticketId)
             .orElseThrow { CustomException(ErrorCode.CS_TICKET_NOT_FOUND) }
 
-        val response = AdminCsTicketDetailResponse.from(ticket, LocalDateTime.now(clock))
+        val response = AdminCsTicketDetailResponse.from(
+            ticket,
+            LocalDateTime.now(clock),
+            consumerEmail = personalInfoManager.decryptIfNeeded(ticket.consumer?.email),
+            consumerPhoneNumber = personalInfoManager.decryptIfNeeded(ticket.consumer?.phoneNumber),
+        )
         log.info("[AdminCsTicketService] CS 티켓 상세 조회 완료: ticketId={}", ticketId)
         return response
     }
@@ -73,7 +80,12 @@ class AdminCsTicketService(
             now = now
         )
 
-        val response = AdminCsTicketDetailResponse.from(ticket, now)
+        val response = AdminCsTicketDetailResponse.from(
+            ticket,
+            now,
+            consumerEmail = personalInfoManager.decryptIfNeeded(ticket.consumer?.email),
+            consumerPhoneNumber = personalInfoManager.decryptIfNeeded(ticket.consumer?.phoneNumber),
+        )
         log.info("[AdminCsTicketService] CS 티켓 수정 완료: ticketId={}, status={}", ticketId, response.status)
         return response
     }

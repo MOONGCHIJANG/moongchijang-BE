@@ -15,6 +15,10 @@ import com.moongchijang.domain.payment.domain.repository.PaymentRepository
 import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -42,6 +46,13 @@ class AdminRefundRequestServiceTest {
     private val paymentRepository: PaymentRepository = mock(PaymentRepository::class.java)
     private val refundRequestSyncService: RefundRequestSyncService = mock(RefundRequestSyncService::class.java)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T01:00:00Z"), ZoneId.of("Asia/Seoul"))
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
 
     private val service = AdminRefundRequestService(
         participationRepository = participationRepository,
@@ -49,6 +60,7 @@ class AdminRefundRequestServiceTest {
         paymentRepository = paymentRepository,
         refundRequestSyncService = refundRequestSyncService,
         clock = clock,
+        personalInfoManager = personalInfoManager,
     )
 
     @Test

@@ -3,6 +3,8 @@ package com.moongchijang.domain.user.domain.repository
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 interface UserRepository : JpaRepository<User, Long> {
 
@@ -18,14 +20,34 @@ interface UserRepository : JpaRepository<User, Long> {
         providerId: String,
     ): User?
 
-    fun findByProviderAndEmailAndDeletedAtIsNull(
-        provider: AuthProvider,
-        email: String,
+    @Query(
+        """
+        select u
+        from User u
+        where u.provider = :provider
+          and u.deletedAt is null
+          and (u.emailHash = :emailHash or u.email = :legacyEmail)
+        """
+    )
+    fun findActiveByProviderAndEmailHashOrLegacyEmail(
+        @Param("provider") provider: AuthProvider,
+        @Param("emailHash") emailHash: String,
+        @Param("legacyEmail") legacyEmail: String,
     ): User?
 
-    fun existsByProviderAndEmailAndDeletedAtIsNull(
-        provider: AuthProvider,
-        email: String,
+    @Query(
+        """
+        select case when count(u) > 0 then true else false end
+        from User u
+        where u.provider = :provider
+          and u.deletedAt is null
+          and (u.emailHash = :emailHash or u.email = :legacyEmail)
+        """
+    )
+    fun existsActiveByProviderAndEmailHashOrLegacyEmail(
+        @Param("provider") provider: AuthProvider,
+        @Param("emailHash") emailHash: String,
+        @Param("legacyEmail") legacyEmail: String,
     ): Boolean
 
     fun existsByNicknameAndDeletedAtIsNull(nickname: String): Boolean

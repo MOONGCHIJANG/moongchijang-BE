@@ -6,6 +6,10 @@ import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkCl
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.ParticipationFixture
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -28,11 +32,20 @@ class PickupReminderAlimtalkEventListenerTest {
     @Mock
     private lateinit var aligoProperties: AligoProperties
 
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
+
     private val listener by lazy {
         PickupReminderAlimtalkEventListener(
             participationRepository = participationRepository,
             aligoAlimtalkClient = aligoAlimtalkClient,
             aligoProperties = aligoProperties,
+            personalInfoManager = personalInfoManager,
         )
     }
 

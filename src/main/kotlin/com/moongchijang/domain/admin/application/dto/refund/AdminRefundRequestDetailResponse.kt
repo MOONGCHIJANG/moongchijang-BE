@@ -92,6 +92,8 @@ data class AdminRefundRequestDetailResponse(
             paymentOrder: PaymentOrder?,
             payment: Payment?,
             now: LocalDateTime,
+            consumerEmail: String?,
+            consumerPhoneNumber: String?,
         ): AdminRefundRequestDetailResponse {
             val requestedAt = participation.cancelledAt ?: participation.createdAt ?: now
             return AdminRefundRequestDetailResponse(
@@ -100,8 +102,8 @@ data class AdminRefundRequestDetailResponse(
                 slaRemainingHours = calculateSlaRemainingHours(requestedAt, now),
                 slaWarning = isSlaWarning(requestedAt, now),
                 consumerNickname = participation.user.nickname,
-                consumerPhoneNumber = participation.user.phoneNumber,
-                consumerEmail = participation.user.email,
+                consumerPhoneNumber = consumerPhoneNumber,
+                consumerEmail = consumerEmail,
                 signupProvider = participation.user.provider.name,
                 groupBuyName = participation.groupBuy.productName,
                 storeName = participation.groupBuy.store.name,

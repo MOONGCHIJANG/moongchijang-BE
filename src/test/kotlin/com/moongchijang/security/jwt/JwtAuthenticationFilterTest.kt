@@ -4,6 +4,10 @@ import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import jakarta.servlet.FilterChain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,10 +27,18 @@ class JwtAuthenticationFilterTest {
 
     private val jwtTokenProvider: JwtTokenProvider = mock(JwtTokenProvider::class.java)
     private val userRepository: UserRepository = mock(UserRepository::class.java)
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
 
     private val filter = JwtAuthenticationFilter(
         jwtTokenProvider = jwtTokenProvider,
         userRepository = userRepository,
+        personalInfoManager = personalInfoManager,
     )
 
     @AfterEach

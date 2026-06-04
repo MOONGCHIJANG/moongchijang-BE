@@ -18,6 +18,7 @@ import com.moongchijang.domain.payment.domain.repository.PaymentRepository
 import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -33,6 +34,7 @@ class AdminRefundRequestService(
     private val paymentRepository: PaymentRepository,
     private val refundRequestSyncService: RefundRequestSyncService,
     private val clock: Clock,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -96,6 +98,8 @@ class AdminRefundRequestService(
             paymentOrder = paymentOrder,
             payment = payment,
             now = now,
+            consumerEmail = personalInfoManager.decryptIfNeeded(participation.user.email),
+            consumerPhoneNumber = personalInfoManager.decryptIfNeeded(participation.user.phoneNumber),
         )
         log.info("[AdminRefundRequestService] 환불 요청 상세 조회 완료: requestId={}, status={}", requestId, response.status)
         return response
@@ -157,6 +161,8 @@ class AdminRefundRequestService(
             paymentOrder = paymentOrder,
             payment = payment,
             now = now,
+            consumerEmail = personalInfoManager.decryptIfNeeded(participation.user.email),
+            consumerPhoneNumber = personalInfoManager.decryptIfNeeded(participation.user.phoneNumber),
         )
         log.info(
             "[AdminRefundRequestService] 환불 요청 승인 완료: requestId={}, status={}",
@@ -210,6 +216,8 @@ class AdminRefundRequestService(
             paymentOrder = paymentOrder,
             payment = payment,
             now = now,
+            consumerEmail = personalInfoManager.decryptIfNeeded(participation.user.email),
+            consumerPhoneNumber = personalInfoManager.decryptIfNeeded(participation.user.phoneNumber),
         )
         log.info(
             "[AdminRefundRequestService] 환불 요청 거절 완료: requestId={}, status={}",
