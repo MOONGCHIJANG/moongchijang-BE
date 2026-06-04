@@ -16,6 +16,18 @@ Use this workflow when starting Moongchijang backend work that must go through G
 
 Create the issue with the repository issue form values expected by `.github/ISSUE_TEMPLATE/issue_form.yml`.
 
+Issue title convention:
+
+- Before Jira automation: `TYPE: summary`
+- After Jira automation: `[MCJ-####] TYPE: summary`
+- `TYPE` is the uppercase form of the GitFlow branch prefix, such as `FEAT`, `FIX`, `DOCS`, `REFACTOR`, `TEST`, or `CHORE`.
+
+Example:
+
+```text
+FEAT: 결제 성공 이벤트 감사 로그 및 Discord 알림 옵션 추가
+```
+
 Required fields:
 
 - `상위 작업 Ticket Number`: parent Jira ticket such as `SCRUM-00`
@@ -62,15 +74,21 @@ git worktree add ../moongchijang-BE-issue-123 origin/feat/#123-SCRUM-456
 
 1. Review `git diff --name-only`.
 2. Stage only files for this issue.
-3. Commit with the actual work summary.
+3. Commit with the repository commit convention.
 4. Push the generated branch to origin.
+
+Commit message convention:
+
+- When a Jira key exists: `[MCJ-####] type: summary`
+- Without a Jira key: `type: summary`
+- `type` uses lowercase conventional commit prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, or `chore`.
 
 Commit message examples:
 
 ```text
+[MCJ-1604] feat: add payment success notification option
+[MCJ-1604] test: add payment success audit alert tests
 docs: add payment failure notification guide
-feat: add payment failure audit alert
-fix: verify portone webhook signature
 ```
 
 ## 6. Open PR With Template
