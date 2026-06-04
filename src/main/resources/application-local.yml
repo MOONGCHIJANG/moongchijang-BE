@@ -55,6 +55,10 @@ jwt:
   access-token:
     expiration-minutes: ${AUTH_ACCESS_EXPIRATION_MINUTES:60}
 
+security:
+  personal-info:
+    secret-key: ${PERSONAL_INFO_SECRET_KEY:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+
 auth:
   refresh:
     expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
