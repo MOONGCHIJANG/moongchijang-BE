@@ -58,6 +58,7 @@ jwt:
 auth:
   refresh:
     expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
+    cookie-path: ${AUTH_REFRESH_COOKIE_PATH:/}
 
 naver:
   api:

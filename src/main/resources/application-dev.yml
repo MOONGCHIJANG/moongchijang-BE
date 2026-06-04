@@ -90,6 +90,7 @@ maintenance:
 auth:
   refresh:
     expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
+    cookie-path: ${AUTH_REFRESH_COOKIE_PATH:/dev}
 
 aligo:
   api-key: ${ALIGO_API_KEY}
