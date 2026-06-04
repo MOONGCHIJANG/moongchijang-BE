@@ -574,8 +574,9 @@ class UserService(
             userId = userId,
             withdrawnAt = withdrawnAt,
         )
-        withdrawalImmediateCleanupService.cleanup(userId)
         user.anonymizePersonalInfoForWithdrawal()
+        userRepository.saveAndFlush(user)
+        withdrawalImmediateCleanupService.cleanup(userId)
         tokenService.deleteByUserId(userId)
     }
 

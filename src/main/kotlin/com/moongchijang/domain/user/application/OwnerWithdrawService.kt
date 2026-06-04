@@ -61,8 +61,9 @@ class OwnerWithdrawService(
             userId = ownerId,
             withdrawnAt = withdrawnAt,
         )
-        withdrawalImmediateCleanupService.cleanup(ownerId)
         owner.anonymizePersonalInfoForWithdrawal()
+        userRepository.saveAndFlush(owner)
+        withdrawalImmediateCleanupService.cleanup(ownerId)
         tokenService.deleteByUserId(ownerId)
     }
 
