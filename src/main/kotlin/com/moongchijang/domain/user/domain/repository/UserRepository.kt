@@ -3,8 +3,6 @@ package com.moongchijang.domain.user.domain.repository
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.query.Param
 
 interface UserRepository : JpaRepository<User, Long> {
 
@@ -20,32 +18,14 @@ interface UserRepository : JpaRepository<User, Long> {
         providerId: String,
     ): User?
 
-    @Query(
-        """
-        select u
-        from User u
-        where u.provider = :provider
-          and u.deletedAt is null
-          and u.emailHash = :emailHash
-        """
-    )
-    fun findActiveByProviderAndEmailHash(
-        @Param("provider") provider: AuthProvider,
-        @Param("emailHash") emailHash: String,
+    fun findByProviderAndEmailHashAndDeletedAtIsNull(
+        provider: AuthProvider,
+        emailHash: String,
     ): User?
 
-    @Query(
-        """
-        select case when count(u) > 0 then true else false end
-        from User u
-        where u.provider = :provider
-          and u.deletedAt is null
-          and u.emailHash = :emailHash
-        """
-    )
-    fun existsActiveByProviderAndEmailHash(
-        @Param("provider") provider: AuthProvider,
-        @Param("emailHash") emailHash: String,
+    fun existsByProviderAndEmailHashAndDeletedAtIsNull(
+        provider: AuthProvider,
+        emailHash: String,
     ): Boolean
 
     fun existsByNicknameAndDeletedAtIsNull(nickname: String): Boolean

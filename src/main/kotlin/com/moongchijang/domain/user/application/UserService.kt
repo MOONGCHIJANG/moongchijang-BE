@@ -93,7 +93,7 @@ class UserService(
         validateEmailFormat(normalizedEmail)
 
         val emailHash = personalInfoManager.hashEmail(normalizedEmail)
-        if (userRepository.existsActiveByProviderAndEmailHash(AuthProvider.EMAIL, emailHash)) {
+        if (userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(AuthProvider.EMAIL, emailHash)) {
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
         }
         validateEmailRejoinAvailable(normalizedEmail)
@@ -119,7 +119,7 @@ class UserService(
         val normalizedEmail = normalizeEmail(email)
         validateEmailFormat(normalizedEmail)
 
-        return userRepository.findActiveByProviderAndEmailHash(
+        return userRepository.findByProviderAndEmailHashAndDeletedAtIsNull(
             provider = AuthProvider.EMAIL,
             emailHash = personalInfoManager.hashEmail(normalizedEmail),
         )
@@ -150,7 +150,7 @@ class UserService(
         log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        val duplicated = userRepository.existsActiveByProviderAndEmailHash(
+        val duplicated = userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
             AuthProvider.EMAIL,
             personalInfoManager.hashEmail(normalizedEmail),
         ) ||
