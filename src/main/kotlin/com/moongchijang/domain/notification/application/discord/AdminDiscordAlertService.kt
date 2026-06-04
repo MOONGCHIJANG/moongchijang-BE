@@ -52,6 +52,23 @@ class AdminDiscordAlertService(
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.REFUND, message))
     }
 
+    fun sendPaymentFailed(
+        orderId: String?,
+        pgPaymentId: String?,
+        pgStatus: String?,
+        reason: String?,
+    ) {
+        val message = """
+            [긴급] 결제 실패 이벤트 발생
+            주문 ID: ${orderId ?: "-"}
+            PG 결제 ID: ${pgPaymentId ?: "-"}
+            PG 상태: ${pgStatus ?: "-"}
+            사유: ${reason ?: "-"}
+            → 결제 감사 이력 확인 필요
+        """.trimIndent()
+        eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.PAYMENT, message))
+    }
+
     fun sendNewSellerSignup(profile: SellerBusinessProfile) {
         val ownerName = profile.ownerName.ifBlank { "이름미입력" }
         val message = """

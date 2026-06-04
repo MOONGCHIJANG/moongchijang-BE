@@ -69,6 +69,9 @@ portone:
   channel-key: ${PORTONE_CHANNEL_KEY:channel-dummy}
   api-secret: ${PORTONE_API_SECRET:portone-api-secret-dummy}
   payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+  webhook-signature-verification-enabled: ${PORTONE_WEBHOOK_SIGNATURE_VERIFICATION_ENABLED:false}
+  webhook-secret: ${PORTONE_WEBHOOK_SECRET:}
+  webhook-timestamp-tolerance-seconds: ${PORTONE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS:300}
 
 ses:
   enabled: ${SES_ENABLED:false}
@@ -118,5 +121,6 @@ discord:
   enabled: ${DISCORD_ENABLED:false}
   webhook:
     refund: ${DISCORD_WEBHOOK_REFUND:}
+    payment: ${DISCORD_WEBHOOK_PAYMENT:}
     groupbuy: ${DISCORD_WEBHOOK_GROUPBUY:}
     onboarding: ${DISCORD_WEBHOOK_ONBOARDING:}
