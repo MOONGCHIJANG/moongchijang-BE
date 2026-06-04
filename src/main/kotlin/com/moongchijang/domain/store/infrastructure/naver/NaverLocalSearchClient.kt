@@ -12,7 +12,6 @@ import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 import tools.jackson.databind.ObjectMapper
 import java.time.Duration
-import kotlin.system.measureTimeMillis
 
 @Component
 class NaverLocalSearchClient(
@@ -36,30 +35,30 @@ class NaverLocalSearchClient(
     }
 
     private fun fetchFromNaver(keyword: String, display: Int): NaverLocalSearchResponse {
-        lateinit var response: NaverLocalSearchResponse
-        val elapsedMs = measureTimeMillis {
-            response = try {
-                restClient.get()
-                    .uri(
-                        "${naverApiProperties.localSearchUrl}?query={keyword}&display={display}",
-                        keyword,
-                        display
-                    )
-                    .header("X-Naver-Client-Id", naverApiProperties.clientId)
-                    .header("X-Naver-Client-Secret", naverApiProperties.clientSecret)
-                    .retrieve()
-                    .body(NaverLocalSearchResponse::class.java)
-                    ?: throw CustomException(ErrorCode.STORE_SEARCH_FAILED)
-            } catch (e: RestClientException) {
-                log.warn(
-                    "[NaverLocalSearchClient] 로컬 검색 실패: keywordLength={}, display={}",
-                    keyword.length,
-                    display,
-                    e,
+        val startedAtMs = System.currentTimeMillis()
+        val response = try {
+            restClient.get()
+                .uri(
+                    "${naverApiProperties.localSearchUrl}?query={keyword}&display={display}",
+                    keyword,
+                    display
                 )
-                throw CustomException(ErrorCode.STORE_SEARCH_FAILED)
-            }
+                .header("X-Naver-Client-Id", naverApiProperties.clientId)
+                .header("X-Naver-Client-Secret", naverApiProperties.clientSecret)
+                .retrieve()
+                .body(NaverLocalSearchResponse::class.java)
+                ?: throw CustomException(ErrorCode.STORE_SEARCH_FAILED)
+        } catch (e: RestClientException) {
+            log.warn(
+                "[NaverLocalSearchClient] 로컬 검색 실패: keywordLength={}, display={}, elapsedMs={}",
+                keyword.length,
+                display,
+                System.currentTimeMillis() - startedAtMs,
+                e,
+            )
+            throw CustomException(ErrorCode.STORE_SEARCH_FAILED)
         }
+        val elapsedMs = System.currentTimeMillis() - startedAtMs
         if (elapsedMs >= SLOW_REQUEST_WARN_THRESHOLD_MS) {
             log.warn(
                 "[NaverLocalSearchClient] 로컬 검색 지연: keywordLength={}, display={}, total={}, elapsedMs={}",
