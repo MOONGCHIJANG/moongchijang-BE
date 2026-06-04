@@ -14,7 +14,7 @@ import java.util.UUID
 class TokenService(
     private val redisTemplate: StringRedisTemplate,
     @Value("\${auth.refresh.expiration-days}") private val refreshExpirationDays: Long,
-    @Value("\${auth.refresh.cookie-path:/}") private val refreshCookiePath: String,
+    @Value("\${auth.refresh.cookie-path:/}") private val refreshCookiePath: String = "/",
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val refreshCookieName = "refreshToken"
