@@ -20,6 +20,8 @@ interface ParticipationPaymentSummary {
 interface PaymentOrderRepository : JpaRepository<PaymentOrder, Long> {
     fun findByOrderId(orderId: String): PaymentOrder?
 
+    fun findAllByUserId(userId: Long): List<PaymentOrder>
+
     fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): PaymentOrder?
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

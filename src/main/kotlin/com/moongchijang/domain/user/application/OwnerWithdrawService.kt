@@ -24,6 +24,7 @@ class OwnerWithdrawService(
     private val participationRepository: ParticipationRepository,
     private val tokenService: com.moongchijang.domain.auth.application.TokenService,
     private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
+    private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -47,6 +48,10 @@ class OwnerWithdrawService(
         userRepository.save(owner)
         withdrawnAccountCommandService.recordWithdrawal(
             user = owner,
+            withdrawnAt = requireNotNull(owner.deletedAt),
+        )
+        withdrawalLegalRetentionCommandService.retainForWithdrawal(
+            userId = ownerId,
             withdrawnAt = requireNotNull(owner.deletedAt),
         )
         owner.anonymizePersonalInfoForWithdrawal()

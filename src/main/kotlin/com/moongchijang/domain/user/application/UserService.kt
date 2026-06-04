@@ -63,6 +63,7 @@ class UserService(
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val withdrawnAccountRepository: WithdrawnAccountRepository,
     private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
+    private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -441,6 +442,10 @@ class UserService(
         userRepository.save(user)
         withdrawnAccountCommandService.recordWithdrawal(
             user = user,
+            withdrawnAt = requireNotNull(user.deletedAt),
+        )
+        withdrawalLegalRetentionCommandService.retainForWithdrawal(
+            userId = userId,
             withdrawnAt = requireNotNull(user.deletedAt),
         )
         user.anonymizePersonalInfoForWithdrawal()
