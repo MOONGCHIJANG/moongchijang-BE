@@ -146,7 +146,7 @@ class GroupBuyRepositoryImplIntegrationTest {
         )
         em.persist(requester)
         val matched = GroupBuyRequest(
-            userId = requester.id!!,
+            user = requester,
             storeName = "성심당",
             productName = "튀김소보로",
             desiredQuantity = 20,
@@ -156,7 +156,7 @@ class GroupBuyRepositoryImplIntegrationTest {
         em.persist(matched)
         em.persist(
             GroupBuyRequest(
-                userId = requester.id!!,
+                user = requester,
                 storeName = "다른 매장",
                 productName = "단팥빵",
                 desiredQuantity = 10,
@@ -225,8 +225,9 @@ class GroupBuyRepositoryImplIntegrationTest {
     }
 
     private fun persistGroupBuyRequest(): GroupBuyRequest {
+        val requester = persistUser("requester-${System.nanoTime()}@example.com")
         val request = GroupBuyRequest(
-            userId = 1L,
+            user = requester,
             storeName = "테스트 매장",
             storeAddress = "서울 강남구",
             productName = "테스트 상품",
@@ -256,6 +257,7 @@ class GroupBuyRepositoryImplIntegrationTest {
             currentQuantity = currentQuantity,
             maxQuantity = 200,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = deadline.minusDays(1),
             deadline = deadline,
             pickupDate = LocalDate.now().plusDays(5),
             pickupTimeStart = LocalTime.of(10, 0),

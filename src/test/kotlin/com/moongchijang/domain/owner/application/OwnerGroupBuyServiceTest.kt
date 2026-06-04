@@ -1,6 +1,7 @@
 package com.moongchijang.domain.owner.application
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseRequestReviewStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyClosedByType
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -11,6 +12,8 @@ import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyExtensionReque
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
+import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -20,6 +23,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -59,6 +63,12 @@ class OwnerGroupBuyServiceTest {
 
     @Mock
     private lateinit var paymentRepository: PaymentRepository
+
+    @Mock
+    private lateinit var notificationEventPublisher: NotificationEventPublisher
+
+    @Mock
+    private lateinit var personalInfoManager: PersonalInfoManager
 
     @InjectMocks
     private lateinit var service: OwnerGroupBuyService
@@ -216,6 +226,24 @@ class OwnerGroupBuyServiceTest {
     fun `사장님 공구 관리 승인대기 목록 조회`() {
         val owner = seller()
         val storeIds = listOf(1L)
+        val pendingRequest = OwnerGroupBuyRequest(
+            owner = owner,
+            store = groupBuy(id = 999L, status = GroupBuyStatus.IN_PROGRESS, currentQuantity = 1, targetQuantity = 10, price = 1000).store,
+            productName = "승인대기 공구",
+            productDescription = "설명",
+            price = 9900,
+            targetQuantity = 20,
+            maxQuantity = 30,
+            thumbnailKey = "owner-thumb.jpg",
+            deadline = LocalDateTime.of(2026, 6, 10, 18, 0),
+            pickupDate = LocalDate.of(2026, 6, 12),
+            pickupTimeStart = java.time.LocalTime.of(12, 0),
+            pickupTimeEnd = java.time.LocalTime.of(18, 0),
+            pickupLocation = "서울 성동구"
+        ).apply {
+            id = 55L
+            status = OwnerGroupBuyRequestStatus.PENDING
+        }
         mockSellerAndStoreIds(owner.id!!, owner, storeIds)
         `when`(
             ownerGroupBuyRequestRepository.findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(
@@ -223,11 +251,14 @@ class OwnerGroupBuyServiceTest {
                 storeIds,
                 OwnerGroupBuyRequestStatus.PENDING
             )
-        ).thenReturn(emptyList())
+        ).thenReturn(listOf(pendingRequest))
 
         val result = service.getManageGroupBuys(owner.id!!, OwnerGroupBuyManageFilterType.PENDING_APPROVAL)
 
-        assertEquals(0, result.size)
+        assertEquals(1, result.size)
+        assertNull(result[0].groupBuyId)
+        assertEquals(55L, result[0].requestId)
+        assertEquals(OwnerGroupBuyManageFilterType.PENDING_APPROVAL, result[0].status)
     }
 
     @Test
@@ -310,8 +341,14 @@ class OwnerGroupBuyServiceTest {
         assertEquals(GroupBuyStatus.CLOSED, groupBuy.status)
         assertEquals(GroupBuyCloseReason.STORE_CONDITION, groupBuy.closeReason)
         assertEquals(GroupBuyClosedByType.OWNER, groupBuy.closedByType)
+        assertEquals(GroupBuyCloseRequestReviewStatus.APPROVED, groupBuy.closeRequestReviewStatus)
         assertNull(groupBuy.closeReasonDetail)
         verify(groupBuyRepository).save(groupBuy)
+        verify(notificationEventPublisher).publishOwnerCloseRequestApproved(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = listOf(owner.id!!),
+            occurredAt = groupBuy.closeReviewedAt!!
+        )
     }
 
     @Test
@@ -338,6 +375,41 @@ class OwnerGroupBuyServiceTest {
         }
 
         assertEquals(ErrorCode.INVALID_INPUT, ex.errorCode)
+    }
+
+    @Test
+    fun `사장님 공구 마감 요청에서 기타 사유는 검토 대기로 전환한다`() {
+        val owner = seller()
+        val groupBuy = groupBuy(
+            id = 14L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            currentQuantity = 12,
+            targetQuantity = 20,
+            price = 9900
+        )
+        val request = OwnerGroupBuyCloseRequest(
+            reason = OwnerGroupBuyCloseReasonType.OTHER,
+            reasonDetail = "운영 사정으로 검토가 필요합니다."
+        )
+
+        `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
+        `when`(storeStaffRepository.findStoreIdsByUserId(owner.id!!)).thenReturn(listOf(1L))
+        `when`(groupBuyRepository.findWithStoreById(groupBuy.id)).thenReturn(Optional.of(groupBuy))
+
+        service.requestGroupBuyClose(owner.id!!, groupBuy.id, request)
+
+        assertEquals(GroupBuyStatus.IN_PROGRESS, groupBuy.status)
+        assertEquals(GroupBuyCloseReason.OTHER, groupBuy.closeReason)
+        assertEquals("운영 사정으로 검토가 필요합니다.", groupBuy.closeReasonDetail)
+        assertEquals(GroupBuyCloseRequestReviewStatus.PENDING, groupBuy.closeRequestReviewStatus)
+        assertNull(groupBuy.closedByType)
+        assertNull(groupBuy.closeReviewedAt)
+        verify(groupBuyRepository).save(groupBuy)
+        verify(notificationEventPublisher, never()).publishOwnerCloseRequestApproved(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = listOf(owner.id!!),
+            occurredAt = groupBuy.closeRequestedAt!!
+        )
     }
 
     private fun seller() = UserFixture.createKakaoUser(id = 1L).apply {

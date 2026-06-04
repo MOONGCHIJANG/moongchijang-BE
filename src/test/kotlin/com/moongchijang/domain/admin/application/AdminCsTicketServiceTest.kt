@@ -10,6 +10,10 @@ import com.moongchijang.domain.csticket.domain.repository.CsTicketRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.global.entity.BaseEntity
 import com.moongchijang.global.exception.CustomException
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -33,7 +37,14 @@ class AdminCsTicketServiceTest {
 
     private val csTicketRepository: CsTicketRepository = mock(CsTicketRepository::class.java)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T04:00:00Z"), ZoneId.of("Asia/Seoul"))
-    private val service = AdminCsTicketService(csTicketRepository, clock)
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
+    private val service = AdminCsTicketService(csTicketRepository, clock, personalInfoManager)
 
     @Test
     fun `CS 티켓 목록을 상태와 검색어로 조회한다`() {

@@ -5,7 +5,9 @@ import com.moongchijang.domain.admin.application.dto.csticket.AdminCsTicketDetai
 import com.moongchijang.domain.admin.application.dto.csticket.AdminCsTicketPageResponse
 import com.moongchijang.domain.admin.application.dto.csticket.AdminCsTicketStatusFilter
 import com.moongchijang.domain.admin.application.dto.csticket.AdminCsTicketUpdateRequest
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/admin/cs-tickets")
+@RequireCurrentRole(UserRole.ADMIN)
 @Tag(name = "Admin", description = "운영자 관리")
 class AdminCsTicketController(
     private val adminCsTicketService: AdminCsTicketService,

@@ -3,13 +3,18 @@ package com.moongchijang.domain.groupbuy.domain.repository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 interface GroupBuyRequestStatusHistoryRepository : JpaRepository<GroupBuyRequestStatusHistory, Long> {
-    fun findByGroupBuyRequestIdOrderByChangedAtAsc(groupBuyRequestId: Long): List<GroupBuyRequestStatusHistory>
-    fun findByGroupBuyRequestIdInOrderByChangedAtAsc(groupBuyRequestIds: List<Long>): List<GroupBuyRequestStatusHistory>
+    fun findByGroupBuyRequest_IdOrderByChangedAtAsc(groupBuyRequestId: Long): List<GroupBuyRequestStatusHistory>
+    fun findByGroupBuyRequest_IdInOrderByChangedAtAsc(groupBuyRequestIds: List<Long>): List<GroupBuyRequestStatusHistory>
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM GroupBuyRequestStatusHistory h WHERE h.groupBuyRequest.user.id = :userId")
+    fun deleteByGroupBuyRequest_User_Id(@Param("userId") userId: Long): Long
+
     @Query(
         """
         select count(history)

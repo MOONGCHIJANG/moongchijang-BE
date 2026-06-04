@@ -2,8 +2,10 @@ package com.moongchijang.domain.admin.presentation
 
 import com.moongchijang.domain.admin.application.AdminDashboardOrderMonitoringService
 import com.moongchijang.domain.admin.application.AdminDashboardSummaryService
+import com.moongchijang.domain.admin.application.AdminDashboardUrgentRefundService
 import com.moongchijang.domain.admin.application.dto.AdminDashboardSummaryResponse
 import com.moongchijang.domain.admin.application.dto.AdminDashboardUnconfirmedOrderResponse
+import com.moongchijang.domain.admin.application.dto.AdminDashboardUrgentRefundResponse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -16,9 +18,12 @@ class AdminDashboardControllerTest {
     private val adminDashboardSummaryService: AdminDashboardSummaryService = mock(AdminDashboardSummaryService::class.java)
     private val adminDashboardOrderMonitoringService: AdminDashboardOrderMonitoringService =
         mock(AdminDashboardOrderMonitoringService::class.java)
+    private val adminDashboardUrgentRefundService: AdminDashboardUrgentRefundService =
+        mock(AdminDashboardUrgentRefundService::class.java)
     private val controller = AdminDashboardController(
         adminDashboardSummaryService = adminDashboardSummaryService,
-        adminDashboardOrderMonitoringService = adminDashboardOrderMonitoringService
+        adminDashboardOrderMonitoringService = adminDashboardOrderMonitoringService,
+        adminDashboardUrgentRefundService = adminDashboardUrgentRefundService
     )
 
     @Test
@@ -62,5 +67,25 @@ class AdminDashboardControllerTest {
 
         assertEquals(response, result.body?.data)
         verify(adminDashboardOrderMonitoringService).getUnconfirmedOrders(pageable)
+    }
+
+    @Test
+    fun `운영자 대시보드 긴급 환불 요청은 페이징을 서비스로 전달한다`() {
+        val pageable = PageRequest.of(0, 5)
+        val response = AdminDashboardUrgentRefundResponse(
+            totalUrgentCount = 0L,
+            hasUrgentRefunds = false,
+            content = emptyList(),
+            totalElements = 0L,
+            totalPages = 0,
+            number = 0,
+            size = 5
+        )
+        `when`(adminDashboardUrgentRefundService.getUrgentRefunds(pageable)).thenReturn(response)
+
+        val result = controller.getUrgentRefunds(pageable)
+
+        assertEquals(response, result.body?.data)
+        verify(adminDashboardUrgentRefundService).getUrgentRefunds(pageable)
     }
 }

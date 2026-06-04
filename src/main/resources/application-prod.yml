@@ -36,7 +36,7 @@ app:
   share:
     base-url: ${APP_SHARE_BASE_URL:https://moongchijang.com}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://www.moongchijang.com,https://api.moongchijang.com}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://www.moongchijang.com,https://app.moongchijang.com}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
     allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept}
     allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
@@ -46,6 +46,9 @@ portone:
   channel-key: ${PORTONE_CHANNEL_KEY}
   api-secret: ${PORTONE_API_SECRET}
   payment-api-base-url: ${PORTONE_PAYMENT_API_BASE_URL:https://api.portone.io}
+  webhook-signature-verification-enabled: ${PORTONE_WEBHOOK_SIGNATURE_VERIFICATION_ENABLED:true}
+  webhook-secret: ${PORTONE_WEBHOOK_SECRET:}
+  webhook-timestamp-tolerance-seconds: ${PORTONE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS:300}
 
 oauth:
   kakao:
@@ -65,9 +68,19 @@ jwt:
   access-token:
     expiration-minutes: ${AUTH_ACCESS_EXPIRATION_MINUTES:60}
 
+security:
+  personal-info:
+    secret-key: ${PERSONAL_INFO_SECRET_KEY}
+
+maintenance:
+  personal-info-backfill:
+    enabled: ${PERSONAL_INFO_BACKFILL_ENABLED:false}
+    batch-size: ${PERSONAL_INFO_BACKFILL_BATCH_SIZE:500}
+
 auth:
   refresh:
     expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
+    cookie-path: ${AUTH_REFRESH_COOKIE_PATH:/}
 
 aligo:
   api-key: ${ALIGO_API_KEY}
@@ -78,6 +91,15 @@ aligo:
   template-code-pickup-d1-reminder: ${ALIGO_TEMPLATE_PICKUP_D1_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE}}}
   template-code-pickup-day-reminder: ${ALIGO_TEMPLATE_PICKUP_DAY_REMINDER:${ALIGO_TEMPLATE_GROUP_BUY_OPEN_SUCCESS:${ALIGO_TEMPLATE_CODE}}}
   sender: ${ALIGO_SENDER}
+
+discord:
+  enabled: ${DISCORD_ENABLED:true}
+  payment-success-alert-enabled: ${DISCORD_PAYMENT_SUCCESS_ALERT_ENABLED:false}
+  webhook:
+    refund: ${DISCORD_WEBHOOK_REFUND:}
+    payment: ${DISCORD_WEBHOOK_PAYMENT:}
+    groupbuy: ${DISCORD_WEBHOOK_GROUPBUY:}
+    onboarding: ${DISCORD_WEBHOOK_ONBOARDING:}
 
 ses:
   enabled: ${SES_ENABLED:false}

@@ -10,13 +10,17 @@ import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundRequestTa
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewActionType
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitRequest
 import com.moongchijang.domain.owner.application.dto.refund.OwnerRefundReviewSubmitResponse
+import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementItemListResponse
+import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementItemResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthChipListResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthChipResponse
 import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementMonthlySummaryResponse
+import com.moongchijang.domain.owner.application.dto.settlement.OwnerSettlementStatus
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
+import com.moongchijang.domain.participation.domain.repository.AdminSettlementAggregation
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
@@ -107,6 +111,54 @@ class OwnerSettlementService(
             }
 
         return OwnerSettlementMonthChipListResponse(chips)
+    }
+
+    fun getSettlementItems(ownerId: Long, year: Int, month: Int): OwnerSettlementItemListResponse {
+        log.info("[OwnerSettlementService] 정산 공구 카드 목록 조회 시작: ownerId={}, year={}, month={}", ownerId, year, month)
+        validateSeller(ownerId)
+        validateYearMonth(year, month)
+
+        val storeIds = storeStaffRepository.findStoreIdsByUserId(ownerId)
+        if (storeIds.isEmpty()) {
+            return OwnerSettlementItemListResponse(
+                year = year,
+                month = month,
+                items = emptyList(),
+            )
+        }
+
+        val pickupDateFrom = LocalDate.of(year, month, 1)
+        val pickupDateTo = pickupDateFrom.plusMonths(1)
+        val aggregations = participationRepository.findOwnerSettlementAggregations(
+            storeIds = storeIds,
+            groupBuyStatuses = SETTLEMENT_GROUP_BUY_STATUSES,
+            transactionStatuses = SETTLEMENT_TRANSACTION_STATUSES,
+            revenueStatuses = SETTLEMENT_PARTICIPATION_STATUSES,
+            refundStatuses = REFUND_STATUSES,
+            pickupDateFrom = pickupDateFrom,
+            pickupDateTo = pickupDateTo,
+        )
+        if (aggregations.isEmpty()) {
+            return OwnerSettlementItemListResponse(
+                year = year,
+                month = month,
+                items = emptyList(),
+            )
+        }
+        val pendingRefundCountByGroupBuyId = participationRepository.countPendingRefundsByGroupBuyIdIn(
+            aggregations.map { it.groupBuyId },
+        ).associate { it.groupBuyId to it.pendingRefundCount }
+
+        return OwnerSettlementItemListResponse(
+            year = year,
+            month = month,
+            items = aggregations.map { aggregation ->
+                toSettlementItemResponse(
+                    aggregation = aggregation,
+                    pendingRefundCount = pendingRefundCountByGroupBuyId[aggregation.groupBuyId] ?: 0L,
+                )
+            },
+        )
     }
 
     fun getRefundRequests(ownerId: Long, tab: OwnerRefundRequestTab): OwnerRefundRequestListResponse {
@@ -279,6 +331,35 @@ class OwnerSettlementService(
         }
     }
 
+    private fun toSettlementItemResponse(
+        aggregation: AdminSettlementAggregation,
+        pendingRefundCount: Long,
+    ): OwnerSettlementItemResponse {
+        return OwnerSettlementItemResponse(
+            groupBuyId = aggregation.groupBuyId,
+            productName = aggregation.productName,
+            participantCount = aggregation.participantCount.toInt(),
+            pickupDate = aggregation.pickupCompletedDate,
+            amount = (aggregation.totalPaymentAmount - aggregation.refundDeductionAmount).coerceAtLeast(0L),
+            settlementStatus = resolveSettlementStatus(aggregation, pendingRefundCount),
+        )
+    }
+
+    private fun resolveSettlementStatus(
+        aggregation: AdminSettlementAggregation,
+        pendingRefundCount: Long,
+    ): OwnerSettlementStatus {
+        if (pendingRefundCount > 0 || aggregation.refundDeductionAmount > 0L) {
+            return OwnerSettlementStatus.REFUND_PROCESSING
+        }
+
+        return if (aggregation.pickupCompletedDate.plusDays(OWNER_SETTLEMENT_DELAY_DAYS).isAfter(LocalDate.now(SEOUL_ZONE_ID))) {
+            OwnerSettlementStatus.SETTLEMENT_PENDING
+        } else {
+            OwnerSettlementStatus.SETTLEMENT_COMPLETED
+        }
+    }
+
     private fun toRefundReasonLabel(reason: ParticipationCancelReason?): String {
         return when (reason) {
             ParticipationCancelReason.TIME_UNAVAILABLE -> "픽업 불가"
@@ -330,8 +411,14 @@ class OwnerSettlementService(
     private companion object {
         val SETTLEMENT_GROUP_BUY_STATUSES = listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED)
         val SETTLEMENT_PARTICIPATION_STATUSES = listOf(ParticipationStatus.CONFIRMED)
+        val SETTLEMENT_TRANSACTION_STATUSES = listOf(
+            ParticipationStatus.CONFIRMED,
+            ParticipationStatus.REFUND_PENDING,
+            ParticipationStatus.REFUNDED,
+        )
         val REFUND_STATUSES = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
         val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
+        const val OWNER_SETTLEMENT_DELAY_DAYS: Long = 3
         const val REFUND_LIST_LOOKBACK_MONTHS: Long = 6
     }
 }

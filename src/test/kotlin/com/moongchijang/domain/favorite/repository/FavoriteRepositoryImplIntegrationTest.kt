@@ -84,7 +84,7 @@ class FavoriteRepositoryImplIntegrationTest {
         em.persist(store)
 
         val request = GroupBuyRequest(
-            userId = requestUserId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = requestUserId),
             storeName = "찜 테스트 매장",
             storeAddress = "서울 강남구",
             productName = "테스트 상품",
@@ -104,6 +104,7 @@ class FavoriteRepositoryImplIntegrationTest {
             currentQuantity = 10,
             maxQuantity = 100,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = LocalDateTime.of(2026, 5, 27, 9, 0),
             deadline = LocalDateTime.of(2026, 5, 30, 21, 0),
             pickupDate = LocalDate.of(2026, 6, 1),
             pickupTimeStart = LocalTime.of(10, 0),

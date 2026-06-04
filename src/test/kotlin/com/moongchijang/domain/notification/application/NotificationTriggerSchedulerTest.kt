@@ -11,6 +11,7 @@ import com.moongchijang.domain.notification.domain.entity.NotificationTriggerTyp
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.ParticipationFixture
 import org.junit.jupiter.api.Test
@@ -44,6 +45,9 @@ class NotificationTriggerSchedulerTest {
     @Mock
     private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
 
+    @Mock
+    private lateinit var storeStaffRepository: StoreStaffRepository
+
     private val scheduler by lazy {
         NotificationTriggerScheduler(
             notificationEventPublisher = notificationEventPublisher,
@@ -52,6 +56,7 @@ class NotificationTriggerSchedulerTest {
             groupBuyRepository = groupBuyRepository,
             favoriteRepository = favoriteRepository,
             groupBuyRequestRepository = groupBuyRequestRepository,
+            storeStaffRepository = storeStaffRepository,
         )
     }
 
@@ -101,6 +106,18 @@ class NotificationTriggerSchedulerTest {
                 listOf(PickupStatus.NOT_READY, PickupStatus.READY)
             )
         ).thenReturn(listOf(tomorrowParticipation))
+        `when`(
+            groupBuyRepository.findByStatusInAndPickupDate(
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                now.toLocalDate()
+            )
+        ).thenReturn(emptyList())
+        `when`(
+            groupBuyRepository.findByStatusInAndPickupDate(
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                now.toLocalDate().plusDays(1)
+            )
+        ).thenReturn(emptyList())
 
         scheduler.triggerPickupMorningNotificationsAt(now)
 
@@ -116,6 +133,75 @@ class NotificationTriggerSchedulerTest {
             2L,
             listOf(1L),
             "pickup-day-before-morning:2:${now.toLocalDate().plusDays(1)}",
+            now
+        )
+    }
+
+    @Test
+    fun `오전 스케줄러를 실행할 때 사장님 픽업 당일 전일 알림 발행`() {
+        val now = LocalDateTime.of(2026, 5, 23, 7, 0)
+        val todayGroupBuy = GroupBuyFixture.createGroupBuy(
+            id = 51L,
+            status = GroupBuyStatus.ACHIEVED,
+        ).apply {
+            store.id = 501L
+            pickupDate = now.toLocalDate()
+            pickupTimeStart = LocalTime.of(11, 30)
+        }
+        val tomorrowGroupBuy = GroupBuyFixture.createGroupBuy(
+            id = 52L,
+            status = GroupBuyStatus.COMPLETED,
+        ).apply {
+            store.id = 502L
+            pickupDate = now.toLocalDate().plusDays(1)
+            pickupTimeStart = LocalTime.of(11, 30)
+        }
+
+        `when`(
+            participationRepository.findForPickupReminderByPickupDate(
+                now.toLocalDate(),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(emptyList())
+        `when`(
+            participationRepository.findForPickupReminderByPickupDate(
+                now.toLocalDate().plusDays(1),
+                listOf(ParticipationStatus.CONFIRMED),
+                listOf(PickupStatus.NOT_READY, PickupStatus.READY)
+            )
+        ).thenReturn(emptyList())
+        `when`(
+            groupBuyRepository.findByStatusInAndPickupDate(
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                now.toLocalDate()
+            )
+        ).thenReturn(listOf(todayGroupBuy))
+        `when`(
+            groupBuyRepository.findByStatusInAndPickupDate(
+                listOf(GroupBuyStatus.ACHIEVED, GroupBuyStatus.COMPLETED),
+                now.toLocalDate().plusDays(1)
+            )
+        ).thenReturn(listOf(tomorrowGroupBuy))
+        `when`(storeStaffRepository.findStoreStaffMappingsByStoreIdIn(listOf(todayGroupBuy.store.id)))
+            .thenReturn(listOf(storeStaffUserMapping(todayGroupBuy.store.id, 101L)))
+        `when`(storeStaffRepository.findStoreStaffMappingsByStoreIdIn(listOf(tomorrowGroupBuy.store.id)))
+            .thenReturn(listOf(storeStaffUserMapping(tomorrowGroupBuy.store.id, 102L)))
+
+        scheduler.triggerPickupMorningNotificationsAt(now)
+
+        verify(notificationEventPublisher).publishScheduledTrigger(
+            NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING,
+            51L,
+            listOf(101L),
+            "owner-pickup-same-day-morning:51:${now.toLocalDate()}",
+            now
+        )
+        verify(notificationEventPublisher).publishScheduledTrigger(
+            NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING,
+            52L,
+            listOf(102L),
+            "owner-pickup-day-before-morning:52:${now.toLocalDate().plusDays(1)}",
             now
         )
     }
@@ -181,7 +267,7 @@ class NotificationTriggerSchedulerTest {
     fun `요청공구 D3 스케줄러를 실행할 때 요청자 대상 알림 발행`() {
         val now = LocalDateTime.of(2026, 5, 23, 7, 0)
         val request = GroupBuyRequest(
-            userId = 7L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 7L),
             storeName = "테스트 매장",
             storeAddress = "서울",
             productName = "소금빵",
@@ -251,6 +337,13 @@ class NotificationTriggerSchedulerTest {
 private fun notificationTarget(groupBuyId: Long, userId: Long): FavoriteNotificationTargetProjection {
     return object : FavoriteNotificationTargetProjection {
         override val groupBuyId: Long = groupBuyId
+        override val userId: Long = userId
+    }
+}
+
+private fun storeStaffUserMapping(storeId: Long, userId: Long): com.moongchijang.domain.store.domain.repository.StoreStaffUserMapping {
+    return object : com.moongchijang.domain.store.domain.repository.StoreStaffUserMapping {
+        override val storeId: Long = storeId
         override val userId: Long = userId
     }
 }

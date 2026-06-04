@@ -1,0 +1,45 @@
+version: 2
+
+kotlin:
+  style:
+    - Constructor injection only.
+    - Prefer val over var.
+    - Use data classes for DTOs.
+    - Keep nullability explicit.
+    - Avoid Lombok and JavaBean-style boilerplate.
+    - Keep comments rare and useful; explain non-obvious business or concurrency decisions.
+
+spring:
+  controller:
+    - Use @RestController and @RequestMapping at class level.
+    - Return ResponseEntity<ApiResponse<T>>.
+    - Use @AuthenticationPrincipal CustomUserPrincipal for authenticated user id.
+    - Use @PreAuthorize where a controller method has stricter auth than SecurityConfig.
+  service:
+    - Annotate services with @Service.
+    - Put @Transactional on public use case methods.
+    - Use readOnly=true for queries.
+  repository:
+    - Prefer Spring Data derived queries for simple lookups.
+    - Use @Query or Querydsl custom repositories for complex joins, paging, aggregation, or native fulltext.
+    - Avoid N+1 through fetch join, EntityGraph, or batch queries.
+
+packages:
+  root: com.moongchijang
+  domain_context: com.moongchijang.domain.{context}
+  layers:
+    - presentation
+    - application
+    - application.dto
+    - application.port
+    - domain.entity
+    - domain.repository
+    - infrastructure
+
+time:
+  - KST-sensitive display/grouping behavior must be explicit and covered by tests.
+  - Prefer passing a single now value through a calculation instead of calling LocalDateTime.now repeatedly inside loops.
+
+images:
+  - Public response URLs should be resolved through S3ImageReferenceResolver when reading image keys.
+  - Do not reintroduce legacy image URL columns after V41/V42 migrations.

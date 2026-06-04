@@ -1,0 +1,47 @@
+meta:
+  id: GROUPBUY_REQUEST
+  domain: groupbuy
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyRequestController.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyRequestAdminController.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyRequestService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyOpenRequestService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyRequestStatusCommandService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/domain/entity/GroupBuyRequest.kt
+  related_requirements:
+    - "2.1"
+
+overview:
+  summary: 소비자 공구 요청 접수, 조회, 관리자 상태 처리를 담당한다.
+
+business_rules:
+  - 요청자는 본인 요청만 조회할 수 있다.
+  - 희망 픽업 날짜와 장소 정보는 DTO validation과 서비스 검증을 함께 따른다.
+  - 관리자 상태 변경은 GroupBuyRequestStatusCommandService와 status history를 통해 추적한다.
+  - 승인/개설 완료 시 매장, 가격, 수량, 기간, 픽업 정보가 모두 유효해야 한다.
+  - 거절 상태로 변경할 때는 거절 사유가 필수다.
+  - 매장 추천 바텀시트 응답은 Naver Local Search 후보에 표시용 imageUrl을 포함할 수 있다.
+
+error_cases:
+  - GROUPBUY_REQUEST_NOT_FOUND
+  - GROUPBUY_REQUEST_FORBIDDEN
+  - GROUPBUY_REQUEST_INVALID_DATE
+  - GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION
+  - GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED
+  - GROUPBUY_REQUEST_APPROVAL_STORE_REQUIRED
+  - GROUPBUY_REQUEST_APPROVAL_INVALID_PRICE
+  - GROUPBUY_REQUEST_APPROVAL_INVALID_QUANTITY
+  - GROUPBUY_REQUEST_APPROVAL_INVALID_PERIOD
+  - GROUPBUY_REQUEST_APPROVAL_INVALID_PICKUP
+  - GROUPBUY_REQUEST_APPROVAL_STORE_REGION_MISMATCH
+
+testing_strategy:
+  unit:
+    - GroupBuyRequestServiceTest
+    - GroupBuyRequestStatusCommandServiceTest
+    - AdminGroupBuyRequestActionServiceTest
+  controller:
+    - GroupBuyRequestAdminControllerTest
+    - AdminGroupBuyRequestActionControllerTest

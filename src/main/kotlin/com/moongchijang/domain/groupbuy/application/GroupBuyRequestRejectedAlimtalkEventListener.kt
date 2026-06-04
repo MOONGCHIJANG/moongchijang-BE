@@ -6,9 +6,9 @@ import com.moongchijang.domain.notification.domain.entity.NotificationTriggerTyp
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
-import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
@@ -19,9 +19,9 @@ import java.time.format.DateTimeFormatter
 @Component
 class GroupBuyRequestRejectedAlimtalkEventListener(
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
-    private val userRepository: UserRepository,
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val aligoProperties: AligoProperties,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -36,21 +36,22 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
         runCatching {
             val request = groupBuyRequestRepository.findById(requestId)
                 .orElseThrow { CustomException(ErrorCode.GROUPBUY_REQUEST_NOT_FOUND) }
-            val user = userRepository.findByIdAndDeletedAtIsNull(request.userId)
-            if (user == null) {
+            val user = request.user
+            val userId = requireNotNull(user.id) { "GroupBuyRequest.user.id must not be null" }
+            if (user.deletedAt != null) {
                 log.warn(
-                    "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(사용자 없음): requestId={}, userId={}",
+                    "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(사용자 탈퇴): requestId={}, userId={}",
                     requestId,
-                    request.userId,
+                    userId,
                 )
                 return
             }
-            val receiverPhone = user.phoneNumber?.trim().orEmpty()
+            val receiverPhone = personalInfoManager.decryptIfNeeded(user.phoneNumber)?.trim().orEmpty()
             if (receiverPhone.isBlank()) {
                 log.warn(
                     "[GroupBuyRequestRejectedAlimtalkEventListener] 공구 개설 실패 알림톡 스킵(전화번호 없음): requestId={}, userId={}",
                     requestId,
-                    request.userId,
+                    userId,
                 )
                 return
             }

@@ -8,6 +8,7 @@ import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,6 +27,9 @@ class UserServiceSignupIntegrationTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var personalInfoManager: PersonalInfoManager
 
     @MockitoBean
     private lateinit var phoneVerificationService: PhoneVerificationService
@@ -122,6 +126,17 @@ class UserServiceSignupIntegrationTest {
         }
 
         assertThat(thrown.errorCode).isEqualTo(com.moongchijang.global.exception.ErrorCode.SELLER_BUSINESS_INFO_REQUIRED)
+    }
+
+    @Test
+    fun `이메일 회원 생성 시 이메일은 암호화되고 해시는 저장된다`() {
+        val created = userService.createEmailUser("encrypt-check@test.com", "hashed-password")
+
+        val saved = userRepository.findByIdAndDeletedAtIsNull(created.id!!)!!
+
+        assertThat(saved.email).isNotEqualTo("encrypt-check@test.com")
+        assertThat(personalInfoManager.decryptIfNeeded(saved.email)).isEqualTo("encrypt-check@test.com")
+        assertThat(saved.emailHash).isEqualTo(personalInfoManager.hashEmail("encrypt-check@test.com"))
     }
 
     private fun persistUser(email: String): User {

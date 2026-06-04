@@ -279,12 +279,13 @@ class OwnerGroupBuyRequestServiceTest {
     }
 
     @Test
-    fun `픽업일이 공구 마감일과 같으면 예외가 발생한다`() {
+    fun `픽업 시작 시간이 공구 마감 시간 이전이면 예외가 발생한다`() {
         val owner = seller()
         val deadline = FIXED_NOW.plusDays(8)
         val request = validRequest(
             deadline = deadline,
-            pickupDate = deadline.toLocalDate()
+            pickupDate = deadline.toLocalDate(),
+            pickupTimeStart = deadline.toLocalTime()
         )
 
         `when`(userRepository.findByIdAndDeletedAtIsNull(owner.id!!)).thenReturn(owner)
@@ -327,7 +328,9 @@ class OwnerGroupBuyRequestServiceTest {
         deadline: LocalDateTime = FIXED_NOW.plusDays(8),
         targetQuantity: Int = 20,
         maxQuantity: Int = 50,
-        pickupDate: LocalDate = deadline.toLocalDate().plusDays(1)
+        pickupDate: LocalDate = deadline.toLocalDate().plusDays(1),
+        pickupTimeStart: LocalTime = LocalTime.of(12, 0),
+        pickupTimeEnd: LocalTime = LocalTime.of(18, 0)
     ) = OwnerGroupBuyRequestCreateRequest(
         storeId = 1L,
         productName = "두쫀쿠 세트",
@@ -340,8 +343,8 @@ class OwnerGroupBuyRequestServiceTest {
         perUserLimit = 2,
         imageUrls = listOf("https://cdn.example.com/1.jpg", "https://cdn.example.com/2.jpg"),
         pickupDate = pickupDate,
-        pickupTimeStart = LocalTime.of(12, 0),
-        pickupTimeEnd = LocalTime.of(18, 0),
+        pickupTimeStart = pickupTimeStart,
+        pickupTimeEnd = pickupTimeEnd,
         pickupLocation = "서울 성동구 성수이로 1",
         pickupContact = "01012345678"
     )

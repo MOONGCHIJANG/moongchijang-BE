@@ -3,6 +3,7 @@ package com.moongchijang.domain.owner.application
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyCloseReason
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageDetailResponse
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageFilterType
 import com.moongchijang.domain.owner.application.dto.OwnerGroupBuyManageListItemResponse
@@ -27,6 +28,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -42,7 +44,9 @@ class OwnerGroupBuyService(
     private val groupBuyRepository: GroupBuyRepository,
     private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
     private val participationRepository: ParticipationRepository,
-    private val paymentRepository: PaymentRepository
+    private val paymentRepository: PaymentRepository,
+    private val notificationEventPublisher: NotificationEventPublisher,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -145,7 +149,7 @@ class OwnerGroupBuyService(
                     .findByOwnerIdAndStoreIdInAndStatusOrderByCreatedAtDesc(ownerId, storeIds, OwnerGroupBuyRequestStatus.PENDING)
                     .map {
                         OwnerGroupBuyManageListItemResponse(
-                            groupBuyId = it.id,
+                            requestId = it.id,
                             productName = it.productName,
                             price = it.price,
                             pickupDate = it.pickupDate,
@@ -232,19 +236,38 @@ class OwnerGroupBuyService(
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
         validateCloseReason(request)
+        val requestedAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
+        val reason = toGroupBuyCloseReason(request.reason)
+        val reasonDetail = request.reasonDetail?.trim()?.takeIf { it.isNotBlank() }
 
-        groupBuy.closeByOwner(
-            reason = toGroupBuyCloseReason(request.reason),
-            reasonDetail = request.reasonDetail?.trim()?.takeIf { it.isNotBlank() },
-            requestedAt = java.time.LocalDateTime.now(SEOUL_ZONE_ID)
-        )
+        if (request.reason == OwnerGroupBuyCloseReasonType.OTHER) {
+            groupBuy.requestCloseReview(
+                reason = reason,
+                reasonDetail = reasonDetail,
+                requestedAt = requestedAt
+            )
+        } else {
+            groupBuy.closeByOwner(
+                reason = reason,
+                reasonDetail = reasonDetail,
+                requestedAt = requestedAt
+            )
+        }
         groupBuyRepository.save(groupBuy)
+        if (request.reason != OwnerGroupBuyCloseReasonType.OTHER) {
+            notificationEventPublisher.publishOwnerCloseRequestApproved(
+                groupBuyId = groupBuy.id,
+                ownerUserIds = listOf(ownerId),
+                occurredAt = requestedAt
+            )
+        }
         log.info(
-            "[OwnerGroupBuyService] 사장님 공구 마감 요청 완료: ownerId={}, groupBuyId={}, reason={}, reasonDetail={}",
+            "[OwnerGroupBuyService] 사장님 공구 마감 요청 완료: ownerId={}, groupBuyId={}, reason={}, reasonDetail={}, reviewStatus={}",
             ownerId,
             groupBuyId,
             request.reason,
-            request.reasonDetail
+            request.reasonDetail,
+            groupBuy.closeRequestReviewStatus
         )
     }
 
@@ -281,7 +304,7 @@ class OwnerGroupBuyService(
             val payment = paymentByUserId[it.user.id!!]
             OwnerGroupBuyParticipantItemResponse(
                 name = it.user.nickname ?: "",
-                phoneNumber = it.user.phoneNumber ?: "",
+                phoneNumber = personalInfoManager.decryptIfNeeded(it.user.phoneNumber) ?: "",
                 productName = it.groupBuy.productName,
                 quantity = it.quantity,
                 paymentMethod = payment?.method ?: UNKNOWN_PAYMENT_METHOD,
@@ -297,6 +320,8 @@ class OwnerGroupBuyService(
         val response = OwnerGroupBuyManageDetailResponse(
             groupBuyId = groupBuy.id,
             status = toManageFilterType(groupBuy.status),
+            recruitmentStartDate = groupBuy.recruitmentStartAt.toLocalDate(),
+            recruitmentEndDate = groupBuy.deadline.toLocalDate(),
             participantSummary = OwnerGroupBuyManageParticipantSummary(
                 totalCount = totalCount,
                 completedCount = completedCount,

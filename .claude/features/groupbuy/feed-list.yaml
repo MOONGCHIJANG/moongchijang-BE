@@ -1,0 +1,58 @@
+meta:
+  id: GROUPBUY_FEED_LIST
+  domain: groupbuy
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyController.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/dto/GroupBuyFeedRequest.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/dto/GroupBuyFeedPageResponse.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/domain/repository/GroupBuyRepositoryImpl.kt
+  openapi_paths:
+    - GET /api/v1/group-buys
+  related_requirements:
+    - "1.1"
+
+overview:
+  summary: 지역/상태 필터와 Pageable 기반으로 모집 중 공구 피드를 조회한다.
+  user_story: 사용자는 내 지역 조건에 맞는 공구를 보고, 지역 결과가 없으면 전국 인기 fallback 결과를 볼 수 있다.
+
+api_spec:
+  endpoints:
+    - method: GET
+      path: /api/v1/group-buys
+      auth: public
+      controller: GroupBuyController.getFeed
+      request:
+        query_params:
+          - filter: GroupBuyFeedFilter, default ALL
+          - districts: List<DistrictType>, optional
+          - pageable: Spring Pageable
+      response:
+        wrapper: ApiResponse
+        data: GroupBuyFeedPageResponse
+
+business_rules:
+  - 모집 중이고 마감 시각이 지나지 않은 공구만 노출한다.
+  - 지역 필터는 최대 10개까지 허용한다.
+  - 같은 지역의 ALL district와 하위 district를 동시에 요청할 수 없다.
+  - ALL district는 해당 region의 leaf district 목록으로 확장한다.
+  - 지역 조건 결과가 0건이면 전국 fallback을 수행하고 hasRegionalResult=false를 반환한다.
+  - 일반 지역 결과는 달성률 desc, deadline asc, createdAt desc, id desc로 정렬한다.
+  - 전국 fallback은 찜수 desc, 달성률 desc, deadline asc, id desc로 정렬한다.
+
+error_cases:
+  - code: GROUPBUY_FEED_TOO_MANY_DISTRICTS
+    status: 400
+  - code: GROUPBUY_FEED_INVALID_DISTRICT_COMBINATION
+    status: 400
+
+testing_strategy:
+  unit:
+    - GroupBuyServiceTest 지역 필터 검증
+    - GroupBuyFeedItemResponseTest 응답 계산 검증
+  controller:
+    - GroupBuyControllerTest GET /api/v1/group-buys
+  repository:
+    - GroupBuyRepositoryImplIntegrationTest 검색/정렬/fallback

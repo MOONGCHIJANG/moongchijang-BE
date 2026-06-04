@@ -8,7 +8,8 @@ import org.springframework.stereotype.Service
 
 @Service
 class StoreSearchService(
-    private val naverLocalSearchClient: NaverLocalSearchClient
+    private val naverLocalSearchClient: NaverLocalSearchClient,
+    private val recommendedStoreImageService: RecommendedStoreImageService,
 ) {
     private val log = LoggerFactory.getLogger(StoreSearchService::class.java)
     companion object {
@@ -58,12 +59,33 @@ class StoreSearchService(
         log.info("[StoreSearchService] 매장 검색 시작: keywordLength={}, display={}", keyword.length, display)
         if (keyword.isBlank()) {
             log.info("[StoreSearchService] 매장 검색 스킵: 빈 키워드")
-            return StoreSearchResponse.from(emptyList())
+            return StoreSearchResponse(stores = emptyList())
         }
         val response = naverLocalSearchClient.search(keyword, display.coerceAtLeast(NAVER_FETCH_DISPLAY))
-        val result = StoreSearchResponse.from(response.items.filter { it.isBakeryDomain() }.take(display))
+        val imageUrls = recommendedStoreImageService.findActiveImageUrls()
+        val result = StoreSearchResponse(
+            stores = response.items
+                .filter { it.isBakeryDomain() }
+                .take(display)
+                .mapIndexed { index, item -> item.toStoreItem(index, imageUrls) }
+        )
         log.info("[StoreSearchService] 매장 검색 완료: resultCount={}", result.stores.size)
         return result
+    }
+
+    private fun NaverLocalSearchItem.toStoreItem(
+        index: Int,
+        imageUrls: List<String>
+    ): StoreSearchResponse.StoreItem {
+        return StoreSearchResponse.StoreItem(
+            placeId = placeId(),
+            storeName = storeName(),
+            roadAddress = roadAddress,
+            lotAddress = address.ifBlank { null },
+            latitude = latitude(),
+            longitude = longitude(),
+            imageUrl = recommendedStoreImageService.imageUrlByIndex(index, imageUrls)
+        )
     }
 
     private fun NaverLocalSearchItem.isBakeryDomain(): Boolean {

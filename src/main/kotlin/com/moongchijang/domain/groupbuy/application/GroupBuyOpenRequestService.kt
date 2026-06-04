@@ -10,6 +10,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.store.application.RecommendedStoreImageService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
@@ -19,6 +20,7 @@ import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchIt
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
@@ -36,6 +38,8 @@ class GroupBuyOpenRequestService(
     private val userRepository: UserRepository,
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val recommendedStoreImageService: RecommendedStoreImageService,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -55,13 +59,13 @@ class GroupBuyOpenRequestService(
     }
 
     fun create(userId: Long, request: CreateGroupBuyOpenRequestRequest) {
-        if (openRequestRepository.existsByUserIdAndRegionAndProductName(userId, request.region, request.productName)) {
+        if (openRequestRepository.existsByUser_IdAndRegionAndProductName(userId, request.region, request.productName)) {
             throw CustomException(ErrorCode.DUPLICATE_OPEN_REQUEST)
         }
         try {
             openRequestRepository.saveAndFlush(
                 GroupBuyOpenRequest(
-                    userId = userId,
+                    user = findUser(userId),
                     region = request.region,
                     productName = request.productName
                 )
@@ -77,8 +81,9 @@ class GroupBuyOpenRequestService(
             productName = groupBuy.productName,
         )
         if (result.targetUserIds.isNotEmpty()) {
+            val requestId = groupBuy.groupBuyRequest?.id ?: return result
             notificationEventPublisher.publishRequestOpened(
-                requestId = groupBuy.groupBuyRequest.id,
+                requestId = requestId,
                 requesterUserIds = result.targetUserIds,
                 occurredAt = java.time.LocalDateTime.now()
             )
@@ -103,16 +108,14 @@ class GroupBuyOpenRequestService(
             notificationStatus = NotificationStatus.PENDING,
         )
 
-        val requestsByUserId = pendingRequests.groupBy { it.userId }
-        val usersById = userRepository.findByIdInAndDeletedAtIsNull(requestsByUserId.keys)
-            .associateBy { it.id }
+        val requestsByUserId = pendingRequests.groupBy { requireUserId(it) }
 
         val targetUserIds = requestsByUserId.keys.toList()
         var sentCount = 0
         var failedCount = 0
 
         requestsByUserId.forEach { (userId, userRequests) ->
-            val receiverPhone = usersById[userId]?.phoneNumber
+            val receiverPhone = personalInfoManager.decryptIfNeeded(userRequests.first().user.phoneNumber)
             val message = buildOpenNotificationMessage(userRequests.first().region, productName)
 
             val sent = if (receiverPhone.isNullOrBlank()) {
@@ -182,8 +185,9 @@ class GroupBuyOpenRequestService(
             )
         }.getOrNull() ?: return emptyRecommendation(request, startedAt, fallback = true)
 
+        val imageUrls = recommendedStoreImageService.findActiveImageUrls()
         val candidates = items
-            .mapIndexedNotNull { index, item -> item.toCandidateOrNull(index, request) }
+            .mapIndexedNotNull { index, item -> item.toCandidateOrNull(index, request, imageUrls) }
             .distinctBy { it.duplicateKey }
 
         if (candidates.isEmpty()) {
@@ -255,7 +259,8 @@ class GroupBuyOpenRequestService(
 
     private fun NaverLocalSearchItem.toCandidateOrNull(
         index: Int,
-        request: StoreRecommendationRequest
+        request: StoreRecommendationRequest,
+        imageUrls: List<String>
     ): StoreRecommendationCandidate? {
         return runCatching {
             val storeName = storeName()
@@ -273,6 +278,7 @@ class GroupBuyOpenRequestService(
                 lotAddress = lotAddress,
                 latitude = latitude(),
                 longitude = longitude(),
+                imageUrl = recommendedStoreImageService.imageUrlByIndex(index, imageUrls),
                 category = category,
                 addressMatched = addressMatched,
                 categoryMatched = categoryMatched,
@@ -334,6 +340,7 @@ class GroupBuyOpenRequestService(
             lotAddress = candidate.lotAddress,
             latitude = candidate.latitude,
             longitude = candidate.longitude,
+            imageUrl = candidate.imageUrl,
             category = candidate.category,
             addressMatched = candidate.addressMatched,
             categoryMatched = candidate.categoryMatched,
@@ -365,6 +372,13 @@ class GroupBuyOpenRequestService(
     private fun elapsedMillis(startedAt: Long): Long =
         ((System.nanoTime() - startedAt) / 1_000_000.0).roundToLong()
 
+    private fun findUser(userId: Long) =
+        userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+
+    private fun requireUserId(openRequest: GroupBuyOpenRequest): Long =
+        openRequest.user.id!!
+
     private data class StoreRecommendationCandidate(
         val naverRank: Int,
         val placeId: String,
@@ -373,6 +387,7 @@ class GroupBuyOpenRequestService(
         val lotAddress: String?,
         val latitude: Double,
         val longitude: Double,
+        val imageUrl: String?,
         val category: String,
         val addressMatched: Boolean,
         val categoryMatched: Boolean,

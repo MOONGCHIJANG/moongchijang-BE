@@ -2,6 +2,7 @@ package com.moongchijang.domain.user.application
 
 import com.moongchijang.domain.auth.application.PhoneVerificationService
 import com.moongchijang.domain.auth.application.TokenService
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.auth.application.dto.AuthUserResponse
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
@@ -33,12 +34,15 @@ import com.moongchijang.domain.user.domain.entity.SellerSettlementAccount
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.entity.WithdrawalReason
+import com.moongchijang.domain.user.domain.entity.WithdrawnAccount
 import com.moongchijang.domain.user.domain.repository.SellerBusinessProfileRepository
 import com.moongchijang.domain.user.domain.repository.SellerSettlementAccountRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.domain.user.domain.repository.WithdrawnAccountRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -57,6 +61,13 @@ class UserService(
     private val favoriteRepository: FavoriteRepository,
     private val paymentService: PaymentService,
     private val passwordEncoder: PasswordEncoder,
+    private val adminDiscordAlertService: AdminDiscordAlertService,
+    private val withdrawnAccountRepository: WithdrawnAccountRepository,
+    private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
+    private val withdrawalIdentifierHasher: WithdrawalIdentifierHasher,
+    private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
+    private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -70,11 +81,7 @@ class UserService(
             log.info("[UserService] 기존 카카오 사용자 로그인 처리: userId={}", it.id)
             return it to false
         }
-        findDeletedKakaoUser(providerId)?.let {
-            val restored = restoreDeletedUser(it, email, nickname)
-            log.info("[UserService] 탈퇴 카카오 사용자 복구 처리: userId={}", restored.id)
-            return restored to false
-        }
+        validateKakaoRejoinAvailable(providerId)
         log.info("[UserService] 신규 카카오 사용자 생성 처리")
         return createNewKakaoUser(providerId, email, nickname) to true
     }
@@ -85,12 +92,15 @@ class UserService(
         log.info("[UserService] 이메일 사용자 생성 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        if (userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail)) {
+        val emailHash = personalInfoManager.hashEmail(normalizedEmail)
+        if (userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(AuthProvider.EMAIL, emailHash, normalizedEmail)) {
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
         }
+        validateEmailRejoinAvailable(normalizedEmail)
 
         val user = User.newEmailUser(
-            email = normalizedEmail,
+            email = personalInfoManager.encryptEmail(normalizedEmail),
+            emailHash = emailHash,
             passwordHash = passwordHash,
         )
         val savedUser = try {
@@ -109,9 +119,10 @@ class UserService(
         val normalizedEmail = normalizeEmail(email)
         validateEmailFormat(normalizedEmail)
 
-        return userRepository.findByProviderAndEmailAndDeletedAtIsNull(
+        return userRepository.findActiveByProviderAndEmailHashOrLegacyEmail(
             provider = AuthProvider.EMAIL,
-            email = normalizedEmail,
+            emailHash = personalInfoManager.hashEmail(normalizedEmail),
+            legacyEmail = normalizedEmail,
         )
     }
 
@@ -131,7 +142,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
         log.info("[UserService] 내 정보 조회 완료: userId={}", userId)
-        return AuthUserResponse.from(user)
+        return toAuthUserResponse(user)
     }
 
     @Transactional(readOnly = true)
@@ -140,7 +151,12 @@ class UserService(
         log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        val duplicated = userRepository.existsByProviderAndEmailAndDeletedAtIsNull(AuthProvider.EMAIL, normalizedEmail)
+        val duplicated = userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            AuthProvider.EMAIL,
+            personalInfoManager.hashEmail(normalizedEmail),
+            normalizedEmail,
+        ) ||
+            isEmailRejoinBlocked(normalizedEmail)
         val response = EmailAvailabilityResponse(
             email = normalizedEmail,
             available = !duplicated,
@@ -167,9 +183,14 @@ class UserService(
 
         assertNoDuplicateNickname(request.nickname, userId)
 
-        user.completeSignup(request.nickname, request.phoneNumber)
+        user.completeSignup(request.nickname, personalInfoManager.encryptPhone(request.phoneNumber))
         log.info("[UserService] 추가정보 입력 처리 완료: userId={}", userId)
-        return AdditionalInfoUpdatedResponse.from(user)
+        return AdditionalInfoUpdatedResponse(
+            id = requireNotNull(user.id),
+            nickname = requireNotNull(user.nickname),
+            phoneNumber = request.phoneNumber,
+            signupCompleted = user.signupCompleted,
+        )
     }
 
     @Transactional
@@ -193,7 +214,7 @@ class UserService(
         user.role = targetRole
         user.saveLastRole(targetRole)
         log.info("[UserService] 마이페이지 역할 전환 완료: userId={}, targetRole={}", userId, targetRole)
-        return AuthUserResponse.from(user)
+        return toAuthUserResponse(user)
     }
 
     @Transactional(readOnly = true)
@@ -314,7 +335,7 @@ class UserService(
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
-        user.phoneNumber = request.phoneNumber
+        user.phoneNumber = personalInfoManager.encryptPhone(request.phoneNumber)
         log.info("[UserService] 전화번호 변경 처리 완료: userId={}", userId)
         return PhoneNumberUpdateResponse(
             id = userId,
@@ -338,7 +359,7 @@ class UserService(
         }
 
         validatePasswordPolicyForChange(
-            email = user.email ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS),
+            email = personalInfoManager.decryptIfNeeded(user.email) ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS),
             newPassword = request.newPassword,
         )
 
@@ -404,6 +425,9 @@ class UserService(
         user.role = UserRole.SELLER
         user.saveLastRole(UserRole.SELLER)
         user.completeSellerSignup()
+        sellerBusinessProfileRepository.findByUserId(userId)?.let { profile ->
+            adminDiscordAlertService.sendNewSellerSignup(profile)
+        }
 
         log.info("[UserService] 사장님 정산 정보 저장 완료: userId={}", userId)
         return SellerSignupStatusResponse(
@@ -432,6 +456,11 @@ class UserService(
             reasonDetail = normalizedReasonDetail(request),
         )
         userRepository.save(user)
+        withdrawnAccountCommandService.recordWithdrawal(
+            user = user,
+            withdrawnAt = requireNotNull(user.deletedAt),
+        )
+        finalizeWithdrawalAfterRetention(userId = userId, user = user)
 
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
     }
@@ -503,33 +532,18 @@ class UserService(
         )
     }
 
-    private fun findDeletedKakaoUser(providerId: String): User? {
-        return userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(
+    private fun findWithdrawnKakaoAccount(providerId: String): WithdrawnAccount? {
+        return withdrawnAccountRepository.findByProviderAndIdentifierHash(
             provider = AuthProvider.KAKAO,
-            providerId = providerId,
+            identifierHash = withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, providerId),
         )
     }
 
-    private fun restoreDeletedUser(
-        deletedUser: User,
-        email: String,
-        nickname: String,
-    ): User {
-        val deletedAt = deletedUser.deletedAt
-            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-
-        validateRejoinAvailable(deletedAt)
-
-        deletedUser.deletedAt = null
-        deletedUser.email = email
-        val sanitizedNickname = sanitizeKakaoNicknameForPreload(nickname)
-        if (deletedUser.nickname.isNullOrBlank()) {
-            deletedUser.nickname = sanitizedNickname
-        }
-        deletedUser.signupCompleted = false
-        deletedUser.sellerSignupCompleted = false
-
-        return deletedUser
+    private fun findWithdrawnEmailAccount(email: String): WithdrawnAccount? {
+        return withdrawnAccountRepository.findByProviderAndIdentifierHash(
+            provider = AuthProvider.EMAIL,
+            identifierHash = withdrawalIdentifierHasher.hashEmail(email),
+        )
     }
 
     private fun createNewKakaoUser(
@@ -540,7 +554,8 @@ class UserService(
         val sanitizedNickname = sanitizeKakaoNicknameForPreload(nickname)
         val newUser = User.newKakaoUser(
             providerId = providerId,
-            email = email,
+            email = personalInfoManager.encryptEmail(email),
+            emailHash = personalInfoManager.hashEmail(email),
             nickname = sanitizedNickname,
         )
         val savedUser = userRepository.save(newUser)
@@ -553,11 +568,37 @@ class UserService(
         return if (NICKNAME_REGEX.matches(nickname)) nickname else null
     }
 
-    private fun validateRejoinAvailable(deletedAt: LocalDateTime) {
-        val rejoinAvailableAt = deletedAt.plusDays(30)
+    private fun finalizeWithdrawalAfterRetention(userId: Long, user: User) {
+        val withdrawnAt = requireNotNull(user.deletedAt)
+        withdrawalLegalRetentionCommandService.retainForWithdrawal(
+            userId = userId,
+            withdrawnAt = withdrawnAt,
+        )
+        user.anonymizePersonalInfoForWithdrawal()
+        userRepository.saveAndFlush(user)
+        withdrawalImmediateCleanupService.cleanup(userId)
+        tokenService.deleteByUserId(userId)
+    }
+
+    private fun validateRejoinAvailable(rejoinAvailableAt: LocalDateTime) {
         if (LocalDateTime.now().isBefore(rejoinAvailableAt)) {
             throw CustomException(ErrorCode.REJOIN_NOT_AVAILABLE_YET)
         }
+    }
+
+    private fun validateKakaoRejoinAvailable(providerId: String) {
+        val withdrawnAccount = findWithdrawnKakaoAccount(providerId) ?: return
+        validateRejoinAvailable(withdrawnAccount.rejoinAvailableAt)
+    }
+
+    private fun validateEmailRejoinAvailable(email: String) {
+        val withdrawnAccount = findWithdrawnEmailAccount(email) ?: return
+        validateRejoinAvailable(withdrawnAccount.rejoinAvailableAt)
+    }
+
+    private fun isEmailRejoinBlocked(email: String): Boolean {
+        val withdrawnAccount = findWithdrawnEmailAccount(email) ?: return false
+        return LocalDateTime.now().isBefore(withdrawnAccount.rejoinAvailableAt)
     }
 
     private fun validateNicknameFormat(nickname: String) {
@@ -605,6 +646,13 @@ class UserService(
     }
 
     private fun normalizeEmail(raw: String): String = raw.trim().lowercase()
+
+    fun toAuthUserResponse(user: User): AuthUserResponse =
+        AuthUserResponse.from(
+            user = user,
+            email = personalInfoManager.decryptIfNeeded(user.email),
+            phoneNumber = personalInfoManager.decryptIfNeeded(user.phoneNumber),
+        )
 
     companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")

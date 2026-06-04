@@ -72,7 +72,8 @@ class SearchServiceTest {
         roadAddress = "서울 어딘가",
         lotAddress = null,
         latitude = 37.5,
-        longitude = 127.0
+        longitude = 127.0,
+        imageUrl = "https://cdn.example.com/$name.jpg"
     )
 
     @Test
@@ -87,6 +88,8 @@ class SearchServiceTest {
         assertThat(response.uiState).isEqualTo(SearchUiState.EMPTY_CAN_REQUEST)
         assertThat(response.recommendedStores).extracting("storeName")
             .containsExactly("동네빵집", "뒷골목빵집")
+        assertThat(response.recommendedStores).extracting("imageUrl")
+            .containsExactly("https://cdn.example.com/동네빵집.jpg", "https://cdn.example.com/뒷골목빵집.jpg")
     }
 
     @Test

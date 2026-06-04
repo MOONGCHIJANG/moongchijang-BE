@@ -1,0 +1,39 @@
+meta:
+  id: PICKUP
+  domain: pickup
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/pickup/presentation/PickupController.kt
+    - src/main/kotlin/com/moongchijang/domain/pickup/application/PickupService.kt
+    - src/main/kotlin/com/moongchijang/domain/pickup/application/dto/PickupDtos.kt
+    - src/main/kotlin/com/moongchijang/domain/participation/application/ParticipationPickupCommandService.kt
+  related_requirements:
+    - "5.3"
+    - "5.4"
+
+overview:
+  summary: 픽업 안내, QR 조회, QR 검증/완료 처리를 담당한다.
+
+business_rules:
+  - 소비자는 본인 참여의 픽업 정보만 조회할 수 있다.
+  - QR은 픽업일 00시 이후 사용 가능하다.
+  - QR token은 unique 제약을 유지한다.
+  - QR 검증은 ADMIN 또는 SELLER 역할만 가능하다.
+  - 픽업 완료 시각은 KST 기준 정책을 유지한다.
+
+error_cases:
+  - PICKUP_PARTICIPATION_FORBIDDEN
+  - PICKUP_LOCKED
+  - PICKUP_QR_NOT_FOUND
+  - PICKUP_ALREADY_USED
+  - PICKUP_NOT_READY
+
+testing_strategy:
+  unit:
+    - PickupServiceTest
+    - ParticipationPickupCommandServiceTest
+  controller:
+    - PickupControllerTest
+  repository:
+    - ParticipationAuditingIntegrationTest

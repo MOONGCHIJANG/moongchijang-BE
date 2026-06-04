@@ -1,0 +1,53 @@
+meta:
+  id: GROUPBUY_PROGRESS
+  domain: groupbuy
+  status: implemented
+  priority: medium
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyController.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/dto/GroupBuyProgressResponse.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/dto/GroupBuyProgressItem.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/dto/GroupBuyProgressCalculator.kt
+  openapi_paths:
+    - GET /api/v1/group-buys/{groupBuyId}/progress
+    - GET /api/v1/group-buys/progress
+  related_requirements:
+    - "1.3"
+
+overview:
+  summary: 피드/상세 화면 폴링용 공구 달성률을 단건 또는 다건으로 조회한다.
+
+api_spec:
+  endpoints:
+    - method: GET
+      path: /api/v1/group-buys/{groupBuyId}/progress
+      auth: public
+      controller: GroupBuyController.getProgress
+      response:
+        wrapper: ApiResponse
+        data: GroupBuyProgressResponse
+    - method: GET
+      path: /api/v1/group-buys/progress
+      auth: public
+      controller: GroupBuyController.getProgresses
+      request:
+        query_params:
+          - ids: List<Long>, required, max distinct 20
+      response:
+        wrapper: ApiResponse
+        data: List<GroupBuyProgressItem>
+
+business_rules:
+  - 단건은 공구가 없으면 GROUPBUY_NOT_FOUND.
+  - 다건은 ids가 비었거나 20개를 초과하면 BAD_REQUEST/INVALID_INPUT 계열로 처리한다.
+  - 다건은 요청 순서를 보존하되 존재하지 않는 id는 응답에서 제외한다.
+  - 달성률은 targetQuantity 0 방어와 100% 초과 표시 여부를 GroupBuyProgressCalculator 기준으로 통일한다.
+  - isClosed 계산은 상태, deadline, 수량 기준의 공통 계산기를 사용한다.
+
+testing_strategy:
+  unit:
+    - GroupBuyServiceTest getProgress/getProgresses
+    - GroupBuyProgressCalculator 경계값
+  controller:
+    - GroupBuyControllerTest ids validation

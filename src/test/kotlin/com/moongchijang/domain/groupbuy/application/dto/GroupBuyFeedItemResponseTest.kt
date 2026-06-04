@@ -48,7 +48,7 @@ class GroupBuyFeedItemResponseTest {
             district = DistrictType.SEOUL_SINSA_APGUJEONG_CHEONGDAM
         ).apply { id = 1L }
         val request = GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "청담 버터룸",
             storeAddress = "서울 강남구 도산대로 420",
             productName = "버터바 4종 세트",
@@ -67,6 +67,7 @@ class GroupBuyFeedItemResponseTest {
             currentQuantity = 28,
             maxQuantity = 45,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = deadline.minusDays(1),
             deadline = deadline,
             pickupDate = LocalDate.of(2026, 5, 26),
             pickupTimeStart = LocalTime.of(12, 0),

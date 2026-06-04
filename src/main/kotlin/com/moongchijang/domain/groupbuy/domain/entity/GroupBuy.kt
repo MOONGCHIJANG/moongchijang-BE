@@ -16,8 +16,8 @@ class GroupBuy(
     var store: Store,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_buy_request_id", nullable = false)
-    var groupBuyRequest: GroupBuyRequest,
+    @JoinColumn(name = "group_buy_request_id")
+    var groupBuyRequest: GroupBuyRequest? = null,
 
     @Column(length = 500)
     var thumbnailKey: String? = null,
@@ -50,8 +50,8 @@ class GroupBuy(
     @Column(nullable = false)
     var status: GroupBuyStatus,
 
-    @Column(name = "recruitment_start_at")
-    var recruitmentStartAt: LocalDateTime? = null,
+    @Column(name = "recruitment_start_at", nullable = false)
+    var recruitmentStartAt: LocalDateTime,
 
     @Column(nullable = false)
     var deadline: LocalDateTime,
@@ -83,6 +83,16 @@ class GroupBuy(
 
     @Column(name = "close_requested_at")
     var closeRequestedAt: LocalDateTime? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "close_request_review_status", length = 20)
+    var closeRequestReviewStatus: GroupBuyCloseRequestReviewStatus? = null,
+
+    @Column(name = "close_request_rejection_reason", length = 200)
+    var closeRequestRejectionReason: String? = null,
+
+    @Column(name = "close_reviewed_at")
+    var closeReviewedAt: LocalDateTime? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "closed_by_type", length = 20)
@@ -171,8 +181,58 @@ class GroupBuy(
         closeReason = reason
         closeReasonDetail = reasonDetail
         closeRequestedAt = requestedAt
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.APPROVED
+        closeRequestRejectionReason = null
+        closeReviewedAt = requestedAt
         closedByType = GroupBuyClosedByType.OWNER
         transitionToClosed()
+    }
+
+    fun requestCloseReview(
+        reason: GroupBuyCloseReason,
+        reasonDetail: String?,
+        requestedAt: LocalDateTime = LocalDateTime.now()
+    ) {
+        require(status == GroupBuyStatus.IN_PROGRESS || status == GroupBuyStatus.ACHIEVED) {
+            "IN_PROGRESS 또는 ACHIEVED 상태에서만 마감 요청을 할 수 있습니다."
+        }
+        require(reason == GroupBuyCloseReason.OTHER) {
+            "기타(OTHER) 사유만 검토 요청을 할 수 있습니다."
+        }
+        require(closeRequestReviewStatus != GroupBuyCloseRequestReviewStatus.PENDING) {
+            "이미 검토 대기 중인 마감 요청이 존재합니다."
+        }
+        closeReason = reason
+        closeReasonDetail = reasonDetail
+        closeRequestedAt = requestedAt
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.PENDING
+        closeRequestRejectionReason = null
+        closeReviewedAt = null
+        closedByType = null
+    }
+
+    fun approveCloseReview(reviewedAt: LocalDateTime = LocalDateTime.now()) {
+        require(closeRequestReviewStatus == GroupBuyCloseRequestReviewStatus.PENDING) {
+            "PENDING 상태의 마감 요청만 승인할 수 있습니다."
+        }
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.APPROVED
+        closeRequestRejectionReason = null
+        closeReviewedAt = reviewedAt
+        closedByType = GroupBuyClosedByType.OWNER
+        transitionToClosed()
+    }
+
+    fun rejectCloseReview(
+        rejectionReason: String,
+        reviewedAt: LocalDateTime = LocalDateTime.now()
+    ) {
+        require(closeRequestReviewStatus == GroupBuyCloseRequestReviewStatus.PENDING) {
+            "PENDING 상태의 마감 요청만 반려할 수 있습니다."
+        }
+        closeRequestReviewStatus = GroupBuyCloseRequestReviewStatus.REJECTED
+        closeRequestRejectionReason = rejectionReason
+        closeReviewedAt = reviewedAt
+        closedByType = null
     }
 
     fun isTerminalStatus(): Boolean {

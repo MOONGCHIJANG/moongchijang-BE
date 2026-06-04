@@ -3,9 +3,12 @@ package com.moongchijang.domain.groupbuy.service
 import com.moongchijang.domain.groupbuy.application.GroupBuyStatusTransitionService
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffUserMapping
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -40,6 +43,12 @@ class GroupBuyStatusTransitionServiceTest {
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
+    @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
+
+    @Mock
+    private lateinit var storeStaffRepository: StoreStaffRepository
+
     private lateinit var service: GroupBuyStatusTransitionService
 
     @BeforeEach
@@ -48,7 +57,9 @@ class GroupBuyStatusTransitionServiceTest {
         service = GroupBuyStatusTransitionService(
             groupBuyRepository,
             participationRepository,
+            storeStaffRepository,
             notificationEventPublisher,
+            adminDiscordAlertService,
             transactionManager,
             500
         )
@@ -150,7 +161,9 @@ class GroupBuyStatusTransitionServiceTest {
         val batchService = GroupBuyStatusTransitionService(
             groupBuyRepository,
             participationRepository,
+            storeStaffRepository,
             notificationEventPublisher,
+            adminDiscordAlertService,
             transactionManager,
             2
         )
@@ -201,6 +214,14 @@ class GroupBuyStatusTransitionServiceTest {
                 pageable
             )
         ).thenReturn(listOf(groupBuy))
+        `when`(storeStaffRepository.findStoreStaffMappingsByStoreIdIn(listOf(groupBuy.store.id))).thenReturn(
+            listOf(
+                object : StoreStaffUserMapping {
+                    override val storeId: Long = groupBuy.store.id
+                    override val userId: Long = 91L
+                }
+            )
+        )
         service.transitionExpiredGroupBuysAt(now)
 
         assertEquals(GroupBuyStatus.FAILED, groupBuy.status)
@@ -210,5 +231,6 @@ class GroupBuyStatusTransitionServiceTest {
             newStatus = ParticipationStatus.REFUND_PENDING,
             cancelledAt = now
         )
+        verify(notificationEventPublisher).publishOwnerGroupBuyFailed(21L, listOf(91L), now)
     }
 }

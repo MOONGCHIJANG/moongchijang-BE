@@ -77,4 +77,46 @@ class NotificationTemplateRendererTest {
 
         assertTrue(rendered.body.contains("2026-05-28 10:00"))
     }
+
+    @Test
+    fun `사장님 발주 취소 템플릿 렌더링 시 패널티 문구 없이 본문 반환`() {
+        val rendered = renderer.render(
+            template = registry.getTemplateByType(NotificationTemplateType.OWNER_ORDER_CANCELLED),
+            variables = mapOf(
+                "상품명" to "소금빵"
+            )
+        )
+
+        assertEquals("발주가 취소됐어요.", rendered.title)
+        assertEquals("소금빵 발주 미확정으로 인해 발주가 취소됐어요.", rendered.body)
+        assertTrue(rendered.body.contains("발주 미확정"))
+    }
+
+    @Test
+    fun `사장님 마감 요청 승인 템플릿 렌더링 시 승인 문구를 반환한다`() {
+        val rendered = renderer.render(
+            template = registry.getTemplateByType(NotificationTemplateType.OWNER_CLOSE_REQUEST_APPROVED),
+            variables = mapOf(
+                "상품명" to "소금빵"
+            )
+        )
+
+        assertEquals("마감 요청이 승인됐어요.", rendered.title)
+        assertEquals("소금빵 공구 마감 요청이 승인됐어요.", rendered.body)
+        assertEquals(NotificationDeeplinkType.GROUPBUY_DETAIL, rendered.deeplinkType)
+    }
+
+    @Test
+    fun `사장님 마감 요청 반려 템플릿 렌더링 시 반려 문구를 반환한다`() {
+        val rendered = renderer.render(
+            template = registry.getTemplateByType(NotificationTemplateType.OWNER_CLOSE_REQUEST_REJECTED),
+            variables = mapOf(
+                "상품명" to "소금빵"
+            )
+        )
+
+        assertEquals("마감 요청이 반려됐어요.", rendered.title)
+        assertEquals("소금빵 공구 마감 요청이 반려됐어요. 자세한 내용을 확인해주세요.", rendered.body)
+        assertEquals(NotificationDeeplinkType.GROUPBUY_DETAIL, rendered.deeplinkType)
+    }
 }

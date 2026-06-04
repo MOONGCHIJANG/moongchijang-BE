@@ -4,13 +4,36 @@ import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchResponse
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 
 class StoreSearchServiceTest {
 
     private val naverLocalSearchClient: NaverLocalSearchClient = Mockito.mock(NaverLocalSearchClient::class.java)
-    private val service = StoreSearchService(naverLocalSearchClient)
+    private val recommendedStoreImageService: RecommendedStoreImageService =
+        Mockito.mock(RecommendedStoreImageService::class.java)
+    private val service = StoreSearchService(
+        naverLocalSearchClient,
+        recommendedStoreImageService,
+    )
+
+    @BeforeEach
+    fun setUp() {
+        Mockito.`when`(recommendedStoreImageService.findActiveImageUrls())
+            .thenReturn(
+                listOf(
+                    "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/1.jpeg",
+                    "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/2.jpeg",
+                )
+            )
+        Mockito.`when`(recommendedStoreImageService.imageUrlByIndex(Mockito.anyInt(), Mockito.anyList()))
+            .thenAnswer {
+                val index = it.getArgument<Int>(0)
+                val imageUrls = it.getArgument<List<String>>(1)
+                imageUrls[index.mod(imageUrls.size)]
+            }
+    }
 
     @Test
     fun `search returns only bakery domain stores from naver local results`() {
@@ -26,6 +49,11 @@ class StoreSearchServiceTest {
 
         assertThat(result.stores).extracting("storeName")
             .containsExactly("성수베이커리", "잠실도넛")
+        assertThat(result.stores).extracting("imageUrl")
+            .containsExactly(
+                "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/1.jpeg",
+                "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/2.jpeg",
+            )
     }
 
     @Test

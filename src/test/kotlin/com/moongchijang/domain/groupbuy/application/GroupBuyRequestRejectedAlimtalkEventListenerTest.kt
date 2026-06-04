@@ -6,9 +6,11 @@ import com.moongchijang.domain.notification.domain.entity.NotificationTriggerTyp
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
-import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.GroupBuyFixture
-import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
@@ -26,20 +28,25 @@ class GroupBuyRequestRejectedAlimtalkEventListenerTest {
     private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
 
     @Mock
-    private lateinit var userRepository: UserRepository
-
-    @Mock
     private lateinit var aligoAlimtalkClient: AligoAlimtalkClient
 
     @Mock
     private lateinit var aligoProperties: AligoProperties
 
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
+
     private val listener by lazy {
         GroupBuyRequestRejectedAlimtalkEventListener(
             groupBuyRequestRepository = groupBuyRequestRepository,
-            userRepository = userRepository,
             aligoAlimtalkClient = aligoAlimtalkClient,
             aligoProperties = aligoProperties,
+            personalInfoManager = personalInfoManager,
         )
     }
 
@@ -49,13 +56,13 @@ class GroupBuyRequestRejectedAlimtalkEventListenerTest {
             userId = 7L,
             productName = "황치즈 케이크",
             storeAddress = "서울 강남구 테헤란로 1",
-        ).apply { id = 401L }
-        val user = UserFixture.createKakaoUser(id = 7L, nickname = "문치").apply {
-            phoneNumber = "01012345678"
+        ).apply {
+            id = 401L
+            user.nickname = "문치"
+            user.phoneNumber = "01012345678"
         }
 
         `when`(groupBuyRequestRepository.findById(401L)).thenReturn(Optional.of(request))
-        `when`(userRepository.findByIdAndDeletedAtIsNull(7L)).thenReturn(user)
         `when`(aligoProperties.templateCodeGroupBuyOpenFailed).thenReturn("UH_8527")
 
         listener.on(

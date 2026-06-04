@@ -78,7 +78,7 @@ class ParticipationAuditingIntegrationTest {
         em.persist(store)
 
         val request = GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = "테스트 매장",
             storeAddress = "서울 성동구",
             productName = "테스트 상품",
@@ -98,6 +98,7 @@ class ParticipationAuditingIntegrationTest {
             currentQuantity = 0,
             maxQuantity = 100,
             status = GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = LocalDateTime.now(),
             deadline = LocalDateTime.now().plusDays(3),
             pickupDate = LocalDate.now().plusDays(5),
             pickupTimeStart = LocalTime.of(14, 0),

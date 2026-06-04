@@ -5,10 +5,12 @@ import com.moongchijang.domain.notification.application.template.NotificationTem
 import com.moongchijang.domain.notification.application.template.NotificationTemplateRenderer
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
 import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
 import com.moongchijang.domain.notification.domain.entity.NotificationDispatchStatus
+import com.moongchijang.domain.notification.domain.entity.NotificationScope
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
 import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
@@ -31,6 +33,7 @@ class NotificationImmediateDispatchService(
     private val userRepository: UserRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
+    private val ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository,
     private val notificationTemplateRegistry: NotificationTemplateRegistry,
     private val notificationTemplateRenderer: NotificationTemplateRenderer,
 ) {
@@ -106,6 +109,7 @@ class NotificationImmediateDispatchService(
 
     private fun toNotificationMeta(triggerType: NotificationTriggerType, targetId: Long): NotificationMeta {
         val notificationType = toNotificationType(triggerType)
+        val notificationScope = toNotificationScope(triggerType)
         val template = notificationTemplateRegistry.getTemplateByTriggerType(triggerType)
         val rendered = notificationTemplateRenderer.render(
             template = template,
@@ -113,6 +117,7 @@ class NotificationImmediateDispatchService(
         )
         return NotificationMeta(
             type = notificationType,
+            scope = notificationScope,
             title = rendered.title,
             body = rendered.body,
             deeplinkType = rendered.deeplinkType
@@ -123,7 +128,9 @@ class NotificationImmediateDispatchService(
         return when (triggerType) {
             NotificationTriggerType.PICKUP_SAME_DAY_MORNING,
             NotificationTriggerType.PICKUP_DAY_BEFORE_MORNING,
-            NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF -> NotificationType.PICKUP
+            NotificationTriggerType.PICKUP_NOT_COMPLETED_AFTER_CUTOFF,
+            NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING,
+            NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING -> NotificationType.PICKUP
 
             NotificationTriggerType.WISH_DEADLINE_MINUS_3_DAYS,
             NotificationTriggerType.WISH_DEADLINE_MINUS_1_DAY,
@@ -131,18 +138,44 @@ class NotificationImmediateDispatchService(
 
             NotificationTriggerType.APPLY_PAYMENT_SUCCESS_IMMEDIATE,
             NotificationTriggerType.APPLY_GROUPBUY_ACHIEVED_IMMEDIATE,
-            NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE -> NotificationType.APPLY
+            NotificationTriggerType.APPLY_GROUPBUY_FAILED_IMMEDIATE,
+            NotificationTriggerType.OWNER_GROUPBUY_ACHIEVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_GROUPBUY_FAILED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE -> NotificationType.APPLY
 
             NotificationTriggerType.REQUEST_OPENED_IMMEDIATE,
             NotificationTriggerType.REQUEST_REJECTED_IMMEDIATE,
             NotificationTriggerType.REQUEST_NEW_PARTICIPANT_IMMEDIATE,
             NotificationTriggerType.REQUEST_TARGET_ACHIEVED_IMMEDIATE,
-            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS -> NotificationType.REQUEST
+            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE -> NotificationType.REQUEST
+        }
+    }
+
+    private fun toNotificationScope(triggerType: NotificationTriggerType): NotificationScope {
+        return when (triggerType) {
+            NotificationTriggerType.OWNER_PICKUP_SAME_DAY_MORNING,
+            NotificationTriggerType.OWNER_PICKUP_DAY_BEFORE_MORNING,
+            NotificationTriggerType.OWNER_GROUPBUY_ACHIEVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_GROUPBUY_FAILED_IMMEDIATE,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE -> NotificationScope.OWNER
+
+            else -> NotificationScope.BUYER
         }
     }
 
     private data class NotificationMeta(
         val type: NotificationType,
+        val scope: NotificationScope,
         val title: String,
         val body: String,
         val deeplinkType: NotificationDeeplinkType,
@@ -172,6 +205,19 @@ class NotificationImmediateDispatchService(
                         variables["현재참여개수"] = groupBuy.currentQuantity.toString()
                     }
                 }
+            }
+
+            NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE -> {
+                val ownerRequest = ownerGroupBuyRequestRepository.findById(targetId)
+                    .orElseThrow {
+                        CustomException(
+                            ErrorCode.NOTIFICATION_NOT_FOUND,
+                            "알림 템플릿 대상 사장님 공구요청을 찾을 수 없습니다. targetId=$targetId, triggerType=$triggerType"
+                        )
+                    }
+                variables["상품명"] = ownerRequest.productName
+                ownerRequest.rejectionReason?.let { variables["반려사유"] = it }
             }
 
             else -> {
@@ -245,6 +291,7 @@ class NotificationImmediateDispatchService(
                 Notification(
                     user = user,
                     type = meta.type,
+                    scope = meta.scope,
                     title = meta.title,
                     body = meta.body,
                     occurredAt = event.occurredAt,

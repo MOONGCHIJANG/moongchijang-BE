@@ -1,0 +1,81 @@
+version: 2
+last_aligned_with_code: "2026-06-03"
+
+project:
+  name: moongchijang-BE
+  base_package: com.moongchijang
+  language: Kotlin
+  jdk: 21
+  kotlin: "2.2.21"
+  spring_boot: "4.0.5"
+  build: Gradle Kotlin DSL
+
+stack:
+  persistence:
+    - Spring Data JPA
+    - Querydsl
+    - Flyway
+    - MySQL
+    - H2 for tests/local contexts
+  security:
+    - Spring Security
+    - JWT access/refresh token
+    - Kakao OAuth
+    - email login/signup
+    - phone/email verification
+  integrations:
+    - Redis
+    - AWS S3
+    - AWS SES / Google SMTP
+    - SOLAPI/Aligo alimtalk
+    - PortOne payments
+    - Naver local search
+    - NTS business registration lookup
+    - Discord webhooks
+  docs:
+    - springdoc-openapi
+    - src/main/resources/static/openapi.yaml
+
+architecture:
+  bounded_context_root: src/main/kotlin/com/moongchijang/domain
+  package_pattern: com.moongchijang.domain.{context}.{layer}
+  layers:
+    presentation: HTTP controllers only
+    application: use cases, transactions, DTOs, events, ports
+    domain: entities, value enums, repositories
+    infrastructure: external clients, adapters, technical implementations
+  global_root: src/main/kotlin/com/moongchijang/global
+  security_root: src/main/kotlin/com/moongchijang/security
+
+hard_rules:
+  - id: NO_LOMBOK_IN_KOTLIN
+    rule: Do not use Lombok in Kotlin source. Use data classes, constructor injection, and Kotlin language features.
+  - id: NO_ENTITY_IN_API_RESPONSE
+    rule: Controllers must return application DTOs wrapped in ApiResponse, never JPA entities.
+  - id: NO_BUSINESS_LOGIC_IN_CONTROLLER
+    rule: Controllers may parse HTTP input, validate simple request shape, resolve principal, and delegate. Business decisions belong in application services or policies.
+  - id: NO_SPECLESS_BEHAVIOR_CHANGE
+    rule: If behavior, endpoint, status, validation, error, or response shape changes, update the matching .claude feature spec and OpenAPI when applicable.
+  - id: NO_UNSCOPED_CROSS_CONTEXT_WRITE
+    rule: Cross-context writes must be explicit through application services, events, or narrowly justified repositories. Do not hide cross-context mutations inside controllers.
+  - id: NO_TEST_SKIP
+    rule: Do not skip tests or remove assertions to pass a change. Add narrow regression tests for bug fixes.
+  - id: NO_SECRET_COMMIT
+    rule: Never commit real .env files, credentials, private keys, tokens, or certbot material.
+  - id: NO_DESTRUCTIVE_GIT_WITHOUT_REQUEST
+    rule: Do not run destructive git commands such as reset hard, checkout path restore, or force push unless the user explicitly requested it.
+
+naming:
+  controllers: "{DomainOrUseCase}Controller under presentation"
+  services: "{UseCase}Service under application"
+  dto: "{Action}{Resource}Request/Response under application/dto"
+  repositories: "{Entity}Repository under domain/repository"
+  entities: "{Entity} under domain/entity"
+  tests: "{ClassUnderTest}Test mirroring source package intent"
+
+must_check_before_commit:
+  - git status --short
+  - git diff --cached --name-only
+  - no unrelated files staged
+  - no secrets in staged diff
+  - docs/spec/OpenAPI synchronized for behavior changes

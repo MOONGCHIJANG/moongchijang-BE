@@ -88,7 +88,7 @@ class MypageServiceTest {
             )
         )
             .thenReturn(1L)
-        `when`(groupBuyRequestRepository.countByUserId(userId)).thenReturn(4L)
+        `when`(groupBuyRequestRepository.countByUser_Id(userId)).thenReturn(4L)
 
         val result = mypageService.getSummary(userId)
 
@@ -341,14 +341,14 @@ class MypageServiceTest {
     fun `group-buy-requests는 내 개설 요청 내역 DTO로 변환한다`() {
         val userId = 1L
         val request = GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = "문치 베이커리",
             productName = "소금빵",
             desiredQuantity = 5,
             desiredPickupDate = LocalDate.of(2026, 5, 27),
             status = GroupBuyRequestStatus.IN_CONTACT
         ).apply { id = 20L }
-        `when`(groupBuyRequestRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(listOf(request))
+        `when`(groupBuyRequestRepository.findByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(listOf(request))
 
         val result = mypageService.getGroupBuyRequests(userId)
 
@@ -360,7 +360,7 @@ class MypageServiceTest {
         assertEquals(LocalDate.of(2026, 5, 27), result[0].desiredPickupDate)
         assertEquals(5, result[0].desiredQuantity)
 
-        verify(groupBuyRequestRepository).findByUserIdOrderByCreatedAtDesc(userId)
+        verify(groupBuyRequestRepository).findByUser_IdOrderByCreatedAtDesc(userId)
     }
 
     private fun createParticipation(): Participation {
@@ -378,7 +378,7 @@ class MypageServiceTest {
             district = DistrictType.SEOUL_SEONGSU_GEONDAE_GWANGJIN
         )
         val groupBuyRequest = GroupBuyRequest(
-            userId = 2L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 2L),
             storeName = store.name,
             productName = "초코 케이크",
             desiredQuantity = 10,
@@ -394,6 +394,7 @@ class MypageServiceTest {
             targetQuantity = 10,
             maxQuantity = 20,
             status = com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus.IN_PROGRESS,
+            recruitmentStartAt = LocalDate.now().minusDays(1).atStartOfDay(),
             deadline = LocalDate.now().plusDays(1).atTime(23, 59),
             pickupDate = LocalDate.of(2026, 5, 25),
             pickupTimeStart = LocalTime.of(13, 0),

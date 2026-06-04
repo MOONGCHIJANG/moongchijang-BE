@@ -9,8 +9,13 @@ import com.moongchijang.domain.user.application.UserService
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
+import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
+import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
+import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.security.jwt.JwtTokenProvider
 import com.moongchijang.support.UserFixture
 import jakarta.servlet.http.HttpServletRequest
@@ -25,20 +30,30 @@ class AuthServiceTest {
 
     private val kakaoAuthService: KakaoAuthService = Mockito.mock(KakaoAuthService::class.java)
     private val userService: UserService = Mockito.mock(UserService::class.java)
+    private val userRepository: UserRepository = Mockito.mock(UserRepository::class.java)
     private val emailSignupTokenStore: EmailSignupTokenStore = Mockito.mock(EmailSignupTokenStore::class.java)
     private val tokenService: TokenService = Mockito.mock(TokenService::class.java)
     private val jwtTokenProvider: JwtTokenProvider = Mockito.mock(JwtTokenProvider::class.java)
     private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
     private val authMetricsRecorder: AuthMetricsRecorder = Mockito.mock(AuthMetricsRecorder::class.java)
+    private val personalInfoProperties = PersonalInfoEncryptionProperties(
+        secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    )
+    private val personalInfoManager = PersonalInfoManager(
+        AesGcmPersonalInfoEncryptor(personalInfoProperties),
+        HmacSha256PersonalInfoHasher(personalInfoProperties),
+    )
 
     private val authService = AuthService(
         kakaoAuthService = kakaoAuthService,
         userService = userService,
+        userRepository = userRepository,
         emailSignupTokenStore = emailSignupTokenStore,
         tokenService = tokenService,
         jwtTokenProvider = jwtTokenProvider,
         passwordEncoder = passwordEncoder,
         authMetricsRecorder = authMetricsRecorder,
+        personalInfoManager = personalInfoManager,
     )
 
     @Test
@@ -74,9 +89,11 @@ class AuthServiceTest {
     @Test
     fun `재발급 요청 시 유효한 리프레시 토큰 기반 새 토큰 반환`() {
         val request = Mockito.mock(HttpServletRequest::class.java)
+        val user = UserFixture.createKakaoUser(id = 3L, providerId = "kakao-3")
 
         Mockito.`when`(tokenService.extractRefreshToken(request)).thenReturn("old-refresh")
         Mockito.`when`(tokenService.getUserIdByRefreshToken("old-refresh")).thenReturn(3L)
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(3L)).thenReturn(user)
         Mockito.`when`(tokenService.reissueRefreshToken(3L, "old-refresh")).thenReturn("new-refresh")
         Mockito.`when`(jwtTokenProvider.generateAccessToken(3L)).thenReturn("new-access")
         Mockito.`when`(jwtTokenProvider.getAccessTokenExpiresInSeconds()).thenReturn(3600L)
@@ -98,6 +115,23 @@ class AuthServiceTest {
         }
 
         Assertions.assertEquals(ErrorCode.REFRESH_TOKEN_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
+    fun `재발급 요청 시 탈퇴 사용자는 토큰 삭제 후 예외`() {
+        val request = Mockito.mock(HttpServletRequest::class.java)
+
+        Mockito.`when`(tokenService.extractRefreshToken(request)).thenReturn("deleted-user-refresh")
+        Mockito.`when`(tokenService.getUserIdByRefreshToken("deleted-user-refresh")).thenReturn(7L)
+        Mockito.`when`(userRepository.findByIdAndDeletedAtIsNull(7L)).thenReturn(null)
+
+        val exception = assertThrows<CustomException> {
+            authService.reissueAccessToken(request)
+        }
+
+        Assertions.assertEquals(ErrorCode.INVALID_REFRESH_TOKEN, exception.errorCode)
+        Mockito.verify(tokenService).deleteByUserId(7L)
+        Mockito.verify(tokenService, Mockito.never()).reissueRefreshToken(Mockito.anyLong(), Mockito.anyString())
     }
 
     @Test

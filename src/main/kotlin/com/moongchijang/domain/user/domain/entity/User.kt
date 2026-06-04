@@ -18,7 +18,8 @@ import java.time.LocalDateTime
 @Table(name = "users",
     indexes = [
         Index(name = "idx_users_provider_provider_id", columnList = "provider,provider_id"),
-        Index(name = "uidx_users_provider_email", columnList = "provider,email", unique = true)
+        Index(name = "uidx_users_provider_email", columnList = "provider,email", unique = true),
+        Index(name = "uidx_users_provider_email_hash", columnList = "provider,email_hash", unique = true)
     ]
 )
 class User(
@@ -33,13 +34,16 @@ class User(
     @Column(length = 255)
     var email: String? = null,
 
+    @Column(name = "email_hash", length = 64)
+    var emailHash: String? = null,
+
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null,
 
     @Column(length = 10)
     var nickname: String? = null,
 
-    @Column(name = "phone_number", length = 20)
+    @Column(name = "phone_number", length = 255)
     var phoneNumber: String? = null,
 
     @Enumerated(EnumType.STRING)
@@ -119,6 +123,16 @@ class User(
         this.deletedAt = now
     }
 
+    fun anonymizePersonalInfoForWithdrawal() {
+        this.providerId = null
+        this.email = null
+        this.passwordHash = null
+        this.nickname = null
+        this.phoneNumber = null
+        this.signupCompleted = false
+        this.sellerSignupCompleted = false
+    }
+
     fun saveLastRole(role: UserRole) {
         this.lastRole = role
     }
@@ -127,12 +141,14 @@ class User(
         fun newKakaoUser(
             providerId: String,
             email: String?,
+            emailHash: String?,
             nickname: String?,
         ): User {
             return User(
                 provider = AuthProvider.KAKAO,
                 providerId = providerId,
                 email = email,
+                emailHash = emailHash,
                 nickname = nickname,
                 role = UserRole.BUYER,
                 signupCompleted = false,
@@ -141,12 +157,14 @@ class User(
 
         fun newEmailUser(
             email: String,
+            emailHash: String,
             passwordHash: String,
         ): User {
             return User(
                 provider = AuthProvider.EMAIL,
                 providerId = null,
                 email = email,
+                emailHash = emailHash,
                 passwordHash = passwordHash,
                 role = UserRole.BUYER,
                 signupCompleted = false,

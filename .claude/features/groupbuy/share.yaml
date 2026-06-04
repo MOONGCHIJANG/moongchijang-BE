@@ -1,0 +1,41 @@
+meta:
+  id: GROUPBUY_SHARE
+  domain: groupbuy
+  status: implemented
+  priority: medium
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyController.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/dto/ShareMetaResponse.kt
+  openapi_paths:
+    - GET /api/v1/group-buys/{groupBuyId}/share
+  related_requirements:
+    - "1.4"
+
+overview:
+  summary: 공유용 메타데이터와 앱/웹 공유 URL을 조회한다.
+
+api_spec:
+  endpoints:
+    - method: GET
+      path: /api/v1/group-buys/{groupBuyId}/share
+      auth: public
+      controller: GroupBuyController.getShareMeta
+      response:
+        wrapper: ApiResponse
+        data: ShareMetaResponse
+
+business_rules:
+  - app.share.base-url 뒤에 /group-buys/{id}를 붙여 공유 URL을 만든다.
+  - 대표 이미지는 thumbnailKey를 S3ImageReferenceResolver로 변환한다.
+  - 공유 조회 로그는 debug 레벨을 유지한다.
+
+error_cases:
+  - code: GROUPBUY_NOT_FOUND
+    status: 404
+
+testing_strategy:
+  unit:
+    - GroupBuyServiceTest getShareMeta
+  controller:
+    - GroupBuyControllerTest GET share

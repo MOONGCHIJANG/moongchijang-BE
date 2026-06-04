@@ -1,0 +1,56 @@
+meta:
+  id: ""
+  domain: ""
+  status: draft
+  priority: medium
+  code_paths: []
+  openapi_paths: []
+  related_requirements: []
+
+overview:
+  summary: ""
+  user_story: ""
+
+api_spec:
+  endpoints:
+    - method: GET
+      path: /api/v1/example
+      auth: public
+      controller: ""
+      request:
+        path_variables: []
+        query_params: []
+        body: null
+      response:
+        wrapper: ApiResponse
+        data: ""
+
+request_spec:
+  fields: []
+  validation: []
+
+response_spec:
+  fields: []
+  example:
+    success: true
+    data: {}
+    error: null
+
+business_rules: []
+
+state_transitions: []
+
+error_cases: []
+
+testing_strategy:
+  unit: []
+  controller: []
+  repository: []
+  integration: []
+  edge_cases: []
+
+sync_checklist:
+  - code paths reviewed
+  - openapi.yaml reviewed
+  - ErrorCode reviewed
+  - tests reviewed

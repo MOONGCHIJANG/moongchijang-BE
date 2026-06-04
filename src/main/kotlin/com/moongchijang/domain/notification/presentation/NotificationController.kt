@@ -5,9 +5,11 @@ import com.moongchijang.domain.notification.application.NotificationQueryService
 import com.moongchijang.domain.notification.application.dto.NotificationCategory
 import com.moongchijang.domain.notification.application.dto.NotificationListResponse
 import com.moongchijang.domain.notification.application.dto.NotificationUnreadCountResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/notifications")
+@RequireCurrentRole(UserRole.BUYER, UserRole.SELLER)
 @Tag(name = "Notification", description = "알림 목록 조회 및 읽음 처리")
 class NotificationController(
     private val notificationQueryService: NotificationQueryService,
@@ -67,6 +70,7 @@ class NotificationController(
         )
         val response = notificationQueryService.getNotifications(
             userId = userId,
+            currentRole = principal.role,
             category = NotificationCategory.from(category),
             cursor = cursor,
             limit = limit
@@ -115,7 +119,11 @@ class NotificationController(
             notificationId
         )
 
-        notificationCommandService.markAsRead(userId = userId, notificationId = notificationId)
+        notificationCommandService.markAsRead(
+            userId = userId,
+            currentRole = principal.role,
+            notificationId = notificationId,
+        )
 
         log.info(
             "[NotificationController] 알림 단건 읽음 처리 응답 완료: userId={}, notificationId={}",
@@ -143,7 +151,7 @@ class NotificationController(
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
         log.info("[NotificationController] 알림 전체 읽음 처리 요청 수신: userId={}", userId)
 
-        val updatedCount = notificationCommandService.markAllAsRead(userId = userId)
+        val updatedCount = notificationCommandService.markAllAsRead(userId = userId, currentRole = principal.role)
 
         log.info(
             "[NotificationController] 알림 전체 읽음 처리 응답 완료: userId={}, updatedCount={}",
@@ -171,7 +179,7 @@ class NotificationController(
         val userId = principal?.id ?: throw CustomException(ErrorCode.INVALID_LOGIN)
         log.info("[NotificationController] 미읽음 알림 개수 조회 요청 수신: userId={}", userId)
 
-        val response = notificationCommandService.getUnreadCount(userId = userId)
+        val response = notificationCommandService.getUnreadCount(userId = userId, currentRole = principal.role)
 
         log.info(
             "[NotificationController] 미읽음 알림 개수 조회 응답 완료: userId={}, count={}",

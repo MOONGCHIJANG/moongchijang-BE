@@ -12,6 +12,7 @@ import com.moongchijang.domain.notification.domain.entity.NotificationTriggerTyp
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
 import com.moongchijang.domain.notification.domain.repository.NotificationRepository
+import com.moongchijang.domain.owner.domain.repository.OwnerGroupBuyRequestRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
@@ -47,6 +48,9 @@ class NotificationImmediateDispatchServiceTest {
     @Mock
     private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
 
+    @Mock
+    private lateinit var ownerGroupBuyRequestRepository: OwnerGroupBuyRequestRepository
+
     private val notificationTemplateRegistry = NotificationTemplateRegistry()
     private val notificationTemplateRenderer = NotificationTemplateRenderer()
 
@@ -57,6 +61,7 @@ class NotificationImmediateDispatchServiceTest {
             userRepository = userRepository,
             groupBuyRepository = groupBuyRepository,
             groupBuyRequestRepository = groupBuyRequestRepository,
+            ownerGroupBuyRequestRepository = ownerGroupBuyRequestRepository,
             notificationTemplateRegistry = notificationTemplateRegistry,
             notificationTemplateRenderer = notificationTemplateRenderer
         )

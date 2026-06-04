@@ -6,6 +6,7 @@ import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkCl
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoMessageFormatter
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoProperties
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Async
@@ -17,6 +18,7 @@ class PickupReminderAlimtalkEventListener(
     private val participationRepository: ParticipationRepository,
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val aligoProperties: AligoProperties,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -32,7 +34,7 @@ class PickupReminderAlimtalkEventListener(
         runCatching {
             val participation = participationRepository.findForPickupReminderById(event.targetId)
                 ?: return
-            val receiverPhone = participation.user.phoneNumber?.trim().orEmpty()
+            val receiverPhone = personalInfoManager.decryptIfNeeded(participation.user.phoneNumber)?.trim().orEmpty()
             if (receiverPhone.isBlank()) {
                 log.warn(
                     "[PickupReminderAlimtalkEventListener] 픽업 리마인드 알림톡 스킵(전화번호 없음): participationId={}, userId={}, triggerType={}",

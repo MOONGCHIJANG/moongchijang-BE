@@ -4,9 +4,11 @@ import com.moongchijang.domain.admin.application.dto.AdminOrderStatusFilter
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.GroupBuyPendingRefundCount
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -29,10 +31,14 @@ class AdminOrderServiceTest {
 
     private val groupBuyRepository: GroupBuyRepository = mock(GroupBuyRepository::class.java)
     private val participationRepository: ParticipationRepository = mock(ParticipationRepository::class.java)
+    private val storeStaffRepository: StoreStaffRepository = mock(StoreStaffRepository::class.java)
+    private val notificationEventPublisher: NotificationEventPublisher = mock(NotificationEventPublisher::class.java)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneId.of("Asia/Seoul"))
     private val service = AdminOrderService(
         groupBuyRepository = groupBuyRepository,
         participationRepository = participationRepository,
+        storeStaffRepository = storeStaffRepository,
+        notificationEventPublisher = notificationEventPublisher,
         clock = clock
     )
 
@@ -212,6 +218,33 @@ class AdminOrderServiceTest {
         assertThrows(CustomException::class.java) {
             service.cancelOrder(34L)
         }
+    }
+
+    @Test
+    fun `발주를 취소하면 사장님 알림을 발행한다`() {
+        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val groupBuy = GroupBuyFixture.createGroupBuy(
+            id = 36L,
+            status = GroupBuyStatus.ACHIEVED
+        ).apply {
+            achievedAt = now.minusHours(1)
+            orderStatus = GroupBuyOrderStatus.PENDING
+        }
+        `when`(groupBuyRepository.findWithLockById(36L)).thenReturn(Optional.of(groupBuy))
+        `when`(
+            participationRepository.countByGroupBuyIdAndStatusIn(
+                36L,
+                listOf(ParticipationStatus.REFUND_PENDING)
+            )
+        ).thenReturn(0L)
+        `when`(storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id)).thenReturn(listOf(201L, 202L))
+
+        val result = service.cancelOrder(36L)
+
+        assertEquals(GroupBuyOrderStatus.CANCELLED, result.orderStatus)
+        assertEquals(now, result.orderCancelledAt)
+        org.mockito.Mockito.verify(notificationEventPublisher)
+            .publishOwnerOrderCancelled(36L, listOf(201L, 202L), now)
     }
 
     private fun pendingRefundCount(

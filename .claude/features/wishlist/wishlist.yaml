@@ -1,0 +1,29 @@
+meta:
+  id: WISHLIST
+  domain: favorite
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/favorite/presentation/WishlistController.kt
+    - src/main/kotlin/com/moongchijang/domain/favorite/application/WishlistCommandService.kt
+    - src/main/kotlin/com/moongchijang/domain/favorite/application/WishlistQueryService.kt
+    - src/main/kotlin/com/moongchijang/domain/favorite/domain/entity/Favorite.kt
+  related_requirements:
+    - "1.1.2"
+    - "6.1"
+
+overview:
+  summary: 찜 추가/해제와 찜 목록 조회를 처리한다.
+
+business_rules:
+  - 찜은 로그인 사용자만 가능하다.
+  - 같은 사용자/공구 조합은 중복 생성하지 않는다.
+  - 찜 목록은 open/closed 필터와 정렬 기준을 DTO enum으로 받는다.
+  - 공구 이미지 응답은 S3 image key를 읽기 URL로 변환한다.
+
+testing_strategy:
+  unit:
+    - WishlistCommandServiceTest
+    - WishlistQueryServiceTest
+  repository:
+    - FavoriteRepositoryImplIntegrationTest

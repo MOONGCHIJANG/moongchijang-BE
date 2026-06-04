@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
@@ -22,12 +23,15 @@ import com.moongchijang.domain.payment.application.dto.CreatePaymentOrderRespons
 import com.moongchijang.domain.payment.application.dto.PortOneWebhookRequest
 import com.moongchijang.domain.payment.application.port.PortOnePaymentPort
 import com.moongchijang.domain.payment.application.port.PortOnePaymentResult
+import com.moongchijang.domain.payment.domain.entity.PaymentAuditEventType
+import com.moongchijang.domain.payment.domain.entity.PaymentAuditSource
 import com.moongchijang.domain.payment.domain.entity.Payment
 import com.moongchijang.domain.payment.domain.entity.PaymentOrder
 import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentRepository
 import com.moongchijang.domain.refund.application.RefundRequestSyncService
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
@@ -42,6 +46,7 @@ import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
+import java.util.concurrent.TimeUnit
 import java.util.UUID
 
 @Service
@@ -50,13 +55,16 @@ class PaymentService(
     private val userRepository: UserRepository,
     private val participationRepository: ParticipationRepository,
     private val favoriteRepository: FavoriteRepository,
+    private val storeStaffRepository: StoreStaffRepository,
     private val paymentOrderRepository: PaymentOrderRepository,
     private val paymentRepository: PaymentRepository,
+    private val paymentAuditLogService: PaymentAuditLogService,
     private val portOnePaymentPort: PortOnePaymentPort,
     private val portOneProperties: PortOneProperties,
     private val transactionManager: PlatformTransactionManager,
     private val redisLockUtil: RedisLockUtil,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val adminDiscordAlertService: AdminDiscordAlertService,
     private val refundRequestSyncService: RefundRequestSyncService,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
@@ -133,46 +141,112 @@ class PaymentService(
     }
 
     fun completePortOnePayment(request: CompletePortOnePaymentRequest, userId: Long): ConfirmPaymentResponse {
-        val order = transactionTemplate().execute {
-            val foundOrder = paymentOrderRepository.findByOrderId(request.paymentId)
-                ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
-            validatePaymentOrderOwner(foundOrder, userId)
-            foundOrder
-        } ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+        val startedAtNanos = System.nanoTime()
+        recordPaymentAudit(
+            source = PaymentAuditSource.COMPLETE_API,
+            eventType = PaymentAuditEventType.COMPLETE_REQUEST_RECEIVED,
+            orderId = request.paymentId,
+        )
 
-        if (order.status == PaymentOrderStatus.APPROVED) {
-            return transactionTemplate().execute {
-                val approvedOrder = paymentOrderRepository.findByOrderIdForUpdate(request.paymentId)
+        try {
+            val order = transactionTemplate().execute {
+                val foundOrder = paymentOrderRepository.findByOrderId(request.paymentId)
                     ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
-                buildAlreadyApprovedResponse(approvedOrder)
-            } ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
-        }
-        if (order.status != PaymentOrderStatus.READY) {
-            throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
-        }
-        if (order.totalAmount != request.amount) {
-            throw CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
-        }
+                validatePaymentOrderOwner(foundOrder, userId)
+                foundOrder
+            } ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
-        val paymentResult = getPortOnePaymentOrFailOrder(order.orderId)
-        if (paymentResult.status != PORTONE_STATUS_PAID) {
-            updateOrderFromPortOneStatus(order.orderId, paymentResult)
-            throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
-        }
-        if (paymentResult.totalAmount != order.totalAmount || paymentResult.paymentId != order.orderId) {
-            markOrderFailed(order.orderId)
-            throw CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
-        }
+            if (order.status == PaymentOrderStatus.APPROVED) {
+                return transactionTemplate().execute {
+                    val approvedOrder = paymentOrderRepository.findByOrderIdForUpdate(request.paymentId)
+                        ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+                    recordPaymentAudit(
+                        source = PaymentAuditSource.COMPLETE_API,
+                        eventType = PaymentAuditEventType.PAYMENT_IGNORED,
+                        order = approvedOrder,
+                        reason = ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name,
+                    )
+                    buildAlreadyApprovedResponse(approvedOrder)
+                } ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
+            }
+            if (order.status != PaymentOrderStatus.READY) {
+                throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
+            }
+            if (order.totalAmount != request.amount) {
+                recordPaymentFailure(
+                    source = PaymentAuditSource.COMPLETE_API,
+                    order = order,
+                    reason = ErrorCode.PAYMENT_AMOUNT_MISMATCH.name,
+                )
+                throw CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
+            }
 
-        val result = withGroupBuyLock(order.groupBuy.id) {
-            transactionTemplate().execute {
-                approvePayment(request.paymentId, request.amount, paymentResult)
-            } ?: PaymentApprovalResult.Failure(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
-        }
+            val paymentResult = getPortOnePaymentOrFailOrder(order.orderId)
+            recordPaymentAudit(
+                source = PaymentAuditSource.COMPLETE_API,
+                eventType = PaymentAuditEventType.PORTONE_STATUS_FETCHED,
+                order = order,
+                paymentResult = paymentResult,
+            )
+            if (paymentResult.status != PORTONE_STATUS_PAID) {
+                updateOrderFromPortOneStatus(order.orderId, paymentResult)
+                recordPaymentFailure(
+                    source = PaymentAuditSource.COMPLETE_API,
+                    order = order,
+                    paymentResult = paymentResult,
+                    reason = ErrorCode.PAYMENT_APPROVAL_FAILED.name,
+                )
+                throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
+            }
+            if (paymentResult.totalAmount != order.totalAmount || paymentResult.paymentId != order.orderId) {
+                markOrderFailed(order.orderId)
+                recordPaymentFailure(
+                    source = PaymentAuditSource.COMPLETE_API,
+                    order = order,
+                    paymentResult = paymentResult,
+                    reason = ErrorCode.PAYMENT_AMOUNT_MISMATCH.name,
+                )
+                throw CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
+            }
 
-        return when (result) {
-            is PaymentApprovalResult.Success -> result.response
-            is PaymentApprovalResult.Failure -> throw CustomException(result.errorCode)
+            val result = withGroupBuyLock(order.groupBuy.id) {
+                transactionTemplate().execute {
+                    approvePayment(
+                        paymentId = request.paymentId,
+                        expectedAmount = request.amount,
+                        paymentResult = paymentResult,
+                        source = PaymentAuditSource.COMPLETE_API,
+                    )
+                } ?: PaymentApprovalResult.Failure(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
+            }
+
+            return when (result) {
+                is PaymentApprovalResult.Success -> result.response.also {
+                    log.info(
+                        "[PaymentService] 결제 완료 검증 성공: paymentId={}, userId={}, participationId={}, elapsedMs={}",
+                        request.paymentId,
+                        userId,
+                        it.participationId,
+                        elapsedMs(startedAtNanos),
+                    )
+                }
+                is PaymentApprovalResult.Failure -> throw CustomException(result.errorCode)
+            }
+        } catch (e: CustomException) {
+            log.warn(
+                "[PaymentService] 결제 완료 검증 실패: paymentId={}, userId={}, errorCode={}, elapsedMs={}",
+                request.paymentId,
+                userId,
+                e.errorCode.name,
+                elapsedMs(startedAtNanos),
+            )
+            recordPaymentAudit(
+                source = PaymentAuditSource.COMPLETE_API,
+                eventType = PaymentAuditEventType.PAYMENT_FAILED,
+                orderId = request.paymentId,
+                reason = e.errorCode.name,
+            )
+            throw e
         }
     }
 
@@ -182,7 +256,13 @@ class PaymentService(
         }
     }
 
-    fun handlePortOneWebhook(request: PortOneWebhookRequest) {
+    fun handlePortOneWebhook(request: PortOneWebhookRequest, rawPayload: String? = null) {
+        recordPaymentAudit(
+            source = PaymentAuditSource.WEBHOOK,
+            eventType = PaymentAuditEventType.WEBHOOK_RECEIVED,
+            orderId = request.paymentId,
+            rawPayload = rawPayload,
+        )
         if (request.storeId != null && request.storeId != portOneProperties.storeId) {
             throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
         }
@@ -194,15 +274,45 @@ class PaymentService(
 
         val order = transactionTemplate().execute {
             paymentOrderRepository.findByOrderId(paymentId)
-        } ?: return
+        } ?: run {
+            recordPaymentAudit(
+                source = PaymentAuditSource.WEBHOOK,
+                eventType = PaymentAuditEventType.PAYMENT_IGNORED,
+                orderId = paymentId,
+                reason = ErrorCode.PAYMENT_ORDER_NOT_FOUND.name,
+                rawPayload = rawPayload,
+            )
+            return
+        }
         val paymentResult = getPortOnePaymentOrFailOrder(order.orderId)
+        recordPaymentAudit(
+            source = PaymentAuditSource.WEBHOOK,
+            eventType = PaymentAuditEventType.PORTONE_STATUS_FETCHED,
+            order = order,
+            paymentResult = paymentResult,
+            rawPayload = rawPayload,
+        )
 
         if (paymentResult.status == PORTONE_STATUS_PAID) {
             withGroupBuyLock(order.groupBuy.id) {
                 transactionTemplate().execute {
                     val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
                     if (lockedOrder.status != PaymentOrderStatus.APPROVED) {
-                        approvePayment(paymentId, lockedOrder.totalAmount, paymentResult)
+                        approvePayment(
+                            paymentId = paymentId,
+                            expectedAmount = lockedOrder.totalAmount,
+                            paymentResult = paymentResult,
+                            source = PaymentAuditSource.WEBHOOK,
+                        )
+                    } else {
+                        recordPaymentAudit(
+                            source = PaymentAuditSource.WEBHOOK,
+                            eventType = PaymentAuditEventType.PAYMENT_IGNORED,
+                            order = lockedOrder,
+                            paymentResult = paymentResult,
+                            reason = ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name,
+                            rawPayload = rawPayload,
+                        )
                     }
                 }
             }
@@ -225,8 +335,20 @@ class PaymentService(
         transactionTemplate().execute {
             val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
             if (paymentResult.status == PORTONE_STATUS_FAILED && lockedOrder.status == PaymentOrderStatus.READY) {
+                val previousStatus = lockedOrder.status
                 lockedOrder.fail(LocalDateTime.now())
                 paymentOrderRepository.save(lockedOrder)
+                recordPaymentAudit(
+                    source = PaymentAuditSource.WEBHOOK,
+                    eventType = PaymentAuditEventType.PAYMENT_FAILED,
+                    order = lockedOrder,
+                    paymentResult = paymentResult,
+                    previousOrderStatus = previousStatus,
+                    currentOrderStatus = lockedOrder.status,
+                    rawPayload = rawPayload,
+                    reason = PORTONE_STATUS_FAILED,
+                    notifyFailure = true,
+                )
             }
         }
     }
@@ -304,7 +426,8 @@ class PaymentService(
     private fun approvePayment(
         paymentId: String,
         expectedAmount: Int,
-        paymentResult: PortOnePaymentResult
+        paymentResult: PortOnePaymentResult,
+        source: PaymentAuditSource,
     ): PaymentApprovalResult {
         val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
@@ -319,13 +442,31 @@ class PaymentService(
             return PaymentApprovalResult.Failure(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
         }
         if (paymentResult.totalAmount != order.totalAmount) {
+            val previousStatus = order.status
             order.fail(LocalDateTime.now())
             paymentOrderRepository.save(order)
+            recordPaymentFailure(
+                source = source,
+                order = order,
+                paymentResult = paymentResult,
+                previousOrderStatus = previousStatus,
+                currentOrderStatus = order.status,
+                reason = ErrorCode.PAYMENT_AMOUNT_MISMATCH.name,
+            )
             return PaymentApprovalResult.Failure(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
         }
         if (paymentResult.paymentId != order.orderId) {
+            val previousStatus = order.status
             order.fail(LocalDateTime.now())
             paymentOrderRepository.save(order)
+            recordPaymentFailure(
+                source = source,
+                order = order,
+                paymentResult = paymentResult,
+                previousOrderStatus = previousStatus,
+                currentOrderStatus = order.status,
+                reason = ErrorCode.PAYMENT_AMOUNT_MISMATCH.name,
+            )
             return PaymentApprovalResult.Failure(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
         }
 
@@ -338,8 +479,17 @@ class PaymentService(
                 "[PaymentService] 조건부 수량 증가 실패: groupBuyId={}, quantity={}, orderId={}",
                 order.groupBuy.id, order.quantity, order.orderId
             )
+            val previousStatus = order.status
             order.fail(LocalDateTime.now())
             paymentOrderRepository.save(order)
+            recordPaymentFailure(
+                source = source,
+                order = order,
+                paymentResult = paymentResult,
+                previousOrderStatus = previousStatus,
+                currentOrderStatus = order.status,
+                reason = ErrorCode.PAYMENT_QUANTITY_EXCEEDED.name,
+            )
             return PaymentApprovalResult.Failure(ErrorCode.PAYMENT_QUANTITY_EXCEEDED)
         }
 
@@ -363,13 +513,15 @@ class PaymentService(
             )
         )
 
-        if (groupBuy.currentQuantity >= groupBuy.targetQuantity && groupBuy.status == GroupBuyStatus.IN_PROGRESS) {
+        val achievedNow = groupBuy.currentQuantity >= groupBuy.targetQuantity && groupBuy.status == GroupBuyStatus.IN_PROGRESS
+        if (achievedNow) {
             groupBuy.transitionToAchieved()
         }
         if (groupBuy.status == GroupBuyStatus.ACHIEVED && groupBuy.currentQuantity >= groupBuy.maxQuantity) {
             groupBuy.transitionToCompletedWhenMaxQuantityReached()
         }
         val approvedAt = paymentResult.paidAt ?: LocalDateTime.now()
+        val previousStatus = order.status
         order.approve(approvedAt)
         val approvedOrder = paymentOrderRepository.save(order)
 
@@ -384,12 +536,26 @@ class PaymentService(
             )
         )
 
+        recordPaymentAudit(
+            source = source,
+            eventType = PaymentAuditEventType.PAYMENT_APPROVED,
+            order = approvedOrder,
+            paymentResult = paymentResult,
+            previousOrderStatus = previousStatus,
+            currentOrderStatus = approvedOrder.status,
+            notifySuccess = true,
+        )
+
         publishApplyPaymentSuccessEvent(order, approvedAt)
 
         if (groupBuy.status == GroupBuyStatus.ACHIEVED) {
-            publishApplyGroupBuyAchievedEvent(groupBuy.id, approvedAt)
+            val participantUserIds = publishApplyGroupBuyAchievedEvent(groupBuy.id, approvedAt)
             publishWishTargetAchievedEvent(groupBuy.id, approvedAt)
             publishRequestTargetAchievedEvent(groupBuy, approvedAt)
+            if (achievedNow) {
+                publishOwnerGroupBuyAchievedEvents(groupBuy, approvedAt)
+                adminDiscordAlertService.sendGroupBuyAchieved(groupBuy, participantUserIds.size)
+            }
         }
 
         publishRequestNewParticipantEvent(groupBuy, participation, approvedAt)
@@ -417,15 +583,16 @@ class PaymentService(
         )
     }
 
-    private fun publishApplyGroupBuyAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
+    private fun publishApplyGroupBuyAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime): List<Long> {
         val participantUserIds = participationRepository.findDistinctUserIdsByGroupBuyId(groupBuyId)
-        if (participantUserIds.isEmpty()) return
+        if (participantUserIds.isEmpty()) return emptyList()
 
         notificationEventPublisher.publishApplyGroupBuyAchieved(
             groupBuyId = groupBuyId,
             participantUserIds = participantUserIds,
             occurredAt = occurredAt
         )
+        return participantUserIds
     }
 
     private fun publishWishTargetAchievedEvent(groupBuyId: Long, occurredAt: LocalDateTime) {
@@ -444,8 +611,9 @@ class PaymentService(
         participation: Participation,
         occurredAt: LocalDateTime
     ) {
-        val requesterUserId = groupBuy.groupBuyRequest.userId
-        val requestId = groupBuy.groupBuyRequest.id
+        val groupBuyRequest = groupBuy.groupBuyRequest ?: return
+        val requesterUserId = groupBuyRequest.user.id ?: return
+        val requestId = groupBuyRequest.id
         val participantUserId = participation.user.id ?: return
         if (requesterUserId == participantUserId) return
 
@@ -458,8 +626,9 @@ class PaymentService(
     }
 
     private fun publishRequestTargetAchievedEvent(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
-        val requesterUserId = groupBuy.groupBuyRequest.userId
-        val requestId = groupBuy.groupBuyRequest.id
+        val groupBuyRequest = groupBuy.groupBuyRequest ?: return
+        val requesterUserId = groupBuyRequest.user.id ?: return
+        val requestId = groupBuyRequest.id
         notificationEventPublisher.publishRequestTargetAchieved(
             requestId = requestId,
             requesterUserId = requesterUserId,
@@ -467,21 +636,42 @@ class PaymentService(
         )
     }
 
+    private fun publishOwnerGroupBuyAchievedEvents(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
+        val ownerUserIds = storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id).distinct()
+        if (ownerUserIds.isEmpty()) return
+
+        notificationEventPublisher.publishOwnerGroupBuyAchieved(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = ownerUserIds,
+            occurredAt = occurredAt
+        )
+        notificationEventPublisher.publishOwnerOrderConfirmRequired(
+            groupBuyId = groupBuy.id,
+            ownerUserIds = ownerUserIds,
+            occurredAt = occurredAt
+        )
+    }
+
     private fun getPortOnePaymentOrFailOrder(paymentId: String): PortOnePaymentResult {
-        return try {
-            portOnePaymentPort.getPayment(paymentId)
-        } catch (e: CustomException) {
-            markOrderFailed(paymentId)
-            throw e
-        }
+        return portOnePaymentPort.getPayment(paymentId)
     }
 
     private fun markOrderFailed(paymentId: String) {
         requiresNewTransactionTemplate().execute {
             val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
             if (order.status == PaymentOrderStatus.READY) {
+                val previousStatus = order.status
                 order.fail(LocalDateTime.now())
                 paymentOrderRepository.save(order)
+                recordPaymentAudit(
+                    source = PaymentAuditSource.COMPLETE_API,
+                    eventType = PaymentAuditEventType.PAYMENT_FAILED,
+                    order = order,
+                    previousOrderStatus = previousStatus,
+                    currentOrderStatus = order.status,
+                    reason = ErrorCode.PAYMENT_APPROVAL_FAILED.name,
+                    notifyFailure = true,
+                )
             }
         }
     }
@@ -489,12 +679,28 @@ class PaymentService(
     private fun updateOrderFromPortOneStatus(paymentId: String, paymentResult: PortOnePaymentResult) {
         requiresNewTransactionTemplate().execute {
             val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+            val previousStatus = order.status
             when (paymentResult.status) {
                 PORTONE_STATUS_CANCELLED -> order.cancel(paymentResult.cancelledAt ?: LocalDateTime.now())
                 PORTONE_STATUS_PARTIAL_CANCELLED -> order.partialCancel(paymentResult.cancelledAt ?: LocalDateTime.now())
                 else -> order.fail(LocalDateTime.now())
             }
             paymentOrderRepository.save(order)
+            val eventType = when (paymentResult.status) {
+                PORTONE_STATUS_CANCELLED -> PaymentAuditEventType.PAYMENT_CANCELLED
+                PORTONE_STATUS_PARTIAL_CANCELLED -> PaymentAuditEventType.PAYMENT_PARTIAL_CANCELLED
+                else -> PaymentAuditEventType.PAYMENT_FAILED
+            }
+            recordPaymentAudit(
+                source = PaymentAuditSource.COMPLETE_API,
+                eventType = eventType,
+                order = order,
+                paymentResult = paymentResult,
+                previousOrderStatus = previousStatus,
+                currentOrderStatus = order.status,
+                reason = paymentResult.status,
+                notifyFailure = eventType == PaymentAuditEventType.PAYMENT_FAILED,
+            )
         }
     }
 
@@ -507,23 +713,41 @@ class PaymentService(
             applyParticipationRefundConsistency(order, cancelledAt)
         }
 
-        updateOrderAndPaymentCancellationState(order, payment, cancelledAt, partial)
+        updateOrderAndPaymentCancellationState(order, payment, paymentResult, cancelledAt, partial)
     }
 
     private fun updateOrderAndPaymentCancellationState(
         order: PaymentOrder,
         payment: Payment,
+        paymentResult: PortOnePaymentResult,
         cancelledAt: LocalDateTime,
         partial: Boolean
     ) {
+        val previousStatus = order.status
         if (partial) {
             order.partialCancel(cancelledAt)
             payment.partialCancel(cancelledAt)
+            recordPaymentAudit(
+                source = PaymentAuditSource.WEBHOOK,
+                eventType = PaymentAuditEventType.PAYMENT_PARTIAL_CANCELLED,
+                order = order,
+                paymentResult = paymentResult,
+                previousOrderStatus = previousStatus,
+                currentOrderStatus = order.status,
+            )
             return
         }
 
         order.cancel(cancelledAt)
         payment.cancel(cancelledAt)
+        recordPaymentAudit(
+            source = PaymentAuditSource.WEBHOOK,
+            eventType = PaymentAuditEventType.PAYMENT_CANCELLED,
+            order = order,
+            paymentResult = paymentResult,
+            previousOrderStatus = previousStatus,
+            currentOrderStatus = order.status,
+        )
     }
 
     private fun applyParticipationRefundConsistency(order: PaymentOrder, cancelledAt: LocalDateTime) {
@@ -852,6 +1076,61 @@ class PaymentService(
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRES_NEW
         }
 
+    private fun recordPaymentAudit(
+        source: PaymentAuditSource,
+        eventType: PaymentAuditEventType,
+        order: PaymentOrder? = null,
+        orderId: String? = order?.orderId,
+        paymentResult: PortOnePaymentResult? = null,
+        previousOrderStatus: PaymentOrderStatus? = null,
+        currentOrderStatus: PaymentOrderStatus? = order?.status,
+        reason: String? = null,
+        rawPayload: String? = null,
+        notifyFailure: Boolean = false,
+        notifySuccess: Boolean = false,
+    ) {
+        paymentAuditLogService.record(
+            PaymentAuditRecord(
+                source = source,
+                eventType = eventType,
+                paymentOrder = order,
+                orderId = orderId,
+                pgPaymentId = paymentResult?.paymentId,
+                previousOrderStatus = previousOrderStatus,
+                currentOrderStatus = currentOrderStatus,
+                pgStatus = paymentResult?.status,
+                amount = paymentResult?.totalAmount,
+                method = paymentResult?.method,
+                reason = reason,
+                rawPayload = rawPayload,
+                notifyFailure = notifyFailure,
+                notifySuccess = notifySuccess,
+            )
+        )
+    }
+
+    private fun recordPaymentFailure(
+        source: PaymentAuditSource,
+        order: PaymentOrder,
+        paymentResult: PortOnePaymentResult? = null,
+        previousOrderStatus: PaymentOrderStatus? = null,
+        currentOrderStatus: PaymentOrderStatus? = order.status,
+        reason: String,
+        rawPayload: String? = null,
+    ) {
+        recordPaymentAudit(
+            source = source,
+            eventType = PaymentAuditEventType.PAYMENT_FAILED,
+            order = order,
+            paymentResult = paymentResult,
+            previousOrderStatus = previousOrderStatus,
+            currentOrderStatus = currentOrderStatus,
+            reason = reason,
+            rawPayload = rawPayload,
+            notifyFailure = true,
+        )
+    }
+
     private sealed interface PaymentApprovalResult {
         data class Success(val response: ConfirmPaymentResponse) : PaymentApprovalResult
         data class Failure(val errorCode: ErrorCode) : PaymentApprovalResult
@@ -877,6 +1156,9 @@ class PaymentService(
         val pgPaymentId: String,
         val refundAmount: Int,
     )
+
+    private fun elapsedMs(startedAtNanos: Long): Long =
+        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos)
 
     companion object {
         private const val LOCK_WAIT_MS = 500L

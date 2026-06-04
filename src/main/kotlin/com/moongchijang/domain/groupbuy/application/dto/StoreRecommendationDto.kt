@@ -30,6 +30,7 @@ data class StoreRecommendationResponse(
         val addressMatched: Boolean,
         val categoryMatched: Boolean,
         val registeredStore: Boolean,
-        val previousGroupBuyStore: Boolean
+        val previousGroupBuyStore: Boolean,
+        val imageUrl: String? = null
     )
 }

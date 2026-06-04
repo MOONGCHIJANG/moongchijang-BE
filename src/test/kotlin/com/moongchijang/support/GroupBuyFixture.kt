@@ -34,6 +34,7 @@ object GroupBuyFixture {
             currentQuantity = currentQuantity,
             maxQuantity = maxQuantity,
             status = status,
+            recruitmentStartAt = deadline.minusDays(3),
             deadline = deadline,
             pickupDate = LocalDate.now().plusDays(5),
             pickupTimeStart = LocalTime.of(14, 0),
@@ -70,7 +71,7 @@ object GroupBuyFixture {
         desiredPickupDate: LocalDate = LocalDate.now().plusDays(5)
     ): GroupBuyRequest {
         return GroupBuyRequest(
-            userId = userId,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = userId),
             storeName = storeName,
             storeAddress = storeAddress,
             productName = productName,

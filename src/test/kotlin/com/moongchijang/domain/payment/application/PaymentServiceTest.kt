@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
@@ -27,6 +28,7 @@ import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
+import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.config.PortOneProperties
@@ -44,6 +46,7 @@ import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
 import org.mockito.Mockito.lenient
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -74,10 +77,16 @@ class PaymentServiceTest {
     private lateinit var favoriteRepository: FavoriteRepository
 
     @Mock
+    private lateinit var storeStaffRepository: StoreStaffRepository
+
+    @Mock
     private lateinit var paymentOrderRepository: PaymentOrderRepository
 
     @Mock
     private lateinit var paymentRepository: PaymentRepository
+
+    @Mock
+    private lateinit var paymentAuditLogService: PaymentAuditLogService
 
     @Mock
     private lateinit var portOnePaymentPort: PortOnePaymentPort
@@ -93,6 +102,9 @@ class PaymentServiceTest {
 
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
+
+    @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
 
     @Mock
     private lateinit var refundRequestSyncService: RefundRequestSyncService
@@ -112,13 +124,16 @@ class PaymentServiceTest {
             userRepository = userRepository,
             participationRepository = participationRepository,
             favoriteRepository = favoriteRepository,
+            storeStaffRepository = storeStaffRepository,
             paymentOrderRepository = paymentOrderRepository,
             paymentRepository = paymentRepository,
+            paymentAuditLogService = paymentAuditLogService,
             portOnePaymentPort = portOnePaymentPort,
             portOneProperties = portOneProperties,
             transactionManager = transactionManager,
             redisLockUtil = redisLockUtil,
             notificationEventPublisher = notificationEventPublisher,
+            adminDiscordAlertService = adminDiscordAlertService,
             refundRequestSyncService = refundRequestSyncService,
             s3ImageReferenceResolver = s3ImageReferenceResolver
         )
@@ -319,6 +334,25 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `포트원 결제 조회 실패는 주문을 실패 확정하지 않고 재시도와 웹훅 처리를 열어둔다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(currentQuantity = 36)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenThrow(CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED))
+
+        val ex = assertThrows<CustomException> {
+            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000), 1L)
+        }
+
+        assertEquals(ErrorCode.PAYMENT_APPROVAL_FAILED, ex.errorCode)
+        assertEquals(PaymentOrderStatus.READY, order.status)
+        verify(paymentOrderRepository, never()).save(order)
+    }
+
+    @Test
     fun `결제 완료 검증은 주문 소유자만 처리할 수 있다`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy()
@@ -368,7 +402,7 @@ class PaymentServiceTest {
         val participantUser = UserFixture.createKakaoUser(id = 2L)
         val groupBuy = createGroupBuy().apply {
             groupBuyRequest = GroupBuyRequest(
-                userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
                 storeName = "뭉치장 베이커리",
                 storeAddress = "서울 성동구",
                 productName = "두쫀쿠",
@@ -981,6 +1015,7 @@ class PaymentServiceTest {
             currentQuantity = currentQuantity,
             maxQuantity = maxQuantity,
             status = status,
+            recruitmentStartAt = LocalDateTime.now(),
             deadline = LocalDateTime.now().plusDays(3),
             pickupDate = LocalDate.now().plusDays(5),
             pickupTimeStart = LocalTime.of(14, 0),
@@ -999,7 +1034,7 @@ class PaymentServiceTest {
 
     private fun createGroupBuyRequest(): GroupBuyRequest =
         GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "뭉치장 베이커리",
             storeAddress = "서울 성동구",
             productName = "두쫀쿠",

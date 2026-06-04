@@ -1,0 +1,36 @@
+version: 2
+
+branching:
+  default_base: develop
+  direct_push_allowed_when_user_requests_no_pr: true
+  protect_unrelated_changes: true
+
+commit_messages:
+  preferred:
+    - "feat: ..."
+    - "fix: ..."
+    - "test: ..."
+    - "docs: ..."
+    - "refactor: ..."
+    - "chore: ..."
+  language:
+    summary_after_prefix: "모든 commit prefix 뒤의 요약은 한국어로 작성한다."
+  jira_style:
+    use_when_issue_key_exists: "[MCJ-####] type: summary"
+
+before_commit:
+  - git status --short
+  - git diff --cached --name-only
+  - review staged diff for secrets
+  - run relevant tests or state why docs-only change does not need tests
+
+do_not_stage:
+  - .env
+  - .env.*
+  - docker/.env
+  - build/
+  - .gradle/
+  - .idea/
+  - credentials.json
+  - secrets.json
+  - certbot material

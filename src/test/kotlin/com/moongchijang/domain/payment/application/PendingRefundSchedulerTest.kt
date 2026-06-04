@@ -1,6 +1,7 @@
 package com.moongchijang.domain.payment.application
 
 import com.moongchijang.domain.groupbuy.infrastructure.lock.RedisLockUtil
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.junit.jupiter.api.Test
@@ -20,11 +21,15 @@ class PendingRefundSchedulerTest {
     @Mock
     private lateinit var redisLockUtil: RedisLockUtil
 
+    @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
+
     @Test
     fun `분산락 획득 성공 시 환불대기 처리를 실행하고 락을 해제한다`() {
         val scheduler = PendingRefundScheduler(
             paymentService = paymentService,
             redisLockUtil = redisLockUtil,
+            adminDiscordAlertService = adminDiscordAlertService,
             batchSize = 100,
             lockWaitMs = 100,
             lockLeaseMs = 55_000,
@@ -44,6 +49,7 @@ class PendingRefundSchedulerTest {
         val scheduler = PendingRefundScheduler(
             paymentService = paymentService,
             redisLockUtil = redisLockUtil,
+            adminDiscordAlertService = adminDiscordAlertService,
             batchSize = 100,
             lockWaitMs = 100,
             lockLeaseMs = 55_000,

@@ -1,0 +1,48 @@
+meta:
+  id: USER_MYPAGE
+  domain: user
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/mypage/presentation/MypageController.kt
+    - src/main/kotlin/com/moongchijang/domain/mypage/presentation/MyPageParticipationController.kt
+    - src/main/kotlin/com/moongchijang/domain/mypage/application/MypageService.kt
+    - src/main/kotlin/com/moongchijang/domain/mypage/application/MyPageParticipationQueryService.kt
+    - src/main/kotlin/com/moongchijang/domain/user/presentation/UserController.kt
+    - src/main/kotlin/com/moongchijang/domain/user/application/UserService.kt
+  related_requirements:
+    - "5.5"
+    - "5.6"
+    - "5.7"
+    - "5.8"
+    - "5.9"
+
+overview:
+  summary: 마이페이지 홈, 참여 목록, 계정 정보 변경, 역할 전환, 탈퇴 컨텍스트를 담당한다.
+
+business_rules:
+  - CustomUserPrincipal.id 기준으로 사용자 정보를 조회한다.
+  - lastRole과 role assignment 기반으로 역할 전환 컨텍스트를 계산한다.
+  - 닉네임/전화번호/비밀번호/사업자/정산 정보 변경은 각 DTO validation과 서비스 정책을 따른다.
+  - 탈퇴 가능 여부는 구매자/사장님 컨텍스트별 blocking reason으로 판단한다.
+  - 사장님 탈퇴는 진행 중 공구와 미픽업 참여자 조건을 검증한다.
+
+error_cases:
+  - USER_NOT_FOUND
+  - DUPLICATE_NICKNAME
+  - INVALID_NICKNAME_FORMAT
+  - INVALID_PHONE_NUMBER_FORMAT
+  - INVALID_PASSWORD_FORMAT
+  - WITHDRAWAL_BLOCKED_PENDING_PICKUP
+  - OWNER_WITHDRAWAL_BLOCKED_OPEN_GROUPBUY
+  - OWNER_WITHDRAWAL_BLOCKED_PENDING_CUSTOMER_PICKUP
+
+testing_strategy:
+  unit:
+    - MypageServiceTest
+    - MyPageParticipationQueryServiceTest
+    - UserServiceTest
+    - WithdrawalContextServiceTest
+    - OwnerWithdrawServiceTest
+  controller:
+    - MypageControllerTest

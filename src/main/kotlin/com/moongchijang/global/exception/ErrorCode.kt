@@ -100,6 +100,9 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     PHONE_VERIFICATION_REQUIRED(400_203, "전화번호 인증이 필요합니다.", 400),
     SMS_SEND_FAILED(500_201, "문자 발송에 실패했습니다. 잠시 후 다시 시도해주세요.", 500),
     EMAIL_SEND_FAILED(500_202, "이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.", 500),
+    PERSONAL_INFO_SECRET_KEY_INVALID(500_205, "개인정보 암호화 키 설정이 올바르지 않습니다.", 500),
+    PERSONAL_INFO_ENCRYPTION_FAILED(500_203, "개인정보 암호화 처리에 실패했습니다.", 500),
+    PERSONAL_INFO_DECRYPTION_FAILED(500_204, "개인정보 복호화 처리에 실패했습니다.", 500),
 
     // Store(250~299)
     STORE_SEARCH_FAILED(502_250, "매장 검색 중 오류가 발생했습니다.", 502),

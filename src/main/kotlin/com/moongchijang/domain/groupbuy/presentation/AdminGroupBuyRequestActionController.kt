@@ -4,7 +4,9 @@ import com.moongchijang.domain.groupbuy.application.AdminGroupBuyRequestActionSe
 import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestActionResponse
 import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestApproveRequest
 import com.moongchijang.domain.groupbuy.application.dto.AdminGroupBuyRequestRejectRequest
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/admin/group-buy-requests")
+@RequireCurrentRole(UserRole.ADMIN)
 @Tag(name = "GroupBuyRequestAdmin", description = "공구 개설 요청 관리")
 class AdminGroupBuyRequestActionController(
     private val adminGroupBuyRequestActionService: AdminGroupBuyRequestActionService

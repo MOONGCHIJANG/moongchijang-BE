@@ -125,6 +125,118 @@ class NotificationEventPublisher(
         )
     }
 
+    fun publishOwnerGroupBuyAchieved(
+        groupBuyId: Long,
+        ownerUserIds: List<Long>,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_GROUPBUY_ACHIEVED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = ownerUserIds,
+            scheduleKey = "owner-groupbuy-achieved:$groupBuyId",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishOwnerGroupBuyFailed(
+        groupBuyId: Long,
+        ownerUserIds: List<Long>,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_GROUPBUY_FAILED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = ownerUserIds,
+            scheduleKey = "owner-groupbuy-failed:$groupBuyId",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishOwnerCloseRequestApproved(
+        groupBuyId: Long,
+        ownerUserIds: List<Long>,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_CLOSE_REQUEST_APPROVED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = ownerUserIds,
+            scheduleKey = "owner-close-approved:$groupBuyId:$occurredAt",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishOwnerCloseRequestRejected(
+        groupBuyId: Long,
+        ownerUserIds: List<Long>,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_CLOSE_REQUEST_REJECTED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = ownerUserIds,
+            scheduleKey = "owner-close-rejected:$groupBuyId:$occurredAt",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishOwnerOpenRequestApproved(
+        requestId: Long,
+        ownerUserId: Long,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_OPEN_REQUEST_APPROVED_IMMEDIATE,
+            targetId = requestId,
+            userIds = listOf(ownerUserId),
+            scheduleKey = "owner-open-approved:$requestId",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishOwnerOpenRequestRejected(
+        requestId: Long,
+        ownerUserId: Long,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_OPEN_REQUEST_REJECTED_IMMEDIATE,
+            targetId = requestId,
+            userIds = listOf(ownerUserId),
+            scheduleKey = "owner-open-rejected:$requestId",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishOwnerOrderConfirmRequired(
+        groupBuyId: Long,
+        ownerUserIds: List<Long>,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = ownerUserIds,
+            scheduleKey = "owner-order-confirm-required:$groupBuyId",
+            occurredAt = occurredAt
+        )
+    }
+
+    fun publishOwnerOrderCancelled(
+        groupBuyId: Long,
+        ownerUserIds: List<Long>,
+        occurredAt: LocalDateTime
+    ) {
+        publish(
+            triggerType = NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE,
+            targetId = groupBuyId,
+            userIds = ownerUserIds,
+            scheduleKey = "owner-order-cancelled:$groupBuyId",
+            occurredAt = occurredAt
+        )
+    }
+
     fun publishScheduledTrigger(
         triggerType: NotificationTriggerType,
         targetId: Long,

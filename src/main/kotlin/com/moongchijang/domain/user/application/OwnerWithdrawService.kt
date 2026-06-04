@@ -22,6 +22,10 @@ class OwnerWithdrawService(
     private val storeStaffRepository: StoreStaffRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val participationRepository: ParticipationRepository,
+    private val tokenService: com.moongchijang.domain.auth.application.TokenService,
+    private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
+    private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
+    private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -43,7 +47,24 @@ class OwnerWithdrawService(
             reasonDetail = normalizedReasonDetail(request),
         )
         userRepository.save(owner)
+        withdrawnAccountCommandService.recordWithdrawal(
+            user = owner,
+            withdrawnAt = requireNotNull(owner.deletedAt),
+        )
+        finalizeWithdrawalAfterRetention(ownerId = ownerId, owner = owner)
         log.info("[OwnerWithdrawService] 사장님 회원탈퇴 처리 완료: ownerId={}", ownerId)
+    }
+
+    private fun finalizeWithdrawalAfterRetention(ownerId: Long, owner: com.moongchijang.domain.user.domain.entity.User) {
+        val withdrawnAt = requireNotNull(owner.deletedAt)
+        withdrawalLegalRetentionCommandService.retainForWithdrawal(
+            userId = ownerId,
+            withdrawnAt = withdrawnAt,
+        )
+        owner.anonymizePersonalInfoForWithdrawal()
+        userRepository.saveAndFlush(owner)
+        withdrawalImmediateCleanupService.cleanup(ownerId)
+        tokenService.deleteByUserId(ownerId)
     }
 
     fun validateWithdrawable(ownerId: Long) {

@@ -4,7 +4,9 @@ import com.moongchijang.domain.groupbuy.application.GroupBuyOpenRequestService
 import com.moongchijang.domain.groupbuy.application.dto.CreateGroupBuyOpenRequestRequest
 import com.moongchijang.domain.groupbuy.application.dto.StoreRecommendationRequest
 import com.moongchijang.domain.groupbuy.application.dto.StoreRecommendationResponse
+import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.response.ApiResponse
+import com.moongchijang.security.authorization.RequireCurrentRole
 import com.moongchijang.security.principal.CustomUserPrincipal
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -25,6 +27,7 @@ class GroupBuyOpenRequestController(
 ) {
 
     @PostMapping
+    @RequireCurrentRole(UserRole.BUYER)
     @Operation(summary = "공구 개설 알림 신청")
     fun create(
         @AuthenticationPrincipal principal: CustomUserPrincipal,

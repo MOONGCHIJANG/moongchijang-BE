@@ -32,7 +32,7 @@ class GroupBuyRequestStatusCommandService(
         request.markRejected(reason)
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
-                groupBuyRequestId = request.id,
+                groupBuyRequest = request,
                 status = GroupBuyRequestStatus.REJECTED,
                 changedAt = changedAt
             )
@@ -40,12 +40,12 @@ class GroupBuyRequestStatusCommandService(
 
         notificationEventPublisher.publishRequestRejected(
             requestId = request.id,
-            requesterUserId = request.userId,
+            requesterUserId = requireNotNull(request.user.id) { "GroupBuyRequest.user.id must not be null" },
             occurredAt = changedAt
         )
         log.info(
             "[GroupBuyRequestStatusCommandService] 요청공구 거절 처리 및 알림 트리거 발행: requestId={}, requesterUserId={}",
-            requestId, request.userId
+            requestId, requireNotNull(request.user.id) { "GroupBuyRequest.user.id must not be null" }
         )
     }
 }

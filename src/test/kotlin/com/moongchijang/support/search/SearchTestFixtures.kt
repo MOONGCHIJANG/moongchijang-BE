@@ -26,7 +26,7 @@ object SearchTestFixtures {
 
     fun groupBuyRequest(id: Long = 100L): GroupBuyRequest =
         GroupBuyRequest(
-            userId = 1L,
+            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 1L),
             storeName = "뭉치장 베이커리",
             storeAddress = "서울 성동구",
             productName = "두쫀쿠",
@@ -51,6 +51,7 @@ object SearchTestFixtures {
         currentQuantity = 10,
         maxQuantity = 100,
         status = status,
+        recruitmentStartAt = deadline.minusDays(1),
         deadline = deadline,
         pickupDate = LocalDate.now().plusDays(5),
         pickupTimeStart = LocalTime.of(14, 0),
