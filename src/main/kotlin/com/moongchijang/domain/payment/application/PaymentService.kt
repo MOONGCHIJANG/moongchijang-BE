@@ -221,7 +221,15 @@ class PaymentService(
             }
 
             return when (result) {
-                is PaymentApprovalResult.Success -> result.response
+                is PaymentApprovalResult.Success -> result.response.also {
+                    log.info(
+                        "[PaymentService] 결제 완료 검증 성공: paymentId={}, userId={}, participationId={}, elapsedMs={}",
+                        request.paymentId,
+                        userId,
+                        it.participationId,
+                        elapsedMs(startedAtNanos),
+                    )
+                }
                 is PaymentApprovalResult.Failure -> throw CustomException(result.errorCode)
             }
         } catch (e: CustomException) {
