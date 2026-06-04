@@ -46,6 +46,7 @@ import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
+import java.util.concurrent.TimeUnit
 import java.util.UUID
 
 @Service
@@ -140,6 +141,13 @@ class PaymentService(
     }
 
     fun completePortOnePayment(request: CompletePortOnePaymentRequest, userId: Long): ConfirmPaymentResponse {
+        val startedAtNanos = System.nanoTime()
+        log.info(
+            "[PaymentService] 결제 완료 검증 시작: paymentId={}, userId={}, amount={}",
+            request.paymentId,
+            userId,
+            request.amount,
+        )
         recordPaymentAudit(
             source = PaymentAuditSource.COMPLETE_API,
             eventType = PaymentAuditEventType.COMPLETE_REQUEST_RECEIVED,
@@ -164,7 +172,14 @@ class PaymentService(
                         order = approvedOrder,
                         reason = ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name,
                     )
-                    buildAlreadyApprovedResponse(approvedOrder)
+                    buildAlreadyApprovedResponse(approvedOrder).also {
+                        log.info(
+                            "[PaymentService] 결제 완료 검증 멱등 응답: paymentId={}, userId={}, elapsedMs={}",
+                            request.paymentId,
+                            userId,
+                            elapsedMs(startedAtNanos),
+                        )
+                    }
                 } ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
             }
             if (order.status != PaymentOrderStatus.READY) {
@@ -219,10 +234,25 @@ class PaymentService(
             }
 
             return when (result) {
-                is PaymentApprovalResult.Success -> result.response
+                is PaymentApprovalResult.Success -> result.response.also {
+                    log.info(
+                        "[PaymentService] 결제 완료 검증 성공: paymentId={}, userId={}, participationId={}, elapsedMs={}",
+                        request.paymentId,
+                        userId,
+                        it.participationId,
+                        elapsedMs(startedAtNanos),
+                    )
+                }
                 is PaymentApprovalResult.Failure -> throw CustomException(result.errorCode)
             }
         } catch (e: CustomException) {
+            log.warn(
+                "[PaymentService] 결제 완료 검증 실패: paymentId={}, userId={}, errorCode={}, elapsedMs={}",
+                request.paymentId,
+                userId,
+                e.errorCode.name,
+                elapsedMs(startedAtNanos),
+            )
             recordPaymentAudit(
                 source = PaymentAuditSource.COMPLETE_API,
                 eventType = PaymentAuditEventType.PAYMENT_FAILED,
@@ -637,12 +667,7 @@ class PaymentService(
     }
 
     private fun getPortOnePaymentOrFailOrder(paymentId: String): PortOnePaymentResult {
-        return try {
-            portOnePaymentPort.getPayment(paymentId)
-        } catch (e: CustomException) {
-            markOrderFailed(paymentId)
-            throw e
-        }
+        return portOnePaymentPort.getPayment(paymentId)
     }
 
     private fun markOrderFailed(paymentId: String) {
@@ -1145,6 +1170,9 @@ class PaymentService(
         val pgPaymentId: String,
         val refundAmount: Int,
     )
+
+    private fun elapsedMs(startedAtNanos: Long): Long =
+        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos)
 
     companion object {
         private const val LOCK_WAIT_MS = 500L

@@ -5,12 +5,14 @@ import com.moongchijang.domain.payment.application.port.PortOnePaymentResult
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
+import kotlin.system.measureTimeMillis
 
 @Component
 class PortOnePaymentClient(
@@ -18,17 +20,26 @@ class PortOnePaymentClient(
     restClientBuilder: RestClient.Builder,
 ) : PortOnePaymentPort {
     private val restClient = restClientBuilder.build()
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun getPayment(paymentId: String): PortOnePaymentResult {
-        val response = try {
-            restClient.get()
-                .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}", paymentId)
-                .header("Authorization", "PortOne ${portOneProperties.apiSecret}")
-                .retrieve()
-                .body(Map::class.java)
-                ?: throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
-        } catch (e: RestClientException) {
-            throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
+        lateinit var response: Map<*, *>
+        val elapsedMs = measureTimeMillis {
+            response = try {
+                restClient.get()
+                    .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}", paymentId)
+                    .header("Authorization", "PortOne ${portOneProperties.apiSecret}")
+                    .retrieve()
+                    .body(Map::class.java)
+                    ?: throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
+            } catch (e: RestClientException) {
+                throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
+            }
+        }
+        if (elapsedMs >= SLOW_REQUEST_WARN_THRESHOLD_MS) {
+            log.warn("[PortOnePaymentClient] 결제 단건 조회 지연: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
+        } else {
+            log.debug("[PortOnePaymentClient] 결제 단건 조회 완료: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
         }
 
         return try {
@@ -46,16 +57,24 @@ class PortOnePaymentClient(
                 this["amount"] = cancelAmount
             }
         }
-        val response = try {
-            restClient.post()
-                .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}/cancel", paymentId)
-                .header("Authorization", "PortOne ${portOneProperties.apiSecret}")
-                .body(requestBody)
-                .retrieve()
-                .body(Map::class.java)
-                ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
-        } catch (e: RestClientException) {
-            throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        lateinit var response: Map<*, *>
+        val elapsedMs = measureTimeMillis {
+            response = try {
+                restClient.post()
+                    .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}/cancel", paymentId)
+                    .header("Authorization", "PortOne ${portOneProperties.apiSecret}")
+                    .body(requestBody)
+                    .retrieve()
+                    .body(Map::class.java)
+                    ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+            } catch (e: RestClientException) {
+                throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+            }
+        }
+        if (elapsedMs >= SLOW_REQUEST_WARN_THRESHOLD_MS) {
+            log.warn("[PortOnePaymentClient] 결제 취소 요청 지연: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
+        } else {
+            log.debug("[PortOnePaymentClient] 결제 취소 요청 완료: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
         }
 
         return try {
@@ -103,5 +122,9 @@ class PortOnePaymentClient(
                 LocalDateTime.parse(it)
             }
         }
+    }
+
+    companion object {
+        private const val SLOW_REQUEST_WARN_THRESHOLD_MS = 1_000L
     }
 }
