@@ -799,9 +799,11 @@ class PaymentService(
         validateParticipationOwner(participation, userId)
         validateParticipationCancelable(participation)
 
-        val order = paymentOrderRepository.findByUserIdAndGroupBuyId(userId, participation.groupBuy.id)
-            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
-        validateApprovedPaymentOrder(order)
+        val order = paymentOrderRepository.findByUserIdAndGroupBuyIdAndStatus(
+            userId = userId,
+            groupBuyId = participation.groupBuy.id,
+            status = PaymentOrderStatus.APPROVED
+        ) ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
@@ -901,9 +903,11 @@ class PaymentService(
         }
 
         val userId = participation.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-        val order = paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(userId, participation.groupBuy.id)
-            ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
-        validateApprovedPaymentOrder(order)
+        val order = paymentOrderRepository.findByUserIdAndGroupBuyIdAndStatusForUpdate(
+            userId = userId,
+            groupBuyId = participation.groupBuy.id,
+            status = PaymentOrderStatus.APPROVED
+        ) ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
