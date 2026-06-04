@@ -18,6 +18,7 @@ import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.global.config.AppS3Properties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
@@ -39,6 +40,7 @@ class GroupBuyOpenRequestService(
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val notificationEventPublisher: NotificationEventPublisher,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val appS3Properties: AppS3Properties,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -275,7 +277,9 @@ class GroupBuyOpenRequestService(
                 lotAddress = lotAddress,
                 latitude = latitude(),
                 longitude = longitude(),
-                imageUrl = s3ImageReferenceResolver.resolveForRead(RecommendedStoreImages.keyByIndex(index)),
+                imageUrl = s3ImageReferenceResolver.resolveForRead(
+                    RecommendedStoreImages.keyByIndex(index, appS3Properties.prefix)
+                ),
                 category = category,
                 addressMatched = addressMatched,
                 categoryMatched = categoryMatched,

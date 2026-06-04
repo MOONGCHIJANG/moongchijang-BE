@@ -22,6 +22,7 @@ import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchRe
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
+import com.moongchijang.global.config.AppS3Properties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
@@ -36,7 +37,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
@@ -72,11 +72,23 @@ class GroupBuyOpenRequestServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
-    @InjectMocks
+    private val appS3Properties = AppS3Properties(prefix = "dev")
+
     private lateinit var service: GroupBuyOpenRequestService
 
     @BeforeEach
     fun setUp() {
+        service = GroupBuyOpenRequestService(
+            openRequestRepository = openRequestRepository,
+            naverLocalSearchClient = naverLocalSearchClient,
+            storeRepository = storeRepository,
+            groupBuyRepository = groupBuyRepository,
+            userRepository = userRepository,
+            aligoAlimtalkClient = aligoAlimtalkClient,
+            notificationEventPublisher = notificationEventPublisher,
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
+            appS3Properties = appS3Properties,
+        )
         lenient().`when`(userRepository.findByIdAndDeletedAtIsNull(anyLong()))
             .thenAnswer { UserFixture.createKakaoUser(id = it.getArgument(0)) }
         lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString()))

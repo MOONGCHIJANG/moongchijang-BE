@@ -3,6 +3,7 @@ package com.moongchijang.domain.store.application
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchResponse
+import com.moongchijang.global.config.AppS3Properties
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -13,7 +14,11 @@ class StoreSearchServiceTest {
 
     private val naverLocalSearchClient: NaverLocalSearchClient = Mockito.mock(NaverLocalSearchClient::class.java)
     private val s3ImageReferenceResolver: S3ImageReferenceResolver = Mockito.mock(S3ImageReferenceResolver::class.java)
-    private val service = StoreSearchService(naverLocalSearchClient, s3ImageReferenceResolver)
+    private val service = StoreSearchService(
+        naverLocalSearchClient,
+        s3ImageReferenceResolver,
+        AppS3Properties(prefix = "dev")
+    )
 
     @BeforeEach
     fun setUp() {
