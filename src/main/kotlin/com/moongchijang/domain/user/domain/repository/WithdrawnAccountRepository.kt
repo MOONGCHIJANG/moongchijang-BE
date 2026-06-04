@@ -13,4 +13,6 @@ interface WithdrawnAccountRepository : JpaRepository<WithdrawnAccount, Long> {
     fun findByWithdrawnUserId(withdrawnUserId: Long): WithdrawnAccount?
 
     fun findAllByRejoinAvailableAtBefore(rejoinAvailableAt: LocalDateTime): List<WithdrawnAccount>
+
+    fun deleteByRejoinAvailableAtBefore(rejoinAvailableAt: LocalDateTime): Long
 }
