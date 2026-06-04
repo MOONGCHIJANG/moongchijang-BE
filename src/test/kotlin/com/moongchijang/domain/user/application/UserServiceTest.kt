@@ -325,10 +325,9 @@ class UserServiceTest {
     @Test
     fun `이메일 중복 확인 시 사용 가능하면 true`() {
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsActiveByProviderAndEmailHash(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("new@example.com"),
-                "new@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -367,10 +366,9 @@ class UserServiceTest {
     @Test
     fun `이메일 중복 확인 시 중복이면 false`() {
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsActiveByProviderAndEmailHash(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("dup@example.com"),
-                "dup@example.com",
             ),
         ).thenReturn(true)
         Mockito.`when`(
@@ -407,10 +405,9 @@ class UserServiceTest {
         )
 
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsActiveByProviderAndEmailHash(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("dup@example.com"),
-                "dup@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -435,10 +432,9 @@ class UserServiceTest {
         val userCaptor: ArgumentCaptor<User> = ArgumentCaptor.forClass(User::class.java)
 
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsActiveByProviderAndEmailHash(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("new@example.com"),
-                "new@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -463,10 +459,9 @@ class UserServiceTest {
     @Test
     fun `이메일 사용자 생성 시 중복 이메일 예외`() {
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsActiveByProviderAndEmailHash(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("dup@example.com"),
-                "dup@example.com",
             ),
         ).thenReturn(true)
         Mockito.`when`(
@@ -495,10 +490,9 @@ class UserServiceTest {
         )
 
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsActiveByProviderAndEmailHash(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("rejoin-blocked@example.com"),
-                "rejoin-blocked@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -532,10 +526,9 @@ class UserServiceTest {
             passwordHash = "hashed-password",
         )
         Mockito.`when`(
-            userRepository.findActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.findActiveByProviderAndEmailHash(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("login@example.com"),
-                "login@example.com",
             ),
         ).thenReturn(user)
 

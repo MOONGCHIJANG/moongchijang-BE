@@ -27,13 +27,12 @@ interface UserRepository : JpaRepository<User, Long> {
         from User u
         where u.provider = :provider
           and u.deletedAt is null
-          and (u.emailHash = :emailHash or u.email = :legacyEmail)
+          and u.emailHash = :emailHash
         """
     )
-    fun findActiveByProviderAndEmailHashOrLegacyEmail(
+    fun findActiveByProviderAndEmailHash(
         @Param("provider") provider: AuthProvider,
         @Param("emailHash") emailHash: String,
-        @Param("legacyEmail") legacyEmail: String,
     ): User?
 
     @Query(
@@ -42,13 +41,12 @@ interface UserRepository : JpaRepository<User, Long> {
         from User u
         where u.provider = :provider
           and u.deletedAt is null
-          and (u.emailHash = :emailHash or u.email = :legacyEmail)
+          and u.emailHash = :emailHash
         """
     )
-    fun existsActiveByProviderAndEmailHashOrLegacyEmail(
+    fun existsActiveByProviderAndEmailHash(
         @Param("provider") provider: AuthProvider,
         @Param("emailHash") emailHash: String,
-        @Param("legacyEmail") legacyEmail: String,
     ): Boolean
 
     fun existsByNicknameAndDeletedAtIsNull(nickname: String): Boolean
