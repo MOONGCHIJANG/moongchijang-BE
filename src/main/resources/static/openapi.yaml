@@ -71,7 +71,7 @@ paths:
           description: 로그인 성공
           headers:
             Set-Cookie:
-              description: refreshToken HttpOnly 쿠키
+              description: 환경별 cookie path로 저장되는 refreshToken HttpOnly 쿠키 (prod=`/`, dev=`/dev`)
               schema:
                 type: string
           content:
@@ -83,13 +83,15 @@ paths:
     post:
       tags: [Auth]
       summary: Access Token 갱신
-      description: HttpOnly 쿠키의 refreshToken을 검증해 Access Token을 재발급한다.
+      description: |
+        HttpOnly 쿠키의 refreshToken을 검증해 Access Token을 재발급한다.
+        refreshToken 쿠키는 환경별 path를 사용하며, 현재 요청 경로와 동일한 path 기준으로 갱신된다. (prod=`/`, dev=`/dev`)
       responses:
         '200':
           description: 토큰 갱신 성공
           headers:
             Set-Cookie:
-              description: refreshToken rotation 시 신규 refreshToken 쿠키
+              description: refreshToken rotation 시 동일 path 기준으로 갱신되는 신규 refreshToken 쿠키
               schema:
                 type: string
           content:
@@ -103,7 +105,9 @@ paths:
     post:
       tags: [Auth]
       summary: 로그아웃
-      description: Refresh Token을 무효화한다.
+      description: |
+        Refresh Token을 무효화한다.
+        refreshToken 쿠키는 발급 시 사용한 동일 path 기준으로 삭제한다. (prod=`/`, dev=`/dev`)
       security:
         - bearerAuth: []
       responses:
@@ -598,7 +602,7 @@ paths:
           description: 회원가입 및 로그인 성공
           headers:
             Set-Cookie:
-              description: refreshToken HttpOnly 쿠키
+              description: 환경별 cookie path로 저장되는 refreshToken HttpOnly 쿠키 (prod=`/`, dev=`/dev`)
               schema:
                 type: string
           content:
@@ -626,7 +630,7 @@ paths:
           description: 로그인 성공
           headers:
             Set-Cookie:
-              description: refreshToken HttpOnly 쿠키
+              description: 환경별 cookie path로 저장되는 refreshToken HttpOnly 쿠키 (prod=`/`, dev=`/dev`)
               schema:
                 type: string
           content:
