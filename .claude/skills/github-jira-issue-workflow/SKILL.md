@@ -10,9 +10,7 @@ Use this workflow when starting Moongchijang backend work that must go through G
 1. Run `git status --short --branch`.
 2. Confirm the current repository is `MOONGCHIJANG/moongchijang-BE`.
 3. Confirm GitHub authentication is active with `gh auth status`.
-4. Check the current GitHub user with `gh api user --jq .login`.
-5. Do not proceed as `xeraph040`. The expected author for eun-seoo work is `eun-seoo`.
-6. If the worktree has unrelated local changes, leave them unstaged and use a separate worktree for the new task.
+4. If the worktree has unrelated local changes, leave them unstaged and use a separate worktree for the new task.
 
 ## 2. Create GitHub Issue
 
@@ -120,4 +118,3 @@ Report:
 - changed files
 - verification result
 - remaining manual setup, if any
-
