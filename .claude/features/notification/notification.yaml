@@ -1,0 +1,42 @@
+meta:
+  id: NOTIFICATION
+  domain: notification
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/notification/presentation/NotificationController.kt
+    - src/main/kotlin/com/moongchijang/domain/notification/application/NotificationQueryService.kt
+    - src/main/kotlin/com/moongchijang/domain/notification/application/NotificationCommandService.kt
+    - src/main/kotlin/com/moongchijang/domain/notification/application/template/NotificationTemplateRegistry.kt
+    - src/main/kotlin/com/moongchijang/domain/notification/domain/entity/Notification.kt
+  related_requirements:
+    - "5.1"
+    - "5.2"
+
+overview:
+  summary: 알림 목록, 안읽음 수, 읽음 처리, 템플릿 렌더링, 즉시/스케줄 트리거를 관리한다.
+
+business_rules:
+  - 사용자는 본인 알림만 조회/처리할 수 있다.
+  - 목록은 cursor/section/category 기준을 따른다.
+  - 섹션 날짜 기준은 KST 고정 정책을 유지한다.
+  - 알림 템플릿 변수 누락은 명시적 ErrorCode로 실패한다.
+  - 즉시 알림 이벤트 리스너는 비동기 executor를 사용한다.
+  - dispatch history/dedup key로 중복 발송을 방지한다.
+
+error_cases:
+  - NOTIFICATION_NOT_FOUND
+  - NOTIFICATION_FORBIDDEN
+  - NOTIFICATION_TEMPLATE_NOT_FOUND
+  - NOTIFICATION_TEMPLATE_VARIABLE_MISSING
+
+testing_strategy:
+  unit:
+    - NotificationQueryServiceTest
+    - NotificationCommandServiceTest
+    - NotificationTemplateRegistryTest
+    - NotificationTemplateRendererTest
+    - NotificationTriggerSchedulerTest
+    - NotificationImmediateDispatchServiceTest
+  repository:
+    - NotificationRepositoryIntegrationTest

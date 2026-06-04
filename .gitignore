@@ -39,9 +39,6 @@ out/
 ### Kotlin ###
 .kotlin
 
-### Claude AI (contains business logic) ###
-.claude/
-
 ### OMC (oh-my-claudecode) ###
 .omc/
 

@@ -1,0 +1,57 @@
+meta:
+  id: PAYMENT_PARTICIPATION
+  domain: payment
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/payment/presentation/PaymentController.kt
+    - src/main/kotlin/com/moongchijang/domain/payment/application/PaymentService.kt
+    - src/main/kotlin/com/moongchijang/domain/payment/domain/entity/PaymentOrder.kt
+    - src/main/kotlin/com/moongchijang/domain/payment/domain/entity/Payment.kt
+    - src/main/kotlin/com/moongchijang/domain/participation/domain/entity/Participation.kt
+  openapi_paths:
+    - GET /api/v1/group-buys/{groupBuyId}/checkout
+    - POST /api/v1/group-buys/{groupBuyId}/payment-orders
+    - POST /api/v1/payments/portone/complete
+    - POST /api/v1/payments/portone/webhook
+  related_requirements:
+    - "3.1"
+    - "3.2"
+    - "3.3"
+    - "3.4"
+
+overview:
+  summary: 공구 참여 결제 주문 생성, PortOne 승인 완료, 웹훅 처리를 통해 참여를 확정한다.
+
+business_rules:
+  - 결제 전 수량, 모집 상태, deadline, per-user limit, 동의 여부를 검증한다.
+  - 결제 주문은 사용자 소유권을 검증한다.
+  - PortOne 승인 금액과 서버 계산 금액은 일치해야 한다.
+  - 이미 처리된 주문은 재처리하지 않는다.
+  - 공구 수량 증가는 동시성 안전한 repository update/lock 정책을 따른다.
+  - 참여 생성 후 Payment/PaymentOrder/Participation 상태가 일관되어야 한다.
+
+error_cases:
+  - PAYMENT_INVALID_QUANTITY
+  - PAYMENT_GROUPBUY_NOT_AVAILABLE
+  - PAYMENT_QUANTITY_EXCEEDED
+  - PAYMENT_AGREEMENT_REQUIRED
+  - PAYMENT_ORDER_NOT_FOUND
+  - PAYMENT_ORDER_FORBIDDEN
+  - PAYMENT_ORDER_ALREADY_PROCESSED
+  - PAYMENT_AMOUNT_MISMATCH
+  - PAYMENT_APPROVAL_FAILED
+  - PAYMENT_DUPLICATE_PARTICIPATION
+  - PAYMENT_WEBHOOK_INVALID
+  - PAYMENT_PER_USER_LIMIT_EXCEEDED
+  - GROUPBUY_LOCK_ACQUISITION_FAILED
+  - GROUPBUY_LOCK_INTERRUPTED
+
+testing_strategy:
+  unit:
+    - PaymentServiceTest 정상 참여/결제 완료
+    - PaymentServiceTest 마감/수량초과/동의누락/중복참여/금액불일치
+  infrastructure:
+    - PortOnePaymentClientTest
+  scheduler:
+    - PendingRefundSchedulerTest

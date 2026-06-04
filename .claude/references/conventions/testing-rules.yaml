@@ -1,0 +1,37 @@
+version: 2
+
+test_layout:
+  domain_tests: src/test/kotlin/com/moongchijang/domain
+  global_tests: src/test/kotlin/com/moongchijang/global
+  security_tests: src/test/kotlin/com/moongchijang/security
+  fixtures: src/test/kotlin/com/moongchijang/support
+
+required_coverage_by_change:
+  controller:
+    - HTTP method/path/status
+    - auth/role behavior
+    - validation error behavior
+    - ApiResponse wrapper shape when practical
+  service:
+    - happy path
+    - important business-rule failures
+    - boundary conditions around time, quantity, state, and ownership
+  repository:
+    - custom Querydsl/native SQL filters and sorting
+    - paging total/content consistency
+    - DB constraints that protect concurrency or uniqueness
+  scheduler_listener:
+    - target selection
+    - idempotency or deduplication
+    - failure handling/logging path when behavior matters
+
+commands:
+  narrow_test: ./gradlew test --tests "com.moongchijang...ClassNameTest"
+  full_test: ./gradlew test
+  compile: ./gradlew compileKotlin
+
+rules:
+  - Do not disable tests to pass a change.
+  - Do not weaken assertions unless the product behavior intentionally changed and the spec changed too.
+  - Add regression tests before or with bug fixes.
+  - Use existing fixtures before inventing large inline setup.

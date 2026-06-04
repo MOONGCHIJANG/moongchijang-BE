@@ -1,0 +1,38 @@
+meta:
+  id: OWNER_GROUPBUY
+  domain: owner
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/owner/presentation/OwnerGroupBuyController.kt
+    - src/main/kotlin/com/moongchijang/domain/owner/presentation/OwnerGroupBuyRequestController.kt
+    - src/main/kotlin/com/moongchijang/domain/owner/application/OwnerGroupBuyService.kt
+    - src/main/kotlin/com/moongchijang/domain/owner/application/OwnerGroupBuyRequestService.kt
+    - src/main/kotlin/com/moongchijang/domain/owner/domain/entity/OwnerGroupBuyRequest.kt
+  related_requirements:
+    - owner groupbuy management
+
+overview:
+  summary: 사장님 공구 관리, 공구 개설 요청, 기간 연장/마감/참여자/정산 화면을 담당한다.
+
+business_rules:
+  - 사장님 권한과 담당 매장/공구 소유 관계를 검증한다.
+  - 개설 요청은 기간, 수량, 픽업 시간, 픽업일 검증을 수행한다.
+  - 운영자 승인 전까지 요청 상태 전이와 조회 응답을 일관되게 유지한다.
+  - 공구 마감/연장 요청은 상태와 날짜 정책을 깨지 않아야 한다.
+
+error_cases:
+  - OWNER_GROUPBUY_REQUEST_INVALID_DEADLINE
+  - OWNER_GROUPBUY_REQUEST_INVALID_QUANTITY
+  - OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_TIME
+  - OWNER_GROUPBUY_REQUEST_INVALID_PICKUP_DATE
+  - OWNER_GROUPBUY_REQUEST_NOT_FOUND
+
+testing_strategy:
+  unit:
+    - OwnerGroupBuyServiceTest
+    - OwnerGroupBuyRequestServiceTest
+    - OwnerSettlementServiceTest
+  controller:
+    - OwnerGroupBuyControllerTest
+    - OwnerGroupBuyRequestControllerTest

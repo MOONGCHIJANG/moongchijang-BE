@@ -1,0 +1,46 @@
+meta:
+  id: GROUPBUY_DETAIL
+  domain: groupbuy
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyController.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/dto/GroupBuyDetailResponse.kt
+  openapi_paths:
+    - GET /api/v1/group-buys/{groupBuyId}
+  related_requirements:
+    - "1.2"
+
+overview:
+  summary: 공구 상세, 이미지, 찜 여부, 참여 여부, 참여 가능 여부를 조회한다.
+  user_story: 사용자는 공구 상세 화면에서 상품/픽업/달성률/참여 가능 상태를 확인한다.
+
+api_spec:
+  endpoints:
+    - method: GET
+      path: /api/v1/group-buys/{groupBuyId}
+      auth: optional
+      controller: GroupBuyController.getDetail
+      response:
+        wrapper: ApiResponse
+        data: GroupBuyDetailResponse
+
+business_rules:
+  - groupBuyRepository.findWithStoreById로 store를 함께 로드한다.
+  - 상세 이미지는 thumbnailKey와 중복되는 imageKey를 제외한다.
+  - 이미지 URL은 S3ImageReferenceResolver로 읽기 URL을 만든다.
+  - 로그인 사용자는 찜 여부와 참여 여부를 계산한다.
+  - canParticipate는 미참여, 미마감, deadline 이후 아님, maxQuantity 여유 조건을 모두 만족해야 한다.
+  - achievementRate는 GroupBuyProgressCalculator 기준을 따른다.
+
+error_cases:
+  - code: GROUPBUY_NOT_FOUND
+    status: 404
+
+testing_strategy:
+  unit:
+    - GroupBuyServiceTest 상세 조회 계산
+    - GroupBuyDetailResponse 관련 DTO 계산 테스트가 필요하면 추가
+  controller:
+    - GroupBuyControllerTest GET /api/v1/group-buys/{groupBuyId}

@@ -1,0 +1,31 @@
+meta:
+  id: SEARCH
+  domain: search
+  status: implemented
+  priority: medium
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/search/presentation/SearchController.kt
+    - src/main/kotlin/com/moongchijang/domain/search/application/SearchService.kt
+    - src/main/kotlin/com/moongchijang/domain/search/application/FullTextSearchEngine.kt
+    - src/main/kotlin/com/moongchijang/domain/search/infrastructure/SearchHistoryRepository.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/infrastructure/search/FullTextQueryBuilder.kt
+  related_requirements:
+    - search
+
+overview:
+  summary: 검색 의도/키워드 기반으로 공구와 추천 매장을 조회하고 검색 이력을 기록한다.
+
+business_rules:
+  - POST /api/v1/search는 public endpoint다.
+  - 검색어 sanitize와 boolean fulltext query 생성은 FullTextQueryBuilder 기준을 따른다.
+  - 상품명/매장명 주소 인덱스 매칭 결과를 분리해 판단한다.
+  - 빈 결과/추천 매장 상태는 SearchUiState/SearchCase로 명시한다.
+  - 검색 이력 기록은 캐시/매칭 흐름 때문에 누락되지 않아야 한다.
+
+testing_strategy:
+  unit:
+    - SearchServiceTest
+    - FullTextSearchEngineTest
+    - FullTextQueryBuilderTest
+  repository:
+    - SearchHistoryRepositoryTest

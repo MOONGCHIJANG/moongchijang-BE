@@ -1,0 +1,134 @@
+version: 2
+last_aligned_with_code: "2026-06-03"
+
+layers:
+  presentation:
+    package: com.moongchijang.domain.{context}.presentation
+    responsibilities:
+      - Map REST endpoints with Spring MVC annotations.
+      - Accept @PathVariable, @RequestParam, @RequestBody, @AuthenticationPrincipal.
+      - Use @Valid for request bodies that declare validation constraints.
+      - Return ResponseEntity<ApiResponse<T>>.
+      - Keep only simple shape validation in private helpers when it is HTTP-specific.
+    forbidden:
+      - JPA entity mutation
+      - direct external API calls
+      - payment/refund/status business decisions
+      - direct Entity API responses
+
+  application:
+    package: com.moongchijang.domain.{context}.application
+    responsibilities:
+      - Implement use cases and business rules.
+      - Own @Transactional boundaries.
+      - Build response DTOs.
+      - Publish or handle domain/application events.
+      - Coordinate repositories and ports.
+    transaction_rules:
+      - Use @Transactional(readOnly = true) for read paths.
+      - Use @Transactional for write paths.
+      - Keep timeout explicit for hot polling paths when already established.
+      - Use locks/atomic repository updates for quantity/payment concurrency.
+
+  domain:
+    package: com.moongchijang.domain.{context}.domain
+    responsibilities:
+      - JPA entities, enums, and state transition helpers.
+      - Spring Data repositories and custom Querydsl repository contracts.
+      - Domain invariants that naturally belong to an entity/value.
+    entity_rules:
+      - Extend BaseEntity where persistence auditing is required.
+      - Prefer non-null columns in entity types when DB constraints guarantee them.
+      - Keep image fields aligned with image key migrations, not legacy URL columns.
+
+  infrastructure:
+    package: com.moongchijang.domain.{context}.infrastructure
+    responsibilities:
+      - External clients and adapter implementations.
+      - PortOne, Naver, NTS, S3, SES/SMTP, SOLAPI/Aligo, Discord integrations.
+      - Translate remote failures into CustomException/ErrorCode or typed results at the boundary.
+
+api:
+  prefix: /api/v1
+  response_wrapper:
+    type: com.moongchijang.global.response.ApiResponse
+    success_shape:
+      success: true
+      data: T
+      error: null
+    failure_shape:
+      success: false
+      data: null
+      error:
+        code: ErrorCode enum name
+        message: Korean user-facing message
+        detail: optional detail string
+  pagination:
+    spring_pageable: true
+    page_response_style:
+      - content
+      - page
+      - size
+      - totalPages
+      - totalElements
+      - hasNext
+    convention: exposed page number is 1-based when wrapped in custom response DTOs
+  openapi_file: src/main/resources/static/openapi.yaml
+
+errors:
+  exception_type: com.moongchijang.global.exception.CustomException
+  code_type: com.moongchijang.global.exception.ErrorCode
+  handler: com.moongchijang.global.handler.GlobalExceptionHandler
+  pattern:
+    enum_name: UPPER_SNAKE_CASE by domain/use case
+    numeric_code: HTTP_STATUS_PREFIX + domain/local number
+    http_status: ErrorCode.httpStatus
+  important_domains:
+    auth_user: 100-249
+    store: 250-299
+    groupbuy: 300-349
+    payment_participation_refund: 350-399
+    pickup: 400-449
+    owner_request: 450-499
+    cs_ticket: 500-549
+
+security:
+  config: com.moongchijang.security.config.SecurityConfig
+  principal: com.moongchijang.security.principal.CustomUserPrincipal
+  public_endpoints:
+    - GET /api/v1/group-buys
+    - GET /api/v1/group-buys/{id}
+    - GET /api/v1/group-buys/progress
+    - GET /api/v1/group-buys/{id}/progress
+    - GET /api/v1/group-buys/{id}/share
+    - POST /api/v1/group-buys/{id}/viewers/heartbeat
+    - POST /api/v1/search
+    - POST /api/v1/auth/kakao
+    - POST /api/v1/auth/refresh
+    - /api/v1/auth/email/**
+    - phone verification endpoints
+    - POST /api/v1/payments/portone/webhook
+    - Swagger/OpenAPI endpoints
+  authenticated_default: all other endpoints
+  role_rules:
+    - /api/v1/admin/** requires ROLE_ADMIN
+    - POST /api/v1/pickups/{id}/verify requires ROLE_ADMIN or ROLE_SELLER
+  method_security: "@PreAuthorize is enabled and used on selected controller methods"
+
+testing:
+  frameworks:
+    - JUnit 5
+    - kotlin-test-junit5
+    - Spring Boot test slices/starters
+    - Spring Security test
+    - Mockito/Kotlin helpers in support/search
+  locations:
+    unit_and_slice: src/test/kotlin/com/moongchijang/domain/**
+    global: src/test/kotlin/com/moongchijang/global/**
+    security: src/test/kotlin/com/moongchijang/security/**
+    fixtures: src/test/kotlin/com/moongchijang/support/**
+  expectations:
+    - Service tests for business rule changes.
+    - Controller tests for status, auth, validation, and wrapper shape.
+    - Repository integration tests for Querydsl or native SQL behavior.
+    - Scheduler/listener tests for async or time-based behavior.

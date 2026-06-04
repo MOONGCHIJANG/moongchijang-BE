@@ -1,0 +1,42 @@
+meta:
+  id: PAYMENT_REFUND
+  domain: payment
+  status: implemented
+  priority: medium
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/payment/presentation/PaymentController.kt
+    - src/main/kotlin/com/moongchijang/domain/payment/application/PaymentService.kt
+    - src/main/kotlin/com/moongchijang/domain/refund/application/RefundRequestSyncService.kt
+    - src/main/kotlin/com/moongchijang/domain/refund/domain/entity/RefundRequest.kt
+    - src/main/kotlin/com/moongchijang/domain/admin/application/AdminRefundRequestService.kt
+  openapi_paths:
+    - POST /api/v1/participations/{participationId}/cancel
+  related_requirements:
+    - "4.1"
+    - "4.2"
+
+overview:
+  summary: 소비자 참여 취소와 환불 요청/처리 상태를 관리한다.
+
+business_rules:
+  - 본인 참여만 취소할 수 있다.
+  - 달성 완료 이후 환불 제한 정책을 적용한다.
+  - 취소 사유가 기타이면 상세 사유가 필요하다.
+  - PortOne 취소 실패는 PAYMENT_CANCEL_FAILED로 매핑한다.
+  - 사장님/관리자 환불 검토 상태와 RefundRequest 동기화 정책을 유지한다.
+
+error_cases:
+  - PARTICIPATION_NOT_FOUND
+  - PARTICIPATION_CANCEL_NOT_ALLOWED
+  - PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED
+  - PAYMENT_REFUND_NOT_ALLOWED_AFTER_ACHIEVED
+  - PAYMENT_CANCEL_FAILED
+  - OWNER_REFUND_REVIEW_ALREADY_PROCESSED
+  - ADMIN_REFUND_REQUEST_ALREADY_PROCESSED
+  - ADMIN_REFUND_REQUEST_INVALID_STATUS_TRANSITION
+
+testing_strategy:
+  unit:
+    - PaymentServiceTest cancelParticipation
+    - AdminRefundRequestServiceTest
+    - RefundRequestSyncService 관련 테스트 추가/유지

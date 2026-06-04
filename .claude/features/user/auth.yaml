@@ -1,0 +1,46 @@
+meta:
+  id: USER_AUTH
+  domain: auth
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/auth/presentation/AuthController.kt
+    - src/main/kotlin/com/moongchijang/domain/auth/application/AuthService.kt
+    - src/main/kotlin/com/moongchijang/domain/auth/application/KakaoAuthService.kt
+    - src/main/kotlin/com/moongchijang/domain/auth/application/TokenService.kt
+    - src/main/kotlin/com/moongchijang/security/jwt/JwtTokenProvider.kt
+    - src/main/kotlin/com/moongchijang/security/jwt/JwtAuthenticationFilter.kt
+  related_requirements:
+    - Kakao login
+    - email login/signup
+    - token refresh
+
+overview:
+  summary: 카카오 OAuth, 이메일 인증/회원가입/로그인, JWT 재발급, 전화번호 인증을 관리한다.
+
+business_rules:
+  - JWT 필터는 Authorization bearer token을 검증하고 CustomUserPrincipal을 SecurityContext에 설정한다.
+  - refresh token은 저장된 값과 요청 값을 비교한다.
+  - 카카오 token exchange/user info 실패는 KAKAO_* ErrorCode로 구분한다.
+  - 이메일/전화 인증 코드는 만료, mismatch, cooldown, daily limit 정책을 적용한다.
+  - 재가입 제한과 탈퇴 사용자 정책은 UserService/WithdrawalContextService 기준을 따른다.
+
+error_cases:
+  - INVALID_LOGIN
+  - INVALID_CREDENTIALS
+  - TOKEN_EXPIRED
+  - TOKEN_INVALID
+  - REFRESH_TOKEN_MISMATCH
+  - EXPIRED_REFRESH_TOKEN
+  - KAKAO_TOKEN_EXCHANGE_FAILED
+  - KAKAO_USER_INFO_FETCH_FAILED
+  - DUPLICATE_EMAIL
+  - REJOIN_NOT_AVAILABLE_YET
+
+testing_strategy:
+  unit:
+    - AuthServiceTest
+    - EmailVerificationServiceTest
+    - PhoneVerificationServiceTest
+    - JwtAuthenticationFilterTest
+    - UserServiceSignupIntegrationTest
