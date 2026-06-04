@@ -52,6 +52,8 @@ class UserServiceTest {
     private val paymentService: PaymentService = Mockito.mock(PaymentService::class.java)
     private val adminDiscordAlertService: AdminDiscordAlertService = Mockito.mock(AdminDiscordAlertService::class.java)
     private val passwordEncoder: PasswordEncoder = Mockito.mock(PasswordEncoder::class.java)
+    private val withdrawnAccountCommandService: WithdrawnAccountCommandService =
+        Mockito.mock(WithdrawnAccountCommandService::class.java)
     private val userService = UserService(
         userRepository,
         sellerBusinessProfileRepository,
@@ -63,6 +65,7 @@ class UserServiceTest {
         paymentService,
         passwordEncoder,
         adminDiscordAlertService,
+        withdrawnAccountCommandService,
     )
 
     @Test
@@ -586,6 +589,7 @@ class UserServiceTest {
             )
         )
         Mockito.verify(favoriteRepository).deleteByUserId(1L)
+        Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(user, requireNotNull(user.deletedAt))
         Mockito.verify(tokenService).deleteByUserId(1L)
         Assertions.assertEquals(true, user.deletedAt != null)
     }
@@ -618,6 +622,7 @@ class UserServiceTest {
 
         Mockito.verifyNoInteractions(paymentService)
         Mockito.verify(favoriteRepository).deleteByUserId(2L)
+        Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(user, requireNotNull(user.deletedAt))
         Mockito.verify(tokenService).deleteByUserId(2L)
         Assertions.assertEquals(true, user.deletedAt != null)
     }

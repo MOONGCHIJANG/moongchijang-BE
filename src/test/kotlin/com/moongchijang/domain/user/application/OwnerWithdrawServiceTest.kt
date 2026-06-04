@@ -26,6 +26,8 @@ class OwnerWithdrawServiceTest {
     private val groupBuyRepository: GroupBuyRepository = Mockito.mock(GroupBuyRepository::class.java)
     private val participationRepository: ParticipationRepository = Mockito.mock(ParticipationRepository::class.java)
     private val tokenService: TokenService = Mockito.mock(TokenService::class.java)
+    private val withdrawnAccountCommandService: WithdrawnAccountCommandService =
+        Mockito.mock(WithdrawnAccountCommandService::class.java)
 
     private val ownerWithdrawService = OwnerWithdrawService(
         userRepository = userRepository,
@@ -33,6 +35,7 @@ class OwnerWithdrawServiceTest {
         groupBuyRepository = groupBuyRepository,
         participationRepository = participationRepository,
         tokenService = tokenService,
+        withdrawnAccountCommandService = withdrawnAccountCommandService,
     )
 
     @Test
@@ -165,6 +168,7 @@ class OwnerWithdrawServiceTest {
         )
 
         Mockito.verify(userRepository).save(owner)
+        Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(owner, requireNotNull(owner.deletedAt))
         Mockito.verify(tokenService).deleteByUserId(13L)
         Assertions.assertEquals(OwnerWithdrawalReason.PRIVACY_CONCERN, owner.ownerWithdrawalReason)
         Assertions.assertEquals(null, owner.ownerWithdrawalReasonDetail)

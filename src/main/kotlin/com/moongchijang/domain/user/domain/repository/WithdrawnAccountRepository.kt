@@ -10,5 +10,7 @@ interface WithdrawnAccountRepository : JpaRepository<WithdrawnAccount, Long> {
 
     fun findByProviderAndEmail(provider: AuthProvider, email: String): WithdrawnAccount?
 
+    fun findByWithdrawnUserId(withdrawnUserId: Long): WithdrawnAccount?
+
     fun findAllByRejoinAvailableAtBefore(rejoinAvailableAt: LocalDateTime): List<WithdrawnAccount>
 }

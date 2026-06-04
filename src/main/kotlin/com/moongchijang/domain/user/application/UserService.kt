@@ -59,6 +59,7 @@ class UserService(
     private val paymentService: PaymentService,
     private val passwordEncoder: PasswordEncoder,
     private val adminDiscordAlertService: AdminDiscordAlertService,
+    private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -437,6 +438,10 @@ class UserService(
             reasonDetail = normalizedReasonDetail(request),
         )
         userRepository.save(user)
+        withdrawnAccountCommandService.recordWithdrawal(
+            user = user,
+            withdrawnAt = requireNotNull(user.deletedAt),
+        )
         tokenService.deleteByUserId(userId)
 
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
