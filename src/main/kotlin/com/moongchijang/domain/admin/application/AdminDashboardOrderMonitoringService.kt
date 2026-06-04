@@ -5,7 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
-import com.moongchijang.global.time.kstNow
+import com.moongchijang.global.time.utcNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -28,7 +28,7 @@ class AdminDashboardOrderMonitoringService(
             pageable.pageNumber,
             pageable.pageSize,
         )
-        val now = clock.kstNow()
+        val now = clock.utcNow()
         val overdueBefore = now.minusHours(48)
         val page = groupBuyRepository.findAdminOrderPage(
             groupBuyStatus = GroupBuyStatus.ACHIEVED,

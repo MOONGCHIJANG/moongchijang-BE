@@ -29,6 +29,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.time.TimePolicy
+import com.moongchijang.global.time.kstToday
 import com.moongchijang.global.time.utcNow
 import java.time.Clock
 import org.slf4j.LoggerFactory
@@ -36,7 +37,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 
 @Service
 @Transactional(readOnly = true)
@@ -182,7 +182,7 @@ class OwnerSettlementService(
         val allRequests = participationRepository.findRefundRequestsByStoreIdsAndStatuses(
             storeIds = storeIds,
             statuses = REFUND_STATUSES,
-            fromDateTime = LocalDate.now(SEOUL_ZONE_ID).minusMonths(REFUND_LIST_LOOKBACK_MONTHS).atStartOfDay(),
+            fromDateTime = clock.kstToday().minusMonths(REFUND_LIST_LOOKBACK_MONTHS).atStartOfDay(),
         )
 
         val pendingCount = allRequests.count { request -> isReviewPending(request) }
@@ -224,7 +224,7 @@ class OwnerSettlementService(
             groupBuyId = participation.groupBuy.id,
             productName = participation.groupBuy.productName,
             requesterName = participation.user.nickname ?: "",
-            requestedDate = (participation.cancelledAt ?: participation.createdAt ?: clock.utcNow()).toLocalDate(),
+            requestedDate = toBusinessDate(participation.cancelledAt ?: participation.createdAt ?: clock.utcNow()),
             paymentAmount = participation.totalAmount,
             penaltyAmount = penaltyAmount,
             refundExpectedAmount = refundExpectedAmount,
@@ -320,12 +320,17 @@ class OwnerSettlementService(
             requesterName = participation.user.nickname ?: "",
             requesterCode = "P${participation.id.toString().padStart(3, '0')}",
             refundReasonLabel = toRefundReasonLabel(participation.cancelReason),
-            requestedDate = requestedAt.toLocalDate(),
+            requestedDate = toBusinessDate(requestedAt),
             status = toRefundStatus(participation.status),
             exceeded24Hours = participation.status == ParticipationStatus.REFUND_PENDING &&
                 requestedAt.isBefore(clock.utcNow().minusHours(24)),
         )
     }
+
+    private fun toBusinessDate(dateTime: java.time.LocalDateTime): LocalDate =
+        dateTime.atZone(TimePolicy.STORAGE_ZONE_ID)
+            .withZoneSameInstant(TimePolicy.BUSINESS_ZONE_ID)
+            .toLocalDate()
 
     private fun toRefundStatus(status: ParticipationStatus): OwnerRefundRequestStatus {
         return if (status == ParticipationStatus.REFUNDED) {
@@ -357,7 +362,7 @@ class OwnerSettlementService(
             return OwnerSettlementStatus.REFUND_PROCESSING
         }
 
-        return if (aggregation.pickupCompletedDate.plusDays(OWNER_SETTLEMENT_DELAY_DAYS).isAfter(LocalDate.now(SEOUL_ZONE_ID))) {
+        return if (aggregation.pickupCompletedDate.plusDays(OWNER_SETTLEMENT_DELAY_DAYS).isAfter(clock.kstToday())) {
             OwnerSettlementStatus.SETTLEMENT_PENDING
         } else {
             OwnerSettlementStatus.SETTLEMENT_COMPLETED
@@ -398,7 +403,7 @@ class OwnerSettlementService(
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
         val requested = YearMonth.of(year, month)
-        if (requested.isAfter(YearMonth.from(LocalDate.now(SEOUL_ZONE_ID)))) {
+        if (requested.isAfter(YearMonth.from(clock.kstToday()))) {
             throw CustomException(ErrorCode.INVALID_INPUT)
         }
     }
@@ -421,7 +426,6 @@ class OwnerSettlementService(
             ParticipationStatus.REFUNDED,
         )
         val REFUND_STATUSES = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED)
-        val SEOUL_ZONE_ID: ZoneId = TimePolicy.BUSINESS_ZONE_ID
         const val OWNER_SETTLEMENT_DELAY_DAYS: Long = 3
         const val REFUND_LIST_LOOKBACK_MONTHS: Long = 6
     }

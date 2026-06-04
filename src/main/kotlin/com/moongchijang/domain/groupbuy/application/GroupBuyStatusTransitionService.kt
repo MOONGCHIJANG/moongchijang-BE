@@ -10,7 +10,7 @@ import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
-import com.moongchijang.global.time.utcNow
+import com.moongchijang.global.time.kstNow
 import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -34,7 +34,7 @@ class GroupBuyStatusTransitionService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun transitionExpiredGroupBuys() {
-        transitionExpiredGroupBuysAt(clock.utcNow())
+        transitionExpiredGroupBuysAt(clock.kstNow())
     }
 
     fun transitionExpiredGroupBuysAt(now: LocalDateTime) {

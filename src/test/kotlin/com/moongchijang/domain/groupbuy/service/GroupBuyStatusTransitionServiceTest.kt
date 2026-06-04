@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mock
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -120,6 +121,27 @@ class GroupBuyStatusTransitionServiceTest {
         service.transitionExpiredGroupBuysAt(now)
 
         verify(groupBuyRepository).findByStatusInAndDeadlineLessThanEqual(
+            listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+            now,
+            pageable
+        )
+    }
+
+    @Test
+    fun `자동 전이 실행은 KST 기준 현재 시각으로 마감 공구를 조회한다`() {
+        val now = LocalDateTime.of(2026, 5, 23, 12, 0)
+        val pageable = PageRequest.of(0, 500, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
+        `when`(
+            groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
+                listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+                now,
+                pageable
+            )
+        ).thenReturn(emptyList())
+
+        service.transitionExpiredGroupBuys()
+
+        verify(groupBuyRepository, times(1)).findByStatusInAndDeadlineLessThanEqual(
             listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
             now,
             pageable
