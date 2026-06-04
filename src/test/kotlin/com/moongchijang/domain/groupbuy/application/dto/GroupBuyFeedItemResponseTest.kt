@@ -40,6 +40,19 @@ class GroupBuyFeedItemResponseTest {
         assertEquals("D-day", response.dDayLabel)
     }
 
+    @Test
+    fun `피드 D-day는 월이 바뀌어도 KST 날짜 기준으로 계산한다`() {
+        val now = LocalDateTime.of(2026, 1, 31, 23, 50)
+        val groupBuy = createGroupBuy(
+            deadline = LocalDateTime.of(2026, 2, 1, 0, 10)
+        )
+
+        val response = GroupBuyFeedItemResponse.from(groupBuy, now, "https://example.com/image.jpg")
+
+        assertEquals(1, response.dDay)
+        assertEquals("D-1", response.dDayLabel)
+    }
+
     private fun createGroupBuy(deadline: LocalDateTime): GroupBuy {
         val store = Store(
             name = "청담 버터룸",
