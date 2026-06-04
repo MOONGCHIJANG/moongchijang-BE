@@ -5,44 +5,44 @@ import com.moongchijang.global.config.NaverApiProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DataAccessException
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
+import tools.jackson.databind.ObjectMapper
 import java.time.Duration
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.system.measureTimeMillis
 
 @Component
 class NaverLocalSearchClient(
     private val naverApiProperties: NaverApiProperties,
-    restClientBuilder: RestClient.Builder
+    restClientBuilder: RestClient.Builder,
+    private val redisTemplate: StringRedisTemplate,
+    private val objectMapper: ObjectMapper,
 ) {
     private val restClient = restClientBuilder.build()
-    private val cache = ConcurrentHashMap<CacheKey, CachedResponse>()
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun search(keyword: String, display: Int = 5): NaverLocalSearchResponse {
         val normalizedKeyword = keyword.trim()
-        val key = CacheKey(normalizedKeyword, display)
-        val cached = cache[key]
-        if (cached != null && cached.isFresh()) {
-            log.debug(
-                "[NaverLocalSearchClient] 로컬 검색 캐시 적중: keywordLength={}, display={}, total={}",
-                normalizedKeyword.length,
-                display,
-                cached.response.total,
-            )
-            return cached.response
-        }
+        val key = cacheKey(normalizedKeyword, display)
 
+        readCache(key)?.let { cached -> return cached }
+
+        val response = fetchFromNaver(normalizedKeyword, display)
+        writeCache(key, response)
+        return response
+    }
+
+    private fun fetchFromNaver(keyword: String, display: Int): NaverLocalSearchResponse {
         lateinit var response: NaverLocalSearchResponse
         val elapsedMs = measureTimeMillis {
             response = try {
                 restClient.get()
                     .uri(
                         "${naverApiProperties.localSearchUrl}?query={keyword}&display={display}",
-                        normalizedKeyword,
+                        keyword,
                         display
                     )
                     .header("X-Naver-Client-Id", naverApiProperties.clientId)
@@ -53,7 +53,7 @@ class NaverLocalSearchClient(
             } catch (e: RestClientException) {
                 log.warn(
                     "[NaverLocalSearchClient] 로컬 검색 실패: keywordLength={}, display={}",
-                    normalizedKeyword.length,
+                    keyword.length,
                     display,
                     e,
                 )
@@ -63,46 +63,52 @@ class NaverLocalSearchClient(
         if (elapsedMs >= SLOW_REQUEST_WARN_THRESHOLD_MS) {
             log.warn(
                 "[NaverLocalSearchClient] 로컬 검색 지연: keywordLength={}, display={}, total={}, elapsedMs={}",
-                normalizedKeyword.length,
-                display,
-                response.total,
-                elapsedMs,
-            )
-        } else {
-            log.debug(
-                "[NaverLocalSearchClient] 로컬 검색 완료: keywordLength={}, display={}, total={}, elapsedMs={}",
-                normalizedKeyword.length,
+                keyword.length,
                 display,
                 response.total,
                 elapsedMs,
             )
         }
-        cacheSuccessfulResponse(key, response)
         return response
     }
 
-    private fun cacheSuccessfulResponse(key: CacheKey, response: NaverLocalSearchResponse) {
-        if (cache.size >= MAX_CACHE_SIZE) {
-            cache.clear()
+    private fun readCache(key: String): NaverLocalSearchResponse? {
+        val raw = try {
+            redisTemplate.opsForValue().get(key)
+        } catch (e: DataAccessException) {
+            log.warn("[NaverLocalSearchClient] Redis 캐시 조회 실패: key={}", key, e)
+            return null
+        } ?: return null
+
+        return try {
+            objectMapper.readValue(raw, NaverLocalSearchResponse::class.java)
+        } catch (e: Exception) {
+            log.warn("[NaverLocalSearchClient] 캐시 역직렬화 실패: key={}", key, e)
+            runCatching { redisTemplate.delete(key) }
+            null
         }
-        cache[key] = CachedResponse(response = response, expiresAt = Instant.now().plus(CACHE_TTL))
     }
 
-    private data class CacheKey(
-        val keyword: String,
-        val display: Int,
-    )
-
-    private data class CachedResponse(
-        val response: NaverLocalSearchResponse,
-        val expiresAt: Instant,
-    ) {
-        fun isFresh(): Boolean = Instant.now().isBefore(expiresAt)
+    private fun writeCache(key: String, response: NaverLocalSearchResponse) {
+        val raw = try {
+            objectMapper.writeValueAsString(response)
+        } catch (e: Exception) {
+            log.warn("[NaverLocalSearchClient] 캐시 직렬화 실패: key={}", key, e)
+            return
+        }
+        try {
+            redisTemplate.opsForValue().set(key, raw, CACHE_TTL)
+        } catch (e: DataAccessException) {
+            log.warn("[NaverLocalSearchClient] Redis 캐시 저장 실패: key={}", key, e)
+        }
     }
+
+    private fun cacheKey(keyword: String, display: Int): String =
+        "$CACHE_KEY_PREFIX:$display:$keyword"
 
     companion object {
+        private const val CACHE_KEY_PREFIX = "store:naver-local-search"
         private val CACHE_TTL: Duration = Duration.ofMinutes(5)
-        private const val MAX_CACHE_SIZE = 500
         private const val SLOW_REQUEST_WARN_THRESHOLD_MS = 1_000L
     }
 }
