@@ -2,10 +2,12 @@ package com.moongchijang.domain.payment.domain.entity
 
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.Column
+import jakarta.persistence.ConstraintMode
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
+import jakarta.persistence.ForeignKey
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -25,7 +27,10 @@ import jakarta.persistence.Table
 )
 class PaymentAuditLog(
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_order_id")
+    @JoinColumn(
+        name = "payment_order_id",
+        foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
     var paymentOrder: PaymentOrder? = null,
 
     @Column(name = "order_id", length = 64)
