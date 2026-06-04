@@ -25,7 +25,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.any
 import org.mockito.Mockito.lenient
@@ -33,9 +32,12 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -62,11 +64,22 @@ class AdminGroupBuyRequestActionServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
-    @InjectMocks
     private lateinit var service: AdminGroupBuyRequestActionService
+
+    private val fixedClock: Clock = Clock.fixed(Instant.parse("2026-06-05T00:00:00Z"), ZoneOffset.UTC)
 
     @BeforeEach
     fun setUp() {
+        service = AdminGroupBuyRequestActionService(
+            groupBuyRequestRepository = groupBuyRequestRepository,
+            groupBuyRequestStatusHistoryRepository = groupBuyRequestStatusHistoryRepository,
+            groupBuyRepository = groupBuyRepository,
+            groupBuyImageRepository = groupBuyImageRepository,
+            storeRepository = storeRepository,
+            eventPublisher = eventPublisher,
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
+            clock = fixedClock,
+        )
         lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/1.jpg"))
             .thenReturn(S3ImageReferenceResolver.ResolvedImageReference("exhibition/1.jpg", "https://cdn.example.com/1.jpg"))
         lenient().`when`(s3ImageReferenceResolver.resolve("https://cdn.example.com/2.jpg"))

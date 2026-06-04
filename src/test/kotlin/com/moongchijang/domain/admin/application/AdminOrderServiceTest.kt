@@ -24,7 +24,7 @@ import org.springframework.data.domain.PageRequest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.Optional
 
 class AdminOrderServiceTest {
@@ -33,7 +33,7 @@ class AdminOrderServiceTest {
     private val participationRepository: ParticipationRepository = mock(ParticipationRepository::class.java)
     private val storeStaffRepository: StoreStaffRepository = mock(StoreStaffRepository::class.java)
     private val notificationEventPublisher: NotificationEventPublisher = mock(NotificationEventPublisher::class.java)
-    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneId.of("Asia/Seoul"))
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneOffset.UTC)
     private val service = AdminOrderService(
         groupBuyRepository = groupBuyRepository,
         participationRepository = participationRepository,
@@ -45,7 +45,7 @@ class AdminOrderServiceTest {
     @Test
     fun `48시간 초과 발주 목록을 조회한다`() {
         val pageable = PageRequest.of(0, 20)
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val achievedAt = now.minusHours(50)
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 30L,
@@ -103,7 +103,7 @@ class AdminOrderServiceTest {
 
     @Test
     fun `발주 상세를 조회한다`() {
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val achievedAt = now.minusHours(3)
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 31L,
@@ -157,7 +157,7 @@ class AdminOrderServiceTest {
 
     @Test
     fun `사장님 연락 완료를 기록한다`() {
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 32L,
             status = GroupBuyStatus.ACHIEVED
@@ -182,7 +182,7 @@ class AdminOrderServiceTest {
 
     @Test
     fun `발주를 확정 처리한다`() {
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 33L,
             status = GroupBuyStatus.ACHIEVED
@@ -222,7 +222,7 @@ class AdminOrderServiceTest {
 
     @Test
     fun `발주를 취소하면 사장님 알림을 발행한다`() {
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 36L,
             status = GroupBuyStatus.ACHIEVED

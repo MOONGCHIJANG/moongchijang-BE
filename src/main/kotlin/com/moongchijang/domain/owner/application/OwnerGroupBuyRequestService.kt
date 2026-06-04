@@ -16,6 +16,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
+import com.moongchijang.global.time.kstNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -171,7 +172,7 @@ class OwnerGroupBuyRequestService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
     private fun validateRequest(request: OwnerGroupBuyRequestCreateRequest) {
-        if (request.deadline.isBefore(LocalDateTime.now(clock).plusDays(MIN_RECRUITING_DAYS))) {
+        if (request.deadline.isBefore(clock.kstNow().plusDays(MIN_RECRUITING_DAYS))) {
             throw CustomException(ErrorCode.OWNER_GROUPBUY_REQUEST_INVALID_DEADLINE)
         }
 

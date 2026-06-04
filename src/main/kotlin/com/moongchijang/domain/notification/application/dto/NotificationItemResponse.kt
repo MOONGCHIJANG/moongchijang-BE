@@ -5,6 +5,7 @@ import com.moongchijang.domain.notification.domain.entity.Notification
 import com.moongchijang.domain.notification.domain.entity.NotificationDeeplinkType
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.notification.domain.entity.NotificationType
+import com.moongchijang.global.time.TimePolicy
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -64,7 +65,12 @@ data class NotificationItemResponse(
                 deeplinkType = notification.deeplinkType,
                 triggerType = notification.triggerType,
                 deeplinkParams = NotificationDeeplinkSchema.toParams(notification.deeplinkType, notification.targetId),
-                section = resolveSection(notification.occurredAt.toLocalDate(), today)
+                section = resolveSection(
+                    notification.occurredAt.atZone(TimePolicy.STORAGE_ZONE_ID)
+                        .withZoneSameInstant(TimePolicy.BUSINESS_ZONE_ID)
+                        .toLocalDate(),
+                    today
+                )
             )
         }
 

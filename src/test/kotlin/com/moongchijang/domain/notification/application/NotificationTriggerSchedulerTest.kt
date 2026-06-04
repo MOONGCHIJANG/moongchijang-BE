@@ -20,6 +20,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -48,6 +49,8 @@ class NotificationTriggerSchedulerTest {
     @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
+    private val clock: Clock = Clock.systemUTC()
+
     private val scheduler by lazy {
         NotificationTriggerScheduler(
             notificationEventPublisher = notificationEventPublisher,
@@ -57,6 +60,7 @@ class NotificationTriggerSchedulerTest {
             favoriteRepository = favoriteRepository,
             groupBuyRequestRepository = groupBuyRequestRepository,
             storeStaffRepository = storeStaffRepository,
+            clock = clock,
         )
     }
 

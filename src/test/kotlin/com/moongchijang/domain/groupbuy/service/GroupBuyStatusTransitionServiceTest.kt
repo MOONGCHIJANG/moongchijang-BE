@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mock
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -23,7 +24,10 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionStatus
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 @ExtendWith(MockitoExtension::class)
 class GroupBuyStatusTransitionServiceTest {
@@ -49,6 +53,8 @@ class GroupBuyStatusTransitionServiceTest {
     @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private lateinit var service: GroupBuyStatusTransitionService
 
     @BeforeEach
@@ -61,6 +67,7 @@ class GroupBuyStatusTransitionServiceTest {
             notificationEventPublisher,
             adminDiscordAlertService,
             transactionManager,
+            clock,
             500
         )
     }
@@ -121,6 +128,27 @@ class GroupBuyStatusTransitionServiceTest {
     }
 
     @Test
+    fun `자동 전이 실행은 KST 기준 현재 시각으로 마감 공구를 조회한다`() {
+        val now = LocalDateTime.of(2026, 5, 23, 12, 0)
+        val pageable = PageRequest.of(0, 500, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))
+        `when`(
+            groupBuyRepository.findByStatusInAndDeadlineLessThanEqual(
+                listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+                now,
+                pageable
+            )
+        ).thenReturn(emptyList())
+
+        service.transitionExpiredGroupBuys()
+
+        verify(groupBuyRepository, times(1)).findByStatusInAndDeadlineLessThanEqual(
+            listOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+            now,
+            pageable
+        )
+    }
+
+    @Test
     fun `자동 전이 대상에 종료 상태 포함 시 상태 유지`() {
         val now = LocalDateTime.now()
         val completed = GroupBuyFixture.createGroupBuy(
@@ -165,6 +193,7 @@ class GroupBuyStatusTransitionServiceTest {
             notificationEventPublisher,
             adminDiscordAlertService,
             transactionManager,
+            clock,
             2
         )
         val pageable = PageRequest.of(0, 2, Sort.by(Sort.Order.asc("deadline"), Sort.Order.asc("id")))

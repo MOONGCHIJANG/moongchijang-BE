@@ -1,6 +1,7 @@
 package com.moongchijang.domain.groupbuy.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.global.time.TimePolicy
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 
@@ -23,7 +24,7 @@ data class GroupBuyProgressResponse(
     val isClosed: Boolean
 ) {
     companion object {
-        fun from(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now()): GroupBuyProgressResponse {
+        fun from(groupBuy: GroupBuy, now: LocalDateTime = LocalDateTime.now(TimePolicy.BUSINESS_ZONE_ID)): GroupBuyProgressResponse {
             val achievementRate = GroupBuyProgressCalculator.achievementRate(groupBuy.currentQuantity, groupBuy.targetQuantity)
             val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy)
 

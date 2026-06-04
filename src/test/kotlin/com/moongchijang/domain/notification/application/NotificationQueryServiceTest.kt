@@ -16,6 +16,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.LocalDate
 import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -304,6 +305,39 @@ class NotificationQueryServiceTest {
         )
 
         assertThat(result.items.map { it.section.name }).containsExactly("TODAY", "YESTERDAY", "OLDER")
+    }
+
+    @Test
+    fun `UTC 자정 직전 알림도 KST 기준 오늘 섹션으로 분류한다`() {
+        val user = UserFixture.createEmailUser(id = 6L)
+        val kstToday = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val occurredAtUtc = kstToday.minusDays(1).atTime(23, 30)
+        val notification = NotificationFixture.createNotification(
+            user = user,
+            id = 61L,
+            occurredAt = occurredAtUtc
+        )
+
+        `when`(
+            notificationRepository.findForListByScope(
+                userId = 6L,
+                scope = NotificationScope.BUYER,
+                type = null,
+                cursorOccurredAt = null,
+                cursorId = null,
+                pageable = PageRequest.of(0, 21)
+            )
+        ).thenReturn(listOf(notification))
+
+        val result = service.getNotifications(
+            userId = 6L,
+            currentRole = UserRole.BUYER,
+            category = NotificationCategory.ALL,
+            cursor = null,
+            limit = 20
+        )
+
+        assertThat(result.items.single().section.name).isEqualTo("TODAY")
     }
 
     @Test

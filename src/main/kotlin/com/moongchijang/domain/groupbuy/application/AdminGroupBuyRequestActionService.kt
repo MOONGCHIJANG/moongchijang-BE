@@ -18,6 +18,8 @@ import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -34,6 +36,7 @@ class AdminGroupBuyRequestActionService(
     private val storeRepository: StoreRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(AdminGroupBuyRequestActionService::class.java)
 
@@ -199,7 +202,7 @@ class AdminGroupBuyRequestActionService(
             GroupBuyRequestStatusHistory(
                 groupBuyRequest = groupBuyRequest,
                 status = status,
-                changedAt = LocalDateTime.now()
+                changedAt = clock.utcNow()
             )
         )
     }

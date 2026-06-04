@@ -12,6 +12,7 @@ import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.config.QuerydslConfig
+import com.moongchijang.global.config.TimeConfig
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -28,7 +29,7 @@ import java.time.LocalTime
         "spring.jpa.hibernate.ddl-auto=create-drop"
     ]
 )
-@Import(QuerydslConfig::class)
+@Import(QuerydslConfig::class, TimeConfig::class)
 class ParticipationAuditingIntegrationTest {
 
     @Autowired

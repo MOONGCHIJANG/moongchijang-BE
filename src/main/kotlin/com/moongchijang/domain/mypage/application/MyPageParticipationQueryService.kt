@@ -7,15 +7,18 @@ import com.moongchijang.domain.participation.application.dto.PickupWaitingPartic
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.global.time.kstNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
 class MyPageParticipationQueryService(
-    private val participationRepository: ParticipationRepository
+    private val participationRepository: ParticipationRepository,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -42,7 +45,7 @@ class MyPageParticipationQueryService(
             page.totalPages
         )
 
-        val now = LocalDateTime.now()
+        val now = clock.kstNow()
         val mapped = page.map { participation -> InProgressParticipationItemResponse.from(participation, now) }
         return InProgressParticipationPageResponse.from(mapped)
     }

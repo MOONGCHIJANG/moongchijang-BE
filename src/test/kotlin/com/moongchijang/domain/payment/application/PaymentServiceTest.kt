@@ -56,6 +56,9 @@ import org.springframework.data.domain.Sort
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.TransactionStatus
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -112,6 +115,8 @@ class PaymentServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
@@ -135,7 +140,8 @@ class PaymentServiceTest {
             notificationEventPublisher = notificationEventPublisher,
             adminDiscordAlertService = adminDiscordAlertService,
             refundRequestSyncService = refundRequestSyncService,
-            s3ImageReferenceResolver = s3ImageReferenceResolver
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
+            clock = clock
         )
     }
 

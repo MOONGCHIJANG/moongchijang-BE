@@ -11,6 +11,7 @@ import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyCloseRequ
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.kstNow
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -32,7 +33,7 @@ class AdminOwnerGroupBuyCloseRequestService(
         val groupBuy = findGroupBuyForReview(groupBuyId)
         validatePendingReview(groupBuy)
 
-        val reviewedAt = LocalDateTime.now(clock)
+        val reviewedAt = clock.kstNow()
         groupBuy.approveCloseReview(reviewedAt)
         publishApproved(groupBuy, reviewedAt)
 
@@ -60,7 +61,7 @@ class AdminOwnerGroupBuyCloseRequestService(
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED)
         }
 
-        val reviewedAt = LocalDateTime.now(clock)
+        val reviewedAt = clock.kstNow()
         groupBuy.rejectCloseReview(reason, reviewedAt)
         publishRejected(groupBuy, reviewedAt)
 

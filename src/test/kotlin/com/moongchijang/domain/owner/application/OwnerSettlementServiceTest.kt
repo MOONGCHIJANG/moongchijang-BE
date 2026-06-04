@@ -24,17 +24,19 @@ import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
@@ -55,8 +57,21 @@ class OwnerSettlementServiceTest {
     @Mock
     private lateinit var refundRequestSyncService: RefundRequestSyncService
 
-    @InjectMocks
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T04:00:00Z"), ZoneOffset.UTC)
+
     private lateinit var service: OwnerSettlementService
+
+    @BeforeEach
+    fun setUp() {
+        service = OwnerSettlementService(
+            userRepository = userRepository,
+            storeStaffRepository = storeStaffRepository,
+            groupBuyRepository = groupBuyRepository,
+            participationRepository = participationRepository,
+            refundRequestSyncService = refundRequestSyncService,
+            clock = clock,
+        )
+    }
 
     @Test
     fun `월별 정산 예정 금액을 조회한다`() {
@@ -117,7 +132,7 @@ class OwnerSettlementServiceTest {
     @Test
     fun `정산 공구 카드 목록은 정산완료 상태를 반환한다`() {
         val owner = seller()
-        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val today = LocalDate.of(2026, 5, 28)
         val pickupDate = today.minusDays(4)
         val year = pickupDate.year
         val month = pickupDate.monthValue
@@ -156,7 +171,7 @@ class OwnerSettlementServiceTest {
     @Test
     fun `정산 공구 카드 목록은 정산대기 상태를 반환한다`() {
         val owner = seller()
-        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val today = LocalDate.of(2026, 5, 28)
         val pickupDate = today.minusDays(1)
         val year = pickupDate.year
         val month = pickupDate.monthValue
@@ -193,7 +208,7 @@ class OwnerSettlementServiceTest {
     @Test
     fun `정산 공구 카드 목록은 환불처리 상태를 우선 반환한다`() {
         val owner = seller()
-        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val today = LocalDate.of(2026, 5, 28)
         val pickupDate = today.minusDays(5)
         val year = pickupDate.year
         val month = pickupDate.monthValue
@@ -231,7 +246,7 @@ class OwnerSettlementServiceTest {
     @Test
     fun `정산 공구 카드 목록은 환불 대기 건이 있으면 정산완료보다 환불처리를 우선한다`() {
         val owner = seller()
-        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val today = LocalDate.of(2026, 5, 28)
         val pickupDate = today.minusDays(7)
         val year = pickupDate.year
         val month = pickupDate.monthValue
@@ -278,7 +293,7 @@ class OwnerSettlementServiceTest {
             participationRepository.findRefundRequestsByStoreIdsAndStatuses(
                 defaultStoreIds(),
                 listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
-                LocalDate.now(ZoneId.of("Asia/Seoul")).minusMonths(6).atStartOfDay(),
+                LocalDate.of(2026, 5, 28).minusMonths(6).atStartOfDay(),
             )
         ).thenReturn(
             listOf(
@@ -307,6 +322,40 @@ class OwnerSettlementServiceTest {
         assertEquals(24000, detail.paymentAmount)
         assertEquals(2400, detail.penaltyAmount)
         assertEquals(21600, detail.refundExpectedAmount)
+    }
+
+    @Test
+    fun `환불 요청 상세 requestedDate는 UTC 저장값을 KST 날짜로 변환한다`() {
+        val owner = seller()
+        val participation = refundParticipation(id = 1011L, status = ParticipationStatus.REFUND_PENDING).apply {
+            cancelledAt = LocalDateTime.of(2026, 5, 27, 23, 30)
+        }
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
+        `when`(participationRepository.findPickupDetailById(1011L)).thenReturn(participation)
+
+        val detail = service.getRefundRequestDetail(owner.id!!, 1011L)
+
+        assertEquals(LocalDate.of(2026, 5, 28), detail.requestedDate)
+    }
+
+    @Test
+    fun `환불 요청 목록 requestedDate는 UTC 저장값을 KST 날짜로 변환한다`() {
+        val owner = seller()
+        val participation = refundParticipation(id = 1003L, status = ParticipationStatus.REFUND_PENDING).apply {
+            cancelledAt = LocalDateTime.of(2026, 5, 27, 23, 30)
+        }
+        stubSellerAndStoreIds(owner.id!!, owner, defaultStoreIds())
+        `when`(
+            participationRepository.findRefundRequestsByStoreIdsAndStatuses(
+                defaultStoreIds(),
+                listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                LocalDate.of(2026, 5, 28).minusMonths(6).atStartOfDay(),
+            )
+        ).thenReturn(listOf(participation))
+
+        val result = service.getRefundRequests(owner.id!!, OwnerRefundRequestTab.ALL)
+
+        assertEquals(LocalDate.of(2026, 5, 28), result.items.first().requestedDate)
     }
 
     @Test

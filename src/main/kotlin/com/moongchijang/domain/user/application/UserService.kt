@@ -43,6 +43,8 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
 import com.moongchijang.security.crypto.PersonalInfoManager
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -68,6 +70,7 @@ class UserService(
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
     private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
     private val personalInfoManager: PersonalInfoManager,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -579,7 +582,7 @@ class UserService(
     }
 
     private fun validateRejoinAvailable(rejoinAvailableAt: LocalDateTime) {
-        if (LocalDateTime.now().isBefore(rejoinAvailableAt)) {
+        if (clock.utcNow().isBefore(rejoinAvailableAt)) {
             throw CustomException(ErrorCode.REJOIN_NOT_AVAILABLE_YET)
         }
     }
@@ -596,7 +599,7 @@ class UserService(
 
     private fun isEmailRejoinBlocked(email: String): Boolean {
         val withdrawnAccount = findWithdrawnEmailAccount(email) ?: return false
-        return LocalDateTime.now().isBefore(withdrawnAccount.rejoinAvailableAt)
+        return clock.utcNow().isBefore(withdrawnAccount.rejoinAvailableAt)
     }
 
     private fun validateNicknameFormat(nickname: String) {

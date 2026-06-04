@@ -2,6 +2,7 @@ package com.moongchijang.domain.groupbuy.domain.entity
 
 import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.global.entity.BaseEntity
+import com.moongchijang.global.time.TimePolicy
 import jakarta.persistence.*
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -120,25 +121,25 @@ class GroupBuy(
 
 ) : BaseEntity()
 {
-    fun transitionToAchieved(achievedAt: LocalDateTime = LocalDateTime.now()) {
+    fun transitionToAchieved(achievedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)) {
         requireStatus(GroupBuyStatus.IN_PROGRESS)
         status = GroupBuyStatus.ACHIEVED
         this.achievedAt = achievedAt
     }
 
-    fun markOrderOwnerContacted(contactedAt: LocalDateTime = LocalDateTime.now()) {
+    fun markOrderOwnerContacted(contactedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)) {
         requireStatus(GroupBuyStatus.ACHIEVED)
         orderOwnerContactedAt = contactedAt
     }
 
-    fun confirmOrder(confirmedAt: LocalDateTime = LocalDateTime.now()) {
+    fun confirmOrder(confirmedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)) {
         requireStatus(GroupBuyStatus.ACHIEVED)
         orderStatus = GroupBuyOrderStatus.CONFIRMED
         orderConfirmedAt = confirmedAt
         orderCancelledAt = null
     }
 
-    fun cancelOrder(cancelledAt: LocalDateTime = LocalDateTime.now()) {
+    fun cancelOrder(cancelledAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)) {
         requireStatus(GroupBuyStatus.ACHIEVED)
         orderStatus = GroupBuyOrderStatus.CANCELLED
         orderCancelledAt = cancelledAt
@@ -176,7 +177,7 @@ class GroupBuy(
     fun closeByOwner(
         reason: GroupBuyCloseReason,
         reasonDetail: String?,
-        requestedAt: LocalDateTime = LocalDateTime.now()
+        requestedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)
     ) {
         closeReason = reason
         closeReasonDetail = reasonDetail
@@ -191,7 +192,7 @@ class GroupBuy(
     fun requestCloseReview(
         reason: GroupBuyCloseReason,
         reasonDetail: String?,
-        requestedAt: LocalDateTime = LocalDateTime.now()
+        requestedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)
     ) {
         require(status == GroupBuyStatus.IN_PROGRESS || status == GroupBuyStatus.ACHIEVED) {
             "IN_PROGRESS 또는 ACHIEVED 상태에서만 마감 요청을 할 수 있습니다."
@@ -211,7 +212,7 @@ class GroupBuy(
         closedByType = null
     }
 
-    fun approveCloseReview(reviewedAt: LocalDateTime = LocalDateTime.now()) {
+    fun approveCloseReview(reviewedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)) {
         require(closeRequestReviewStatus == GroupBuyCloseRequestReviewStatus.PENDING) {
             "PENDING 상태의 마감 요청만 승인할 수 있습니다."
         }
@@ -224,7 +225,7 @@ class GroupBuy(
 
     fun rejectCloseReview(
         rejectionReason: String,
-        reviewedAt: LocalDateTime = LocalDateTime.now()
+        reviewedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)
     ) {
         require(closeRequestReviewStatus == GroupBuyCloseRequestReviewStatus.PENDING) {
             "PENDING 상태의 마감 요청만 반려할 수 있습니다."

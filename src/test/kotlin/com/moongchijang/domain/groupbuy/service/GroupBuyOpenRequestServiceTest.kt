@@ -44,6 +44,9 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.dao.DataIntegrityViolationException
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -75,6 +78,8 @@ class GroupBuyOpenRequestServiceTest {
     @Mock
     private lateinit var recommendedStoreImageService: RecommendedStoreImageService
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val personalInfoProperties = PersonalInfoEncryptionProperties(
         secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     )
@@ -97,6 +102,7 @@ class GroupBuyOpenRequestServiceTest {
             notificationEventPublisher = notificationEventPublisher,
             recommendedStoreImageService = recommendedStoreImageService,
             personalInfoManager = personalInfoManager,
+            clock = clock,
         )
         lenient().`when`(userRepository.findByIdAndDeletedAtIsNull(anyLong()))
             .thenAnswer { UserFixture.createKakaoUser(id = it.getArgument(0)) }

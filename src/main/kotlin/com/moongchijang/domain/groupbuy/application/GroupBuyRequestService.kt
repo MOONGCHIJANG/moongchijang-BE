@@ -19,6 +19,9 @@ import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.kstNow
+import com.moongchijang.global.time.kstToday
+import com.moongchijang.global.time.utcNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -44,7 +47,7 @@ class GroupBuyRequestService(
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
         log.info("[GroupBuyRequestService] 공구요청 생성 시작: userId={}", userId)
-        if (!request.desiredPickupDate.isAfter(LocalDate.now(clock))) {
+        if (!request.desiredPickupDate.isAfter(clock.kstToday())) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE)
         }
 
@@ -76,7 +79,7 @@ class GroupBuyRequestService(
             GroupBuyRequestStatusHistory(
                 groupBuyRequest = saved,
                 status = GroupBuyRequestStatus.IN_REVIEW,
-                changedAt = saved.createdAt ?: LocalDateTime.now()
+                changedAt = saved.createdAt ?: clock.utcNow()
             )
         )
         adminDiscordAlertService.sendNewGroupBuyRequest(saved)
@@ -142,7 +145,7 @@ class GroupBuyRequestService(
 
         val groupBuysById = findOpenedGroupBuys(page.content)
 
-        val response = AdminGroupBuyRequestPageResponse.from(page, groupBuysById, LocalDateTime.now(clock))
+        val response = AdminGroupBuyRequestPageResponse.from(page, groupBuysById, clock.kstNow())
         log.info(
             "[GroupBuyRequestService] 관리자 공구요청 목록 조회 완료: status={}, totalElements={}",
             status,
@@ -210,7 +213,7 @@ class GroupBuyRequestService(
             GroupBuyRequestStatusHistory(
                 groupBuyRequest = groupBuyRequest,
                 status = request.targetStatus,
-                changedAt = LocalDateTime.now()
+                changedAt = clock.utcNow()
             )
         )
         openedGroupBuyForNotification?.let { notifyOpenedAfterCommit(it) }
