@@ -13,6 +13,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
+import org.springframework.data.domain.PageRequest
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.TransactionDefinition
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.SimpleTransactionStatus
 
 class PersonalInfoBackfillServiceTest {
 
@@ -24,7 +30,18 @@ class PersonalInfoBackfillServiceTest {
         AesGcmPersonalInfoEncryptor(personalInfoProperties),
         HmacSha256PersonalInfoHasher(personalInfoProperties),
     )
-    private val service = PersonalInfoBackfillService(userRepository, personalInfoManager)
+    private val transactionManager = object : PlatformTransactionManager {
+        override fun getTransaction(definition: TransactionDefinition?): TransactionStatus = SimpleTransactionStatus()
+
+        override fun commit(status: TransactionStatus) = Unit
+
+        override fun rollback(status: TransactionStatus) = Unit
+    }
+    private val service = PersonalInfoBackfillService(
+        userRepository,
+        personalInfoManager,
+        transactionManager,
+    )
 
     @Test
     fun `plain personal info is encrypted and email hash is filled`() {
@@ -86,5 +103,36 @@ class PersonalInfoBackfillServiceTest {
         val updated = service.backfillUser(user)
 
         assertFalse(updated)
+    }
+
+    @Test
+    fun `backfill advances cursor even when row is not updated`() {
+        val blankUser = User(
+            id = 10L,
+            provider = AuthProvider.EMAIL,
+            email = "   ",
+            passwordHash = "hashed",
+            phoneNumber = null,
+            role = UserRole.BUYER,
+        )
+        val plainUser = User(
+            id = 11L,
+            provider = AuthProvider.EMAIL,
+            email = "next@example.com",
+            passwordHash = "hashed",
+            phoneNumber = null,
+            role = UserRole.BUYER,
+        )
+
+        `when`(userRepository.findPersonalInfoBackfillTargets(0L, PageRequest.of(0, 100)))
+            .thenReturn(listOf(blankUser, plainUser))
+        `when`(userRepository.findPersonalInfoBackfillTargets(11L, PageRequest.of(0, 100)))
+            .thenReturn(emptyList())
+
+        val updatedCount = service.backfill(100)
+
+        assertEquals(1, updatedCount)
+        assertEquals("next@example.com", personalInfoManager.decryptIfNeeded(plainUser.email))
+        assertTrue(plainUser.emailHash != null)
     }
 }

@@ -63,11 +63,16 @@ interface UserRepository : JpaRepository<User, Long> {
         """
         select u
         from User u
-        where
-          (u.email is not null and (u.emailHash is null or u.email not like 'enc:v1:%'))
-          or (u.phoneNumber is not null and u.phoneNumber not like 'enc:v1:%')
+        where u.id > :lastId
+          and (
+            (u.email is not null and trim(u.email) <> '' and (u.emailHash is null or u.email not like 'enc:v1:%'))
+            or (u.phoneNumber is not null and trim(u.phoneNumber) <> '' and u.phoneNumber not like 'enc:v1:%')
+          )
         order by u.id asc
         """
     )
-    fun findPersonalInfoBackfillTargets(pageable: Pageable): List<User>
+    fun findPersonalInfoBackfillTargets(
+        @Param("lastId") lastId: Long,
+        pageable: Pageable,
+    ): List<User>
 }

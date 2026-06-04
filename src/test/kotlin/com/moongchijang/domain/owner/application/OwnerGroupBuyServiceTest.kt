@@ -23,6 +23,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -65,6 +66,9 @@ class OwnerGroupBuyServiceTest {
 
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
+
+    @Mock
+    private lateinit var personalInfoManager: PersonalInfoManager
 
     @InjectMocks
     private lateinit var service: OwnerGroupBuyService
