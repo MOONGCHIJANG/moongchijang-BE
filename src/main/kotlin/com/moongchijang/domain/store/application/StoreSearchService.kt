@@ -3,16 +3,13 @@ package com.moongchijang.domain.store.application
 import com.moongchijang.domain.store.application.dto.StoreSearchResponse
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
-import com.moongchijang.global.config.AppS3Properties
-import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class StoreSearchService(
     private val naverLocalSearchClient: NaverLocalSearchClient,
-    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
-    private val appS3Properties: AppS3Properties,
+    private val recommendedStoreImageService: RecommendedStoreImageService,
 ) {
     private val log = LoggerFactory.getLogger(StoreSearchService::class.java)
     companion object {
@@ -65,17 +62,21 @@ class StoreSearchService(
             return StoreSearchResponse(stores = emptyList())
         }
         val response = naverLocalSearchClient.search(keyword, display.coerceAtLeast(NAVER_FETCH_DISPLAY))
+        val imageUrls = recommendedStoreImageService.findActiveImageUrls()
         val result = StoreSearchResponse(
             stores = response.items
                 .filter { it.isBakeryDomain() }
                 .take(display)
-                .mapIndexed { index, item -> item.toStoreItem(index) }
+                .mapIndexed { index, item -> item.toStoreItem(index, imageUrls) }
         )
         log.info("[StoreSearchService] 매장 검색 완료: resultCount={}", result.stores.size)
         return result
     }
 
-    private fun NaverLocalSearchItem.toStoreItem(index: Int): StoreSearchResponse.StoreItem {
+    private fun NaverLocalSearchItem.toStoreItem(
+        index: Int,
+        imageUrls: List<String>
+    ): StoreSearchResponse.StoreItem {
         return StoreSearchResponse.StoreItem(
             placeId = placeId(),
             storeName = storeName(),
@@ -83,9 +84,7 @@ class StoreSearchService(
             lotAddress = address.ifBlank { null },
             latitude = latitude(),
             longitude = longitude(),
-            imageUrl = s3ImageReferenceResolver.resolveForRead(
-                RecommendedStoreImages.keyByIndex(index, appS3Properties.prefix)
-            )
+            imageUrl = recommendedStoreImageService.imageUrlByIndex(index, imageUrls)
         )
     }
 

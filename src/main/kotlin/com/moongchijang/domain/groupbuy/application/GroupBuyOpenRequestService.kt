@@ -10,7 +10,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
-import com.moongchijang.domain.store.application.RecommendedStoreImages
+import com.moongchijang.domain.store.application.RecommendedStoreImageService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
@@ -18,10 +18,8 @@ import com.moongchijang.domain.store.domain.repository.StoreRepository
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
 import com.moongchijang.domain.user.domain.repository.UserRepository
-import com.moongchijang.global.config.AppS3Properties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
-import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
@@ -39,8 +37,7 @@ class GroupBuyOpenRequestService(
     private val userRepository: UserRepository,
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val notificationEventPublisher: NotificationEventPublisher,
-    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
-    private val appS3Properties: AppS3Properties,
+    private val recommendedStoreImageService: RecommendedStoreImageService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -186,8 +183,9 @@ class GroupBuyOpenRequestService(
             )
         }.getOrNull() ?: return emptyRecommendation(request, startedAt, fallback = true)
 
+        val imageUrls = recommendedStoreImageService.findActiveImageUrls()
         val candidates = items
-            .mapIndexedNotNull { index, item -> item.toCandidateOrNull(index, request) }
+            .mapIndexedNotNull { index, item -> item.toCandidateOrNull(index, request, imageUrls) }
             .distinctBy { it.duplicateKey }
 
         if (candidates.isEmpty()) {
@@ -259,7 +257,8 @@ class GroupBuyOpenRequestService(
 
     private fun NaverLocalSearchItem.toCandidateOrNull(
         index: Int,
-        request: StoreRecommendationRequest
+        request: StoreRecommendationRequest,
+        imageUrls: List<String>
     ): StoreRecommendationCandidate? {
         return runCatching {
             val storeName = storeName()
@@ -277,9 +276,7 @@ class GroupBuyOpenRequestService(
                 lotAddress = lotAddress,
                 latitude = latitude(),
                 longitude = longitude(),
-                imageUrl = s3ImageReferenceResolver.resolveForRead(
-                    RecommendedStoreImages.keyByIndex(index, appS3Properties.prefix)
-                ),
+                imageUrl = recommendedStoreImageService.imageUrlByIndex(index, imageUrls),
                 category = category,
                 addressMatched = addressMatched,
                 categoryMatched = categoryMatched,

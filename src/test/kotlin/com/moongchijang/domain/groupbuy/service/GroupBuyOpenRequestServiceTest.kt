@@ -12,6 +12,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.store.application.RecommendedStoreImageService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.StoreRecommendationRegionType
@@ -22,10 +23,8 @@ import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchRe
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
-import com.moongchijang.global.config.AppS3Properties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
-import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.NaverFixture
 import com.moongchijang.support.UserFixture
@@ -70,9 +69,7 @@ class GroupBuyOpenRequestServiceTest {
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
     @Mock
-    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
-
-    private val appS3Properties = AppS3Properties(prefix = "dev")
+    private lateinit var recommendedStoreImageService: RecommendedStoreImageService
 
     private lateinit var service: GroupBuyOpenRequestService
 
@@ -86,13 +83,23 @@ class GroupBuyOpenRequestServiceTest {
             userRepository = userRepository,
             aligoAlimtalkClient = aligoAlimtalkClient,
             notificationEventPublisher = notificationEventPublisher,
-            s3ImageReferenceResolver = s3ImageReferenceResolver,
-            appS3Properties = appS3Properties,
+            recommendedStoreImageService = recommendedStoreImageService,
         )
         lenient().`when`(userRepository.findByIdAndDeletedAtIsNull(anyLong()))
             .thenAnswer { UserFixture.createKakaoUser(id = it.getArgument(0)) }
-        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString()))
-            .thenAnswer { "https://dkg5euyknlpa.cloudfront.net/${it.arguments[0]}" }
+        lenient().`when`(recommendedStoreImageService.findActiveImageUrls())
+            .thenReturn(
+                listOf(
+                    "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/1.jpeg",
+                    "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/2.jpeg",
+                )
+            )
+        lenient().`when`(recommendedStoreImageService.imageUrlByIndex(anyInt(), anyList()))
+            .thenAnswer {
+                val index = it.getArgument<Int>(0)
+                val imageUrls = it.getArgument<List<String>>(1)
+                imageUrls[index.mod(imageUrls.size)]
+            }
     }
 
     @Test
