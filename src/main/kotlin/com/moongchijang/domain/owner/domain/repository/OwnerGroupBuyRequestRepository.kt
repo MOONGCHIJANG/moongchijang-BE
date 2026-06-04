@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param
 import java.util.Optional
 
 interface OwnerGroupBuyRequestRepository : JpaRepository<OwnerGroupBuyRequest, Long> {
+    fun deleteByOwnerId(ownerId: Long): Long
 
     @Query("SELECT r FROM OwnerGroupBuyRequest r WHERE r.owner.id = :ownerId ORDER BY r.createdAt DESC")
     fun findByOwnerIdOrderByCreatedAtDesc(@Param("ownerId") ownerId: Long): List<OwnerGroupBuyRequest>

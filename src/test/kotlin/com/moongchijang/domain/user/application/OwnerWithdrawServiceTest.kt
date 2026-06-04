@@ -30,6 +30,8 @@ class OwnerWithdrawServiceTest {
         Mockito.mock(WithdrawnAccountCommandService::class.java)
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService =
         Mockito.mock(WithdrawalLegalRetentionCommandService::class.java)
+    private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService =
+        Mockito.mock(WithdrawalImmediateCleanupService::class.java)
 
     private val ownerWithdrawService = OwnerWithdrawService(
         userRepository = userRepository,
@@ -39,6 +41,7 @@ class OwnerWithdrawServiceTest {
         tokenService = tokenService,
         withdrawnAccountCommandService = withdrawnAccountCommandService,
         withdrawalLegalRetentionCommandService = withdrawalLegalRetentionCommandService,
+        withdrawalImmediateCleanupService = withdrawalImmediateCleanupService,
     )
 
     @Test
@@ -173,6 +176,7 @@ class OwnerWithdrawServiceTest {
         Mockito.verify(userRepository).save(owner)
         Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(owner, requireNotNull(owner.deletedAt))
         Mockito.verify(withdrawalLegalRetentionCommandService).retainForWithdrawal(13L, requireNotNull(owner.deletedAt))
+        Mockito.verify(withdrawalImmediateCleanupService).cleanup(13L)
         Mockito.verify(tokenService).deleteByUserId(13L)
         Assertions.assertEquals(OwnerWithdrawalReason.PRIVACY_CONCERN, owner.ownerWithdrawalReason)
         Assertions.assertEquals(null, owner.ownerWithdrawalReasonDetail)

@@ -10,6 +10,8 @@ import java.time.LocalDateTime
 interface GroupBuyRequestStatusHistoryRepository : JpaRepository<GroupBuyRequestStatusHistory, Long> {
     fun findByGroupBuyRequest_IdOrderByChangedAtAsc(groupBuyRequestId: Long): List<GroupBuyRequestStatusHistory>
     fun findByGroupBuyRequest_IdInOrderByChangedAtAsc(groupBuyRequestIds: List<Long>): List<GroupBuyRequestStatusHistory>
+    fun deleteByGroupBuyRequest_User_Id(userId: Long): Long
+
     @Query(
         """
         select count(history)

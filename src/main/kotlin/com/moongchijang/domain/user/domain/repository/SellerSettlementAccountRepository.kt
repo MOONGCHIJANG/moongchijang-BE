@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface SellerSettlementAccountRepository : JpaRepository<SellerSettlementAccount, Long> {
     fun findByUserId(userId: Long): SellerSettlementAccount?
+    fun deleteByUserId(userId: Long): Long
 }

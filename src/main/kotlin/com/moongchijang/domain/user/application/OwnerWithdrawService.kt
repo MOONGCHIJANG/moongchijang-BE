@@ -25,6 +25,7 @@ class OwnerWithdrawService(
     private val tokenService: com.moongchijang.domain.auth.application.TokenService,
     private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
+    private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -54,6 +55,7 @@ class OwnerWithdrawService(
             userId = ownerId,
             withdrawnAt = requireNotNull(owner.deletedAt),
         )
+        withdrawalImmediateCleanupService.cleanup(ownerId)
         owner.anonymizePersonalInfoForWithdrawal()
         tokenService.deleteByUserId(ownerId)
         log.info("[OwnerWithdrawService] 사장님 회원탈퇴 처리 완료: ownerId={}", ownerId)

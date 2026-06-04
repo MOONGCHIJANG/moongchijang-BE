@@ -60,6 +60,8 @@ class UserServiceTest {
         Mockito.mock(WithdrawnAccountCommandService::class.java)
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService =
         Mockito.mock(WithdrawalLegalRetentionCommandService::class.java)
+    private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService =
+        Mockito.mock(WithdrawalImmediateCleanupService::class.java)
     private val userService = UserService(
         userRepository,
         sellerBusinessProfileRepository,
@@ -74,6 +76,7 @@ class UserServiceTest {
         withdrawnAccountRepository,
         withdrawnAccountCommandService,
         withdrawalLegalRetentionCommandService,
+        withdrawalImmediateCleanupService,
     )
 
     @Test
@@ -678,6 +681,7 @@ class UserServiceTest {
         Mockito.verify(favoriteRepository).deleteByUserId(1L)
         Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(user, requireNotNull(user.deletedAt))
         Mockito.verify(withdrawalLegalRetentionCommandService).retainForWithdrawal(1L, requireNotNull(user.deletedAt))
+        Mockito.verify(withdrawalImmediateCleanupService).cleanup(1L)
         Mockito.verify(tokenService).deleteByUserId(1L)
         Assertions.assertEquals(true, user.deletedAt != null)
         Assertions.assertEquals(null, user.providerId)
@@ -716,6 +720,7 @@ class UserServiceTest {
         Mockito.verify(favoriteRepository).deleteByUserId(2L)
         Mockito.verify(withdrawnAccountCommandService).recordWithdrawal(user, requireNotNull(user.deletedAt))
         Mockito.verify(withdrawalLegalRetentionCommandService).retainForWithdrawal(2L, requireNotNull(user.deletedAt))
+        Mockito.verify(withdrawalImmediateCleanupService).cleanup(2L)
         Mockito.verify(tokenService).deleteByUserId(2L)
         Assertions.assertEquals(true, user.deletedAt != null)
         Assertions.assertEquals(null, user.providerId)

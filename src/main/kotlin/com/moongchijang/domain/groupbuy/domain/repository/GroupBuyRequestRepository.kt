@@ -15,6 +15,7 @@ import java.util.Optional
 
 interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
     fun findByUser_IdOrderByCreatedAtDesc(userId: Long): List<GroupBuyRequest>
+    fun deleteByUser_Id(userId: Long): Long
 
     fun findAllByOrderByCreatedAtDesc(pageable: Pageable): Page<GroupBuyRequest>
 

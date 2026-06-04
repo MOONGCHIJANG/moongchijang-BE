@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param
 
 interface GroupBuyOpenRequestRepository : JpaRepository<GroupBuyOpenRequest, Long> {
     fun existsByUser_IdAndRegionAndProductName(userId: Long, region: String, productName: String): Boolean
+    fun deleteByUser_Id(userId: Long): Long
 
     fun findAllByRegionAndProductNameAndNotificationStatus(
         region: String,

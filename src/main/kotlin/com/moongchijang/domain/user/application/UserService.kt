@@ -64,6 +64,7 @@ class UserService(
     private val withdrawnAccountRepository: WithdrawnAccountRepository,
     private val withdrawnAccountCommandService: WithdrawnAccountCommandService,
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
+    private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -448,6 +449,7 @@ class UserService(
             userId = userId,
             withdrawnAt = requireNotNull(user.deletedAt),
         )
+        withdrawalImmediateCleanupService.cleanup(userId)
         user.anonymizePersonalInfoForWithdrawal()
         tokenService.deleteByUserId(userId)
 

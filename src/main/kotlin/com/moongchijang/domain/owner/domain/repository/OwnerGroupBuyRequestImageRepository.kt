@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
 interface OwnerGroupBuyRequestImageRepository : JpaRepository<OwnerGroupBuyRequestImage, Long> {
+    fun deleteByRequest_Owner_Id(ownerId: Long): Long
 
     @Query("SELECT i FROM OwnerGroupBuyRequestImage i WHERE i.request.id = :requestId ORDER BY i.sortOrder ASC")
     fun findAllByRequestIdOrderBySortOrderAsc(@Param("requestId") requestId: Long): List<OwnerGroupBuyRequestImage>

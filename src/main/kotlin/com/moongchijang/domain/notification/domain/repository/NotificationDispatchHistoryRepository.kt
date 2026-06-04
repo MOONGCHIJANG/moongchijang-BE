@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 interface NotificationDispatchHistoryRepository : JpaRepository<NotificationDispatchHistory, Long> {
+    fun deleteByUserId(userId: Long): Long
 
     fun findByUserIdAndTriggerTypeAndTargetIdAndScheduleKey(
         userId: Long,

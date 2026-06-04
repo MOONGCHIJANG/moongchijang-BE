@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param
 interface StoreStaffRepository : JpaRepository<StoreStaff, Long> {
 
     fun existsByUserIdAndStoreId(userId: Long, storeId: Long): Boolean
+    fun deleteByUserId(userId: Long): Long
 
     @Query("SELECT ss FROM StoreStaff ss JOIN FETCH ss.store WHERE ss.user.id = :userId")
     fun findAllByUserId(@Param("userId") userId: Long): List<StoreStaff>
