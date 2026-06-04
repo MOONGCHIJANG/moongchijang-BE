@@ -36,7 +36,7 @@ import org.springframework.data.domain.PageRequest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.Optional
 
 class AdminRefundRequestServiceTest {
@@ -45,7 +45,7 @@ class AdminRefundRequestServiceTest {
     private val paymentOrderRepository: PaymentOrderRepository = mock(PaymentOrderRepository::class.java)
     private val paymentRepository: PaymentRepository = mock(PaymentRepository::class.java)
     private val refundRequestSyncService: RefundRequestSyncService = mock(RefundRequestSyncService::class.java)
-    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T01:00:00Z"), ZoneId.of("Asia/Seoul"))
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T01:00:00Z"), ZoneOffset.UTC)
     private val personalInfoProperties = PersonalInfoEncryptionProperties(
         secretKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     )
