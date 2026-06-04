@@ -10,6 +10,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.store.application.RecommendedStoreImageService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
@@ -36,6 +37,7 @@ class GroupBuyOpenRequestService(
     private val userRepository: UserRepository,
     private val aligoAlimtalkClient: AligoAlimtalkClient,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val recommendedStoreImageService: RecommendedStoreImageService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -181,8 +183,9 @@ class GroupBuyOpenRequestService(
             )
         }.getOrNull() ?: return emptyRecommendation(request, startedAt, fallback = true)
 
+        val imageUrls = recommendedStoreImageService.findActiveImageUrls()
         val candidates = items
-            .mapIndexedNotNull { index, item -> item.toCandidateOrNull(index, request) }
+            .mapIndexedNotNull { index, item -> item.toCandidateOrNull(index, request, imageUrls) }
             .distinctBy { it.duplicateKey }
 
         if (candidates.isEmpty()) {
@@ -254,7 +257,8 @@ class GroupBuyOpenRequestService(
 
     private fun NaverLocalSearchItem.toCandidateOrNull(
         index: Int,
-        request: StoreRecommendationRequest
+        request: StoreRecommendationRequest,
+        imageUrls: List<String>
     ): StoreRecommendationCandidate? {
         return runCatching {
             val storeName = storeName()
@@ -272,6 +276,7 @@ class GroupBuyOpenRequestService(
                 lotAddress = lotAddress,
                 latitude = latitude(),
                 longitude = longitude(),
+                imageUrl = recommendedStoreImageService.imageUrlByIndex(index, imageUrls),
                 category = category,
                 addressMatched = addressMatched,
                 categoryMatched = categoryMatched,
@@ -333,6 +338,7 @@ class GroupBuyOpenRequestService(
             lotAddress = candidate.lotAddress,
             latitude = candidate.latitude,
             longitude = candidate.longitude,
+            imageUrl = candidate.imageUrl,
             category = candidate.category,
             addressMatched = candidate.addressMatched,
             categoryMatched = candidate.categoryMatched,
@@ -379,6 +385,7 @@ class GroupBuyOpenRequestService(
         val lotAddress: String?,
         val latitude: Double,
         val longitude: Double,
+        val imageUrl: String?,
         val category: String,
         val addressMatched: Boolean,
         val categoryMatched: Boolean,

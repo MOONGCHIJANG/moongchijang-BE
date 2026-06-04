@@ -7,6 +7,7 @@ meta:
     - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyRequestController.kt
     - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyRequestAdminController.kt
     - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyRequestService.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyOpenRequestService.kt
     - src/main/kotlin/com/moongchijang/domain/groupbuy/application/GroupBuyRequestStatusCommandService.kt
     - src/main/kotlin/com/moongchijang/domain/groupbuy/domain/entity/GroupBuyRequest.kt
   related_requirements:
@@ -21,6 +22,7 @@ business_rules:
   - 관리자 상태 변경은 GroupBuyRequestStatusCommandService와 status history를 통해 추적한다.
   - 승인/개설 완료 시 매장, 가격, 수량, 기간, 픽업 정보가 모두 유효해야 한다.
   - 거절 상태로 변경할 때는 거절 사유가 필수다.
+  - 매장 추천 바텀시트 응답은 Naver Local Search 후보에 표시용 imageUrl을 포함할 수 있다.
 
 error_cases:
   - GROUPBUY_REQUEST_NOT_FOUND

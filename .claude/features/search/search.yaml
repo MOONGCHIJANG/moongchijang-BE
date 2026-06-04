@@ -20,6 +20,7 @@ business_rules:
   - 검색어 sanitize와 boolean fulltext query 생성은 FullTextQueryBuilder 기준을 따른다.
   - 상품명/매장명 주소 인덱스 매칭 결과를 분리해 판단한다.
   - 빈 결과/추천 매장 상태는 SearchUiState/SearchCase로 명시한다.
+  - EMPTY_CAN_REQUEST의 recommendedStores는 매장 표시용 imageUrl을 포함할 수 있다.
   - 검색 이력 기록은 캐시/매칭 흐름 때문에 누락되지 않아야 한다.
 
 testing_strategy:

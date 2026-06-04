@@ -12,6 +12,7 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyOpenRequestRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.notification.infrastructure.aligo.AligoAlimtalkClient
+import com.moongchijang.domain.store.application.RecommendedStoreImageService
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.StoreRecommendationRegionType
@@ -27,6 +28,7 @@ import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.NaverFixture
 import com.moongchijang.support.UserFixture
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -34,7 +36,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
@@ -67,13 +68,38 @@ class GroupBuyOpenRequestServiceTest {
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
-    @InjectMocks
+    @Mock
+    private lateinit var recommendedStoreImageService: RecommendedStoreImageService
+
     private lateinit var service: GroupBuyOpenRequestService
 
     @BeforeEach
     fun setUp() {
+        service = GroupBuyOpenRequestService(
+            openRequestRepository = openRequestRepository,
+            naverLocalSearchClient = naverLocalSearchClient,
+            storeRepository = storeRepository,
+            groupBuyRepository = groupBuyRepository,
+            userRepository = userRepository,
+            aligoAlimtalkClient = aligoAlimtalkClient,
+            notificationEventPublisher = notificationEventPublisher,
+            recommendedStoreImageService = recommendedStoreImageService,
+        )
         lenient().`when`(userRepository.findByIdAndDeletedAtIsNull(anyLong()))
             .thenAnswer { UserFixture.createKakaoUser(id = it.getArgument(0)) }
+        lenient().`when`(recommendedStoreImageService.findActiveImageUrls())
+            .thenReturn(
+                listOf(
+                    "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/1.jpeg",
+                    "https://dkg5euyknlpa.cloudfront.net/dev/recommended-store/2.jpeg",
+                )
+            )
+        lenient().`when`(recommendedStoreImageService.imageUrlByIndex(anyInt(), anyList()))
+            .thenAnswer {
+                val index = it.getArgument<Int>(0)
+                val imageUrls = it.getArgument<List<String>>(1)
+                imageUrls[index.mod(imageUrls.size)]
+            }
     }
 
     @Test
@@ -165,6 +191,7 @@ class GroupBuyOpenRequestServiceTest {
         assertTrue(response.stores[0].categoryMatched)
         assertTrue(response.stores[0].registeredStore)
         assertTrue(response.stores[0].previousGroupBuyStore)
+        assertThat(response.stores[0].imageUrl).startsWith("https://dkg5euyknlpa.cloudfront.net/")
         assertEquals("다른 가게", response.stores[1].storeName)
         assertFalse(response.stores[1].registeredStore)
         verify(storeRepository).findByNormalizedNameIn(setOf("다른가게", "loaf"))
