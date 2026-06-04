@@ -553,7 +553,7 @@ class PaymentService(
             publishWishTargetAchievedEvent(groupBuy.id, approvedAt)
             publishRequestTargetAchievedEvent(groupBuy, approvedAt)
             if (achievedNow) {
-                publishOwnerGroupBuyAchievedEvents(groupBuy.id, approvedAt)
+                publishOwnerGroupBuyAchievedEvents(groupBuy, approvedAt)
                 adminDiscordAlertService.sendGroupBuyAchieved(groupBuy, participantUserIds.size)
             }
         }
@@ -636,18 +636,17 @@ class PaymentService(
         )
     }
 
-    private fun publishOwnerGroupBuyAchievedEvents(groupBuyId: Long, occurredAt: LocalDateTime) {
-        val groupBuy = groupBuyRepository.findWithStoreById(groupBuyId).orElse(null) ?: return
+    private fun publishOwnerGroupBuyAchievedEvents(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
         val ownerUserIds = storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id).distinct()
         if (ownerUserIds.isEmpty()) return
 
         notificationEventPublisher.publishOwnerGroupBuyAchieved(
-            groupBuyId = groupBuyId,
+            groupBuyId = groupBuy.id,
             ownerUserIds = ownerUserIds,
             occurredAt = occurredAt
         )
         notificationEventPublisher.publishOwnerOrderConfirmRequired(
-            groupBuyId = groupBuyId,
+            groupBuyId = groupBuy.id,
             ownerUserIds = ownerUserIds,
             occurredAt = occurredAt
         )

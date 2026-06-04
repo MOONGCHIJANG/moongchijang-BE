@@ -377,7 +377,7 @@ class GroupBuyOpenRequestService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
     private fun requireUserId(openRequest: GroupBuyOpenRequest): Long =
-        openRequest.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        openRequest.user.id!!
 
     private data class StoreRecommendationCandidate(
         val naverRank: Int,

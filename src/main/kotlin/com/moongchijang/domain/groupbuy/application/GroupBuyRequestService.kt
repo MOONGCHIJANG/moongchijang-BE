@@ -273,5 +273,5 @@ class GroupBuyRequestService(
             ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
 
     private fun requesterId(request: GroupBuyRequest): Long =
-        request.user.id ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+        request.user.id!!
 }
