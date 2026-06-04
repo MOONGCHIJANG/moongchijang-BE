@@ -6777,6 +6777,10 @@ components:
         lotAddress: { type: string, nullable: true }
         latitude: { type: number, format: double }
         longitude: { type: number, format: double }
+        imageUrl:
+          type: string
+          nullable: true
+          description: 추천 매장 표시용 이미지 URL
 
     ApiResponseRecentSearchList:
       type: object
@@ -6824,6 +6828,10 @@ components:
                     type: number
                     format: double
                     description: 경도
+                  imageUrl:
+                    type: string
+                    nullable: true
+                    description: 추천 매장 표시용 이미지 URL
         error: { nullable: true, example: null }
 
     StoreRecommendationRegionType:
@@ -7086,6 +7094,10 @@ components:
                     format: double
                     description: 경도
                     example: 127.0
+                  imageUrl:
+                    type: string
+                    nullable: true
+                    description: 추천 매장 표시용 이미지 URL
                   category:
                     type: string
                     description: 네이버 Local Search 카테고리

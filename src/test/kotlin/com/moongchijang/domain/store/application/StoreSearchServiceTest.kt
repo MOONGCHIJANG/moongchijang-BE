@@ -3,14 +3,23 @@ package com.moongchijang.domain.store.application
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchResponse
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 
 class StoreSearchServiceTest {
 
     private val naverLocalSearchClient: NaverLocalSearchClient = Mockito.mock(NaverLocalSearchClient::class.java)
-    private val service = StoreSearchService(naverLocalSearchClient)
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver = Mockito.mock(S3ImageReferenceResolver::class.java)
+    private val service = StoreSearchService(naverLocalSearchClient, s3ImageReferenceResolver)
+
+    @BeforeEach
+    fun setUp() {
+        Mockito.`when`(s3ImageReferenceResolver.resolveForRead(Mockito.anyString()))
+            .thenAnswer { "https://dkg5euyknlpa.cloudfront.net/${it.arguments[0]}" }
+    }
 
     @Test
     fun `search returns only bakery domain stores from naver local results`() {
@@ -26,6 +35,11 @@ class StoreSearchServiceTest {
 
         assertThat(result.stores).extracting("storeName")
             .containsExactly("성수베이커리", "잠실도넛")
+        assertThat(result.stores).extracting("imageUrl")
+            .containsExactly(
+                "https://dkg5euyknlpa.cloudfront.net/dev/group-buys/pending/4/20260604/thumbnail/36a2ee7f-6c7f-4c70-a434-5a23932fe279.jpeg",
+                "https://dkg5euyknlpa.cloudfront.net/dev/group-buys/pending/4/20260604/products/f5ae0151-bf93-4a90-b7a3-5f554d849238.jpeg",
+            )
     }
 
     @Test

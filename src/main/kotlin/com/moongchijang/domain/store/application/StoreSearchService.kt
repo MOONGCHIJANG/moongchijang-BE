@@ -3,12 +3,14 @@ package com.moongchijang.domain.store.application
 import com.moongchijang.domain.store.application.dto.StoreSearchResponse
 import com.moongchijang.domain.store.infrastructure.naver.NaverLocalSearchClient
 import com.moongchijang.domain.store.infrastructure.naver.dto.NaverLocalSearchItem
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class StoreSearchService(
-    private val naverLocalSearchClient: NaverLocalSearchClient
+    private val naverLocalSearchClient: NaverLocalSearchClient,
+    private val s3ImageReferenceResolver: S3ImageReferenceResolver,
 ) {
     private val log = LoggerFactory.getLogger(StoreSearchService::class.java)
     companion object {
@@ -58,12 +60,29 @@ class StoreSearchService(
         log.info("[StoreSearchService] 매장 검색 시작: keywordLength={}, display={}", keyword.length, display)
         if (keyword.isBlank()) {
             log.info("[StoreSearchService] 매장 검색 스킵: 빈 키워드")
-            return StoreSearchResponse.from(emptyList())
+            return StoreSearchResponse(stores = emptyList())
         }
         val response = naverLocalSearchClient.search(keyword, display.coerceAtLeast(NAVER_FETCH_DISPLAY))
-        val result = StoreSearchResponse.from(response.items.filter { it.isBakeryDomain() }.take(display))
+        val result = StoreSearchResponse(
+            stores = response.items
+                .filter { it.isBakeryDomain() }
+                .take(display)
+                .mapIndexed { index, item -> item.toStoreItem(index) }
+        )
         log.info("[StoreSearchService] 매장 검색 완료: resultCount={}", result.stores.size)
         return result
+    }
+
+    private fun NaverLocalSearchItem.toStoreItem(index: Int): StoreSearchResponse.StoreItem {
+        return StoreSearchResponse.StoreItem(
+            placeId = placeId(),
+            storeName = storeName(),
+            roadAddress = roadAddress,
+            lotAddress = address.ifBlank { null },
+            latitude = latitude(),
+            longitude = longitude(),
+            imageUrl = s3ImageReferenceResolver.resolveForRead(RecommendedStoreImages.keyByIndex(index))
+        )
     }
 
     private fun NaverLocalSearchItem.isBakeryDomain(): Boolean {

@@ -24,9 +24,11 @@ import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.NaverFixture
 import com.moongchijang.support.UserFixture
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -67,6 +69,9 @@ class GroupBuyOpenRequestServiceTest {
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
+    @Mock
+    private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
+
     @InjectMocks
     private lateinit var service: GroupBuyOpenRequestService
 
@@ -74,6 +79,8 @@ class GroupBuyOpenRequestServiceTest {
     fun setUp() {
         lenient().`when`(userRepository.findByIdAndDeletedAtIsNull(anyLong()))
             .thenAnswer { UserFixture.createKakaoUser(id = it.getArgument(0)) }
+        lenient().`when`(s3ImageReferenceResolver.resolveForRead(anyString()))
+            .thenAnswer { "https://dkg5euyknlpa.cloudfront.net/${it.arguments[0]}" }
     }
 
     @Test
@@ -165,6 +172,7 @@ class GroupBuyOpenRequestServiceTest {
         assertTrue(response.stores[0].categoryMatched)
         assertTrue(response.stores[0].registeredStore)
         assertTrue(response.stores[0].previousGroupBuyStore)
+        assertThat(response.stores[0].imageUrl).startsWith("https://dkg5euyknlpa.cloudfront.net/")
         assertEquals("다른 가게", response.stores[1].storeName)
         assertFalse(response.stores[1].registeredStore)
         verify(storeRepository).findByNormalizedNameIn(setOf("다른가게", "loaf"))

@@ -14,6 +14,7 @@ data class RecommendedStoreDto(
     val lotAddress: String?,
     val latitude: Double,
     val longitude: Double,
+    val imageUrl: String? = null,
 ) {
     companion object {
         fun from(item: StoreSearchResponse.StoreItem) = RecommendedStoreDto(
@@ -23,6 +24,7 @@ data class RecommendedStoreDto(
             lotAddress = item.lotAddress,
             latitude = item.latitude,
             longitude = item.longitude,
+            imageUrl = item.imageUrl,
         )
     }
 }
