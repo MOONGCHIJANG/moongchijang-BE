@@ -86,14 +86,26 @@ Commit message convention:
 Commit message examples:
 
 ```text
-[MCJ-1604] feat: add payment success notification option
-[MCJ-1604] test: add payment success audit alert tests
-docs: add payment failure notification guide
+[MCJ-1604] feat: 결제 성공 알림 옵션 추가
+[MCJ-1604] test: 결제 성공 감사 알림 테스트 추가
+docs: 결제 실패 알림 가이드 추가
 ```
 
 ## 6. Open PR With Template
 
 Use `.github/pull_request_template.md` and fill every section.
+
+PR title convention:
+
+- Use `[MCJ-####] TYPE: summary`.
+- `TYPE` is the uppercase form of the GitFlow branch prefix, such as `FEAT`, `FIX`, `DOCS`, `REFACTOR`, `TEST`, or `CHORE`.
+- The summary after `TYPE:` must be Korean.
+
+Example:
+
+```text
+[MCJ-1605] FEAT: 추천 매장 이미지 URL 응답 추가
+```
 
 Required PR body shape:
 
