@@ -51,14 +51,19 @@ class OwnerWithdrawService(
             user = owner,
             withdrawnAt = requireNotNull(owner.deletedAt),
         )
+        finalizeWithdrawalAfterRetention(ownerId = ownerId, owner = owner)
+        log.info("[OwnerWithdrawService] 사장님 회원탈퇴 처리 완료: ownerId={}", ownerId)
+    }
+
+    private fun finalizeWithdrawalAfterRetention(ownerId: Long, owner: com.moongchijang.domain.user.domain.entity.User) {
+        val withdrawnAt = requireNotNull(owner.deletedAt)
         withdrawalLegalRetentionCommandService.retainForWithdrawal(
             userId = ownerId,
-            withdrawnAt = requireNotNull(owner.deletedAt),
+            withdrawnAt = withdrawnAt,
         )
         withdrawalImmediateCleanupService.cleanup(ownerId)
         owner.anonymizePersonalInfoForWithdrawal()
         tokenService.deleteByUserId(ownerId)
-        log.info("[OwnerWithdrawService] 사장님 회원탈퇴 처리 완료: ownerId={}", ownerId)
     }
 
     fun validateWithdrawable(ownerId: Long) {

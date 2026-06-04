@@ -446,13 +446,7 @@ class UserService(
             user = user,
             withdrawnAt = requireNotNull(user.deletedAt),
         )
-        withdrawalLegalRetentionCommandService.retainForWithdrawal(
-            userId = userId,
-            withdrawnAt = requireNotNull(user.deletedAt),
-        )
-        withdrawalImmediateCleanupService.cleanup(userId)
-        user.anonymizePersonalInfoForWithdrawal()
-        tokenService.deleteByUserId(userId)
+        finalizeWithdrawalAfterRetention(userId = userId, user = user)
 
         log.info("[UserService] 회원탈퇴 처리 완료: userId={}", userId)
     }
@@ -557,6 +551,17 @@ class UserService(
     private fun sanitizeKakaoNicknameForPreload(rawNickname: String): String? {
         val nickname = rawNickname.trim()
         return if (NICKNAME_REGEX.matches(nickname)) nickname else null
+    }
+
+    private fun finalizeWithdrawalAfterRetention(userId: Long, user: User) {
+        val withdrawnAt = requireNotNull(user.deletedAt)
+        withdrawalLegalRetentionCommandService.retainForWithdrawal(
+            userId = userId,
+            withdrawnAt = withdrawnAt,
+        )
+        withdrawalImmediateCleanupService.cleanup(userId)
+        user.anonymizePersonalInfoForWithdrawal()
+        tokenService.deleteByUserId(userId)
     }
 
     private fun validateRejoinAvailable(rejoinAvailableAt: LocalDateTime) {
