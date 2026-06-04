@@ -38,8 +38,6 @@ class PortOnePaymentClient(
         }
         if (elapsedMs >= SLOW_REQUEST_WARN_THRESHOLD_MS) {
             log.warn("[PortOnePaymentClient] 결제 단건 조회 지연: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
-        } else {
-            log.debug("[PortOnePaymentClient] 결제 단건 조회 완료: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
         }
 
         return try {
@@ -73,8 +71,6 @@ class PortOnePaymentClient(
         }
         if (elapsedMs >= SLOW_REQUEST_WARN_THRESHOLD_MS) {
             log.warn("[PortOnePaymentClient] 결제 취소 요청 지연: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
-        } else {
-            log.debug("[PortOnePaymentClient] 결제 취소 요청 완료: paymentId={}, elapsedMs={}", paymentId, elapsedMs)
         }
 
         return try {
