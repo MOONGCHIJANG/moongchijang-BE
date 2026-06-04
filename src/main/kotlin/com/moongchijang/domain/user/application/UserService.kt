@@ -93,7 +93,7 @@ class UserService(
         validateEmailFormat(normalizedEmail)
 
         val emailHash = personalInfoManager.hashEmail(normalizedEmail)
-        if (userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(AuthProvider.EMAIL, emailHash, normalizedEmail)) {
+        if (userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(AuthProvider.EMAIL, emailHash)) {
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
         }
         validateEmailRejoinAvailable(normalizedEmail)
@@ -104,7 +104,7 @@ class UserService(
             passwordHash = passwordHash,
         )
         val savedUser = try {
-            userRepository.save(user)
+            userRepository.saveAndFlush(user)
         } catch (e: DataIntegrityViolationException) {
             // provider+email 유니크 인덱스 충돌(동시성 가입 요청) 시 도메인 예외로 변환
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
@@ -119,10 +119,9 @@ class UserService(
         val normalizedEmail = normalizeEmail(email)
         validateEmailFormat(normalizedEmail)
 
-        return userRepository.findActiveByProviderAndEmailHashOrLegacyEmail(
+        return userRepository.findByProviderAndEmailHashAndDeletedAtIsNull(
             provider = AuthProvider.EMAIL,
             emailHash = personalInfoManager.hashEmail(normalizedEmail),
-            legacyEmail = normalizedEmail,
         )
     }
 
@@ -151,10 +150,9 @@ class UserService(
         log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        val duplicated = userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+        val duplicated = userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
             AuthProvider.EMAIL,
             personalInfoManager.hashEmail(normalizedEmail),
-            normalizedEmail,
         ) ||
             isEmailRejoinBlocked(normalizedEmail)
         val response = EmailAvailabilityResponse(
