@@ -71,3 +71,4 @@ Use these project subagents when a task is self-contained:
 - Direct `develop` pushes are allowed only when explicitly requested.
 - Keep commits scoped. Do not include unrelated `.env*`, generated build output, or local IDE files.
 - Preferred commit format: `docs: ...`, `test: ...`, `fix: ...`, `feat: ...`; Jira-style prefixes are used only when the task already has an issue key.
+- 모든 커밋은 prefix 뒤의 요약을 한국어로 작성한다. 예: `feat: 추천 매장 이미지 응답 추가`

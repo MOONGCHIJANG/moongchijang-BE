@@ -13,6 +13,8 @@ commit_messages:
     - "docs: ..."
     - "refactor: ..."
     - "chore: ..."
+  language:
+    summary_after_prefix: "모든 commit prefix 뒤의 요약은 한국어로 작성한다."
   jira_style:
     use_when_issue_key_exists: "[MCJ-####] type: summary"
 
