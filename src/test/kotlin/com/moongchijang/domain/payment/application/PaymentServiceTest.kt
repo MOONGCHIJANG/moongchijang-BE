@@ -46,6 +46,7 @@ import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
 import org.mockito.Mockito.lenient
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
@@ -330,6 +331,25 @@ class PaymentServiceTest {
 
         assertEquals(ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED, ex.errorCode)
         verify(redisLockUtil).lockKey(10L)
+    }
+
+    @Test
+    fun `포트원 결제 조회 실패는 주문을 실패 확정하지 않고 재시도와 웹훅 처리를 열어둔다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(currentQuantity = 36)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenThrow(CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED))
+
+        val ex = assertThrows<CustomException> {
+            service.completePortOnePayment(CompletePortOnePaymentRequest("MCJ-10-test", 6000), 1L)
+        }
+
+        assertEquals(ErrorCode.PAYMENT_APPROVAL_FAILED, ex.errorCode)
+        assertEquals(PaymentOrderStatus.READY, order.status)
+        verify(paymentOrderRepository, never()).save(order)
     }
 
     @Test
