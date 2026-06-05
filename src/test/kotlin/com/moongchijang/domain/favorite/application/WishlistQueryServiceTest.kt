@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -73,6 +73,29 @@ class WishlistQueryServiceTest {
         verify(favoriteRepository).countUrgentByUserId(userId, now, now.plusHours(24))
         assertEquals(1, result.content.size)
         assertEquals(2, result.urgentCount)
+    }
+
+    @Test
+    fun `기본 현재시각 호출 시 고정 Clock의 KST 현재시각을 사용한다`() {
+        val userId = 10L
+        val pageable = PageRequest.of(0, 20)
+        val now = LocalDateTime.of(2026, 5, 22, 10, 0)
+
+        `when`(
+            favoriteRepository.findWishlistGroupBuys(
+                userId = userId,
+                filter = WishFilterType.ALL,
+                excludeClosed = false,
+                sort = WishSortType.LATEST,
+                pageable = pageable,
+                now = now,
+            )
+        ).thenReturn(PageImpl(emptyList(), pageable, 0))
+        `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(0L)
+
+        service.getWishlist(userId, WishFilterType.ALL, false, WishSortType.LATEST, pageable)
+
+        verify(favoriteRepository).findWishlistGroupBuys(userId, WishFilterType.ALL, false, WishSortType.LATEST, pageable, now)
     }
 
     @Test

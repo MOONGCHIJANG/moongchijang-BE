@@ -28,7 +28,25 @@ class WishlistQueryService(
         excludeClosed: Boolean,
         sort: WishSortType,
         pageable: Pageable,
-        now: LocalDateTime = clock.kstNow(),
+    ): WishlistPageResponse {
+        return getWishlist(
+            userId = userId,
+            filter = filter,
+            excludeClosed = excludeClosed,
+            sort = sort,
+            pageable = pageable,
+            now = clock.kstNow(),
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getWishlist(
+        userId: Long,
+        filter: WishFilterType,
+        excludeClosed: Boolean,
+        sort: WishSortType,
+        pageable: Pageable,
+        now: LocalDateTime,
     ): WishlistPageResponse {
         log.info(
             "[WishlistQueryService] 찜 목록 조회 시작: userId={}, filter={}, excludeClosed={}, sort={}, page={}, size={}",

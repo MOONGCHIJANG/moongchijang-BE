@@ -29,7 +29,10 @@ class WithdrawalRetentionPurgeService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun purgeExpired(now: LocalDateTime = clock.utcNow()): WithdrawalRetentionPurgeResult {
+    fun purgeExpired(): WithdrawalRetentionPurgeResult = purgeExpired(clock.utcNow())
+
+    @Transactional
+    fun purgeExpired(now: LocalDateTime): WithdrawalRetentionPurgeResult {
         val withdrawnRefundRequestsDeleted = withdrawnRefundRequestRepository.deleteByRetentionExpiresAtBefore(now)
         val withdrawnParticipationsDeleted = withdrawnParticipationRepository.deleteByRetentionExpiresAtBefore(now)
         val withdrawnPaymentOrdersDeleted = withdrawnPaymentOrderRepository.deleteByRetentionExpiresAtBefore(now)

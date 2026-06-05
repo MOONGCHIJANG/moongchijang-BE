@@ -20,7 +20,12 @@ class ParticipationPickupCommandService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun completePickup(participationId: Long, processedByUserId: Long, pickedUpAt: LocalDateTime = clock.utcNow()) {
+    fun completePickup(participationId: Long, processedByUserId: Long) {
+        completePickup(participationId = participationId, processedByUserId = processedByUserId, pickedUpAt = clock.utcNow())
+    }
+
+    @Transactional
+    fun completePickup(participationId: Long, processedByUserId: Long, pickedUpAt: LocalDateTime) {
         val participation = participationRepository.findByIdForUpdate(participationId)
             .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
         val processor = userRepository.findByIdAndDeletedAtIsNull(processedByUserId)
