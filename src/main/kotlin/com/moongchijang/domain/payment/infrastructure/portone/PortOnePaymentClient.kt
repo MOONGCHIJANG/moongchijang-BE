@@ -124,7 +124,7 @@ class PortOnePaymentClient(
     }
 
     private fun isAlreadyCancelledResponse(e: HttpClientErrorException): Boolean {
-        if (e.statusCode != HttpStatus.CONFLICT) return false
+        if (!e.statusCode.isSameCodeAs(HttpStatus.CONFLICT)) return false
         return e.responseBodyAsString.contains(PORTONE_ERROR_PAYMENT_ALREADY_CANCELLED)
     }
 
