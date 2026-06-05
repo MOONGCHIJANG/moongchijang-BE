@@ -6,7 +6,9 @@ import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
+import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 import java.time.LocalDateTime
@@ -69,6 +71,24 @@ class PortOnePaymentClient(
                 .retrieve()
                 .body(Map::class.java)
                 ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        } catch (e: HttpClientErrorException) {
+            val elapsedMs = System.currentTimeMillis() - startedAtMs
+            if (isAlreadyCancelledResponse(e)) {
+                log.info(
+                    "[PortOnePaymentClient] PortOne 이미 취소된 결제 멱등 처리: paymentId={}, elapsedMs={}",
+                    paymentId,
+                    elapsedMs,
+                )
+                return alreadyCancelledResult(paymentId, partial, cancelAmount)
+            }
+            log.warn(
+                "[PortOnePaymentClient] 결제 취소 요청 실패: paymentId={}, elapsedMs={}, body={}",
+                paymentId,
+                elapsedMs,
+                e.responseBodyAsString,
+                e,
+            )
+            throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         } catch (e: RestClientException) {
             log.warn(
                 "[PortOnePaymentClient] 결제 취소 요청 실패: paymentId={}, elapsedMs={}",
@@ -101,6 +121,26 @@ class PortOnePaymentClient(
             )
             throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         }
+    }
+
+    private fun isAlreadyCancelledResponse(e: HttpClientErrorException): Boolean {
+        if (!e.statusCode.isSameCodeAs(HttpStatus.CONFLICT)) return false
+        return e.responseBodyAsString.contains(PORTONE_ERROR_PAYMENT_ALREADY_CANCELLED)
+    }
+
+    private fun alreadyCancelledResult(
+        paymentId: String,
+        partial: Boolean,
+        cancelAmount: Int?,
+    ): PortOnePaymentResult {
+        return PortOnePaymentResult(
+            paymentId = paymentId,
+            status = if (partial) PORTONE_STATUS_PARTIAL_CANCELLED else PORTONE_STATUS_CANCELLED,
+            totalAmount = cancelAmount ?: 0,
+            method = null,
+            paidAt = null,
+            cancelledAt = null,
+        )
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -172,5 +212,6 @@ class PortOnePaymentClient(
         private const val PORTONE_CANCELLATION_STATUS_SUCCEEDED = "SUCCEEDED"
         private const val PORTONE_STATUS_CANCELLED = "CANCELLED"
         private const val PORTONE_STATUS_PARTIAL_CANCELLED = "PARTIAL_CANCELLED"
+        private const val PORTONE_ERROR_PAYMENT_ALREADY_CANCELLED = "PAYMENT_ALREADY_CANCELLED"
     }
 }
