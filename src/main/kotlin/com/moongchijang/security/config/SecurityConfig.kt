@@ -75,7 +75,7 @@ class SecurityConfig(
 
                 it.anyRequest().authenticated()
             }
-            .addFilterBefore(traceIdFilter, JwtAuthenticationFilter::class.java)
+            .addFilterBefore(traceIdFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .formLogin { it.disable() }
             .httpBasic { it.disable() }
