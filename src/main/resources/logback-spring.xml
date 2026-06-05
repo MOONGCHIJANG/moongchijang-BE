@@ -3,7 +3,7 @@
     <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="moongchijang-be" />
     <springProperty scope="context" name="activeProfile" source="spring.profiles.active" defaultValue="local" />
 
-    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId:-}] - %msg%n" />
 
     <appender name="PLAIN_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -38,7 +38,8 @@
                     <pattern>
                         {
                           "service":"${appName}",
-                          "env":"${activeProfile}"
+                          "env":"${activeProfile}",
+                          "traceId":"%mdc{traceId:-}"
                         }
                     </pattern>
                 </pattern>

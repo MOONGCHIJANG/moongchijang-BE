@@ -140,7 +140,7 @@ class AuthService(
     fun signupWithEmail(request: EmailSignupRequest): AuthLoginResult {
         return runCatching {
             val normalizedEmail = request.email.trim().lowercase()
-            log.info("[AuthService] 이메일 회원가입 처리 시작: email={}", normalizedEmail)
+            log.info("[AuthService] 이메일 회원가입 처리 시작: email={}", maskEmail(normalizedEmail))
 
             validateSignupTokenForNormalizedEmail(normalizedEmail, request.signupToken)
             validatePasswordPolicy(normalizedEmail, request.password)
