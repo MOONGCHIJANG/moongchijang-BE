@@ -54,6 +54,7 @@ class PortOnePaymentClient(
     }
 
     override fun cancelPayment(paymentId: String, reason: String, cancelAmount: Int?): PortOnePaymentResult {
+        val partial = cancelAmount != null
         val requestBody = mutableMapOf<String, Any>("reason" to reason).apply {
             if (cancelAmount != null) {
                 this["amount"] = cancelAmount
@@ -83,12 +84,49 @@ class PortOnePaymentClient(
         }
 
         return try {
-            toPaymentResult(paymentId, response)
+            toCancellationResult(paymentId, response, partial)
         } catch (e: CustomException) {
+            log.warn(
+                "[PortOnePaymentClient] 결제 취소 응답 파싱 실패: paymentId={}, response={}",
+                paymentId,
+                response,
+            )
             throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         } catch (e: RuntimeException) {
+            log.warn(
+                "[PortOnePaymentClient] 결제 취소 응답 파싱 실패: paymentId={}, response={}",
+                paymentId,
+                response,
+                e,
+            )
             throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun toCancellationResult(
+        paymentId: String,
+        response: Map<*, *>,
+        partial: Boolean,
+    ): PortOnePaymentResult {
+        val cancellation = response["cancellation"] as? Map<String, Any?>
+            ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+        val rawStatus = cancellation["status"] as? String ?: ""
+        val mappedStatus = when (rawStatus) {
+            PORTONE_CANCELLATION_STATUS_SUCCEEDED ->
+                if (partial) PORTONE_STATUS_PARTIAL_CANCELLED else PORTONE_STATUS_CANCELLED
+            else -> rawStatus
+        }
+        val totalAmount = (cancellation["totalAmount"] as? Number)?.toInt() ?: 0
+        val cancelledAt = parseDateTime(cancellation["cancelledAt"] as? String)
+        return PortOnePaymentResult(
+            paymentId = paymentId,
+            status = mappedStatus,
+            totalAmount = totalAmount,
+            method = null,
+            paidAt = null,
+            cancelledAt = cancelledAt,
+        )
     }
 
     private fun toPaymentResult(paymentId: String, response: Map<*, *>): PortOnePaymentResult {
@@ -131,5 +169,8 @@ class PortOnePaymentClient(
 
     companion object {
         private const val SLOW_REQUEST_WARN_THRESHOLD_MS = 1_000L
+        private const val PORTONE_CANCELLATION_STATUS_SUCCEEDED = "SUCCEEDED"
+        private const val PORTONE_STATUS_CANCELLED = "CANCELLED"
+        private const val PORTONE_STATUS_PARTIAL_CANCELLED = "PARTIAL_CANCELLED"
     }
 }
