@@ -98,7 +98,7 @@ class PortOnePaymentClientTest {
 
         val result = client.cancelPayment(paymentId, "OTHER: 시간이 맞지 않습니다")
 
-        assertEquals("cancellation-id-1", result.paymentId)
+        assertEquals(paymentId, result.paymentId)
         assertEquals("CANCELLED", result.status)
         assertEquals(12000, result.totalAmount)
         assertEquals(LocalDateTime.of(2026, 5, 19, 6, 25), result.cancelledAt)

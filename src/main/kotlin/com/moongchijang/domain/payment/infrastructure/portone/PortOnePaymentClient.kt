@@ -120,7 +120,7 @@ class PortOnePaymentClient(
         val totalAmount = (cancellation["totalAmount"] as? Number)?.toInt() ?: 0
         val cancelledAt = parseDateTime(cancellation["cancelledAt"] as? String)
         return PortOnePaymentResult(
-            paymentId = cancellation["id"] as? String ?: paymentId,
+            paymentId = paymentId,
             status = mappedStatus,
             totalAmount = totalAmount,
             method = null,
