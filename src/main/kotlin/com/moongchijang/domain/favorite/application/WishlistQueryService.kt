@@ -21,7 +21,6 @@ class WishlistQueryService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Transactional(readOnly = true)
     fun getWishlist(
         userId: Long,
         filter: WishFilterType,
