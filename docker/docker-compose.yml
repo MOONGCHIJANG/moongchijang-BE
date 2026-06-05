@@ -132,6 +132,43 @@ services:
     networks:
       - monitoring
 
+  loki:
+    # 모니터링 스택의 로그 저장소
+    profiles: ["monitoring"]
+    image: grafana/loki:3.1.1
+    container_name: moongchijang-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    command:
+      - -config.file=/etc/loki/config.yml
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  fluent-bit:
+    # Docker 컨테이너 stdout/stderr 로그를 Loki로 전달하는 수집기
+    profiles: ["monitoring"]
+    image: fluent/fluent-bit:3.1.9
+    container_name: moongchijang-fluent-bit
+    ports:
+      - "2020:2020"
+    environment:
+      FLUENT_BIT_ENV: ${FLUENT_BIT_ENV:-prod}
+    volumes:
+      - ./monitoring/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./monitoring/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - fluent-bit-data:/fluent-bit/state
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - monitoring
+
   grafana:
     # 모니터링 스택의 시각화 대시보드
     profiles: ["monitoring"]
@@ -151,6 +188,7 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+      - loki
     restart: unless-stopped
     networks:
       - monitoring
@@ -162,6 +200,8 @@ volumes:
   prometheus-data:
   alertmanager-data:
   grafana-data:
+  loki-data:
+  fluent-bit-data:
 
 networks:
   monitoring:

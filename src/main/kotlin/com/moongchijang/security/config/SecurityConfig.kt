@@ -1,6 +1,7 @@
 package com.moongchijang.security.config
 
 import com.moongchijang.global.config.CorsProperties
+import com.moongchijang.global.logging.TraceIdFilter
 import com.moongchijang.security.jwt.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -73,6 +74,7 @@ class SecurityConfig(
 
                 it.anyRequest().authenticated()
             }
+            .addFilterBefore(TraceIdFilter(), UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .formLogin { it.disable() }
             .httpBasic { it.disable() }

@@ -10,7 +10,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
+import com.moongchijang.global.time.utcNow
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -63,5 +65,32 @@ class ParticipationPickupCommandServiceTest {
         assertEquals(PickupStatus.PICKED_UP, participation.pickupStatus)
         assertEquals(now, participation.pickedUpAt)
         assertEquals(999L, participation.pickupProcessedBy?.id)
+    }
+
+    @Test
+    fun `기본 픽업시각 호출 시 고정 Clock의 UTC 현재시각을 사용한다`() {
+        val now = clock.utcNow()
+        val participation = ParticipationFixture.createParticipation(
+            participationId = 102L,
+            groupBuyId = 202L,
+            quantity = 1,
+            totalAmount = 1000,
+            currentQuantity = 10,
+            targetQuantity = 20,
+            deadline = now.plusDays(1),
+            pickupDate = LocalDate.of(2026, 5, 23),
+            pickupTimeStart = LocalTime.of(10, 0),
+            createdAt = now.minusDays(1)
+        )
+        val processor = UserFixture.createEmailUser(id = 1000L)
+
+        `when`(participationRepository.findByIdForUpdate(102L)).thenReturn(Optional.of(participation))
+        `when`(userRepository.findByIdAndDeletedAtIsNull(1000L)).thenReturn(processor)
+
+        service.completePickup(participationId = 102L, processedByUserId = 1000L)
+
+        assertEquals(now, participation.pickedUpAt)
+        assertEquals(1000L, participation.pickupProcessedBy?.id)
+        verify(participationRepository).findByIdForUpdate(102L)
     }
 }
