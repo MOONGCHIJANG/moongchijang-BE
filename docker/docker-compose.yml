@@ -148,6 +148,27 @@ services:
     networks:
       - monitoring
 
+  fluent-bit:
+    # Docker 컨테이너 stdout/stderr 로그를 Loki로 전달하는 수집기
+    profiles: ["monitoring"]
+    image: fluent/fluent-bit:3.1.9
+    container_name: moongchijang-fluent-bit
+    ports:
+      - "2020:2020"
+    environment:
+      FLUENT_BIT_ENV: ${FLUENT_BIT_ENV:-prod}
+    volumes:
+      - ./monitoring/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./monitoring/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - fluent-bit-data:/fluent-bit/state
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - monitoring
+
   grafana:
     # 모니터링 스택의 시각화 대시보드
     profiles: ["monitoring"]
@@ -180,6 +201,7 @@ volumes:
   alertmanager-data:
   grafana-data:
   loki-data:
+  fluent-bit-data:
 
 networks:
   monitoring:
