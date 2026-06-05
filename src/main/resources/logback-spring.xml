@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="moongchijang-be" />
+    <springProperty scope="context" name="activeProfile" source="spring.profiles.active" defaultValue="local" />
+
+    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+
+    <appender name="PLAIN_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <logLevel>
+                    <fieldName>level</fieldName>
+                </logLevel>
+                <threadName>
+                    <fieldName>thread</fieldName>
+                </threadName>
+                <loggerName>
+                    <fieldName>logger</fieldName>
+                </loggerName>
+                <message>
+                    <fieldName>message</fieldName>
+                </message>
+                <mdc />
+                <stackTrace>
+                    <fieldName>stack_trace</fieldName>
+                </stackTrace>
+                <pattern>
+                    <pattern>
+                        {
+                          "service":"${appName}",
+                          "env":"${activeProfile}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <logger name="org.springframework.web" level="INFO" />
+    <logger name="org.hibernate.SQL" level="WARN" />
+    <logger name="org.hibernate.orm.jdbc.bind" level="WARN" />
+
+    <springProfile name="local,test">
+        <root level="INFO">
+            <appender-ref ref="PLAIN_CONSOLE" />
+        </root>
+    </springProfile>
+
+    <springProfile name="local-demo,dev,prod">
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE" />
+        </root>
+    </springProfile>
+</configuration>
