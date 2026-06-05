@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.client.ExpectedCount.once
 import org.springframework.test.web.client.MockRestServiceServer
@@ -12,6 +13,7 @@ import org.springframework.test.web.client.match.MockRestRequestMatchers.content
 import org.springframework.test.web.client.match.MockRestRequestMatchers.header
 import org.springframework.test.web.client.match.MockRestRequestMatchers.method
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
+import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
 import java.time.LocalDateTime
@@ -144,6 +146,36 @@ class PortOnePaymentClientTest {
         assertEquals("PARTIAL_CANCELLED", result.status)
         assertEquals(5000, result.totalAmount)
         assertEquals(LocalDateTime.of(2026, 5, 20, 9, 0), result.cancelledAt)
+        server.verify()
+    }
+
+    @Test
+    fun `이미 취소된 결제는 PAYMENT_ALREADY_CANCELLED를 받아도 취소 완료로 간주한다`() {
+        val builder = RestClient.builder()
+        val server = MockRestServiceServer.bindTo(builder).build()
+        val client = PortOnePaymentClient(
+            portOneProperties = PortOneProperties(
+                storeId = "store-test",
+                channelKey = "channel-test",
+                apiSecret = "secret-test",
+                paymentApiBaseUrl = "https://api.portone.test"
+            ),
+            restClientBuilder = builder
+        )
+        val paymentId = "portone-payment-id"
+
+        server.expect(once(), requestTo("https://api.portone.test/payments/$paymentId/cancel"))
+            .andExpect(method(HttpMethod.POST))
+            .andRespond(
+                withStatus(HttpStatus.CONFLICT)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""{"type":"PAYMENT_ALREADY_CANCELLED","message":"payment already cancelled"}""")
+            )
+
+        val result = client.cancelPayment(paymentId, "OTHER: 시간이 맞지 않습니다")
+
+        assertEquals(paymentId, result.paymentId)
+        assertEquals("CANCELLED", result.status)
         server.verify()
     }
 }
