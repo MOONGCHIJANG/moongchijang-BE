@@ -22,7 +22,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableWebSecurity
 @EnableMethodSecurity
 class SecurityConfig(
-    private val traceIdFilter: TraceIdFilter,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val corsProperties: CorsProperties,
     private val customAuthenticationEntryPoint: CustomAuthenticationEntryPoint,
@@ -75,7 +74,7 @@ class SecurityConfig(
 
                 it.anyRequest().authenticated()
             }
-            .addFilterBefore(traceIdFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterBefore(TraceIdFilter(), UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .formLogin { it.disable() }
             .httpBasic { it.disable() }
