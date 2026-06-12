@@ -20,6 +20,19 @@ commit_messages:
 
 commit_splitting:
   principle: "커밋은 리뷰 가능한 논리 단위로 작게 나누되, 단독으로 설명 가능하고 가능하면 단독 검증 가능한 상태를 유지한다."
+  external_basis:
+    - name: "Conventional Commits 1.0.0"
+      url: "https://www.conventionalcommits.org/en/v1.0.0/"
+      applied_as: "커밋 메시지는 type/scope/description으로 변경 의도를 드러내고, 둘 이상의 type이 필요하면 가능한 여러 커밋으로 나눈다."
+    - name: "Google Engineering Practices - Small CLs"
+      url: "https://google.github.io/eng-practices/review/developer/small-cls.html"
+      applied_as: "리뷰 가능한 단위는 하나의 자기완결 변경이며, 관련 테스트는 같은 변경에 포함하되 큰 테스트/테스트 프레임워크는 분리한다."
+  decision_rules:
+    - "리뷰어가 한 번에 이해할 수 있는 목적 하나를 기준으로 나눈다."
+    - "각 커밋은 가능하면 빌드/테스트/JSON 파싱 같은 최소 검증을 통과해야 한다."
+    - "되돌릴 때 함께 되돌려야 하는 변경은 같은 커밋에 둔다."
+    - "되돌릴 때 독립적으로 되돌릴 수 있어야 하는 변경은 다른 커밋으로 나눈다."
+    - "기능 변경을 설명하려면 문서/스펙/테스트/인프라를 모두 알아야 하는 경우, 리뷰 관점별로 먼저 분리한다."
   split_when:
     - "에이전트/스킬/문서 하네스 변경과 제품 코드 변경이 섞일 때"
     - "Grafana/Prometheus/Docker 같은 인프라 설정 변경과 Kotlin 애플리케이션 코드 변경이 섞일 때"
@@ -30,6 +43,7 @@ commit_splitting:
     - "작은 프로덕션 코드 변경과 그 변경을 직접 검증하는 작은 테스트"
     - "파일명 변경과 import/package 경로 보정"
     - "동일한 대시보드 패널 이동처럼 한 동작을 완성하는 JSON 변경 묶음"
+    - "프로덕션 코드만 있으면 컴파일이 깨지고 테스트만 있으면 실패하는 상호의존 변경"
   recommended_order:
     - "chore/docs: 에이전트, 스킬, 스펙, 운영 문서"
     - "chore: Grafana/Prometheus/Docker 등 관측성 설정"

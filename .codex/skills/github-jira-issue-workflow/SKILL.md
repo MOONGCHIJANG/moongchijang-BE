@@ -46,6 +46,8 @@ Examples:
 
 Default to reviewable logical commits. Split when reviewers would naturally inspect files with different mental models.
 
+Use `.claude/references/conventions/git-conventions.yaml` as the shared source of truth for commit splitting. It includes the project policy and the external basis from Conventional Commits and Google Engineering Practices.
+
 Split commits when:
 
 - Agent/skill/docs harness changes are mixed with product behavior.
