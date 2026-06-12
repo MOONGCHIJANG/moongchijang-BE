@@ -2,6 +2,7 @@ package com.moongchijang.domain.payment.infrastructure.portone
 
 import com.moongchijang.domain.payment.application.port.PortOnePaymentPort
 import com.moongchijang.domain.payment.application.port.PortOnePaymentResult
+import com.moongchijang.domain.payment.application.PaymentMetricsRecorder
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -18,6 +19,7 @@ import java.time.format.DateTimeParseException
 @Component
 class PortOnePaymentClient(
     private val portOneProperties: PortOneProperties,
+    private val paymentMetricsRecorder: PaymentMetricsRecorder,
     restClientBuilder: RestClient.Builder,
 ) : PortOnePaymentPort {
     private val restClient = restClientBuilder.build()
@@ -25,6 +27,7 @@ class PortOnePaymentClient(
 
     override fun getPayment(paymentId: String): PortOnePaymentResult {
         val startedAtMs = System.currentTimeMillis()
+        val startedAtNanos = System.nanoTime()
         val response = try {
             restClient.get()
                 .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}", paymentId)
@@ -33,6 +36,12 @@ class PortOnePaymentClient(
                 .body(Map::class.java)
                 ?: throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
         } catch (e: RestClientException) {
+            paymentMetricsRecorder.recordPortOneRequest(
+                operation = OPERATION_GET_PAYMENT,
+                result = RESULT_FAILURE,
+                status = ErrorCode.PAYMENT_APPROVAL_FAILED.name,
+                elapsedNanos = System.nanoTime() - startedAtNanos,
+            )
             log.warn(
                 "[PortOnePaymentClient] 결제 단건 조회 실패: paymentId={}, elapsedMs={}",
                 paymentId,
@@ -47,10 +56,29 @@ class PortOnePaymentClient(
         }
 
         return try {
-            toPaymentResult(paymentId, response)
+            toPaymentResult(paymentId, response).also {
+                paymentMetricsRecorder.recordPortOneRequest(
+                    operation = OPERATION_GET_PAYMENT,
+                    result = RESULT_SUCCESS,
+                    status = it.status,
+                    elapsedNanos = System.nanoTime() - startedAtNanos,
+                )
+            }
         } catch (e: CustomException) {
+            paymentMetricsRecorder.recordPortOneRequest(
+                operation = OPERATION_GET_PAYMENT,
+                result = RESULT_FAILURE,
+                status = e.errorCode.name,
+                elapsedNanos = System.nanoTime() - startedAtNanos,
+            )
             throw e
         } catch (e: RuntimeException) {
+            paymentMetricsRecorder.recordPortOneRequest(
+                operation = OPERATION_GET_PAYMENT,
+                result = RESULT_FAILURE,
+                status = ErrorCode.PAYMENT_APPROVAL_FAILED.name,
+                elapsedNanos = System.nanoTime() - startedAtNanos,
+            )
             throw CustomException(ErrorCode.PAYMENT_APPROVAL_FAILED)
         }
     }
@@ -63,6 +91,7 @@ class PortOnePaymentClient(
             }
         }
         val startedAtMs = System.currentTimeMillis()
+        val startedAtNanos = System.nanoTime()
         val response = try {
             restClient.post()
                 .uri("${portOneProperties.paymentApiBaseUrl}/payments/{paymentId}/cancel", paymentId)
@@ -74,6 +103,12 @@ class PortOnePaymentClient(
         } catch (e: HttpClientErrorException) {
             val elapsedMs = System.currentTimeMillis() - startedAtMs
             if (isAlreadyCancelledResponse(e)) {
+                paymentMetricsRecorder.recordPortOneRequest(
+                    operation = OPERATION_CANCEL_PAYMENT,
+                    result = RESULT_SUCCESS,
+                    status = if (partial) PORTONE_STATUS_PARTIAL_CANCELLED else PORTONE_STATUS_CANCELLED,
+                    elapsedNanos = System.nanoTime() - startedAtNanos,
+                )
                 log.info(
                     "[PortOnePaymentClient] PortOne 이미 취소된 결제 멱등 처리: paymentId={}, elapsedMs={}",
                     paymentId,
@@ -81,6 +116,12 @@ class PortOnePaymentClient(
                 )
                 return alreadyCancelledResult(paymentId, partial, cancelAmount)
             }
+            paymentMetricsRecorder.recordPortOneRequest(
+                operation = OPERATION_CANCEL_PAYMENT,
+                result = RESULT_FAILURE,
+                status = ErrorCode.PAYMENT_CANCEL_FAILED.name,
+                elapsedNanos = System.nanoTime() - startedAtNanos,
+            )
             log.warn(
                 "[PortOnePaymentClient] 결제 취소 요청 실패: paymentId={}, elapsedMs={}, body={}",
                 paymentId,
@@ -90,6 +131,12 @@ class PortOnePaymentClient(
             )
             throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         } catch (e: RestClientException) {
+            paymentMetricsRecorder.recordPortOneRequest(
+                operation = OPERATION_CANCEL_PAYMENT,
+                result = RESULT_FAILURE,
+                status = ErrorCode.PAYMENT_CANCEL_FAILED.name,
+                elapsedNanos = System.nanoTime() - startedAtNanos,
+            )
             log.warn(
                 "[PortOnePaymentClient] 결제 취소 요청 실패: paymentId={}, elapsedMs={}",
                 paymentId,
@@ -104,8 +151,21 @@ class PortOnePaymentClient(
         }
 
         return try {
-            toCancellationResult(paymentId, response, partial)
+            toCancellationResult(paymentId, response, partial).also {
+                paymentMetricsRecorder.recordPortOneRequest(
+                    operation = OPERATION_CANCEL_PAYMENT,
+                    result = RESULT_SUCCESS,
+                    status = it.status,
+                    elapsedNanos = System.nanoTime() - startedAtNanos,
+                )
+            }
         } catch (e: CustomException) {
+            paymentMetricsRecorder.recordPortOneRequest(
+                operation = OPERATION_CANCEL_PAYMENT,
+                result = RESULT_FAILURE,
+                status = e.errorCode.name,
+                elapsedNanos = System.nanoTime() - startedAtNanos,
+            )
             log.warn(
                 "[PortOnePaymentClient] 결제 취소 응답 파싱 실패: paymentId={}, response={}",
                 paymentId,
@@ -113,6 +173,12 @@ class PortOnePaymentClient(
             )
             throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
         } catch (e: RuntimeException) {
+            paymentMetricsRecorder.recordPortOneRequest(
+                operation = OPERATION_CANCEL_PAYMENT,
+                result = RESULT_FAILURE,
+                status = ErrorCode.PAYMENT_CANCEL_FAILED.name,
+                elapsedNanos = System.nanoTime() - startedAtNanos,
+            )
             log.warn(
                 "[PortOnePaymentClient] 결제 취소 응답 파싱 실패: paymentId={}, response={}",
                 paymentId,
@@ -208,6 +274,10 @@ class PortOnePaymentClient(
     }
 
     companion object {
+        private const val OPERATION_GET_PAYMENT = "get_payment"
+        private const val OPERATION_CANCEL_PAYMENT = "cancel_payment"
+        private const val RESULT_SUCCESS = "success"
+        private const val RESULT_FAILURE = "failure"
         private const val SLOW_REQUEST_WARN_THRESHOLD_MS = 1_000L
         private const val PORTONE_CANCELLATION_STATUS_SUCCEEDED = "SUCCEEDED"
         private const val PORTONE_STATUS_CANCELLED = "CANCELLED"

@@ -69,6 +69,7 @@ class PaymentService(
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val refundRequestSyncService: RefundRequestSyncService,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val paymentMetricsRecorder: PaymentMetricsRecorder,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -103,44 +104,50 @@ class PaymentService(
 
     @Transactional
     fun createPaymentOrder(groupBuyId: Long, userId: Long, request: CreatePaymentOrderRequest): CreatePaymentOrderResponse {
-        validateQuantity(request.quantity)
-        validateAgreements(request)
+        try {
+            validateQuantity(request.quantity)
+            validateAgreements(request)
 
-        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
-            ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
-        val groupBuy = groupBuyRepository.findWithLockById(groupBuyId)
-            .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
+            val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+                ?: throw CustomException(ErrorCode.USER_NOT_FOUND)
+            val groupBuy = groupBuyRepository.findWithLockById(groupBuyId)
+                .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
-        validateGroupBuyAvailable(groupBuy)
-        validatePerUserLimit(groupBuy, request.quantity)
-        validateRemainingQuantity(groupBuy, request.quantity)
-        validateNotParticipated(userId, groupBuyId)
+            validateGroupBuyAvailable(groupBuy)
+            validatePerUserLimit(groupBuy, request.quantity)
+            validateRemainingQuantity(groupBuy, request.quantity)
+            validateNotParticipated(userId, groupBuyId)
 
-        val amounts = calculateAmounts(groupBuy.price, request.quantity)
-        val order = paymentOrderRepository.save(
-            PaymentOrder(
-                orderId = generateOrderId(groupBuyId),
-                user = user,
-                groupBuy = groupBuy,
-                quantity = request.quantity,
-                productAmount = amounts.productAmount,
-                feeAmount = amounts.feeAmount,
-                totalAmount = amounts.totalAmount,
-                agreedNoCancelAfterGoal = request.agreedNoCancelAfterGoal,
-                agreedRefundBeforeGoal = request.agreedRefundBeforeGoal,
-                agreedNoRefundAfterNoShow = request.agreedNoRefundAfterNoShow,
-                agreedNoWithdrawal = request.agreedNoWithdrawal,
+            val amounts = calculateAmounts(groupBuy.price, request.quantity)
+            val order = paymentOrderRepository.save(
+                PaymentOrder(
+                    orderId = generateOrderId(groupBuyId),
+                    user = user,
+                    groupBuy = groupBuy,
+                    quantity = request.quantity,
+                    productAmount = amounts.productAmount,
+                    feeAmount = amounts.feeAmount,
+                    totalAmount = amounts.totalAmount,
+                    agreedNoCancelAfterGoal = request.agreedNoCancelAfterGoal,
+                    agreedRefundBeforeGoal = request.agreedRefundBeforeGoal,
+                    agreedNoRefundAfterNoShow = request.agreedNoRefundAfterNoShow,
+                    agreedNoWithdrawal = request.agreedNoWithdrawal,
+                )
             )
-        )
+            paymentMetricsRecorder.recordOrderCreated(RESULT_SUCCESS)
 
-        return CreatePaymentOrderResponse(
-            paymentId = order.orderId,
-            storeId = portOneProperties.storeId,
-            channelKey = portOneProperties.channelKey,
-            orderName = "${groupBuy.productName} ${request.quantity}개",
-            amount = order.totalAmount,
-            customerName = user.nickname,
-        )
+            return CreatePaymentOrderResponse(
+                paymentId = order.orderId,
+                storeId = portOneProperties.storeId,
+                channelKey = portOneProperties.channelKey,
+                orderName = "${groupBuy.productName} ${request.quantity}개",
+                amount = order.totalAmount,
+                customerName = user.nickname,
+            )
+        } catch (e: CustomException) {
+            paymentMetricsRecorder.recordOrderCreated(RESULT_FAILURE, e.errorCode.name)
+            throw e
+        }
     }
 
     fun completePortOnePayment(request: CompletePortOnePaymentRequest, userId: Long): ConfirmPaymentResponse {
@@ -169,6 +176,7 @@ class PaymentService(
                         order = approvedOrder,
                         reason = ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name,
                     )
+                    paymentMetricsRecorder.recordApproval(SOURCE_COMPLETE_API, RESULT_IGNORED, ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name)
                     buildAlreadyApprovedResponse(approvedOrder)
                 } ?: throw CustomException(ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED)
             }
@@ -236,6 +244,7 @@ class PaymentService(
                 is PaymentApprovalResult.Failure -> throw CustomException(result.errorCode)
             }
         } catch (e: CustomException) {
+            paymentMetricsRecorder.recordApproval(SOURCE_COMPLETE_API, RESULT_FAILURE, e.errorCode.name)
             log.warn(
                 "[PaymentService] 결제 완료 검증 실패: paymentId={}, userId={}, errorCode={}, elapsedMs={}",
                 request.paymentId,
@@ -260,99 +269,108 @@ class PaymentService(
     }
 
     fun handlePortOneWebhook(request: PortOneWebhookRequest, rawPayload: String? = null) {
-        recordPaymentAudit(
-            source = PaymentAuditSource.WEBHOOK,
-            eventType = PaymentAuditEventType.WEBHOOK_RECEIVED,
-            orderId = request.paymentId,
-            rawPayload = rawPayload,
-        )
-        if (request.storeId != null && request.storeId != portOneProperties.storeId) {
-            throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
-        }
-
-        val paymentId = request.paymentId
-        if (paymentId.isNullOrBlank()) {
-            throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
-        }
-
-        val order = transactionTemplate().execute {
-            paymentOrderRepository.findByOrderId(paymentId)
-        } ?: run {
+        try {
             recordPaymentAudit(
                 source = PaymentAuditSource.WEBHOOK,
-                eventType = PaymentAuditEventType.PAYMENT_IGNORED,
-                orderId = paymentId,
-                reason = ErrorCode.PAYMENT_ORDER_NOT_FOUND.name,
+                eventType = PaymentAuditEventType.WEBHOOK_RECEIVED,
+                orderId = request.paymentId,
                 rawPayload = rawPayload,
             )
-            return
-        }
-        val paymentResult = getPortOnePaymentOrFailOrder(order.orderId)
-        recordPaymentAudit(
-            source = PaymentAuditSource.WEBHOOK,
-            eventType = PaymentAuditEventType.PORTONE_STATUS_FETCHED,
-            order = order,
-            paymentResult = paymentResult,
-            rawPayload = rawPayload,
-        )
-
-        if (paymentResult.status == PORTONE_STATUS_PAID) {
-            withGroupBuyLock(order.groupBuy.id) {
-                transactionTemplate().execute {
-                    val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
-                    if (lockedOrder.status != PaymentOrderStatus.APPROVED) {
-                        approvePayment(
-                            paymentId = paymentId,
-                            expectedAmount = lockedOrder.totalAmount,
-                            paymentResult = paymentResult,
-                            source = PaymentAuditSource.WEBHOOK,
-                        )
-                    } else {
-                        recordPaymentAudit(
-                            source = PaymentAuditSource.WEBHOOK,
-                            eventType = PaymentAuditEventType.PAYMENT_IGNORED,
-                            order = lockedOrder,
-                            paymentResult = paymentResult,
-                            reason = ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name,
-                            rawPayload = rawPayload,
-                        )
-                    }
-                }
+            if (request.storeId != null && request.storeId != portOneProperties.storeId) {
+                throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
             }
-            return
-        }
 
-        if (paymentResult.status == PORTONE_STATUS_CANCELLED || paymentResult.status == PORTONE_STATUS_PARTIAL_CANCELLED) {
-            withGroupBuyLock(order.groupBuy.id) {
-                transactionTemplate().execute {
-                    val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
-                    when (paymentResult.status) {
-                        PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
-                        PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
-                    }
-                }
+            val paymentId = request.paymentId
+            if (paymentId.isNullOrBlank()) {
+                throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
             }
-            return
-        }
 
-        transactionTemplate().execute {
-            val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
-            if (paymentResult.status == PORTONE_STATUS_FAILED && lockedOrder.status == PaymentOrderStatus.READY) {
-                val previousStatus = lockedOrder.status
-                lockedOrder.fail(clock.utcNow())
-                paymentOrderRepository.save(lockedOrder)
+            val order = transactionTemplate().execute {
+                paymentOrderRepository.findByOrderId(paymentId)
+            } ?: run {
                 recordPaymentAudit(
                     source = PaymentAuditSource.WEBHOOK,
-                    eventType = PaymentAuditEventType.PAYMENT_FAILED,
-                    order = lockedOrder,
-                    paymentResult = paymentResult,
-                    previousOrderStatus = previousStatus,
-                    currentOrderStatus = lockedOrder.status,
+                    eventType = PaymentAuditEventType.PAYMENT_IGNORED,
+                    orderId = paymentId,
+                    reason = ErrorCode.PAYMENT_ORDER_NOT_FOUND.name,
                     rawPayload = rawPayload,
-                    reason = PORTONE_STATUS_FAILED,
-                    notifyFailure = true,
                 )
+                paymentMetricsRecorder.recordWebhook(request.type, RESULT_IGNORED, ErrorCode.PAYMENT_ORDER_NOT_FOUND.name)
+                return
             }
+            val paymentResult = getPortOnePaymentOrFailOrder(order.orderId)
+            recordPaymentAudit(
+                source = PaymentAuditSource.WEBHOOK,
+                eventType = PaymentAuditEventType.PORTONE_STATUS_FETCHED,
+                order = order,
+                paymentResult = paymentResult,
+                rawPayload = rawPayload,
+            )
+
+            if (paymentResult.status == PORTONE_STATUS_PAID) {
+                withGroupBuyLock(order.groupBuy.id) {
+                    transactionTemplate().execute {
+                        val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                        if (lockedOrder.status != PaymentOrderStatus.APPROVED) {
+                            approvePayment(
+                                paymentId = paymentId,
+                                expectedAmount = lockedOrder.totalAmount,
+                                paymentResult = paymentResult,
+                                source = PaymentAuditSource.WEBHOOK,
+                            )
+                        } else {
+                            recordPaymentAudit(
+                                source = PaymentAuditSource.WEBHOOK,
+                                eventType = PaymentAuditEventType.PAYMENT_IGNORED,
+                                order = lockedOrder,
+                                paymentResult = paymentResult,
+                                reason = ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name,
+                                rawPayload = rawPayload,
+                            )
+                        }
+                    }
+                }
+                paymentMetricsRecorder.recordWebhook(request.type, RESULT_SUCCESS, PORTONE_STATUS_PAID)
+                return
+            }
+
+            if (paymentResult.status == PORTONE_STATUS_CANCELLED || paymentResult.status == PORTONE_STATUS_PARTIAL_CANCELLED) {
+                withGroupBuyLock(order.groupBuy.id) {
+                    transactionTemplate().execute {
+                        val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                        when (paymentResult.status) {
+                            PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
+                            PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
+                        }
+                    }
+                }
+                paymentMetricsRecorder.recordWebhook(request.type, RESULT_SUCCESS, paymentResult.status)
+                return
+            }
+
+            transactionTemplate().execute {
+                val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                if (paymentResult.status == PORTONE_STATUS_FAILED && lockedOrder.status == PaymentOrderStatus.READY) {
+                    val previousStatus = lockedOrder.status
+                    lockedOrder.fail(clock.utcNow())
+                    paymentOrderRepository.save(lockedOrder)
+                    recordPaymentAudit(
+                        source = PaymentAuditSource.WEBHOOK,
+                        eventType = PaymentAuditEventType.PAYMENT_FAILED,
+                        order = lockedOrder,
+                        paymentResult = paymentResult,
+                        previousOrderStatus = previousStatus,
+                        currentOrderStatus = lockedOrder.status,
+                        rawPayload = rawPayload,
+                        reason = PORTONE_STATUS_FAILED,
+                        notifyFailure = true,
+                    )
+                }
+            }
+            paymentMetricsRecorder.recordWebhook(request.type, RESULT_SUCCESS, paymentResult.status)
+        } catch (e: CustomException) {
+            paymentMetricsRecorder.recordWebhook(request.type, RESULT_FAILURE, e.errorCode.name)
+            throw e
         }
     }
 
@@ -361,32 +379,39 @@ class PaymentService(
         userId: Long,
         request: CancelParticipationRequest,
     ): CancelParticipationResponse {
-        validateCancelReason(request)
+        try {
+            validateCancelReason(request)
 
-        val groupBuyId = transactionTemplate().execute {
-            val participation = participationRepository.findById(participationId)
-                .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
-            validateParticipationOwner(participation, userId)
-            participation.groupBuy.id
-        } ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
-
-        return withGroupBuyLock(groupBuyId) {
-            val target = transactionTemplate().execute {
-                findCancellationTarget(participationId, userId)
+            val groupBuyId = transactionTemplate().execute {
+                val participation = participationRepository.findById(participationId)
+                    .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
+                validateParticipationOwner(participation, userId)
+                participation.groupBuy.id
             } ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
 
-            val paymentResult = portOnePaymentPort.cancelPayment(target.pgPaymentId, cancelReasonMessage(request))
-            if (paymentResult.status != PORTONE_STATUS_CANCELLED) {
-                throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
-            }
+            return withGroupBuyLock(groupBuyId) {
+                val target = transactionTemplate().execute {
+                    findCancellationTarget(participationId, userId)
+                } ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
 
-            transactionTemplate().execute {
-                applyParticipationCancellation(
-                    target = target,
-                    request = request,
-                    cancelledAt = paymentResult.cancelledAt ?: clock.utcNow(),
-                )
-            } ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+                val paymentResult = portOnePaymentPort.cancelPayment(target.pgPaymentId, cancelReasonMessage(request))
+                if (paymentResult.status != PORTONE_STATUS_CANCELLED) {
+                    throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+                }
+
+                transactionTemplate().execute {
+                    applyParticipationCancellation(
+                        target = target,
+                        request = request,
+                        cancelledAt = paymentResult.cancelledAt ?: clock.utcNow(),
+                    )
+                }?.also {
+                    paymentMetricsRecorder.recordCancel(SOURCE_USER, RESULT_SUCCESS)
+                } ?: throw CustomException(ErrorCode.PAYMENT_CANCEL_FAILED)
+            }
+        } catch (e: CustomException) {
+            paymentMetricsRecorder.recordCancel(SOURCE_USER, RESULT_FAILURE, e.errorCode.name)
+            throw e
         }
     }
 
@@ -415,6 +440,7 @@ class PaymentService(
                 }
             } catch (e: Exception) {
                 log.error("[PaymentService] 환불대기 처리 중 예외 발생: participationId={}", participation.id, e)
+                paymentMetricsRecorder.recordRefund(RESULT_FAILURE, e.toPaymentMetricReason())
                 failedCount++
             }
         }
@@ -436,6 +462,7 @@ class PaymentService(
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
         if (order.status == PaymentOrderStatus.APPROVED) {
+            paymentMetricsRecorder.recordApproval(source.name, RESULT_IGNORED, ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name)
             return PaymentApprovalResult.Success(buildAlreadyApprovedResponse(order))
         }
         if (order.status != PaymentOrderStatus.READY) {
@@ -548,6 +575,8 @@ class PaymentService(
             currentOrderStatus = approvedOrder.status,
             notifySuccess = true,
         )
+
+        paymentMetricsRecorder.recordApproval(source.name, RESULT_SUCCESS)
 
         publishApplyPaymentSuccessEvent(order, approvedAt)
 
@@ -855,7 +884,10 @@ class PaymentService(
     private fun processPendingRefund(participationId: Long): Boolean {
         val target = transactionTemplate().execute {
             findPendingRefundTarget(participationId)
-        } ?: return false
+        } ?: run {
+            paymentMetricsRecorder.recordRefund(RESULT_IGNORED, "PENDING_REFUND_TARGET_NOT_FOUND")
+            return false
+        }
 
         val paymentResult = try {
             portOnePaymentPort.cancelPayment(
@@ -870,6 +902,7 @@ class PaymentService(
                 target.orderId,
                 e.errorCode
             )
+            paymentMetricsRecorder.recordRefund(RESULT_FAILURE, e.errorCode.name)
             return false
         }
         if (paymentResult.status != PORTONE_STATUS_CANCELLED && paymentResult.status != PORTONE_STATUS_PARTIAL_CANCELLED) {
@@ -879,6 +912,7 @@ class PaymentService(
                 target.orderId,
                 paymentResult.status
             )
+            paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PORTONE_UNEXPECTED_STATUS")
             return false
         }
 
@@ -888,7 +922,16 @@ class PaymentService(
                 refundedAt = paymentResult.cancelledAt ?: clock.utcNow()
             )
             true
-        } ?: false
+        }?.also {
+            if (it) {
+                paymentMetricsRecorder.recordRefund(RESULT_SUCCESS)
+            } else {
+                paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_TARGET_NOT_FOUND")
+            }
+        } ?: run {
+            paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_TARGET_NOT_FOUND")
+            false
+        }
     }
 
     private fun findPendingRefundTarget(participationId: Long): PendingRefundTarget? {
@@ -1138,6 +1181,9 @@ class PaymentService(
         )
     }
 
+    private fun Throwable.toPaymentMetricReason(): String =
+        if (this is CustomException) errorCode.name else "other"
+
     private sealed interface PaymentApprovalResult {
         data class Success(val response: ConfirmPaymentResponse) : PaymentApprovalResult
         data class Failure(val errorCode: ErrorCode) : PaymentApprovalResult
@@ -1172,6 +1218,11 @@ class PaymentService(
         private const val LOCK_LEASE_MS = 10_000L
         private const val PENDING_REFUND_BATCH_SIZE = 100
         private const val PENDING_REFUND_CANCEL_REASON = "MINIMUM_QUANTITY_NOT_MET"
+        private const val RESULT_SUCCESS = "success"
+        private const val RESULT_FAILURE = "failure"
+        private const val RESULT_IGNORED = "ignored"
+        private const val SOURCE_COMPLETE_API = "complete_api"
+        private const val SOURCE_USER = "user"
         private const val PORTONE_STATUS_PAID = "PAID"
         private const val PORTONE_STATUS_FAILED = "FAILED"
         private const val PORTONE_STATUS_CANCELLED = "CANCELLED"
