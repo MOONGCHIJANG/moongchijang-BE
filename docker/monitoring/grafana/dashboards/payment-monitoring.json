@@ -1,0 +1,711 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m]))",
+          "legendFormat": "attempt",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"2..\"}[5m]))",
+          "legendFormat": "success",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"4..|5..\"}[5m]))",
+          "legendFormat": "failure",
+          "refId": "C"
+        }
+      ],
+      "title": "결제 시도/성공/실패 건수 (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"2..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m])), 1e-9)",
+          "refId": "A"
+        }
+      ],
+      "title": "결제 성공률",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete).*\",status=~\"401|403\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete).*\"}[5m])), 1e-9)",
+          "refId": "A"
+        }
+      ],
+      "title": "결제 완료 API 401/403 비율",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 6
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app\",uri=~\".*(/payments/portone/complete).*\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app\",uri=~\".*(/payments/portone/complete).*\"}[5m])))",
+          "legendFormat": "p99",
+          "refId": "B"
+        }
+      ],
+      "title": "결제 완료 API p95/p99 latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 6
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete).*\",status=~\"5..\"}[5m]))",
+          "refId": "A"
+        }
+      ],
+      "title": "PortOne 승인 실패 건수 (proxy)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 6
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/users/me/participations/.*/cancel).*\",status=~\"5..\"}[5m]))",
+          "refId": "A"
+        }
+      ],
+      "title": "PortOne 취소 실패 건수 (proxy)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/webhook).*\"}[5m]))",
+          "legendFormat": "webhook total",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/webhook).*\",status=~\"4..|5..\"}[5m])) / clamp_min(sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/webhook).*\"}[5m])),1)",
+          "legendFormat": "webhook fail ratio",
+          "refId": "B"
+        }
+      ],
+      "title": "웹훅 처리 건수/실패율",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\",status=~\"2..\"}[5m]))",
+          "legendFormat": "refund success",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\",status=~\"4..|5..\"}[5m]))",
+          "legendFormat": "refund fail",
+          "refId": "B"
+        }
+      ],
+      "title": "환불 처리 성공/실패 (proxy)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\"}[5m])))",
+          "refId": "A"
+        }
+      ],
+      "title": "환불 처리 지연 p95 (proxy)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m])),1e-9)",
+          "refId": "A"
+        }
+      ],
+      "title": "결제 핵심 엔드포인트 5xx 비율",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (result, reason) (increase(mcj_payment_order_created_total[5m]))",
+          "legendFormat": "{{result}} / {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "결제 주문 생성 도메인 metric",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 24
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (source, result, reason) (increase(mcj_payment_approval_total[5m]))",
+          "legendFormat": "{{source}} / {{result}} / {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "결제 승인 도메인 metric",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 24
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (operation, result, status) (increase(mcj_portone_api_requests_total[5m]))",
+          "legendFormat": "{{operation}} / {{result}} / {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "PortOne API 성공/실패 도메인 metric",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 30
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (operation, le) (rate(mcj_portone_api_latency_seconds_bucket[5m])))",
+          "legendFormat": "{{operation}} p95",
+          "refId": "A"
+        }
+      ],
+      "title": "PortOne API latency p95 도메인 metric",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 30
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (event_type, result, reason) (increase(mcj_payment_webhook_processed_total[5m]))",
+          "legendFormat": "{{event_type}} / {{result}} / {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "웹훅 처리 도메인 metric",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 30
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (result, reason) (increase(mcj_payment_refund_processed_total[5m]))",
+          "legendFormat": "{{result}} / {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "환불 처리 도메인 metric",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (source, result, reason, partial) (increase(mcj_payment_cancel_total[5m]))",
+          "legendFormat": "{{source}} / {{result}} / {{reason}} / partial={{partial}}",
+          "refId": "A"
+        }
+      ],
+      "title": "사용자 결제 취소 도메인 metric",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "mcj",
+    "prod",
+    "monitoring"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "MCJ Prod Payment Monitoring",
+  "uid": "mcj-prod-payment-monitoring",
+  "version": 2,
+  "weekStart": ""
+}
