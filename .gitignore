@@ -59,6 +59,7 @@ logs/
 *.log
 load-tests/results/*
 !load-tests/results/.gitkeep
+!load-tests/results/README.md
 
 ### OS ###
 .DS_Store
