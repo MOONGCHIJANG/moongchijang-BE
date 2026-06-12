@@ -1,6 +1,8 @@
 package com.moongchijang.domain.payment.infrastructure.portone
 
+import com.moongchijang.domain.payment.application.PaymentMetricsRecorder
 import com.moongchijang.global.config.PortOneProperties
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
@@ -19,20 +21,14 @@ import org.springframework.web.client.RestClient
 import java.time.LocalDateTime
 
 class PortOnePaymentClientTest {
+    private val meterRegistry = SimpleMeterRegistry()
+    private val paymentMetricsRecorder = PaymentMetricsRecorder(meterRegistry)
 
     @Test
     fun `offset 없는 결제 승인 시각도 파싱한다`() {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
-        val client = PortOnePaymentClient(
-            portOneProperties = PortOneProperties(
-                storeId = "store-test",
-                channelKey = "channel-test",
-                apiSecret = "secret-test",
-                paymentApiBaseUrl = "https://api.portone.test"
-            ),
-            restClientBuilder = builder
-        )
+        val client = client(builder)
         val paymentId = "MCJ-901003-da4c41e875f7431dbfa3"
 
         server.expect(once(), requestTo("https://api.portone.test/payments/$paymentId"))
@@ -60,6 +56,13 @@ class PortOnePaymentClientTest {
         assertEquals(1000, result.totalAmount)
         assertEquals("card", result.method)
         assertEquals(LocalDateTime.of(2026, 5, 19, 6, 20), result.paidAt)
+        assertEquals(
+            1.0,
+            meterRegistry.get("mcj_portone_api_requests_total")
+                .tags("operation", "get_payment", "result", "success", "status", "paid")
+                .counter()
+                .count(),
+        )
         server.verify()
     }
 
@@ -67,15 +70,7 @@ class PortOnePaymentClientTest {
     fun `포트원 결제 취소 응답의 cancellation 래퍼를 파싱한다`() {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
-        val client = PortOnePaymentClient(
-            portOneProperties = PortOneProperties(
-                storeId = "store-test",
-                channelKey = "channel-test",
-                apiSecret = "secret-test",
-                paymentApiBaseUrl = "https://api.portone.test"
-            ),
-            restClientBuilder = builder
-        )
+        val client = client(builder)
         val paymentId = "portone-payment-id"
 
         server.expect(once(), requestTo("https://api.portone.test/payments/$paymentId/cancel"))
@@ -111,15 +106,7 @@ class PortOnePaymentClientTest {
     fun `부분 취소 요청 시 cancelAmount를 본문에 담고 부분취소 상태로 매핑한다`() {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
-        val client = PortOnePaymentClient(
-            portOneProperties = PortOneProperties(
-                storeId = "store-test",
-                channelKey = "channel-test",
-                apiSecret = "secret-test",
-                paymentApiBaseUrl = "https://api.portone.test"
-            ),
-            restClientBuilder = builder
-        )
+        val client = client(builder)
         val paymentId = "portone-payment-id"
 
         server.expect(once(), requestTo("https://api.portone.test/payments/$paymentId/cancel"))
@@ -153,15 +140,7 @@ class PortOnePaymentClientTest {
     fun `이미 취소된 결제는 PAYMENT_ALREADY_CANCELLED를 받아도 취소 완료로 간주한다`() {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
-        val client = PortOnePaymentClient(
-            portOneProperties = PortOneProperties(
-                storeId = "store-test",
-                channelKey = "channel-test",
-                apiSecret = "secret-test",
-                paymentApiBaseUrl = "https://api.portone.test"
-            ),
-            restClientBuilder = builder
-        )
+        val client = client(builder)
         val paymentId = "portone-payment-id"
 
         server.expect(once(), requestTo("https://api.portone.test/payments/$paymentId/cancel"))
@@ -178,4 +157,16 @@ class PortOnePaymentClientTest {
         assertEquals("CANCELLED", result.status)
         server.verify()
     }
+
+    private fun client(builder: RestClient.Builder) =
+        PortOnePaymentClient(
+            portOneProperties = PortOneProperties(
+                storeId = "store-test",
+                channelKey = "channel-test",
+                apiSecret = "secret-test",
+                paymentApiBaseUrl = "https://api.portone.test"
+            ),
+            paymentMetricsRecorder = paymentMetricsRecorder,
+            restClientBuilder = builder
+        )
 }
