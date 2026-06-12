@@ -57,6 +57,8 @@ docker/.env
 ### Logs ###
 logs/
 *.log
+load-tests/results/*
+!load-tests/results/.gitkeep
 
 ### OS ###
 .DS_Store
