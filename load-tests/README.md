@@ -31,6 +31,7 @@
 - `MCJ_ENV_NAME`: 대상 환경 식별자 (`dev`, `staging` 등)
 - `MCJ_ACCESS_TOKEN`: 인증이 필요한 시나리오용 토큰
 - `MCJ_SCENARIO_NAME`: 실행 시나리오 이름
+- `MCJ_GROUP_BUY_ID`: 상세/진행률 조회 대상 공구 ID
 
 예시:
 
@@ -38,6 +39,7 @@
 export MCJ_BASE_URL=https://api.moongchijang.com/dev
 export MCJ_ENV_NAME=dev
 export MCJ_ACCESS_TOKEN=<ACCESS_TOKEN>
+export MCJ_GROUP_BUY_ID=960005
 ```
 
 ## 기본 실행 예시
@@ -46,6 +48,14 @@ export MCJ_ACCESS_TOKEN=<ACCESS_TOKEN>
 
 ```bash
 k6 run load-tests/scenarios/<scenario-file>.js
+```
+
+공동구매 조회 시나리오 예시:
+
+```bash
+MCJ_SCENARIO_NAME=group-buy-read \
+MCJ_GROUP_BUY_ID=960005 \
+k6 run load-tests/scenarios/group-buy-read.js
 ```
 
 결과를 파일로 저장하려면:
