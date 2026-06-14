@@ -81,7 +81,8 @@ docker compose --profile prod --profile monitoring up -d \
 - Grafana 관리자 계정 로그인 가능
 
 ### 6.2 Prometheus 타깃
-- Prometheus UI에서 `app-prod:8080` 타깃 상태 `UP`
+- Prometheus UI에서 `app-prod:8081` 타깃 상태 `UP`
+- dev 환경을 함께 운영하는 경우 `app-dev:8081` 타깃 상태 `UP` 확인
 - `job=app` 메트릭 수집 확인
 
 ### 6.3 Alertmanager 라우팅

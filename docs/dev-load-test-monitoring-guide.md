@@ -10,7 +10,7 @@
 
 현재 저장소 기준 모니터링 구성은 아래 상태입니다.
 
-- Prometheus는 `app-prod:8081`만 수집합니다.
+- Prometheus는 prod를 `job=app`, dev를 `job=app-dev`로 분리 수집하도록 구성합니다.
 - Grafana 대시보드는 prod 기준 패널 구성이 기본입니다.
 - Alertmanager 알림 라우팅도 prod 운영 알림 기준으로 구성되어 있습니다.
 - `app-dev` 서비스는 `/dev` prefix로 라우팅되지만, dev 부하테스트용 메트릭 확인 절차는 별도 문서화되어 있지 않습니다.
@@ -26,8 +26,8 @@
 
 ### 4.1 Prometheus 수집
 
-- `app-dev:8081` 메트릭 수집 대상 추가 검토
-- dev / prod 구분용 label 또는 별도 job 부여 검토
+- `app-dev:8081` 메트릭 수집 대상 반영
+- dev / prod 구분용 별도 job 기준 사용 (`job=app`, `job=app-dev`)
 - dev 스크랩 실패가 prod 경고로 오인되지 않도록 알람 조건 분리 검토
 
 ### 4.2 Grafana 대시보드
