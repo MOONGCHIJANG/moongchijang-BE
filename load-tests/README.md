@@ -30,8 +30,11 @@
 - `MCJ_BASE_URL`: 대상 API base URL
 - `MCJ_ENV_NAME`: 대상 환경 식별자 (`dev`, `staging` 등)
 - `MCJ_ACCESS_TOKEN`: 인증이 필요한 시나리오용 토큰
+- `MCJ_ADMIN_ACCESS_TOKEN`: 관리자 권한 시나리오용 토큰
 - `MCJ_SCENARIO_NAME`: 실행 시나리오 이름
 - `MCJ_GROUP_BUY_ID`: 상세/진행률 조회 대상 공구 ID
+- `MCJ_REPORT_YEAR`: 운영 조회 시나리오 대상 연도
+- `MCJ_REPORT_MONTH`: 운영 조회 시나리오 대상 월
 
 예시:
 
@@ -64,6 +67,16 @@ k6 run load-tests/scenarios/group-buy-read.js
 MCJ_SCENARIO_NAME=mypage-read \
 MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
 k6 run load-tests/scenarios/mypage-read.js
+```
+
+관리자 조회 시나리오 예시:
+
+```bash
+MCJ_SCENARIO_NAME=admin-read \
+MCJ_ADMIN_ACCESS_TOKEN=<ADMIN_ACCESS_TOKEN> \
+MCJ_REPORT_YEAR=2026 \
+MCJ_REPORT_MONTH=6 \
+k6 run load-tests/scenarios/admin-read.js
 ```
 
 결과를 파일로 저장하려면:
