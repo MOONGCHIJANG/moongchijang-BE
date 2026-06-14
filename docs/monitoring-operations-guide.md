@@ -92,6 +92,7 @@ docker compose --profile prod --profile monitoring up -d \
 
 ### 6.4 대시보드 확인
 - `MCJ Prod Monitoring Overview` 대시보드 노출
+- dev 환경을 함께 운영하는 경우 `MCJ Dev Load Test Monitoring` 대시보드 노출
 - 아래 패널 데이터 확인
   - 가용성, RPS, 5xx, p95/p99, CPU, Heap, GC, Disk, Auth 이벤트
 
