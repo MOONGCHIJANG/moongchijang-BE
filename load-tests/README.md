@@ -79,6 +79,15 @@ MCJ_REPORT_MONTH=6 \
 k6 run load-tests/scenarios/admin-read.js
 ```
 
+찜/상태성 조회 시나리오 예시:
+
+```bash
+MCJ_SCENARIO_NAME=favorite-stateful-read \
+MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
+MCJ_GROUP_BUY_ID=960005 \
+k6 run load-tests/scenarios/favorite-stateful-read.js
+```
+
 결과를 파일로 저장하려면:
 
 ```bash
