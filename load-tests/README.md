@@ -105,4 +105,5 @@ k6 run --summary-export=load-tests/results/<scenario-name>-summary.json load-tes
 ## 참고 문서
 
 - `docs/load-test-strategy.md`
+- `docs/load-test-execution-checklist.md`
 - `docs/load-test-result-template.md`
