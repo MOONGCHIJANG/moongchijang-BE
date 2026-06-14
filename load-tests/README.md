@@ -58,6 +58,14 @@ MCJ_GROUP_BUY_ID=960005 \
 k6 run load-tests/scenarios/group-buy-read.js
 ```
 
+마이페이지 조회 시나리오 예시:
+
+```bash
+MCJ_SCENARIO_NAME=mypage-read \
+MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
+k6 run load-tests/scenarios/mypage-read.js
+```
+
 결과를 파일로 저장하려면:
 
 ```bash
