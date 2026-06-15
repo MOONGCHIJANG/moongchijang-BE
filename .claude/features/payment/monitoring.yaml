@@ -1,0 +1,141 @@
+meta:
+  id: PAYMENT_MONITORING
+  domain: payment
+  status: implemented
+  priority: high
+  code_paths:
+    - docker/monitoring/grafana/dashboards/prod-overview.json
+    - docker/monitoring/grafana/dashboards/payment-monitoring.json
+    - docker/monitoring/prometheus/rules/base-alerts.yml
+    - docker/monitoring/alertmanager/alertmanager.yml
+    - docs/monitoring-operations-guide.md
+    - load-tests/k6/payment-monitoring.js
+    - src/main/kotlin/com/moongchijang/domain/payment/application/PaymentAuditLogService.kt
+    - src/main/kotlin/com/moongchijang/domain/payment/application/PaymentService.kt
+    - src/main/kotlin/com/moongchijang/domain/payment/presentation/PaymentController.kt
+
+overview:
+  summary: 결제 운영 상태를 Grafana/Prometheus 기반으로 모니터링하고, audit alert와 분리하여 운영 장애 감지용 대시보드와 알림을 관리한다.
+
+monitoring_alerts:
+  purpose: 운영 장애 조기 감지
+  source: Prometheus alert rule
+  channel: 결제-모니터링-alerts
+  routing: Alertmanager payment receiver
+  examples:
+    - PaymentFailureRateWarning
+    - PaymentFailureRateCritical
+    - PaymentCompleteUnauthorizedRateWarning
+    - PaymentApi5xxRateCritical
+    - PaymentCompleteLatencyP95Warning
+    - PaymentWebhookFailureRateWarning
+    - RefundProcessingFailureStreakWarning
+  thresholds:
+    - name: PaymentFailureRateWarning
+      rule: 최근 5분 실패율(4xx+5xx) 5% 초과, 요청 20건 이상, 5분 지속
+    - name: PaymentFailureRateCritical
+      rule: 최근 5분 실패율(4xx+5xx) 10% 초과, 요청 20건 이상, 5분 지속
+    - name: PaymentCompleteUnauthorizedRateWarning
+      rule: 최근 10분 401/403 비율 3% 초과, 요청 20건 이상, 10분 지속
+    - name: PaymentApi5xxRateCritical
+      rule: 최근 5분 5xx 비율 1% 초과, 요청 20건 이상, 5분 지속
+    - name: PaymentCompleteLatencyP95Warning
+      rule: p95 2초 초과, 10분 지속
+    - name: PaymentWebhookFailureRateWarning
+      rule: 최근 10분 실패율 5% 초과, 요청 10건 이상, 10분 지속
+    - name: RefundProcessingFailureStreakWarning
+      rule: 최근 15분 환불 관련 API 5xx 5건 이상, 15분 지속
+
+audit_alerts:
+  purpose: 개별 결제 이벤트 추적
+  source: payment_audit_logs
+  channel: Discord PAYMENT channel
+  event_types:
+    - PAYMENT_FAILED
+    - PAYMENT_APPROVED
+  failure_condition:
+    - payment_audit_logs.event_type = PAYMENT_FAILED
+    - notifyFailure = true
+  success_condition:
+    - payment_audit_logs.event_type = PAYMENT_APPROVED
+    - notifySuccess = true
+    - DISCORD_PAYMENT_SUCCESS_ALERT_ENABLED = true
+  note: 결제 성공 audit 알림은 운영 노이즈를 줄이기 위해 prod 기본 OFF가 적절하다.
+
+dashboard_plan:
+  current_dashboard: MCJ Prod Monitoring Overview
+  dedicated_dashboard_name: MCJ Prod Payment Monitoring
+  keep_in_overview:
+    - 서비스 가용성
+    - RPS
+    - 전체 5xx 에러율
+    - 전체 HTTP 지연시간
+    - CPU 사용률
+    - JVM 힙 사용률
+    - 평균 GC Pause
+    - 디스크 여유 비율
+    - 인증/회원가입 이벤트
+  move_to_payment_dashboard:
+    - 결제 시도/성공/실패 건수
+    - 결제 성공률
+    - 결제 완료 API 401/403 비율
+    - 결제 완료 API p95/p99 latency
+    - PortOne 승인 실패 건수
+    - PortOne 취소 실패 건수
+    - 웹훅 처리 건수/실패율
+    - 환불 처리 성공/실패
+    - 환불 처리 지연 p95
+    - 결제 핵심 엔드포인트 5xx 비율
+
+known_limits:
+  - 기존 HTTP endpoint/status 기반 패널은 유지하며, 주요 결제 흐름에는 도메인 metric을 추가했다.
+  - 결제 실패 사유별 집계가 부족하다.
+  - PortOne 외부 API latency와 성공/실패는 operation/result/status 기준으로 확인 가능하다.
+  - 웹훅 signature 검증 실패, 중복 웹훅, 상태 불일치는 아직 세부 이벤트로 완전히 분리되지 않는다.
+  - payment_audit_logs 이벤트가 Grafana metric으로 직접 노출되지 않는다.
+
+implemented_metrics:
+  counters:
+    - payment_order_created_total
+    - payment_approval_total
+    - payment_cancel_total
+    - payment_webhook_processed_total
+    - payment_refund_processed_total
+    - portone_api_requests_total
+  timers:
+    - portone_api_latency_seconds
+  tags:
+    - result=success|failure|ignored
+    - source=complete_api|webhook|user
+    - operation=get_payment|cancel_payment
+    - reason=low-cardinality error/status
+    - event_type=transaction_paid|transaction_cancelled|transaction_failed|unknown|other
+
+future_metrics:
+  counters:
+    - payment_audit_events_total
+  recommended_tags:
+    - result=success|failure
+    - source=complete_api|webhook|scheduler|admin|user
+    - operation=get_payment|cancel_payment
+    - reason=PORTONE_APPROVAL_FAILED|AMOUNT_MISMATCH|INVALID_SIGNATURE|ALREADY_CANCELLED|TIMEOUT|STATUS_MISMATCH
+  forbidden_tags:
+    - orderId
+    - paymentId
+    - userId
+    - phone
+    - email
+    - raw request identifiers
+
+follow_up:
+  p0:
+    - Grafana 결제 전용 대시보드 분리 완료
+    - 결제 도메인 metric 및 PortOne latency 패널 추가 완료
+    - 현재 결제 패널 및 알림 기준 문서화
+    - 모니터링 alerts와 audit alerts 역할 분리 문서화
+  p1:
+    - 실패 사유별 low-cardinality tag 설계
+  p2:
+    - payment_audit_logs 기반 metric 확장
+    - 실패 사유별 Grafana 패널 추가
+    - 도메인 metric 기반 신규 alert rule 추가
