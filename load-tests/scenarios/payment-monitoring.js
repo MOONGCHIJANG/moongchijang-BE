@@ -7,6 +7,7 @@ const BASE_URL = resolveBaseUrl();
 const AUTH_TOKEN = resolveAccessToken();
 const GROUP_BUY_ID = optionalEnv('MCJ_GROUP_BUY_ID', optionalEnv('GROUP_BUY_ID', '960005'));
 const RUN_CREATE_ORDER = parseBoolean(optionalEnv('RUN_CREATE_ORDER', 'false'));
+const ALLOW_STATE_CHANGE = parseBoolean(optionalEnv('ALLOW_STATE_CHANGE', 'false'));
 const RUN_COMPLETE_FAILURE = parseBoolean(optionalEnv('RUN_COMPLETE_FAILURE', 'true'));
 const RUN_WEBHOOK_INVALID = parseBoolean(optionalEnv('RUN_WEBHOOK_INVALID', 'false'));
 
@@ -30,6 +31,16 @@ export const options = createDefaultOptions({
     flow: 'monitoring-smoke',
   },
 });
+
+export function setup() {
+  validateSelectedFlows();
+  return {
+    baseUrl: BASE_URL,
+    runCreateOrder: RUN_CREATE_ORDER,
+    runCompleteFailure: RUN_COMPLETE_FAILURE,
+    runWebhookInvalid: RUN_WEBHOOK_INVALID,
+  };
+}
 
 export default function () {
   if (RUN_CREATE_ORDER) {
@@ -75,6 +86,28 @@ function createPaymentOrder() {
   check(response, {
     'create order returned handled status': (res) => [200, 400, 401, 403, 404, 409].includes(res.status),
   });
+}
+
+function validateSelectedFlows() {
+  if (!RUN_CREATE_ORDER && !RUN_COMPLETE_FAILURE && !RUN_WEBHOOK_INVALID) {
+    throw new Error(
+      'At least one payment flow must be enabled. Set one of RUN_CREATE_ORDER, RUN_COMPLETE_FAILURE, RUN_WEBHOOK_INVALID.',
+    );
+  }
+
+  if (RUN_CREATE_ORDER && !ALLOW_STATE_CHANGE) {
+    throw new Error(
+      'RUN_CREATE_ORDER=true requires ALLOW_STATE_CHANGE=true. This guard prevents accidental state-changing requests.',
+    );
+  }
+
+  if (RUN_CREATE_ORDER && !AUTH_TOKEN) {
+    throw new Error('RUN_CREATE_ORDER=true requires MCJ_ACCESS_TOKEN or AUTH_TOKEN.');
+  }
+
+  if (RUN_CREATE_ORDER && !GROUP_BUY_ID) {
+    throw new Error('RUN_CREATE_ORDER=true requires MCJ_GROUP_BUY_ID or GROUP_BUY_ID.');
+  }
 }
 
 function completePaymentWithMissingOrder() {

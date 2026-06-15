@@ -123,12 +123,15 @@ k6 run \
   -e MCJ_ACCESS_TOKEN=<buyer-access-token> \
   -e MCJ_SCENARIO_NAME=payment-monitoring \
   -e MCJ_GROUP_BUY_ID=<active-group-buy-id> \
+  -e ALLOW_STATE_CHANGE=true \
   -e RUN_CREATE_ORDER=true \
   -e RUN_COMPLETE_FAILURE=false \
   -e VUS=1 \
   -e DURATION=30s \
   load-tests/scenarios/payment-monitoring.js
 ```
+
+- `RUN_CREATE_ORDER=true` 는 실제 주문 생성 요청을 포함하므로 `ALLOW_STATE_CHANGE=true` 를 함께 명시한 경우에만 실행한다.
 
 - 실행 후 Grafana Explore 또는 `MCJ Prod Payment Monitoring`에서 아래 PromQL을 확인한다.
 

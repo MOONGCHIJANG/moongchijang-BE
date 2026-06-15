@@ -104,10 +104,13 @@ MCJ_SCENARIO_NAME=payment-monitoring \
 MCJ_BASE_URL=https://api.moongchijang.com/dev \
 MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
 MCJ_GROUP_BUY_ID=960005 \
+ALLOW_STATE_CHANGE=true \
 RUN_CREATE_ORDER=true \
 RUN_COMPLETE_FAILURE=false \
 k6 run load-tests/scenarios/payment-monitoring.js
 ```
+
+`RUN_CREATE_ORDER=true` 는 실제 주문 생성 요청이 포함되므로 `ALLOW_STATE_CHANGE=true` 를 함께 명시할 때만 실행됩니다.
 
 결과를 파일로 저장하려면:
 
