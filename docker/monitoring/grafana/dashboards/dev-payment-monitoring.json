@@ -51,17 +51,17 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m]))",
           "legendFormat": "attempt",
           "refId": "A"
         },
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"2..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"2..\"}[5m]))",
           "legendFormat": "success",
           "refId": "B"
         },
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"4..|5..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"4..|5..\"}[5m]))",
           "legendFormat": "failure",
           "refId": "C"
         }
@@ -99,7 +99,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"2..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m])), 1e-9)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"2..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m])), 1e-9)",
           "refId": "A"
         }
       ],
@@ -136,7 +136,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete).*\",status=~\"401|403\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete).*\"}[5m])), 1e-9)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete).*\",status=~\"401|403\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete).*\"}[5m])), 1e-9)",
           "refId": "A"
         }
       ],
@@ -173,12 +173,12 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app\",uri=~\".*(/payments/portone/complete).*\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app-dev\",uri=~\".*(/payments/portone/complete).*\"}[5m])))",
           "legendFormat": "p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app\",uri=~\".*(/payments/portone/complete).*\"}[5m])))",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app-dev\",uri=~\".*(/payments/portone/complete).*\"}[5m])))",
           "legendFormat": "p99",
           "refId": "B"
         }
@@ -216,7 +216,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete).*\",status=~\"5..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete).*\",status=~\"5..\"}[5m]))",
           "refId": "A"
         }
       ],
@@ -253,7 +253,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/users/me/participations/.*/cancel).*\",status=~\"5..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/users/me/participations/.*/cancel).*\",status=~\"5..\"}[5m]))",
           "refId": "A"
         }
       ],
@@ -290,12 +290,12 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/webhook).*\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/webhook).*\"}[5m]))",
           "legendFormat": "webhook total",
           "refId": "A"
         },
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/webhook).*\",status=~\"4..|5..\"}[5m])) / clamp_min(sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/webhook).*\"}[5m])),1)",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/webhook).*\",status=~\"4..|5..\"}[5m])) / clamp_min(sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/webhook).*\"}[5m])),1)",
           "legendFormat": "webhook fail ratio",
           "refId": "B"
         }
@@ -333,12 +333,12 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\",status=~\"2..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\",status=~\"2..\"}[5m]))",
           "legendFormat": "refund success",
           "refId": "A"
         },
         {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\",status=~\"4..|5..\"}[5m]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\",status=~\"4..|5..\"}[5m]))",
           "legendFormat": "refund fail",
           "refId": "B"
         }
@@ -376,7 +376,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"app-dev\",uri=~\".*(/admin/refund-requests/.*/(approve|reject)|/users/me/participations/.*/cancel).*\"}[5m])))",
           "refId": "A"
         }
       ],
@@ -413,7 +413,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m])),1e-9)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"app-dev\",uri=~\".*(/payments/portone/complete|/group-buys/.*/payment-orders).*\"}[5m])),1e-9)",
           "refId": "A"
         }
       ],
@@ -450,7 +450,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (result, reason) (increase(mcj_payment_order_created_total{job=\"app\"}[5m]))",
+          "expr": "sum by (result, reason) (increase(mcj_payment_order_created_total{job=\"app-dev\"}[5m]))",
           "legendFormat": "{{result}} / {{reason}}",
           "refId": "A"
         }
@@ -488,7 +488,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (source, result, reason) (increase(mcj_payment_approval_total{job=\"app\"}[5m]))",
+          "expr": "sum by (source, result, reason) (increase(mcj_payment_approval_total{job=\"app-dev\"}[5m]))",
           "legendFormat": "{{source}} / {{result}} / {{reason}}",
           "refId": "A"
         }
@@ -526,7 +526,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (operation, result, status) (increase(mcj_portone_api_requests_total{job=\"app\"}[5m]))",
+          "expr": "sum by (operation, result, status) (increase(mcj_portone_api_requests_total{job=\"app-dev\"}[5m]))",
           "legendFormat": "{{operation}} / {{result}} / {{status}}",
           "refId": "A"
         }
@@ -564,7 +564,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (operation, le) (rate(mcj_portone_api_latency_seconds_bucket{job=\"app\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (operation, le) (rate(mcj_portone_api_latency_seconds_bucket{job=\"app-dev\"}[5m])))",
           "legendFormat": "{{operation}} p95",
           "refId": "A"
         }
@@ -602,7 +602,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (event_type, result, reason) (increase(mcj_payment_webhook_processed_total{job=\"app\"}[5m]))",
+          "expr": "sum by (event_type, result, reason) (increase(mcj_payment_webhook_processed_total{job=\"app-dev\"}[5m]))",
           "legendFormat": "{{event_type}} / {{result}} / {{reason}}",
           "refId": "A"
         }
@@ -640,7 +640,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (result, reason) (increase(mcj_payment_refund_processed_total{job=\"app\"}[5m]))",
+          "expr": "sum by (result, reason) (increase(mcj_payment_refund_processed_total{job=\"app-dev\"}[5m]))",
           "legendFormat": "{{result}} / {{reason}}",
           "refId": "A"
         }
@@ -678,7 +678,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (source, result, reason, partial) (increase(mcj_payment_cancel_total{job=\"app\"}[5m]))",
+          "expr": "sum by (source, result, reason, partial) (increase(mcj_payment_cancel_total{job=\"app-dev\"}[5m]))",
           "legendFormat": "{{source}} / {{result}} / {{reason}} / partial={{partial}}",
           "refId": "A"
         }
@@ -704,8 +704,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "MCJ Prod Payment Monitoring",
-  "uid": "mcj-prod-payment-monitoring",
+  "title": "MCJ Dev Payment Monitoring",
+  "uid": "mcj-dev-payment-monitoring",
   "version": 2,
   "weekStart": ""
 }

@@ -133,9 +133,9 @@ k6 run \
 - 실행 후 Grafana Explore 또는 `MCJ Prod Payment Monitoring`에서 아래 PromQL을 확인한다.
 
 ```promql
-sum by (source, result, reason) (increase(mcj_payment_approval_total[10m]))
-sum by (result, reason) (increase(mcj_payment_order_created_total[10m]))
-sum by (operation, result, status) (increase(mcj_portone_api_requests_total[10m]))
+sum by (source, result, reason) (increase(mcj_payment_approval_total{job="app"}[10m]))
+sum by (result, reason) (increase(mcj_payment_order_created_total{job="app"}[10m]))
+sum by (operation, result, status) (increase(mcj_portone_api_requests_total{job="app"}[10m]))
 ```
 
 ## 7. 트러블슈팅
