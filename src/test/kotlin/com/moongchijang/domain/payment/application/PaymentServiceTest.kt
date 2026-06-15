@@ -558,6 +558,39 @@ class PaymentServiceTest {
     }
 
     @Test
+    fun `웹훅 승인 검증 실패는 웹훅과 승인 지표를 실패로 기록`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy()
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 5000, "CARD", LocalDateTime.now()))
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        service.handlePortOneWebhook(
+            PortOneWebhookRequest(type = "Transaction.Paid", storeId = "store-test", paymentId = "MCJ-10-test")
+        )
+
+        assertEquals(PaymentOrderStatus.FAILED, order.status)
+        assertCounter(
+            "mcj_payment_webhook_processed_total",
+            1.0,
+            "event_type", "transaction_paid",
+            "result", "failure",
+            "reason", "payment_amount_mismatch",
+        )
+        assertCounter(
+            "mcj_payment_approval_total",
+            1.0,
+            "source", "webhook",
+            "result", "failure",
+            "reason", "payment_amount_mismatch",
+        )
+    }
+
+    @Test
     fun `웹훅 취소 상태는 결제와 참여를 환불 처리`() {
         val user = UserFixture.createKakaoUser(id = 1L)
         val groupBuy = createGroupBuy()

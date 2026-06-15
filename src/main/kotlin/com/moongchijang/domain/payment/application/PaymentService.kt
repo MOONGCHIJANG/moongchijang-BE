@@ -308,9 +308,10 @@ class PaymentService(
             )
 
             if (paymentResult.status == PORTONE_STATUS_PAID) {
-                withGroupBuyLock(order.groupBuy.id) {
-                    transactionTemplate().execute {
-                        val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                val approvalResult = withGroupBuyLock(order.groupBuy.id) {
+                    transactionTemplate().execute<PaymentApprovalResult> {
+                        val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId)
+                            ?: return@execute PaymentApprovalResult.Failure(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
                         if (lockedOrder.status != PaymentOrderStatus.APPROVED) {
                             approvePayment(
                                 paymentId = paymentId,
@@ -327,10 +328,25 @@ class PaymentService(
                                 reason = ErrorCode.PAYMENT_ORDER_ALREADY_PROCESSED.name,
                                 rawPayload = rawPayload,
                             )
+                            PaymentApprovalResult.Success(buildAlreadyApprovedResponse(lockedOrder))
                         }
+                    } ?: PaymentApprovalResult.Failure(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
+                }
+                when (approvalResult) {
+                    is PaymentApprovalResult.Success -> paymentMetricsRecorder.recordWebhook(
+                        request.type,
+                        RESULT_SUCCESS,
+                        PORTONE_STATUS_PAID,
+                    )
+                    is PaymentApprovalResult.Failure -> {
+                        paymentMetricsRecorder.recordApproval(
+                            PaymentAuditSource.WEBHOOK.name,
+                            RESULT_FAILURE,
+                            approvalResult.errorCode.name,
+                        )
+                        paymentMetricsRecorder.recordWebhook(request.type, RESULT_FAILURE, approvalResult.errorCode.name)
                     }
                 }
-                paymentMetricsRecorder.recordWebhook(request.type, RESULT_SUCCESS, PORTONE_STATUS_PAID)
                 return
             }
 

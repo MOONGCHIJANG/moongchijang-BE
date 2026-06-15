@@ -101,14 +101,18 @@ class PaymentMetricsRecorder(
             "FAILED",
             "CANCELLED",
             "PARTIAL_CANCELLED",
+            "READY",
             "PAYMENT_ORDER_NOT_FOUND",
             "PAYMENT_ORDER_ALREADY_PROCESSED",
             "PAYMENT_ORDER_FORBIDDEN",
             "PAYMENT_AMOUNT_MISMATCH",
             "PAYMENT_APPROVAL_FAILED",
             "PAYMENT_CANCEL_FAILED",
+            "PAYMENT_INVALID_QUANTITY",
             "PAYMENT_QUANTITY_EXCEEDED",
             "PAYMENT_GROUPBUY_NOT_AVAILABLE",
+            "PAYMENT_PER_USER_LIMIT_EXCEEDED",
+            "PAYMENT_AGREEMENT_REQUIRED",
             "PAYMENT_DUPLICATE_PARTICIPATION",
             "PAYMENT_WEBHOOK_INVALID",
             "PAYMENT_REFUND_NOT_ALLOWED_AFTER_ACHIEVED",
@@ -118,6 +122,9 @@ class PaymentMetricsRecorder(
             "PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED",
             "PORTONE_UNEXPECTED_STATUS",
             "PENDING_REFUND_TARGET_NOT_FOUND",
+            "USER_NOT_FOUND",
+            "GROUPBUY_NOT_FOUND",
+            "FORBIDDEN",
             -> reason.lowercase()
             else -> "other"
         }
