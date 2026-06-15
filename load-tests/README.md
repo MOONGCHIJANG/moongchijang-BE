@@ -88,6 +88,27 @@ MCJ_GROUP_BUY_ID=960005 \
 k6 run load-tests/scenarios/favorite-stateful-read.js
 ```
 
+결제 모니터링 시나리오 예시:
+
+```bash
+MCJ_SCENARIO_NAME=payment-monitoring \
+MCJ_BASE_URL=https://api.moongchijang.com/dev \
+MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
+k6 run load-tests/scenarios/payment-monitoring.js
+```
+
+결제 주문 생성까지 확인할 때는 아래 옵션을 추가합니다.
+
+```bash
+MCJ_SCENARIO_NAME=payment-monitoring \
+MCJ_BASE_URL=https://api.moongchijang.com/dev \
+MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
+MCJ_GROUP_BUY_ID=960005 \
+RUN_CREATE_ORDER=true \
+RUN_COMPLETE_FAILURE=false \
+k6 run load-tests/scenarios/payment-monitoring.js
+```
+
 결과를 파일로 저장하려면:
 
 ```bash

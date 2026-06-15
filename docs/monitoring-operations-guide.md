@@ -107,25 +107,27 @@ docker compose --profile prod --profile monitoring up -d \
 
 ```bash
 k6 run \
-  -e BASE_URL=https://api.moongchijang.com \
-  -e AUTH_TOKEN=<buyer-access-token> \
+  -e MCJ_BASE_URL=https://api.moongchijang.com \
+  -e MCJ_ACCESS_TOKEN=<buyer-access-token> \
+  -e MCJ_SCENARIO_NAME=payment-monitoring \
   -e VUS=3 \
   -e DURATION=1m \
-  load-tests/k6/payment-monitoring.js
+  load-tests/scenarios/payment-monitoring.js
 ```
 
 - 결제 주문 생성 지표까지 확인할 때만 아래 옵션을 추가한다.
 
 ```bash
 k6 run \
-  -e BASE_URL=https://api.moongchijang.com \
-  -e AUTH_TOKEN=<buyer-access-token> \
-  -e GROUP_BUY_ID=<active-group-buy-id> \
+  -e MCJ_BASE_URL=https://api.moongchijang.com \
+  -e MCJ_ACCESS_TOKEN=<buyer-access-token> \
+  -e MCJ_SCENARIO_NAME=payment-monitoring \
+  -e MCJ_GROUP_BUY_ID=<active-group-buy-id> \
   -e RUN_CREATE_ORDER=true \
   -e RUN_COMPLETE_FAILURE=false \
   -e VUS=1 \
   -e DURATION=30s \
-  load-tests/k6/payment-monitoring.js
+  load-tests/scenarios/payment-monitoring.js
 ```
 
 - 실행 후 Grafana Explore 또는 `MCJ Prod Payment Monitoring`에서 아래 PromQL을 확인한다.
