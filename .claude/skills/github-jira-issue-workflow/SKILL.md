@@ -74,8 +74,9 @@ git worktree add ../moongchijang-BE-issue-123 origin/feat/#123-SCRUM-456
 
 1. Review `git diff --name-only`.
 2. Stage only files for this issue.
-3. Commit with the repository commit convention.
-4. Push the generated branch to origin.
+3. Split commits into reviewable logical units. Use `.claude/references/conventions/git-conventions.yaml` for the commit splitting policy.
+4. Commit with the repository commit convention.
+5. Push the generated branch to origin.
 
 Commit message convention:
 
@@ -89,6 +90,16 @@ Commit message examples:
 [MCJ-1604] feat: 결제 성공 알림 옵션 추가
 [MCJ-1604] test: 결제 성공 감사 알림 테스트 추가
 docs: 결제 실패 알림 가이드 추가
+```
+
+Commit splitting examples:
+
+```text
+[MCJ-1617] chore: 결제 모니터링 감사 에이전트 추가
+[MCJ-1617] chore: 결제 전용 Grafana 대시보드 분리
+[MCJ-1617] chore: 결제 도메인 모니터링 지표 추가
+[MCJ-1617] test: 결제 모니터링 지표 검증 추가
+[MCJ-1617] chore: 결제 모니터링 부하테스트 추가
 ```
 
 ## 6. Open PR With Template

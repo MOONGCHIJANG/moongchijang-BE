@@ -92,9 +92,49 @@ docker compose --profile prod --profile monitoring up -d \
 
 ### 6.4 대시보드 확인
 - `MCJ Prod Monitoring Overview` 대시보드 노출
+- `MCJ Prod Payment Monitoring` 대시보드 노출
 - dev 환경을 함께 운영하는 경우 `MCJ Dev Load Test Monitoring` 대시보드 노출
+- dev 환경을 함께 운영하는 경우 `MCJ Dev Payment Monitoring` 대시보드 노출
 - 아래 패널 데이터 확인
   - 가용성, RPS, 5xx, p95/p99, CPU, Heap, GC, Disk, Auth 이벤트
+  - 결제 시도/성공/실패, 결제 성공률, 결제 완료 API 지연, 웹훅 실패율, 환불 처리 지표
+  - 결제 주문 생성/승인/취소/웹훅/환불 도메인 metric, PortOne API 성공/실패 및 p95 latency
+  - 결제 도메인 metric은 환경별 `job` 라벨(`app`, `app-dev`) 기준 분리 확인
+
+### 6.5 결제 모니터링 부하테스트
+- 기본 시나리오는 존재하지 않는 결제 주문의 완료 요청을 발생시켜, 운영 데이터 변경 없이 결제 실패/HTTP 지표가 Grafana에 노출되는지 확인한다.
+- 실제 결제 주문 생성 부하는 `RUN_CREATE_ORDER=true`를 명시한 경우에만 실행한다.
+
+```bash
+k6 run \
+  -e BASE_URL=https://api.moongchijang.com \
+  -e AUTH_TOKEN=<buyer-access-token> \
+  -e VUS=3 \
+  -e DURATION=1m \
+  load-tests/k6/payment-monitoring.js
+```
+
+- 결제 주문 생성 지표까지 확인할 때만 아래 옵션을 추가한다.
+
+```bash
+k6 run \
+  -e BASE_URL=https://api.moongchijang.com \
+  -e AUTH_TOKEN=<buyer-access-token> \
+  -e GROUP_BUY_ID=<active-group-buy-id> \
+  -e RUN_CREATE_ORDER=true \
+  -e RUN_COMPLETE_FAILURE=false \
+  -e VUS=1 \
+  -e DURATION=30s \
+  load-tests/k6/payment-monitoring.js
+```
+
+- 실행 후 Grafana Explore 또는 `MCJ Prod Payment Monitoring`에서 아래 PromQL을 확인한다.
+
+```promql
+sum by (source, result, reason) (increase(mcj_payment_approval_total[10m]))
+sum by (result, reason) (increase(mcj_payment_order_created_total[10m]))
+sum by (operation, result, status) (increase(mcj_portone_api_requests_total[10m]))
+```
 
 ## 7. 트러블슈팅
 

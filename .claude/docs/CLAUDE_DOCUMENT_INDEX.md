@@ -24,6 +24,7 @@ This file is the finder for the Moongchijang backend Claude Code harness.
 - `.claude/agents/moongchijang-spec-auditor.md`: read-only spec/code drift auditor
 - `.claude/agents/moongchijang-code-reviewer.md`: read-only backend reviewer
 - `.claude/agents/moongchijang-test-runner.md`: focused test selection and verification
+- `.claude/agents/moongchijang-payment-monitoring-auditor.md`: read-only payment monitoring dashboard, alert, and metric coverage auditor
 
 ## Feature Specs
 
@@ -35,6 +36,7 @@ This file is the finder for the Moongchijang backend Claude Code harness.
 - `.claude/features/groupbuy/request.yaml`: consumer group buy request and admin handling
 - `.claude/features/payment/participation.yaml`: payment order, PortOne completion, participation
 - `.claude/features/payment/refund.yaml`: participation cancel and refund request flow
+- `.claude/features/payment/monitoring.yaml`: payment monitoring dashboard, alert channel separation, and metric coverage plan
 - `.claude/features/notification/notification.yaml`: notifications, templates, dispatch
 - `.claude/features/wishlist/wishlist.yaml`: wishlist command and query
 - `.claude/features/pickup/pickup.yaml`: pickup guide, QR, verification
