@@ -22,6 +22,13 @@
 - 테스트 시간대는 일반 개발 작업과 겹치지 않도록 사전 조율합니다.
 - 테스트 트래픽이 운영성 알림으로 오인되지 않도록 채널 또는 라우팅 분리를 우선 검토합니다.
 
+## 3.1 dev 실행 원칙
+
+- 기본 실행 환경은 `dev`로 고정합니다.
+- 최초 실행은 조회성 또는 실패 흐름 중심 시나리오부터 시작합니다.
+- 쓰기성 요청이 포함된 시나리오는 마지막 단계에서 제한적으로 실행합니다.
+- 동일 날짜 재실행 시 결과 파일은 회차(`run2`, `run3`)를 구분합니다.
+
 ## 4. 반영 필요 항목
 
 ### 4.1 Prometheus 수집
@@ -77,6 +84,64 @@
 - dev 일반/결제 모니터링 반영 범위 확정
 - `develop` 배포 후 dev 환경에서 시나리오 실행
 - 결과 기록 및 후속 개선사항 정리
+
+## 6.1 dev 실행 절차
+
+1. `develop` 기준 변경사항이 dev에 배포되었는지 확인합니다.
+2. 실행 대상 시나리오와 대상 데이터를 확정합니다.
+3. `MCJ_BASE_URL`, 토큰, 대상 ID, `MCJ_SCENARIO_NAME` 값을 준비합니다.
+4. Prometheus `job=app-dev` 수집 상태와 Grafana 대시보드 노출 상태를 확인합니다.
+5. 읽기 전용 또는 실패 흐름 시나리오를 먼저 실행합니다.
+6. 결과를 `load-tests/results/` 경로에 저장합니다.
+7. Grafana/Prometheus/로그를 확인하고 `docs/load-test-result-template.md` 기준으로 정리합니다.
+8. 필요 시에만 쓰기성 시나리오를 제한적으로 재실행합니다.
+
+## 6.2 권장 실행 순서
+
+1. `group-buy-read`
+2. `mypage-read`
+3. `admin-read`
+4. `favorite-stateful-read`
+5. `payment-monitoring` 실패 흐름
+6. `payment-monitoring` 주문 생성 포함 흐름
+
+## 6.3 실행 명령 예시
+
+### 조회성/실패 흐름 우선 실행
+
+```bash
+MCJ_BASE_URL=https://api.moongchijang.com/dev \
+MCJ_ENV_NAME=dev \
+MCJ_SCENARIO_NAME=payment-monitoring \
+MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
+k6 run \
+  --summary-export=load-tests/results/2026-06-16-payment-monitoring-summary.json \
+  load-tests/scenarios/payment-monitoring.js
+```
+
+### 쓰기성 포함 재실행
+
+```bash
+MCJ_BASE_URL=https://api.moongchijang.com/dev \
+MCJ_ENV_NAME=dev \
+MCJ_SCENARIO_NAME=payment-monitoring \
+MCJ_ACCESS_TOKEN=<ACCESS_TOKEN> \
+MCJ_GROUP_BUY_ID=960005 \
+ALLOW_STATE_CHANGE=true \
+RUN_CREATE_ORDER=true \
+RUN_COMPLETE_FAILURE=false \
+k6 run \
+  --summary-export=load-tests/results/2026-06-16-payment-monitoring-run2-summary.json \
+  load-tests/scenarios/payment-monitoring.js
+```
+
+## 6.4 실행 직후 확인 순서
+
+1. `MCJ Dev Load Test Monitoring` 또는 `MCJ Dev Payment Monitoring` 대시보드 확인
+2. HTTP 4xx / 5xx, p95 / p99, RPS 변화 확인
+3. 결제 시나리오의 경우 도메인 metric 증가 여부 확인
+4. 애플리케이션 에러 로그 확인
+5. 결과 Markdown 초안 작성
 
 ## 7. 결제 결과 기록 시 확인 항목
 

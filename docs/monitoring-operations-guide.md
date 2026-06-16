@@ -104,6 +104,7 @@ docker compose --profile prod --profile monitoring up -d \
 ### 6.5 결제 모니터링 부하테스트
 - 기본 시나리오는 존재하지 않는 결제 주문의 완료 요청을 발생시켜, 운영 데이터 변경 없이 결제 실패/HTTP 지표가 Grafana에 노출되는지 확인한다.
 - 실제 결제 주문 생성 부하는 `RUN_CREATE_ORDER=true`를 명시한 경우에만 실행한다.
+- dev 환경 실행 절차와 결과 기록 기준은 `docs/dev-load-test-monitoring-guide.md`를 우선 참고한다.
 
 ```bash
 k6 run \
