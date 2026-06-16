@@ -12,9 +12,14 @@
 
 - `2026-06-13-group-buy-read-summary.json`
 - `2026-06-13-group-buy-read.md`
+- `2026-06-16-payment-monitoring-summary.json`
+- `2026-06-16-payment-monitoring.md`
+- `2026-06-16-payment-monitoring-run2-summary.json`
+- `2026-06-16-payment-monitoring-run2.md`
 
 ## 기록 기준
 
 - Markdown 결과 정리는 `docs/load-test-result-template.md`를 기준으로 작성합니다.
 - 시나리오별 결과는 재실행 시 덮어쓰지 않고 날짜 또는 회차를 구분해 저장합니다.
 - PR 또는 이슈에 공유할 때는 결과 요약 Markdown을 기준으로 사용합니다.
+- 결제 시나리오는 `payment_flow`, 대상 공구 ID, 상태 변경 허용 여부를 Markdown에 함께 기록합니다.

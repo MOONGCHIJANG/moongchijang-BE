@@ -48,6 +48,16 @@
 - 테스트 실행자, 실행 일시, 대상 브랜치 기록
 - 사용 시나리오, 환경변수, 대상 공구/주문 데이터 기록
 - Grafana 확인 패널, Prometheus 쿼리, 에러 로그 확인 위치 기록
+- 결제 시나리오는 실패 흐름과 쓰기 흐름을 분리 기록
+- 쓰기 흐름 실행 시 `ALLOW_STATE_CHANGE=true` 사용 여부 기록
+
+### 4.5 결제 결과 기록 기준
+
+- 기본 확인 대시보드는 `MCJ Dev Payment Monitoring`으로 통일
+- 결과 기록에는 `payment_flow` 기준 실행 흐름을 함께 남김
+- 도메인 metric 확인 시 `job=app-dev` 라벨 포함 쿼리 사용
+- 실패 흐름 실행 시 운영 데이터 변경 여부를 함께 기록
+- 주문 생성 포함 실행 시 대상 공구 ID와 실행 회차를 함께 기록
 
 ## 5. 권장 적용 순서
 
@@ -67,3 +77,30 @@
 - dev 일반/결제 모니터링 반영 범위 확정
 - `develop` 배포 후 dev 환경에서 시나리오 실행
 - 결과 기록 및 후속 개선사항 정리
+
+## 7. 결제 결과 기록 시 확인 항목
+
+### 7.1 Grafana
+
+- `MCJ Dev Payment Monitoring`
+- 결제 시도/성공/실패 건수 (5m)
+- 결제 완료 API p95/p99 latency
+- 웹훅 처리 도메인 metric
+- PortOne API 성공/실패 도메인 metric
+- PortOne API latency p95 도메인 metric
+
+### 7.2 Prometheus
+
+```promql
+sum by (source, result, reason) (increase(mcj_payment_approval_total{job="app-dev"}[10m]))
+sum by (result, reason) (increase(mcj_payment_order_created_total{job="app-dev"}[10m]))
+sum by (event_type, result, reason) (increase(mcj_payment_webhook_processed_total{job="app-dev"}[10m]))
+sum by (operation, result, status) (increase(mcj_portone_api_requests_total{job="app-dev"}[10m]))
+histogram_quantile(0.95, sum by (operation, le) (rate(mcj_portone_api_latency_seconds_bucket{job="app-dev"}[10m])))
+```
+
+### 7.3 파일 기록 규칙
+
+- `load-tests/results/YYYY-MM-DD-<scenario-name>-summary.json`
+- `load-tests/results/YYYY-MM-DD-<scenario-name>.md`
+- 동일 날짜 재실행 시 `-run2`, `-run3` suffix 사용

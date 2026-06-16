@@ -26,6 +26,8 @@
 - 지속 시간:
 - 테스트 데이터:
 - 결과 파일 경로:
+- 쓰기성 요청 포함 여부:
+- 상태 변경 허용 여부:
 
 ## 4. 주요 결과
 
@@ -45,6 +47,18 @@
 - 애플리케이션 로그 확인 내용:
 - 인프라 병목 징후:
 
+### 5.1 결제 시나리오 추가 확인 항목
+
+- 확인 대시보드:
+- 확인 대상 flow tag:
+- 결제 주문 생성 지표 변화:
+- 결제 승인 지표 변화:
+- 웹훅 처리 지표 변화:
+- 환불/취소 지표 변화:
+- PortOne API 성공/실패 지표 변화:
+- PortOne API latency p95 변화:
+- HTTP 4xx / 5xx 해석:
+
 ## 6. 결과 해석
 
 - 병목 의심 지점:
@@ -56,3 +70,33 @@
 - 개선 필요사항:
 - 추가 테스트 필요사항:
 - 관련 이슈/PR:
+
+## 8. 결제 시나리오 기록 예시
+
+### 8.1 결제 모니터링 실패 흐름 예시
+
+- 시나리오명: `payment-monitoring`
+- 대상 흐름: 존재하지 않는 주문 기준 결제 완료 실패 응답 확인
+- 목적: 운영 데이터 변경 없이 결제 실패 지표 및 응답속도 노출 여부 확인
+- 쓰기성 요청 포함 여부: 아니오
+- 상태 변경 허용 여부: 아니오
+- 확인 대시보드: `MCJ Dev Payment Monitoring`
+- 확인 대상 flow tag: `payment_flow=complete_failure`
+
+### 8.2 결제 주문 생성 포함 흐름 예시
+
+- 시나리오명: `payment-monitoring`
+- 대상 흐름: 결제 주문 생성 + 결제 실패 응답 확인
+- 목적: 주문 생성 도메인 metric 및 결제 실패 metric 동시 확인
+- 쓰기성 요청 포함 여부: 예
+- 상태 변경 허용 여부: `ALLOW_STATE_CHANGE=true`
+- 확인 대시보드: `MCJ Dev Payment Monitoring`
+- 확인 대상 flow tag: `payment_flow=create_order`, `payment_flow=complete_failure`
+
+## 9. 첨부 권장 항목
+
+- `k6` summary export JSON 경로
+- Grafana 패널 스크린샷 또는 수치 요약
+- Prometheus 쿼리 결과
+- 애플리케이션 에러 로그 발췌
+- 실행 시 사용한 환경변수 목록
