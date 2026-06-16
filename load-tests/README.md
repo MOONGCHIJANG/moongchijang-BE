@@ -17,6 +17,16 @@
 - staging 성격 환경이 없으면 제한된 `dev` 환경에서만 수행합니다.
 - 테스트 시간대, 데이터, 알림 채널 영향 여부를 확인한 뒤 실행합니다.
 
+## 시나리오 구분
+
+| 시나리오 | 성격 | 기본 목적 | 상태 변경 가능성 |
+| --- | --- | --- | --- |
+| `group-buy-read` | 조회성 | 목록/상세/진행률 응답속도 확인 | 없음 |
+| `mypage-read` | 조회성 | 참여/환불/개설 요청 조회 응답 확인 | 없음 |
+| `admin-read` | 조회성 | 운영 조회성 화면 응답 확인 | 없음 |
+| `favorite-stateful-read` | 상태성 | 찜/heartbeat 관련 부하 확인 | 낮음 |
+| `payment-monitoring` | 결제 모니터링 | 실패 흐름 및 도메인 metric 노출 확인 | 기본 없음, 옵션 시 있음 |
+
 ## 사전 준비
 
 ### 1. k6 설치
@@ -35,6 +45,10 @@
 - `MCJ_GROUP_BUY_ID`: 상세/진행률 조회 대상 공구 ID
 - `MCJ_REPORT_YEAR`: 운영 조회 시나리오 대상 연도
 - `MCJ_REPORT_MONTH`: 운영 조회 시나리오 대상 월
+- `ALLOW_STATE_CHANGE`: 쓰기성 요청 허용 여부
+- `RUN_CREATE_ORDER`: 결제 주문 생성 요청 실행 여부
+- `RUN_COMPLETE_FAILURE`: 존재하지 않는 주문 기준 결제 실패 흐름 실행 여부
+- `RUN_WEBHOOK_INVALID`: 잘못된 웹훅 payload 흐름 실행 여부
 
 예시:
 
@@ -44,6 +58,21 @@ export MCJ_ENV_NAME=dev
 export MCJ_ACCESS_TOKEN=<ACCESS_TOKEN>
 export MCJ_GROUP_BUY_ID=960005
 ```
+
+## 실행 기준 요약
+
+### 1. 공통 규칙
+
+- 모든 실행은 `MCJ_SCENARIO_NAME` 값을 명시합니다.
+- 결과 저장이 필요한 경우 `--summary-export` 경로를 함께 지정합니다.
+- 기본값이 있더라도 대상 ID, 토큰, 환경명은 실행 전에 다시 확인합니다.
+
+### 2. 결제 시나리오 규칙
+
+- 기본 실행은 `RUN_COMPLETE_FAILURE=true` 기준의 실패 흐름 확인입니다.
+- 실제 주문 생성이 포함되는 경우 `RUN_CREATE_ORDER=true` 와 `ALLOW_STATE_CHANGE=true` 를 함께 사용합니다.
+- 쓰기성 실행 시 대상 공구 ID, 실행 회차, 결과 문서 경로를 함께 기록합니다.
+- 결제 결과 확인은 `MCJ Dev Payment Monitoring` 또는 `MCJ Prod Payment Monitoring` 기준으로 수행합니다.
 
 ## 기본 실행 예시
 
@@ -117,6 +146,25 @@ k6 run load-tests/scenarios/payment-monitoring.js
 ```bash
 k6 run --summary-export=load-tests/results/<scenario-name>-summary.json load-tests/scenarios/<scenario-file>.js
 ```
+
+표준 예시:
+
+```bash
+MCJ_SCENARIO_NAME=payment-monitoring \
+k6 run \
+  --summary-export=load-tests/results/2026-06-16-payment-monitoring-summary.json \
+  load-tests/scenarios/payment-monitoring.js
+```
+
+## 시나리오별 필수 환경변수
+
+| 시나리오 | 필수 환경변수 | 선택 환경변수 |
+| --- | --- | --- |
+| `group-buy-read` | `MCJ_SCENARIO_NAME`, `MCJ_BASE_URL`, `MCJ_GROUP_BUY_ID` | `MCJ_ENV_NAME` |
+| `mypage-read` | `MCJ_SCENARIO_NAME`, `MCJ_BASE_URL`, `MCJ_ACCESS_TOKEN` | `MCJ_ENV_NAME` |
+| `admin-read` | `MCJ_SCENARIO_NAME`, `MCJ_BASE_URL`, `MCJ_ADMIN_ACCESS_TOKEN`, `MCJ_REPORT_YEAR`, `MCJ_REPORT_MONTH` | `MCJ_ENV_NAME` |
+| `favorite-stateful-read` | `MCJ_SCENARIO_NAME`, `MCJ_BASE_URL`, `MCJ_ACCESS_TOKEN`, `MCJ_GROUP_BUY_ID` | `MCJ_ENV_NAME` |
+| `payment-monitoring` | `MCJ_SCENARIO_NAME`, `MCJ_BASE_URL` | `MCJ_ACCESS_TOKEN`, `MCJ_GROUP_BUY_ID`, `RUN_CREATE_ORDER`, `RUN_COMPLETE_FAILURE`, `RUN_WEBHOOK_INVALID`, `ALLOW_STATE_CHANGE` |
 
 ## 구현 순서
 

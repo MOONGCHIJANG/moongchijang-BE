@@ -19,3 +19,9 @@
 - `admin-read.js`: 운영 요약 → 미확정 발주 → 긴급 환불 → 정산 대시보드/목록 → 환불 요청 목록 조회 흐름 검증
 - `favorite-stateful-read.js`: 찜 목록 조회 → 공구 진행률 조회 → 조회자 heartbeat 갱신 흐름 검증
 - `payment-monitoring.js`: 안전한 기본 실패 흐름 중심의 결제 모니터링 smoke 시나리오
+
+## 실행 메모
+
+- 조회성 시나리오는 기본적으로 읽기 전용 흐름을 사용합니다.
+- `favorite-stateful-read.js` 는 heartbeat 갱신이 포함되므로 실행 전 대상 데이터 영향 여부를 확인합니다.
+- `payment-monitoring.js` 는 실패 흐름을 기본값으로 사용하며, 실제 주문 생성은 `RUN_CREATE_ORDER=true` 와 `ALLOW_STATE_CHANGE=true` 를 함께 지정한 경우에만 수행합니다.

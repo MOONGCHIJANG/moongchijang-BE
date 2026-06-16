@@ -12,6 +12,7 @@
 
 - [ ] `MCJ_BASE_URL` 확인
 - [ ] `MCJ_ENV_NAME` 확인
+- [ ] `MCJ_SCENARIO_NAME` 확인
 - [ ] 일반 사용자 토큰(`MCJ_ACCESS_TOKEN`) 준비
 - [ ] 관리자 토큰(`MCJ_ADMIN_ACCESS_TOKEN`) 준비 여부 확인
 - [ ] 시나리오별 대상 ID(`MCJ_GROUP_BUY_ID` 등) 확인
@@ -38,10 +39,18 @@
 
 - [ ] 실행할 시나리오 파일 경로 확인
 - [ ] `k6 run` 명령어 확인
+- [ ] `--summary-export` 파일명 규칙 확인
 - [ ] 쓰기성 시나리오 옵션(`RUN_CREATE_ORDER`, `ALLOW_STATE_CHANGE`) 확인
 - [ ] summary export 저장 경로 확인
 - [ ] stage / VU / duration 설정값 확인
 - [ ] 테스트 종료 조건 확인
+
+## 5.1 결제 시나리오 추가 확인
+
+- [ ] 실패 흐름 실행 여부(`RUN_COMPLETE_FAILURE`) 확인
+- [ ] 주문 생성 실행 여부(`RUN_CREATE_ORDER`) 확인
+- [ ] 웹훅 검증 흐름 실행 여부(`RUN_WEBHOOK_INVALID`) 확인
+- [ ] 결과 확인 대시보드(`MCJ Dev Payment Monitoring` 또는 `MCJ Prod Payment Monitoring`) 확인
 
 ## 6. 실행 중 확인
 
