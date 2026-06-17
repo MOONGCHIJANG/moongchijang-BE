@@ -7,8 +7,8 @@ export const DEFAULT_STAGES = [
 ];
 
 export function createDefaultOptions(overrides = {}) {
-  return {
-    stages: overrides.stages ?? DEFAULT_STAGES,
+  const baseOptions = {
+    ...overrides,
     thresholds: overrides.thresholds ?? DEFAULT_THRESHOLDS,
     tags: {
       service: 'moongchijang-be',
@@ -16,6 +16,14 @@ export function createDefaultOptions(overrides = {}) {
       scenario: __ENV.MCJ_SCENARIO_NAME || 'unknown',
       ...overrides.tags,
     },
-    ...overrides,
+  };
+
+  if (overrides.scenarios) {
+    return baseOptions;
+  }
+
+  return {
+    ...baseOptions,
+    stages: overrides.stages ?? DEFAULT_STAGES,
   };
 }

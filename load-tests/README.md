@@ -151,6 +151,7 @@ k6 run --summary-export=load-tests/results/<scenario-name>-summary.json load-tes
 
 ```bash
 MCJ_SCENARIO_NAME=payment-monitoring \
+MCJ_BASE_URL=https://api.moongchijang.com/dev \
 k6 run \
   --summary-export=load-tests/results/2026-06-16-payment-monitoring-summary.json \
   load-tests/scenarios/payment-monitoring.js
