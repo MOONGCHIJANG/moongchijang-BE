@@ -100,3 +100,10 @@ jobs:
 
             # 태그 없는 미사용 이미지를 정리해 디스크 사용량 누적을 완화합니다.
             docker image prune -f
+
+      - name: Trigger Frontend Orval Codegen
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
+          repository: MOONGCHIJANG/moongchijang-FE
+          event-type: backend-deployed
