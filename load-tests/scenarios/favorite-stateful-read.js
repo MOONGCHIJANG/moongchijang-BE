@@ -6,6 +6,10 @@ import { getJson } from '../lib/http.js';
 
 const DEFAULT_GROUP_BUY_ID = 960005;
 const DEFAULT_PAGE_SIZE = 20;
+const baseUrl = buildBaseUrl();
+const groupBuyId = Number(optionalEnv('MCJ_GROUP_BUY_ID', DEFAULT_GROUP_BUY_ID));
+
+requireEnv('MCJ_ACCESS_TOKEN');
 
 export const options = createDefaultOptions({
   tags: {
@@ -16,10 +20,6 @@ export const options = createDefaultOptions({
 });
 
 export default function () {
-  requireEnv('MCJ_ACCESS_TOKEN');
-  const baseUrl = buildBaseUrl();
-  const groupBuyId = Number(optionalEnv('MCJ_GROUP_BUY_ID', DEFAULT_GROUP_BUY_ID));
-
   const wishlistResponse = getJson(
     `${baseUrl}/api/v1/wishlists?filter=ALL&excludeClosed=false&sort=LATEST&page=0&size=${DEFAULT_PAGE_SIZE}`,
     { tags: { endpoint: 'wishlist-list' } },

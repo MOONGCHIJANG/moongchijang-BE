@@ -5,6 +5,8 @@ import { getJson } from '../lib/http.js';
 
 const DEFAULT_GROUP_BUY_ID = 960005;
 const DEFAULT_PAGE_SIZE = 20;
+const baseUrl = buildBaseUrl();
+const groupBuyId = Number(optionalEnv('MCJ_GROUP_BUY_ID', DEFAULT_GROUP_BUY_ID));
 
 export const options = createDefaultOptions({
   tags: {
@@ -15,9 +17,6 @@ export const options = createDefaultOptions({
 });
 
 export default function () {
-  const baseUrl = buildBaseUrl();
-  const groupBuyId = Number(optionalEnv('MCJ_GROUP_BUY_ID', DEFAULT_GROUP_BUY_ID));
-
   const feedResponse = getJson(
     `${baseUrl}/api/v1/group-buys?filter=ALL&page=0&size=${DEFAULT_PAGE_SIZE}`,
     { tags: { endpoint: 'group-buy-feed' } },

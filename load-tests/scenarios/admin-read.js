@@ -6,6 +6,14 @@ import { buildBaseUrl, optionalEnv, requireEnv } from '../lib/env.js';
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_REPORT_YEAR = 2026;
 const DEFAULT_REPORT_MONTH = 6;
+const adminAccessToken = requireEnv('MCJ_ADMIN_ACCESS_TOKEN');
+const baseUrl = buildBaseUrl();
+const reportYear = Number(optionalEnv('MCJ_REPORT_YEAR', DEFAULT_REPORT_YEAR));
+const reportMonth = Number(optionalEnv('MCJ_REPORT_MONTH', DEFAULT_REPORT_MONTH));
+const headers = {
+  Accept: 'application/json',
+  Authorization: `Bearer ${adminAccessToken}`,
+};
 
 export const options = createDefaultOptions({
   tags: {
@@ -16,16 +24,6 @@ export const options = createDefaultOptions({
 });
 
 export default function () {
-  const adminAccessToken = requireEnv('MCJ_ADMIN_ACCESS_TOKEN');
-  const baseUrl = buildBaseUrl();
-  const reportYear = Number(optionalEnv('MCJ_REPORT_YEAR', DEFAULT_REPORT_YEAR));
-  const reportMonth = Number(optionalEnv('MCJ_REPORT_MONTH', DEFAULT_REPORT_MONTH));
-
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${adminAccessToken}`,
-  };
-
   assertSuccess(
     http.get(`${baseUrl}/api/v1/admin/summary`, withHeaders(headers, 'admin-summary')),
     'admin summary',

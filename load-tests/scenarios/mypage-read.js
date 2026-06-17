@@ -4,6 +4,9 @@ import { buildBaseUrl, requireEnv } from '../lib/env.js';
 import { getJson } from '../lib/http.js';
 
 const DEFAULT_PAGE_SIZE = 20;
+const baseUrl = buildBaseUrl();
+
+requireEnv('MCJ_ACCESS_TOKEN');
 
 export const options = createDefaultOptions({
   tags: {
@@ -14,9 +17,6 @@ export const options = createDefaultOptions({
 });
 
 export default function () {
-  requireEnv('MCJ_ACCESS_TOKEN');
-  const baseUrl = buildBaseUrl();
-
   const summaryResponse = getJson(
     `${baseUrl}/api/v1/users/me/tabs/counts`,
     { tags: { endpoint: 'mypage-tabs-counts' } },

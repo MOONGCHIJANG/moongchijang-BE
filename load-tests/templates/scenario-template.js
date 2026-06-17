@@ -9,8 +9,9 @@ export const options = createDefaultOptions({
   },
 });
 
+const baseUrl = buildBaseUrl();
+
 export default function () {
-  const baseUrl = buildBaseUrl();
   const response = getJson(`${baseUrl}/health`);
 
   check(response, {

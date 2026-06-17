@@ -14,13 +14,13 @@ export function buildBaseUrl() {
   return requireEnv('MCJ_BASE_URL').replace(/\/$/, '');
 }
 
+let cachedAuthHeaders = null;
+
 export function buildAuthHeaders() {
-  const accessToken = optionalEnv('MCJ_ACCESS_TOKEN');
-  if (!accessToken) {
-    return {};
+  if (cachedAuthHeaders === null) {
+    const accessToken = optionalEnv('MCJ_ACCESS_TOKEN');
+    cachedAuthHeaders = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
   }
 
-  return {
-    Authorization: `Bearer ${accessToken}`,
-  };
+  return cachedAuthHeaders;
 }
