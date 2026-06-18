@@ -44,6 +44,7 @@ class SecurityConfig(
                     "/metrics",
                     "/api/v1/auth/kakao",
                     "/api/v1/auth/refresh",
+                    "/api/v1/auth/admin/email/login",
                     "/api/v1/auth/email/**",
                     "/api/v1/auth/phone/verification-codes",
                     "/api/v1/auth/phone/verification-codes/verify",
