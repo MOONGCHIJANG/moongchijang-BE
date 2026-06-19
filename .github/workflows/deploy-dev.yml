@@ -97,6 +97,7 @@ jobs:
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
             docker compose --profile dev pull app-dev
             docker compose --profile dev up -d nginx app-dev
+            docker compose --profile monitoring up -d --force-recreate --no-deps prometheus grafana fluent-bit
 
             # 태그 없는 미사용 이미지를 정리해 디스크 사용량 누적을 완화합니다.
             docker image prune -f
