@@ -21,6 +21,7 @@ class PaymentAuditLogService(
     private val paymentAuditLogRepository: PaymentAuditLogRepository,
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val discordProperties: DiscordProperties,
+    private val paymentMetricsRecorder: PaymentMetricsRecorder,
     transactionManager: PlatformTransactionManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -46,7 +47,32 @@ class PaymentAuditLogService(
                     )
                 )
             }
+            val result = record.eventType.toAuditMetricResult()
+            paymentMetricsRecorder.recordAuditEvent(
+                source = record.source.name,
+                eventType = record.eventType.name,
+                result = result,
+                reason = record.reason ?: record.pgStatus ?: NONE,
+            )
+            log.info(
+                "[payment_audit] source={} eventType={} result={} orderId={} pgPaymentId={} pgStatus={} previousOrderStatus={} currentOrderStatus={} reason={}",
+                record.source,
+                record.eventType,
+                result,
+                record.orderId ?: record.paymentOrder?.orderId,
+                record.pgPaymentId,
+                record.pgStatus,
+                record.previousOrderStatus,
+                record.currentOrderStatus ?: record.paymentOrder?.status,
+                record.reason,
+            )
         } catch (e: Exception) {
+            paymentMetricsRecorder.recordAuditEvent(
+                source = record.source.name,
+                eventType = record.eventType.name,
+                result = "audit_record_failure",
+                reason = record.reason ?: NONE,
+            )
             log.warn(
                 "[PaymentAuditLogService] 결제 감사 이력 저장 실패: source={}, eventType={}, orderId={}",
                 record.source,
@@ -106,6 +132,24 @@ class PaymentAuditLogService(
                 e
             )
         }
+    }
+
+    private fun PaymentAuditEventType.toAuditMetricResult(): String =
+        when (this) {
+            PaymentAuditEventType.PAYMENT_APPROVED,
+            PaymentAuditEventType.PAYMENT_CANCELLED,
+            PaymentAuditEventType.PAYMENT_PARTIAL_CANCELLED,
+            -> "success"
+            PaymentAuditEventType.PAYMENT_FAILED -> "failure"
+            PaymentAuditEventType.PAYMENT_IGNORED -> "ignored"
+            PaymentAuditEventType.COMPLETE_REQUEST_RECEIVED,
+            PaymentAuditEventType.WEBHOOK_RECEIVED,
+            PaymentAuditEventType.PORTONE_STATUS_FETCHED,
+            -> "event"
+        }
+
+    companion object {
+        private const val NONE = "none"
     }
 }
 

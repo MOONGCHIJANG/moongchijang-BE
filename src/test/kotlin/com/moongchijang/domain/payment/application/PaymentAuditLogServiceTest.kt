@@ -5,6 +5,8 @@ import com.moongchijang.domain.notification.infrastructure.discord.DiscordProper
 import com.moongchijang.domain.payment.domain.entity.PaymentAuditEventType
 import com.moongchijang.domain.payment.domain.entity.PaymentAuditSource
 import com.moongchijang.domain.payment.domain.repository.PaymentAuditLogRepository
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
@@ -22,10 +24,12 @@ class PaymentAuditLogServiceTest {
         val repository = mock(PaymentAuditLogRepository::class.java)
         val alertService = mock(AdminDiscordAlertService::class.java)
         val transactionManager = stubTransactionManager()
+        val meterRegistry = SimpleMeterRegistry()
         val service = PaymentAuditLogService(
             paymentAuditLogRepository = repository,
             adminDiscordAlertService = alertService,
             discordProperties = DiscordProperties(paymentSuccessAlertEnabled = true),
+            paymentMetricsRecorder = PaymentMetricsRecorder(meterRegistry),
             transactionManager = transactionManager,
         )
 
@@ -38,6 +42,15 @@ class PaymentAuditLogServiceTest {
             amount = 12000,
             method = "CARD",
         )
+        assertCounter(
+            meterRegistry,
+            "mcj_payment_audit_events_total",
+            1.0,
+            "source", "complete_api",
+            "event_type", "payment_approved",
+            "result", "success",
+            "reason", "paid",
+        )
     }
 
     @Test
@@ -45,10 +58,12 @@ class PaymentAuditLogServiceTest {
         val repository = mock(PaymentAuditLogRepository::class.java)
         val alertService = mock(AdminDiscordAlertService::class.java)
         val transactionManager = stubTransactionManager()
+        val meterRegistry = SimpleMeterRegistry()
         val service = PaymentAuditLogService(
             paymentAuditLogRepository = repository,
             adminDiscordAlertService = alertService,
             discordProperties = DiscordProperties(paymentSuccessAlertEnabled = false),
+            paymentMetricsRecorder = PaymentMetricsRecorder(meterRegistry),
             transactionManager = transactionManager,
         )
 
@@ -74,6 +89,17 @@ class PaymentAuditLogServiceTest {
             method = "CARD",
             notifySuccess = true,
         )
+
+    private fun assertCounter(
+        meterRegistry: SimpleMeterRegistry,
+        name: String,
+        expected: Double,
+        vararg tags: String,
+    ) {
+        val counter = meterRegistry.find(name).tags(*tags).counter()
+
+        assertEquals(expected, counter?.count())
+    }
 
     private fun stubTransactionManager(): PlatformTransactionManager {
         val transactionManager = mock(PlatformTransactionManager::class.java)
