@@ -124,9 +124,9 @@ class PaymentController(
             stage,
             errorCode.name,
             rawPayload.length,
-            headers[WEBHOOK_ID_HEADER] != null,
-            headers[WEBHOOK_TIMESTAMP_HEADER] != null,
-            headers[WEBHOOK_SIGNATURE_HEADER] != null,
+            headers.getFirst(WEBHOOK_ID_HEADER) != null,
+            headers.getFirst(WEBHOOK_TIMESTAMP_HEADER) != null,
+            headers.getFirst(WEBHOOK_SIGNATURE_HEADER) != null,
         )
     }
 
