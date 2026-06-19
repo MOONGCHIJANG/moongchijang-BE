@@ -748,11 +748,11 @@
       },
       "targets": [
         {
-          "expr": "{service=\"moongchijang-be\",env=\"dev\"} |= \"[payment_audit]\"",
+          "expr": "{service=\"moongchijang-be\",env=\"dev\"} |~ \"\\\\[payment_audit\\\\]|\\\\[payment_webhook_invalid\\\\]\"",
           "refId": "A"
         }
       ],
-      "title": "결제 audit 로그",
+      "title": "결제 audit/invalid webhook 로그",
       "type": "logs"
     }
   ],
