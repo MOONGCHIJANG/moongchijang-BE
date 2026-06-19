@@ -69,12 +69,22 @@ class PaymentMetricsRecorder(
         ).record(elapsedNanos.coerceAtLeast(0), TimeUnit.NANOSECONDS)
     }
 
+    fun recordAuditEvent(source: String, eventType: String, result: String, reason: String = NONE) {
+        counter(
+            "mcj_payment_audit_events_total",
+            "source", normalizeSource(source),
+            "event_type", normalizeAuditEventType(eventType),
+            "result", normalizeAuditResult(result),
+            "reason", normalizeReason(reason),
+        ).increment()
+    }
+
     private fun counter(name: String, vararg tags: String) =
         meterRegistry.counter(name, *tags)
 
     private fun normalizeSource(source: String): String =
         when (source.lowercase()) {
-            "complete_api", "webhook", "scheduler", "admin", "user" -> source.lowercase()
+            "complete_api", "webhook", "scheduler", "admin", "user", "cancel_api", "pending_refund" -> source.lowercase()
             else -> "other"
         }
 
@@ -90,6 +100,26 @@ class PaymentMetricsRecorder(
             "transaction.cancelled", "transaction.canceled" -> "transaction_cancelled"
             "transaction.failed" -> "transaction_failed"
             null, "" -> "unknown"
+            else -> "other"
+        }
+
+    private fun normalizeAuditEventType(eventType: String): String =
+        when (eventType.lowercase()) {
+            "complete_request_received",
+            "webhook_received",
+            "portone_status_fetched",
+            "payment_approved",
+            "payment_cancelled",
+            "payment_partial_cancelled",
+            "payment_failed",
+            "payment_ignored",
+            -> eventType.lowercase()
+            else -> "other"
+        }
+
+    private fun normalizeAuditResult(result: String): String =
+        when (result.lowercase()) {
+            "success", "failure", "ignored", "event", "audit_record_failure" -> result.lowercase()
             else -> "other"
         }
 
