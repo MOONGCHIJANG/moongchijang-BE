@@ -130,3 +130,10 @@ discord:
     payment: ${DISCORD_WEBHOOK_PAYMENT:}
     groupbuy: ${DISCORD_WEBHOOK_GROUPBUY:}
     onboarding: ${DISCORD_WEBHOOK_ONBOARDING:}
+
+monitoring:
+  payment:
+    synthetic:
+      enabled: ${PAYMENT_SYNTHETIC_METRICS_ENABLED:false}
+      fixed-delay-ms: ${PAYMENT_SYNTHETIC_METRICS_FIXED_DELAY_MS:60000}
+      initial-delay-ms: ${PAYMENT_SYNTHETIC_METRICS_INITIAL_DELAY_MS:10000}

@@ -143,3 +143,10 @@ business-registration:
     base-url: ${BUSINESS_REGISTRATION_API_BASE_URL:https://api.odcloud.kr}
     status-path: ${BUSINESS_REGISTRATION_API_STATUS_PATH:/api/nts-businessman/v1/status}
     service-key: ${BUSINESS_REGISTRATION_API_SERVICE_KEY:}
+
+monitoring:
+  payment:
+    synthetic:
+      enabled: ${PAYMENT_SYNTHETIC_METRICS_ENABLED:false}
+      fixed-delay-ms: ${PAYMENT_SYNTHETIC_METRICS_FIXED_DELAY_MS:60000}
+      initial-delay-ms: ${PAYMENT_SYNTHETIC_METRICS_INITIAL_DELAY_MS:10000}
