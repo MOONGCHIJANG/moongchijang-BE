@@ -2,6 +2,7 @@ package com.moongchijang.domain.payment.presentation
 
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.moongchijang.domain.payment.application.PaymentMetricsRecorder
 import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.payment.application.PortOneWebhookSignatureVerifier
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.slf4j.LoggerFactory
 
 @RestController
 @RequestMapping("/api/v1")
@@ -39,7 +41,9 @@ class PaymentController(
     private val paymentService: PaymentService,
     private val portOneWebhookSignatureVerifier: PortOneWebhookSignatureVerifier,
     private val objectMapper: ObjectMapper,
+    private val paymentMetricsRecorder: PaymentMetricsRecorder,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @GetMapping("/group-buys/{groupBuyId}/checkout")
     @RequireCurrentRole(UserRole.BUYER)
@@ -79,10 +83,16 @@ class PaymentController(
         @RequestBody rawPayload: String,
         @RequestHeader headers: HttpHeaders,
     ): ResponseEntity<ApiResponse<PortOneWebhookResponse>> {
-        portOneWebhookSignatureVerifier.verify(headers, rawPayload)
+        try {
+            portOneWebhookSignatureVerifier.verify(headers, rawPayload)
+        } catch (e: CustomException) {
+            recordInvalidWebhook(stage = "signature_verification", headers = headers, rawPayload = rawPayload, errorCode = e.errorCode)
+            throw e
+        }
         val request = try {
             objectMapper.readValue(rawPayload, PortOneWebhookRequest::class.java)
         } catch (e: JsonProcessingException) {
+            recordInvalidWebhook(stage = "json_parse", headers = headers, rawPayload = rawPayload, errorCode = ErrorCode.PAYMENT_WEBHOOK_INVALID)
             throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
         }
         paymentService.handlePortOneWebhook(request, rawPayload)
@@ -100,5 +110,29 @@ class PaymentController(
     ): ResponseEntity<ApiResponse<CancelParticipationResponse>> {
         val response = ResponseEntity.ok(ApiResponse.success(paymentService.cancelParticipation(participationId, principal.id, request)))
         return response
+    }
+
+    private fun recordInvalidWebhook(
+        stage: String,
+        headers: HttpHeaders,
+        rawPayload: String,
+        errorCode: ErrorCode,
+    ) {
+        paymentMetricsRecorder.recordWebhook(eventType = null, result = "failure", reason = errorCode.name)
+        log.warn(
+            "[payment_webhook_invalid] stage={} errorCode={} payloadLength={} hasWebhookId={} hasWebhookTimestamp={} hasWebhookSignature={}",
+            stage,
+            errorCode.name,
+            rawPayload.length,
+            headers[WEBHOOK_ID_HEADER] != null,
+            headers[WEBHOOK_TIMESTAMP_HEADER] != null,
+            headers[WEBHOOK_SIGNATURE_HEADER] != null,
+        )
+    }
+
+    companion object {
+        private const val WEBHOOK_ID_HEADER = "webhook-id"
+        private const val WEBHOOK_TIMESTAMP_HEADER = "webhook-timestamp"
+        private const val WEBHOOK_SIGNATURE_HEADER = "webhook-signature"
     }
 }
