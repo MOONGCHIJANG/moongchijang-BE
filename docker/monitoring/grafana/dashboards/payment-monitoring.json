@@ -748,7 +748,7 @@
       },
       "targets": [
         {
-          "expr": "{service=\"moongchijang-be\"} |= \"\\\"env\\\":\\\"prod\\\"\" |~ \"\\\\[payment_audit\\\\]|\\\\[payment_webhook_invalid\\\\]\"",
+          "expr": "{service=\"moongchijang-be\"} | json | line_format \"{{.log}}\" | json app_env=\"env\", app_message=\"message\" | app_env=\"prod\" |~ \"\\\\[payment_audit\\\\]|\\\\[payment_webhook_invalid\\\\]\"",
           "refId": "A"
         }
       ],
