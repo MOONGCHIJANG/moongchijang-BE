@@ -942,10 +942,10 @@ class PaymentService(
             if (it) {
                 paymentMetricsRecorder.recordRefund(RESULT_SUCCESS)
             } else {
-                paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_TARGET_NOT_FOUND")
+                paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_COMPLETION_FAILED")
             }
         } ?: run {
-            paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_TARGET_NOT_FOUND")
+            paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_COMPLETION_FAILED")
             false
         }
     }
