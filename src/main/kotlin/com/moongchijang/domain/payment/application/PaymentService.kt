@@ -932,22 +932,20 @@ class PaymentService(
             return false
         }
 
-        return transactionTemplate().execute {
+        val completed = transactionTemplate().execute {
             applyPendingRefundCompletion(
                 target = target,
                 refundedAt = paymentResult.cancelledAt ?: clock.utcNow()
             )
             true
-        }?.also {
-            if (it) {
-                paymentMetricsRecorder.recordRefund(RESULT_SUCCESS)
-            } else {
-                paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_COMPLETION_FAILED")
-            }
         } ?: run {
             paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_COMPLETION_FAILED")
             false
         }
+        if (completed) {
+            paymentMetricsRecorder.recordRefund(RESULT_SUCCESS)
+        }
+        return completed
     }
 
     private fun findPendingRefundTarget(participationId: Long): PendingRefundTarget? {
