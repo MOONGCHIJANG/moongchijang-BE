@@ -30,17 +30,19 @@ class PaymentAuditLogService(
     }
 
     fun record(record: PaymentAuditRecord) {
+        val resolvedOrderId = record.orderId ?: record.paymentOrder?.orderId
+        val resolvedCurrentOrderStatus = record.currentOrderStatus ?: record.paymentOrder?.status
         try {
             transactionTemplate.execute {
                 paymentAuditLogRepository.save(
                     PaymentAuditLog(
                         paymentOrder = record.paymentOrder,
-                        orderId = record.orderId ?: record.paymentOrder?.orderId,
+                        orderId = resolvedOrderId,
                         pgPaymentId = record.pgPaymentId,
                         eventType = record.eventType,
                         source = record.source,
                         previousOrderStatus = record.previousOrderStatus,
-                        currentOrderStatus = record.currentOrderStatus ?: record.paymentOrder?.status,
+                        currentOrderStatus = resolvedCurrentOrderStatus,
                         pgStatus = record.pgStatus,
                         reason = record.reason?.take(500),
                         rawPayload = record.rawPayload,
@@ -59,11 +61,11 @@ class PaymentAuditLogService(
                 record.source,
                 record.eventType,
                 result,
-                record.orderId ?: record.paymentOrder?.orderId,
+                resolvedOrderId,
                 record.pgPaymentId,
                 record.pgStatus,
                 record.previousOrderStatus,
-                record.currentOrderStatus ?: record.paymentOrder?.status,
+                resolvedCurrentOrderStatus,
                 record.reason,
             )
         } catch (e: Exception) {
@@ -71,13 +73,13 @@ class PaymentAuditLogService(
                 source = record.source.name,
                 eventType = record.eventType.name,
                 result = "audit_record_failure",
-                reason = record.reason ?: NONE,
+                reason = record.reason ?: record.pgStatus ?: NONE,
             )
             log.warn(
                 "[PaymentAuditLogService] 결제 감사 이력 저장 실패: source={}, eventType={}, orderId={}",
                 record.source,
                 record.eventType,
-                record.orderId ?: record.paymentOrder?.orderId,
+                resolvedOrderId,
                 e
             )
         }
@@ -85,7 +87,7 @@ class PaymentAuditLogService(
         if (record.notifyFailure) {
             try {
                 adminDiscordAlertService.sendPaymentFailed(
-                    orderId = record.orderId ?: record.paymentOrder?.orderId,
+                    orderId = resolvedOrderId,
                     pgPaymentId = record.pgPaymentId,
                     pgStatus = record.pgStatus,
                     reason = record.reason,
@@ -93,7 +95,7 @@ class PaymentAuditLogService(
             } catch (e: Exception) {
                 log.warn(
                     "[PaymentAuditLogService] 결제 실패 Discord 알림 발행 실패: orderId={}",
-                    record.orderId ?: record.paymentOrder?.orderId,
+                    resolvedOrderId,
                     e
                 )
             }
@@ -101,7 +103,7 @@ class PaymentAuditLogService(
 
         if (record.notifySuccess && discordProperties.paymentSuccessAlertEnabled) {
             val sendNotification = {
-                sendPaymentSuccessAlert(record)
+                sendPaymentSuccessAlert(record, resolvedOrderId)
             }
             if (TransactionSynchronizationManager.isActualTransactionActive()) {
                 TransactionSynchronizationManager.registerSynchronization(
@@ -117,10 +119,10 @@ class PaymentAuditLogService(
         }
     }
 
-    private fun sendPaymentSuccessAlert(record: PaymentAuditRecord) {
+    private fun sendPaymentSuccessAlert(record: PaymentAuditRecord, resolvedOrderId: String?) {
         try {
             adminDiscordAlertService.sendPaymentSucceeded(
-                orderId = record.orderId ?: record.paymentOrder?.orderId,
+                orderId = resolvedOrderId,
                 pgPaymentId = record.pgPaymentId,
                 amount = record.amount,
                 method = record.method,
@@ -128,7 +130,7 @@ class PaymentAuditLogService(
         } catch (e: Exception) {
             log.warn(
                 "[PaymentAuditLogService] 결제 성공 Discord 알림 발행 실패: orderId={}",
-                record.orderId ?: record.paymentOrder?.orderId,
+                resolvedOrderId,
                 e
             )
         }

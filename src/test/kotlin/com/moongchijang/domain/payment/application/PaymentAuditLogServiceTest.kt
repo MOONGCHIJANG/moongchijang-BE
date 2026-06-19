@@ -78,6 +78,34 @@ class PaymentAuditLogServiceTest {
         )
     }
 
+    @Test
+    fun `감사 이력 저장 실패 metric은 pgStatus를 reason fallback으로 기록한다`() {
+        val repository = mock(PaymentAuditLogRepository::class.java)
+        val alertService = mock(AdminDiscordAlertService::class.java)
+        val transactionManager = stubTransactionManager()
+        val meterRegistry = SimpleMeterRegistry()
+        val service = PaymentAuditLogService(
+            paymentAuditLogRepository = repository,
+            adminDiscordAlertService = alertService,
+            discordProperties = DiscordProperties(paymentSuccessAlertEnabled = false),
+            paymentMetricsRecorder = PaymentMetricsRecorder(meterRegistry),
+            transactionManager = transactionManager,
+        )
+        `when`(repository.save(any())).thenThrow(IllegalStateException("db unavailable"))
+
+        service.record(successRecord())
+
+        assertCounter(
+            meterRegistry,
+            "mcj_payment_audit_events_total",
+            1.0,
+            "source", "complete_api",
+            "event_type", "payment_approved",
+            "result", "audit_record_failure",
+            "reason", "paid",
+        )
+    }
+
     private fun successRecord(): PaymentAuditRecord =
         PaymentAuditRecord(
             source = PaymentAuditSource.COMPLETE_API,
