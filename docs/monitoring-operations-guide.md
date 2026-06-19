@@ -150,7 +150,9 @@ sum by (operation, result, status) (increase(mcj_portone_api_requests_total{job=
 1. `결제 완료 API 401/403 비율`, `결제 핵심 엔드포인트 5xx 비율`에서 HTTP 실패 여부를 확인한다.
 2. `결제 승인 도메인 metric`, `PortOne API 성공/실패 도메인 metric`에서 승인 조회 실패인지 내부 처리 실패인지 구분한다.
 3. `결제 audit 이벤트 추적 (10m)`에서 `source`, `event_type`, `result`, `reason` 조합을 확인한다.
-4. `결제 audit 로그`에서 같은 시간대의 `[payment_audit]` 로그를 열어 `traceId`, `orderId`, `pgPaymentId`, `pgStatus`, `reason`을 확인한다.
+4. `결제 audit/invalid webhook 로그`에서 같은 시간대의 `[payment_audit]` 또는 `[payment_webhook_invalid]` 로그를 확인한다.
+5. `[payment_audit]` 로그는 `traceId`, `orderId`, `pgPaymentId`, `pgStatus`, `reason`으로 결제 처리 흐름을 좁힌다.
+6. `[payment_webhook_invalid]` 로그는 `stage`, `hasWebhookId`, `hasWebhookTimestamp`, `hasWebhookSignature`로 signature/JSON 단계 실패를 좁힌다.
 
 ```promql
 sum by (source, event_type, result, reason) (increase(mcj_payment_audit_events_total{job="app-dev"}[10m]))
@@ -158,8 +160,8 @@ sum by (source, event_type, result, reason) (increase(mcj_payment_audit_events_t
 ```
 
 ```bash
-{service="moongchijang-be",env="dev"} |= "[payment_audit]"
-{service="moongchijang-be",env="prod"} |= "[payment_audit]"
+{service="moongchijang-be",env="dev"} |~ "\\[payment_audit\\]|\\[payment_webhook_invalid\\]"
+{service="moongchijang-be",env="prod"} |~ "\\[payment_audit\\]|\\[payment_webhook_invalid\\]"
 ```
 
 ### 6.7 dev 결제 synthetic metric
