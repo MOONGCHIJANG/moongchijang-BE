@@ -152,6 +152,7 @@ class PaymentMetricsRecorder(
             "PARTICIPATION_CANCEL_REASON_DETAIL_REQUIRED",
             "PORTONE_UNEXPECTED_STATUS",
             "PENDING_REFUND_TARGET_NOT_FOUND",
+            "PENDING_REFUND_COMPLETION_FAILED",
             "USER_NOT_FOUND",
             "GROUPBUY_NOT_FOUND",
             "FORBIDDEN",

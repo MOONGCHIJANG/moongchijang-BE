@@ -11,8 +11,6 @@ const ALLOW_STATE_CHANGE = parseBoolean(optionalEnv('ALLOW_STATE_CHANGE', 'false
 const RUN_COMPLETE_FAILURE = parseBoolean(optionalEnv('RUN_COMPLETE_FAILURE', 'true'));
 const RUN_WEBHOOK_INVALID = parseBoolean(optionalEnv('RUN_WEBHOOK_INVALID', 'false'));
 
-http.setResponseCallback(http.expectedStatuses({ min: 200, max: 499 }));
-
 export const options = createDefaultOptions({
   scenarios: {
     payment_monitoring_smoke: {
