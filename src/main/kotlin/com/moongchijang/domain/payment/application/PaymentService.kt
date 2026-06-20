@@ -146,6 +146,19 @@ class PaymentService(
             )
         } catch (e: CustomException) {
             paymentMetricsRecorder.recordOrderCreated(RESULT_FAILURE, e.errorCode.name)
+            recordPaymentAudit(
+                source = PaymentAuditSource.ORDER_CREATE,
+                eventType = PaymentAuditEventType.ORDER_CREATE_FAILED,
+                reason = e.errorCode.name,
+                rawPayload = buildOrderCreateFailureContext(groupBuyId, userId, request.quantity),
+            )
+            log.warn(
+                "[payment_order_create_failed] groupBuyId={} userId={} quantity={} errorCode={}",
+                groupBuyId,
+                userId,
+                request.quantity,
+                e.errorCode.name,
+            )
             throw e
         }
     }
@@ -1194,6 +1207,9 @@ class PaymentService(
             notifyFailure = true,
         )
     }
+
+    private fun buildOrderCreateFailureContext(groupBuyId: Long, userId: Long, quantity: Int): String =
+        "groupBuyId=$groupBuyId,userId=$userId,quantity=$quantity"
 
     private fun Throwable.toPaymentMetricReason(): String =
         if (this is CustomException) errorCode.name else "other"

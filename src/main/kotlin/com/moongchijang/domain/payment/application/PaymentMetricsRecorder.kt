@@ -84,7 +84,7 @@ class PaymentMetricsRecorder(
 
     private fun normalizeSource(source: String): String =
         when (source.lowercase()) {
-            "complete_api", "webhook", "scheduler", "admin", "user", "cancel_api", "pending_refund" -> source.lowercase()
+            "order_create", "complete_api", "webhook", "scheduler", "admin", "user", "cancel_api", "pending_refund" -> source.lowercase()
             else -> "other"
         }
 
@@ -105,6 +105,7 @@ class PaymentMetricsRecorder(
 
     private fun normalizeAuditEventType(eventType: String): String =
         when (eventType.lowercase()) {
+            "order_create_failed",
             "complete_request_received",
             "webhook_received",
             "portone_status_fetched",
