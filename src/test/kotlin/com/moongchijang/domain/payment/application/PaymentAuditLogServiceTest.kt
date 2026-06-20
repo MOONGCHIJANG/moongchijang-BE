@@ -106,6 +106,41 @@ class PaymentAuditLogServiceTest {
         )
     }
 
+    @Test
+    fun `주문 생성 실패 감사 이력은 order create failure metric으로 기록한다`() {
+        val repository = mock(PaymentAuditLogRepository::class.java)
+        val alertService = mock(AdminDiscordAlertService::class.java)
+        val transactionManager = stubTransactionManager()
+        val meterRegistry = SimpleMeterRegistry()
+        val service = PaymentAuditLogService(
+            paymentAuditLogRepository = repository,
+            adminDiscordAlertService = alertService,
+            discordProperties = DiscordProperties(paymentSuccessAlertEnabled = false),
+            paymentMetricsRecorder = PaymentMetricsRecorder(meterRegistry),
+            transactionManager = transactionManager,
+        )
+
+        service.record(
+            PaymentAuditRecord(
+                source = PaymentAuditSource.ORDER_CREATE,
+                eventType = PaymentAuditEventType.ORDER_CREATE_FAILED,
+                reason = "PAYMENT_DUPLICATE_PARTICIPATION",
+                rawPayload = "groupBuyId=10,userId=1,quantity=1",
+            )
+        )
+
+        verify(repository).save(any())
+        assertCounter(
+            meterRegistry,
+            "mcj_payment_audit_events_total",
+            1.0,
+            "source", "order_create",
+            "event_type", "order_create_failed",
+            "result", "failure",
+            "reason", "payment_duplicate_participation",
+        )
+    }
+
     private fun successRecord(): PaymentAuditRecord =
         PaymentAuditRecord(
             source = PaymentAuditSource.COMPLETE_API,

@@ -70,6 +70,7 @@ class PaymentAuditLog(
 ) : BaseEntity()
 
 enum class PaymentAuditEventType {
+    ORDER_CREATE_FAILED,
     COMPLETE_REQUEST_RECEIVED,
     WEBHOOK_RECEIVED,
     PORTONE_STATUS_FETCHED,
@@ -81,6 +82,7 @@ enum class PaymentAuditEventType {
 }
 
 enum class PaymentAuditSource {
+    ORDER_CREATE,
     COMPLETE_API,
     WEBHOOK,
     CANCEL_API,

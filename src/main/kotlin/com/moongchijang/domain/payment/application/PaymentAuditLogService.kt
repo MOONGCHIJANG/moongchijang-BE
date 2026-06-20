@@ -142,6 +142,7 @@ class PaymentAuditLogService(
             PaymentAuditEventType.PAYMENT_CANCELLED,
             PaymentAuditEventType.PAYMENT_PARTIAL_CANCELLED,
             -> "success"
+            PaymentAuditEventType.ORDER_CREATE_FAILED,
             PaymentAuditEventType.PAYMENT_FAILED -> "failure"
             PaymentAuditEventType.PAYMENT_IGNORED -> "ignored"
             PaymentAuditEventType.COMPLETE_REQUEST_RECEIVED,

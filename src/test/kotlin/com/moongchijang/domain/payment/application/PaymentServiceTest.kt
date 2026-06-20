@@ -19,6 +19,8 @@ import com.moongchijang.domain.payment.application.dto.PortOneWebhookRequest
 import com.moongchijang.domain.payment.application.port.PortOnePaymentPort
 import com.moongchijang.domain.payment.application.port.PortOnePaymentResult
 import com.moongchijang.domain.payment.domain.entity.Payment
+import com.moongchijang.domain.payment.domain.entity.PaymentAuditEventType
+import com.moongchijang.domain.payment.domain.entity.PaymentAuditSource
 import com.moongchijang.domain.payment.domain.entity.PaymentOrder
 import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.entity.PaymentStatus
@@ -245,6 +247,35 @@ class PaymentServiceTest {
         }
 
         assertEquals(ErrorCode.PAYMENT_PER_USER_LIMIT_EXCEEDED, ex.errorCode)
+    }
+
+    @Test
+    fun `이미 참여한 공구 결제 주문 생성 실패는 감사 이력으로 기록한다`() {
+        val user = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
+        val groupBuy = createGroupBuy()
+        `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
+        `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
+        `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(true)
+
+        val ex = assertThrows<CustomException> {
+            service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 1))
+        }
+
+        assertEquals(ErrorCode.PAYMENT_DUPLICATE_PARTICIPATION, ex.errorCode)
+        assertCounter(
+            "mcj_payment_order_created_total",
+            1.0,
+            "result", "failure",
+            "reason", "payment_duplicate_participation",
+        )
+        verify(paymentAuditLogService).record(
+            PaymentAuditRecord(
+                source = PaymentAuditSource.ORDER_CREATE,
+                eventType = PaymentAuditEventType.ORDER_CREATE_FAILED,
+                reason = ErrorCode.PAYMENT_DUPLICATE_PARTICIPATION.name,
+                rawPayload = "groupBuyId=10,userId=1,quantity=1",
+            )
+        )
     }
 
     @Test
