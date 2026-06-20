@@ -1,5 +1,6 @@
 package com.moongchijang.domain.groupbuy.domain.entity
 
+import com.moongchijang.global.time.TimePolicy
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -16,7 +17,7 @@ class GroupBuyRequestStatusHistory(
     val status: GroupBuyRequestStatus,
 
     @Column(nullable = false)
-    val changedAt: LocalDateTime = LocalDateTime.now(),
+    val changedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID),
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L

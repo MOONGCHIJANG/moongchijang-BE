@@ -6,6 +6,7 @@ import com.moongchijang.domain.user.application.port.BusinessRegistrationLookupR
 import com.moongchijang.domain.user.infrastructure.business.dto.NtsBusinessStatusRequest
 import com.moongchijang.domain.user.infrastructure.business.dto.NtsBusinessStatusResponse
 import com.moongchijang.global.config.BusinessRegistrationApiProperties
+import com.moongchijang.global.util.MaskingUtils.maskBusinessRegistrationNumber
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
@@ -41,7 +42,7 @@ class BusinessRegistrationLookupClient(
         } catch (e: Exception) {
             log.warn(
                 "[BusinessRegistrationLookupClient] 사업자 상태조회 호출 실패: bNo={}, message={}",
-                businessRegistrationNumber,
+                maskBusinessRegistrationNumber(businessRegistrationNumber),
                 e.message,
             )
             null

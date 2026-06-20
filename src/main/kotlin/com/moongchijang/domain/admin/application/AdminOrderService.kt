@@ -13,6 +13,7 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.utcNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -41,7 +42,7 @@ class AdminOrderService(
             pageable.pageNumber,
             pageable.pageSize,
         )
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val page = groupBuyRepository.findAdminOrderPage(
             groupBuyStatus = GroupBuyStatus.ACHIEVED,
             orderStatuses = status.toOrderStatuses(),
@@ -63,7 +64,7 @@ class AdminOrderService(
 
     fun getOrderDetail(orderId: Long): AdminOrderDetailResponse {
         log.info("[AdminOrderService] 주문 상세 조회 시작: orderId={}", orderId)
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val groupBuy = groupBuyRepository.findAdminOrderDetailById(orderId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
@@ -79,7 +80,7 @@ class AdminOrderService(
     @Transactional
     fun markOwnerContacted(orderId: Long): AdminOrderDetailResponse {
         log.info("[AdminOrderService] 주문 사장님연락 상태 변경 시작: orderId={}", orderId)
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val groupBuy = findOrderForUpdate(orderId)
         validatePendingOrder(groupBuy)
         groupBuy.markOrderOwnerContacted(now)
@@ -92,7 +93,7 @@ class AdminOrderService(
     @Transactional
     fun confirmOrder(orderId: Long): AdminOrderDetailResponse {
         log.info("[AdminOrderService] 주문 확정 시작: orderId={}", orderId)
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val groupBuy = findOrderForUpdate(orderId)
         validatePendingOrder(groupBuy)
         groupBuy.confirmOrder(now)
@@ -105,7 +106,7 @@ class AdminOrderService(
     @Transactional
     fun cancelOrder(orderId: Long): AdminOrderDetailResponse {
         log.info("[AdminOrderService] 주문 취소 시작: orderId={}", orderId)
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val groupBuy = findOrderForUpdate(orderId)
         validatePendingOrder(groupBuy)
         groupBuy.cancelOrder(now)

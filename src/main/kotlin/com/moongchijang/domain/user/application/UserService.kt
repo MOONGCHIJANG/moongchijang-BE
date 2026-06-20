@@ -43,6 +43,8 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.MaskingUtils.maskEmail
 import com.moongchijang.security.crypto.PersonalInfoManager
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -68,6 +70,7 @@ class UserService(
     private val withdrawalLegalRetentionCommandService: WithdrawalLegalRetentionCommandService,
     private val withdrawalImmediateCleanupService: WithdrawalImmediateCleanupService,
     private val personalInfoManager: PersonalInfoManager,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -93,7 +96,7 @@ class UserService(
         validateEmailFormat(normalizedEmail)
 
         val emailHash = personalInfoManager.hashEmail(normalizedEmail)
-        if (userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(AuthProvider.EMAIL, emailHash, normalizedEmail)) {
+        if (userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(AuthProvider.EMAIL, emailHash)) {
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
         }
         validateEmailRejoinAvailable(normalizedEmail)
@@ -104,7 +107,7 @@ class UserService(
             passwordHash = passwordHash,
         )
         val savedUser = try {
-            userRepository.save(user)
+            userRepository.saveAndFlush(user)
         } catch (e: DataIntegrityViolationException) {
             // provider+email 유니크 인덱스 충돌(동시성 가입 요청) 시 도메인 예외로 변환
             throw CustomException(ErrorCode.DUPLICATE_EMAIL)
@@ -119,10 +122,9 @@ class UserService(
         val normalizedEmail = normalizeEmail(email)
         validateEmailFormat(normalizedEmail)
 
-        return userRepository.findActiveByProviderAndEmailHashOrLegacyEmail(
+        return userRepository.findByProviderAndEmailHashAndDeletedAtIsNull(
             provider = AuthProvider.EMAIL,
             emailHash = personalInfoManager.hashEmail(normalizedEmail),
-            legacyEmail = normalizedEmail,
         )
     }
 
@@ -151,10 +153,9 @@ class UserService(
         log.info("[UserService] 이메일 중복 확인 시작: email={}", maskEmail(normalizedEmail))
         validateEmailFormat(normalizedEmail)
 
-        val duplicated = userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+        val duplicated = userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
             AuthProvider.EMAIL,
             personalInfoManager.hashEmail(normalizedEmail),
-            normalizedEmail,
         ) ||
             isEmailRejoinBlocked(normalizedEmail)
         val response = EmailAvailabilityResponse(
@@ -581,7 +582,7 @@ class UserService(
     }
 
     private fun validateRejoinAvailable(rejoinAvailableAt: LocalDateTime) {
-        if (LocalDateTime.now().isBefore(rejoinAvailableAt)) {
+        if (clock.utcNow().isBefore(rejoinAvailableAt)) {
             throw CustomException(ErrorCode.REJOIN_NOT_AVAILABLE_YET)
         }
     }
@@ -598,7 +599,7 @@ class UserService(
 
     private fun isEmailRejoinBlocked(email: String): Boolean {
         val withdrawnAccount = findWithdrawnEmailAccount(email) ?: return false
-        return LocalDateTime.now().isBefore(withdrawnAccount.rejoinAvailableAt)
+        return clock.utcNow().isBefore(withdrawnAccount.rejoinAvailableAt)
     }
 
     private fun validateNicknameFormat(nickname: String) {

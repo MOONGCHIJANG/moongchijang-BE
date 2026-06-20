@@ -36,6 +36,7 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.support.UserFixture
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -56,6 +57,9 @@ import org.springframework.data.domain.Sort
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.TransactionStatus
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -112,11 +116,15 @@ class PaymentServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
         channelKey = "channel-test",
         apiSecret = "secret-test",
     )
+    private val meterRegistry = SimpleMeterRegistry()
+    private val paymentMetricsRecorder = PaymentMetricsRecorder(meterRegistry)
 
     private val service: PaymentService by lazy {
         PaymentService(
@@ -135,7 +143,9 @@ class PaymentServiceTest {
             notificationEventPublisher = notificationEventPublisher,
             adminDiscordAlertService = adminDiscordAlertService,
             refundRequestSyncService = refundRequestSyncService,
-            s3ImageReferenceResolver = s3ImageReferenceResolver
+            s3ImageReferenceResolver = s3ImageReferenceResolver,
+            paymentMetricsRecorder = paymentMetricsRecorder,
+            clock = clock
         )
     }
 
@@ -204,6 +214,7 @@ class PaymentServiceTest {
         assertEquals("두쫀쿠 3개", result.orderName)
         assertEquals(18000, result.amount)
         assertEquals("은서", result.customerName)
+        assertCounter("mcj_payment_order_created_total", 1.0, "result", "success", "reason", "none")
     }
 
     @Test
@@ -306,6 +317,7 @@ class PaymentServiceTest {
         assertEquals(ParticipationStatus.PAID_WAITING_GOAL, result.participationStatus)
         assertEquals(38, groupBuy.currentQuantity)
         assertEquals(PaymentOrderStatus.APPROVED, order.status)
+        assertCounter("mcj_payment_approval_total", 1.0, "source", "complete_api", "result", "success", "reason", "none")
         verify(redisLockUtil).lockKey(10L)
         verify(redisLockUtil).tryLockOrThrow("groupBuy:10", LOCK_WAIT_MS, LOCK_LEASE_MS)
         verify(redisLockUtil).unlock("groupBuy:10", "lock-token")
@@ -349,6 +361,13 @@ class PaymentServiceTest {
 
         assertEquals(ErrorCode.PAYMENT_APPROVAL_FAILED, ex.errorCode)
         assertEquals(PaymentOrderStatus.READY, order.status)
+        assertCounter(
+            "mcj_payment_approval_total",
+            1.0,
+            "source", "complete_api",
+            "result", "failure",
+            "reason", "payment_approval_failed",
+        )
         verify(paymentOrderRepository, never()).save(order)
     }
 
@@ -512,6 +531,13 @@ class PaymentServiceTest {
 
         assertEquals(PaymentOrderStatus.APPROVED, order.status)
         assertEquals(37, groupBuy.currentQuantity)
+        assertCounter(
+            "mcj_payment_webhook_processed_total",
+            1.0,
+            "event_type", "transaction_paid",
+            "result", "success",
+            "reason", "paid",
+        )
         verify(paymentRepository).save(any())
     }
 
@@ -529,6 +555,39 @@ class PaymentServiceTest {
         service.handlePortOneWebhook(PortOneWebhookRequest(storeId = "store-test", paymentId = "MCJ-10-test"))
 
         assertEquals(PaymentOrderStatus.FAILED, order.status)
+    }
+
+    @Test
+    fun `웹훅 승인 검증 실패는 웹훅과 승인 지표를 실패로 기록`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy()
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 1)
+        stubTransaction()
+        `when`(paymentOrderRepository.findByOrderId("MCJ-10-test")).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
+        `when`(portOnePaymentPort.getPayment("MCJ-10-test"))
+            .thenReturn(PortOnePaymentResult("MCJ-10-test", "PAID", 5000, "CARD", LocalDateTime.now()))
+        `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
+
+        service.handlePortOneWebhook(
+            PortOneWebhookRequest(type = "Transaction.Paid", storeId = "store-test", paymentId = "MCJ-10-test")
+        )
+
+        assertEquals(PaymentOrderStatus.FAILED, order.status)
+        assertCounter(
+            "mcj_payment_webhook_processed_total",
+            1.0,
+            "event_type", "transaction_paid",
+            "result", "failure",
+            "reason", "payment_amount_mismatch",
+        )
+        assertCounter(
+            "mcj_payment_approval_total",
+            1.0,
+            "source", "webhook",
+            "result", "failure",
+            "reason", "payment_amount_mismatch",
+        )
     }
 
     @Test
@@ -648,7 +707,7 @@ class PaymentServiceTest {
         stubTransaction()
         `when`(participationRepository.findById(77L)).thenReturn(Optional.of(participation))
         `when`(participationRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(participation))
-        `when`(paymentOrderRepository.findByUserIdAndGroupBuyId(1L, 10L)).thenReturn(order)
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdAndStatus(1L, 10L, PaymentOrderStatus.APPROVED)).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate("MCJ-10-test")).thenReturn(order)
         `when`(paymentRepository.findByPaymentOrderOrderId("MCJ-10-test")).thenReturn(payment)
         `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
@@ -721,7 +780,7 @@ class PaymentServiceTest {
             )
         ).thenReturn(listOf(participation))
         `when`(participationRepository.findByIdForUpdate(88L)).thenReturn(Optional.of(participation))
-        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(1L, 10L)).thenReturn(order)
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdAndStatusForUpdate(1L, 10L, PaymentOrderStatus.APPROVED)).thenReturn(order)
         `when`(paymentOrderRepository.findByOrderIdForUpdate(order.orderId)).thenReturn(order)
         `when`(paymentRepository.findByPaymentOrderOrderId(order.orderId)).thenReturn(payment)
         `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET", 12_000))
@@ -741,6 +800,7 @@ class PaymentServiceTest {
         assertEquals(1, result.targetCount)
         assertEquals(1, result.successCount)
         assertEquals(0, result.failedCount)
+        assertCounter("mcj_payment_refund_processed_total", 1.0, "result", "success", "reason", "none")
         assertEquals(PaymentOrderStatus.CANCELLED, order.status)
         assertEquals(PaymentStatus.CANCELLED, payment.status)
         assertEquals(ParticipationStatus.REFUNDED, participation.status)
@@ -781,7 +841,7 @@ class PaymentServiceTest {
             )
         ).thenReturn(listOf(participation))
         `when`(participationRepository.findByIdForUpdate(89L)).thenReturn(Optional.of(participation))
-        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(1L, 10L)).thenReturn(order)
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdAndStatusForUpdate(1L, 10L, PaymentOrderStatus.APPROVED)).thenReturn(order)
         `when`(paymentRepository.findByPaymentOrderOrderId(order.orderId)).thenReturn(payment)
         `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET", 12_000))
             .thenReturn(
@@ -799,6 +859,12 @@ class PaymentServiceTest {
         assertEquals(1, result.targetCount)
         assertEquals(0, result.successCount)
         assertEquals(1, result.failedCount)
+        assertCounter(
+            "mcj_payment_refund_processed_total",
+            1.0,
+            "result", "failure",
+            "reason", "portone_unexpected_status",
+        )
         assertEquals(PaymentOrderStatus.APPROVED, order.status)
         assertEquals(PaymentStatus.APPROVED, payment.status)
         assertEquals(ParticipationStatus.REFUND_PENDING, participation.status)
@@ -852,7 +918,7 @@ class PaymentServiceTest {
         ).thenReturn(listOf(firstParticipation, secondParticipation))
         `when`(participationRepository.findByIdForUpdate(90L)).thenThrow(CustomException(ErrorCode.PARTICIPATION_NOT_FOUND))
         `when`(participationRepository.findByIdForUpdate(91L)).thenReturn(Optional.of(secondParticipation))
-        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdForUpdate(2L, 10L)).thenReturn(secondOrder)
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdAndStatusForUpdate(2L, 10L, PaymentOrderStatus.APPROVED)).thenReturn(secondOrder)
         `when`(paymentOrderRepository.findByOrderIdForUpdate(secondOrder.orderId)).thenReturn(secondOrder)
         `when`(paymentRepository.findByPaymentOrderOrderId(secondOrder.orderId)).thenReturn(secondPayment)
         `when`(portOnePaymentPort.cancelPayment("second-portone-payment-id", "MINIMUM_QUANTITY_NOT_MET", 6_000))
@@ -1041,6 +1107,10 @@ class PaymentServiceTest {
             desiredQuantity = 50,
             desiredPickupDate = LocalDate.now().plusDays(5)
         ).apply { id = 20L }
+
+    private fun assertCounter(name: String, expected: Double, vararg tags: String) {
+        assertEquals(expected, meterRegistry.get(name).tags(*tags).counter().count())
+    }
 
     companion object {
         private const val LOCK_WAIT_MS = 500L

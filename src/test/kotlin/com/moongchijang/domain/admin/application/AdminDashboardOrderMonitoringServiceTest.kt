@@ -18,13 +18,13 @@ import org.springframework.data.domain.PageRequest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 
 class AdminDashboardOrderMonitoringServiceTest {
 
     private val groupBuyRepository: GroupBuyRepository = mock(GroupBuyRepository::class.java)
     private val participationRepository: ParticipationRepository = mock(ParticipationRepository::class.java)
-    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneId.of("Asia/Seoul"))
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneOffset.UTC)
     private val service = AdminDashboardOrderMonitoringService(
         groupBuyRepository = groupBuyRepository,
         participationRepository = participationRepository,
@@ -34,7 +34,7 @@ class AdminDashboardOrderMonitoringServiceTest {
     @Test
     fun `대시보드 발주 미확정 모니터링 목록과 요약을 조회한다`() {
         val pageable = PageRequest.of(0, 1)
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val overdueBefore = now.minusHours(48)
         val groupBuy = GroupBuyFixture.createGroupBuy(
             id = 41L,
@@ -80,7 +80,7 @@ class AdminDashboardOrderMonitoringServiceTest {
     @Test
     fun `목록이 비어있으면 환불 대기 집계를 생략한다`() {
         val pageable = PageRequest.of(0, 5)
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val overdueBefore = now.minusHours(48)
         `when`(
             groupBuyRepository.findAdminOrderPage(

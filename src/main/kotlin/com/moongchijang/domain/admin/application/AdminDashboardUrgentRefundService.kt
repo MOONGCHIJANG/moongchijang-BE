@@ -4,6 +4,7 @@ import com.moongchijang.domain.admin.application.dto.AdminDashboardUrgentRefundI
 import com.moongchijang.domain.admin.application.dto.AdminDashboardUrgentRefundResponse
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.global.time.utcNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -20,7 +21,7 @@ class AdminDashboardUrgentRefundService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun getUrgentRefunds(pageable: Pageable): AdminDashboardUrgentRefundResponse {
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val requestedBefore = now.minusHours(URGENT_REFUND_THRESHOLD_HOURS)
         log.info(
             "[AdminDashboardUrgentRefundService] 긴급 환불 요청 조회 시작: requestedBefore={}, page={}, size={}",

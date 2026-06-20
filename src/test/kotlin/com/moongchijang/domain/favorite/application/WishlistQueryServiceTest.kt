@@ -12,11 +12,14 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -29,7 +32,9 @@ class WishlistQueryServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
-    private val service by lazy { WishlistQueryService(favoriteRepository, s3ImageReferenceResolver) }
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-22T01:00:00Z"), ZoneOffset.UTC)
+
+    private val service by lazy { WishlistQueryService(favoriteRepository, s3ImageReferenceResolver, clock) }
 
     @Test
     fun `찜 목록 조회 요청 시 페이지 결과 반환`() {
@@ -68,6 +73,29 @@ class WishlistQueryServiceTest {
         verify(favoriteRepository).countUrgentByUserId(userId, now, now.plusHours(24))
         assertEquals(1, result.content.size)
         assertEquals(2, result.urgentCount)
+    }
+
+    @Test
+    fun `기본 현재시각 호출 시 고정 Clock의 KST 현재시각을 사용한다`() {
+        val userId = 10L
+        val pageable = PageRequest.of(0, 20)
+        val now = LocalDateTime.of(2026, 5, 22, 10, 0)
+
+        `when`(
+            favoriteRepository.findWishlistGroupBuys(
+                userId = userId,
+                filter = WishFilterType.ALL,
+                excludeClosed = false,
+                sort = WishSortType.LATEST,
+                pageable = pageable,
+                now = now,
+            )
+        ).thenReturn(PageImpl(emptyList(), pageable, 0))
+        `when`(favoriteRepository.countUrgentByUserId(userId, now, now.plusHours(24))).thenReturn(0L)
+
+        service.getWishlist(userId, WishFilterType.ALL, false, WishSortType.LATEST, pageable)
+
+        verify(favoriteRepository).findWishlistGroupBuys(userId, WishFilterType.ALL, false, WishSortType.LATEST, pageable, now)
     }
 
     @Test

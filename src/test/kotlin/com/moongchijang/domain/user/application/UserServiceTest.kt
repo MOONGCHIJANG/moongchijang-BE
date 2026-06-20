@@ -30,6 +30,7 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.domain.user.domain.repository.WithdrawnAccountRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.utcNow
 import com.moongchijang.security.crypto.AesGcmPersonalInfoEncryptor
 import com.moongchijang.security.crypto.HmacSha256PersonalInfoHasher
 import com.moongchijang.security.crypto.PersonalInfoEncryptionProperties
@@ -41,7 +42,10 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito
 import org.springframework.security.crypto.password.PasswordEncoder
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 class UserServiceTest {
 
@@ -74,6 +78,8 @@ class UserServiceTest {
         AesGcmPersonalInfoEncryptor(personalInfoProperties),
         HmacSha256PersonalInfoHasher(personalInfoProperties),
     )
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val userService = UserService(
         userRepository,
         sellerBusinessProfileRepository,
@@ -91,6 +97,7 @@ class UserServiceTest {
         withdrawalLegalRetentionCommandService,
         withdrawalImmediateCleanupService,
         personalInfoManager,
+        clock,
     )
 
     @Test
@@ -291,7 +298,7 @@ class UserServiceTest {
             email = "restore@example.com",
             nickname = "새닉네임",
         )
-        val withdrawnAt = LocalDateTime.now().minusDays(40)
+        val withdrawnAt = clock.utcNow().minusDays(40)
         val withdrawnAccount = WithdrawnAccount(
             provider = AuthProvider.KAKAO,
             identifierHash = withdrawalIdentifierHasher.hashProviderIdentifier(AuthProvider.KAKAO, "kakao-restore"),
@@ -325,10 +332,9 @@ class UserServiceTest {
     @Test
     fun `이메일 중복 확인 시 사용 가능하면 true`() {
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("new@example.com"),
-                "new@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -367,10 +373,9 @@ class UserServiceTest {
     @Test
     fun `이메일 중복 확인 시 중복이면 false`() {
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("dup@example.com"),
-                "dup@example.com",
             ),
         ).thenReturn(true)
         Mockito.`when`(
@@ -407,10 +412,9 @@ class UserServiceTest {
         )
 
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("dup@example.com"),
-                "dup@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -435,10 +439,9 @@ class UserServiceTest {
         val userCaptor: ArgumentCaptor<User> = ArgumentCaptor.forClass(User::class.java)
 
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("new@example.com"),
-                "new@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -447,11 +450,11 @@ class UserServiceTest {
                 withdrawalIdentifierHasher.hashEmail("new@example.com"),
             ),
         ).thenReturn(null)
-        Mockito.`when`(userRepository.save(Mockito.any(User::class.java))).thenReturn(savedUser)
+        Mockito.`when`(userRepository.saveAndFlush(Mockito.any(User::class.java))).thenReturn(savedUser)
 
         val user = userService.createEmailUser("new@example.com", "hashed-password")
 
-        Mockito.verify(userRepository).save(userCaptor.capture())
+        Mockito.verify(userRepository).saveAndFlush(userCaptor.capture())
         Assertions.assertEquals(30L, user.id)
         Assertions.assertEquals(AuthProvider.EMAIL, user.provider)
         Assertions.assertEquals("new@example.com", personalInfoManager.decryptIfNeeded(user.email))
@@ -463,10 +466,9 @@ class UserServiceTest {
     @Test
     fun `이메일 사용자 생성 시 중복 이메일 예외`() {
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("dup@example.com"),
-                "dup@example.com",
             ),
         ).thenReturn(true)
         Mockito.`when`(
@@ -495,10 +497,9 @@ class UserServiceTest {
         )
 
         Mockito.`when`(
-            userRepository.existsActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.existsByProviderAndEmailHashAndDeletedAtIsNull(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("rejoin-blocked@example.com"),
-                "rejoin-blocked@example.com",
             ),
         ).thenReturn(false)
         Mockito.`when`(
@@ -532,10 +533,9 @@ class UserServiceTest {
             passwordHash = "hashed-password",
         )
         Mockito.`when`(
-            userRepository.findActiveByProviderAndEmailHashOrLegacyEmail(
+            userRepository.findByProviderAndEmailHashAndDeletedAtIsNull(
                 AuthProvider.EMAIL,
                 personalInfoManager.hashEmail("login@example.com"),
-                "login@example.com",
             ),
         ).thenReturn(user)
 

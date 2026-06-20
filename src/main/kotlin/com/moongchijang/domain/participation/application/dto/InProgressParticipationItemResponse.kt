@@ -2,6 +2,7 @@ package com.moongchijang.domain.participation.application.dto
 
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressCalculator
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.global.time.TimePolicy
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
@@ -40,7 +41,10 @@ data class InProgressParticipationItemResponse(
     val participatedAt: LocalDateTime
 ) {
     companion object {
-        fun from(participation: Participation, now: LocalDateTime = LocalDateTime.now()): InProgressParticipationItemResponse {
+        fun from(
+            participation: Participation,
+            now: LocalDateTime = LocalDateTime.now(TimePolicy.BUSINESS_ZONE_ID)
+        ): InProgressParticipationItemResponse {
             val groupBuy = participation.groupBuy
             val dDay = ChronoUnit.DAYS.between(
                 now.toLocalDate(),

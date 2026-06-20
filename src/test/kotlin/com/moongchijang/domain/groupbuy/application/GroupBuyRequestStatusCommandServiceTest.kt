@@ -13,6 +13,9 @@ import org.mockito.Mockito.any
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDateTime
 import java.util.Optional
 
@@ -28,11 +31,14 @@ class GroupBuyRequestStatusCommandServiceTest {
     @Mock
     private lateinit var notificationEventPublisher: NotificationEventPublisher
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val service by lazy {
         GroupBuyRequestStatusCommandService(
             groupBuyRequestRepository = groupBuyRequestRepository,
             groupBuyRequestStatusHistoryRepository = groupBuyRequestStatusHistoryRepository,
             notificationEventPublisher = notificationEventPublisher,
+            clock = clock,
         )
     }
 

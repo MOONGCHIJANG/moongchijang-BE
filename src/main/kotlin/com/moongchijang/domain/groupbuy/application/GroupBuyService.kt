@@ -16,12 +16,14 @@ import com.moongchijang.domain.participation.domain.repository.ParticipationRepo
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.kstNow
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
@@ -31,6 +33,7 @@ class GroupBuyService(
     private val favoriteRepository: FavoriteRepository,
     private val participationRepository: ParticipationRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val clock: Clock,
     @Value("\${app.share.base-url}") private val shareBaseUrl: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -70,10 +73,12 @@ class GroupBuyService(
             resultPage.totalElements, resultPage.totalPages, resultPage.number + 1
         )
 
+        val now = clock.kstNow()
         return GroupBuyFeedPageResponse.from(
             resultPage.map {
                 GroupBuyFeedItemResponse.from(
                     groupBuy = it,
+                    now = now,
                     thumbnailUrl = s3ImageReferenceResolver.resolveForRead(it.thumbnailKey),
                 )
             },
@@ -99,7 +104,7 @@ class GroupBuyService(
         } ?: false
 
         val isClosed = GroupBuyProgressCalculator.isClosed(groupBuy)
-        val now = LocalDateTime.now()
+        val now = clock.kstNow()
         val canParticipate = !isParticipated &&
             !isClosed &&
             groupBuy.deadline.isAfter(now) &&
@@ -118,7 +123,8 @@ class GroupBuyService(
                 .mapNotNull { s3ImageReferenceResolver.resolveForRead(it.imageKey) },
             isWishlisted = isWishlisted,
             isParticipated = isParticipated,
-            canParticipate = canParticipate
+            canParticipate = canParticipate,
+            now = now,
         )
     }
 
@@ -167,7 +173,7 @@ class GroupBuyService(
             return emptyList()
         }
 
-        val now = LocalDateTime.now()
+        val now = clock.kstNow()
         val groupBuysById = groupBuyRepository.findAllById(groupBuyIds).associateBy { it.id }
 
         val response = groupBuyIds.mapNotNull { id ->

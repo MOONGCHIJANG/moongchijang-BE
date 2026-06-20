@@ -16,6 +16,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.TimePolicy
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -249,6 +250,6 @@ class PickupService(
 
     companion object {
         private const val TOKEN_GENERATION_ATTEMPTS = 5
-        private val KST_ZONE: ZoneId = ZoneId.of("Asia/Seoul")
+        private val KST_ZONE: ZoneId = TimePolicy.BUSINESS_ZONE_ID
     }
 }

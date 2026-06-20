@@ -24,6 +24,12 @@ interface PaymentOrderRepository : JpaRepository<PaymentOrder, Long> {
 
     fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): PaymentOrder?
 
+    fun findByUserIdAndGroupBuyIdAndStatus(
+        userId: Long,
+        groupBuyId: Long,
+        status: PaymentOrderStatus
+    ): PaymentOrder?
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
         """
@@ -36,6 +42,22 @@ interface PaymentOrderRepository : JpaRepository<PaymentOrder, Long> {
     fun findByUserIdAndGroupBuyIdForUpdate(
         @Param("userId") userId: Long,
         @Param("groupBuyId") groupBuyId: Long
+    ): PaymentOrder?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(
+        """
+        select po
+        from PaymentOrder po
+        where po.user.id = :userId
+          and po.groupBuy.id = :groupBuyId
+          and po.status = :status
+        """
+    )
+    fun findByUserIdAndGroupBuyIdAndStatusForUpdate(
+        @Param("userId") userId: Long,
+        @Param("groupBuyId") groupBuyId: Long,
+        @Param("status") status: PaymentOrderStatus
     ): PaymentOrder?
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

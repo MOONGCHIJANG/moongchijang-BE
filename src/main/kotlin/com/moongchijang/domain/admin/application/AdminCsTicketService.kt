@@ -7,6 +7,7 @@ import com.moongchijang.domain.admin.application.dto.csticket.AdminCsTicketUpdat
 import com.moongchijang.domain.csticket.domain.repository.CsTicketRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.kstNow
 import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
@@ -43,7 +44,7 @@ class AdminCsTicketService(
             pageable = pageable
         )
 
-        val response = AdminCsTicketPageResponse.from(page, LocalDateTime.now(clock))
+        val response = AdminCsTicketPageResponse.from(page, clock.kstNow())
         log.info("[AdminCsTicketService] CS 티켓 목록 조회 완료: status={}, totalElements={}", status, response.totalElements)
         return response
     }
@@ -55,7 +56,7 @@ class AdminCsTicketService(
 
         val response = AdminCsTicketDetailResponse.from(
             ticket,
-            LocalDateTime.now(clock),
+            clock.kstNow(),
             consumerEmail = personalInfoManager.decryptIfNeeded(ticket.consumer?.email),
             consumerPhoneNumber = personalInfoManager.decryptIfNeeded(ticket.consumer?.phoneNumber),
         )
@@ -69,7 +70,7 @@ class AdminCsTicketService(
         request: AdminCsTicketUpdateRequest,
     ): AdminCsTicketDetailResponse {
         log.info("[AdminCsTicketService] CS 티켓 수정 시작: ticketId={}, status={}", ticketId, request.status)
-        val now = LocalDateTime.now(clock)
+        val now = clock.kstNow()
         val ticket = csTicketRepository.findAdminDetailById(ticketId)
             .orElseThrow { CustomException(ErrorCode.CS_TICKET_NOT_FOUND) }
 

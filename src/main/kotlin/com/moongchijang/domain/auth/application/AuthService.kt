@@ -140,7 +140,7 @@ class AuthService(
     fun signupWithEmail(request: EmailSignupRequest): AuthLoginResult {
         return runCatching {
             val normalizedEmail = request.email.trim().lowercase()
-            log.info("[AuthService] 이메일 회원가입 처리 시작: email={}", normalizedEmail)
+            log.info("[AuthService] 이메일 회원가입 처리 시작: email={}", maskEmail(normalizedEmail))
 
             validateSignupTokenForNormalizedEmail(normalizedEmail, request.signupToken)
             validatePasswordPolicy(normalizedEmail, request.password)
@@ -194,13 +194,7 @@ class AuthService(
             val normalizedEmail = request.email.trim().lowercase()
             log.info("[AuthService] 이메일 로그인 처리 시작: email={}", maskEmail(normalizedEmail))
 
-            val user = userService.findActiveEmailUser(normalizedEmail)
-                ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
-
-            val passwordHash = user.passwordHash ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
-            if (!passwordEncoder.matches(request.password, passwordHash)) {
-                throw CustomException(ErrorCode.INVALID_CREDENTIALS)
-            }
+            val user = authenticateEmailUser(normalizedEmail, request.password)
 
             val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
             val refreshToken = tokenService.issueRefreshToken(user.id!!)
@@ -227,8 +221,59 @@ class AuthService(
         }
     }
 
+    @Transactional
+    fun loginAdminWithEmail(request: EmailLoginRequest): AuthLoginResult {
+        return runCatching {
+            val normalizedEmail = request.email.trim().lowercase()
+            log.info("[AuthService] 관리자 이메일 로그인 처리 시작: email={}", maskEmail(normalizedEmail))
+
+            val user = authenticateEmailUser(normalizedEmail, request.password)
+            if (!user.hasRole(UserRole.ADMIN)) {
+                throw CustomException(ErrorCode.FORBIDDEN)
+            }
+
+            user.role = UserRole.ADMIN
+            user.saveLastRole(UserRole.ADMIN)
+
+            val accessToken = jwtTokenProvider.generateAccessToken(user.id!!)
+            val refreshToken = tokenService.issueRefreshToken(user.id!!)
+            val expiresIn = jwtTokenProvider.getAccessTokenExpiresInSeconds()
+
+            val response = AuthLoginResponse(
+                accessToken = accessToken,
+                tokenType = "Bearer",
+                expiresIn = expiresIn,
+                isNewUser = false,
+                user = toAuthUserResponse(user),
+            )
+
+            log.info("[AuthService] 관리자 이메일 로그인 처리 완료: userId={}", user.id)
+            recordAfterCommit { authMetricsRecorder.recordLogin(provider = "admin-email", result = "success") }
+
+            AuthLoginResult(
+                response = response,
+                refreshToken = refreshToken,
+            )
+        }.getOrElse { throwable ->
+            authMetricsRecorder.recordLogin(provider = "admin-email", result = "failure")
+            throw throwable
+        }
+    }
+
     companion object {
         private val PASSWORD_REGEX = Regex("^(?=.*[A-Za-z])(?=.*[0-9]).{8,20}$")
+    }
+
+    private fun authenticateEmailUser(email: String, rawPassword: String): User {
+        val user = userService.findActiveEmailUser(email)
+            ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+
+        val passwordHash = user.passwordHash ?: throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+        if (!passwordEncoder.matches(rawPassword, passwordHash)) {
+            throw CustomException(ErrorCode.INVALID_CREDENTIALS)
+        }
+
+        return user
     }
 
     private fun toAuthUserResponse(user: User): AuthUserResponse =

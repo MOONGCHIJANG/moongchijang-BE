@@ -7,7 +7,11 @@ import com.moongchijang.domain.user.domain.repository.WithdrawnRefundRequestRepo
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import com.moongchijang.global.time.utcNow
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 class WithdrawalRetentionPurgeServiceTest {
 
@@ -16,11 +20,14 @@ class WithdrawalRetentionPurgeServiceTest {
     private val withdrawnParticipationRepository: WithdrawnParticipationRepository = Mockito.mock(WithdrawnParticipationRepository::class.java)
     private val withdrawnRefundRequestRepository: WithdrawnRefundRequestRepository = Mockito.mock(WithdrawnRefundRequestRepository::class.java)
 
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+
     private val service = WithdrawalRetentionPurgeService(
         withdrawnAccountRepository = withdrawnAccountRepository,
         withdrawnPaymentOrderRepository = withdrawnPaymentOrderRepository,
         withdrawnParticipationRepository = withdrawnParticipationRepository,
         withdrawnRefundRequestRepository = withdrawnRefundRequestRepository,
+        clock = clock,
     )
 
     @Test
@@ -37,5 +44,21 @@ class WithdrawalRetentionPurgeServiceTest {
         assertEquals(2L, result.withdrawnPaymentOrdersDeleted)
         assertEquals(3L, result.withdrawnParticipationsDeleted)
         assertEquals(4L, result.withdrawnRefundRequestsDeleted)
+    }
+
+    @Test
+    fun `기본 현재시각 호출 시 고정 Clock의 UTC 현재시각을 사용한다`() {
+        val now = clock.utcNow()
+        Mockito.`when`(withdrawnRefundRequestRepository.deleteByRetentionExpiresAtBefore(now)).thenReturn(0L)
+        Mockito.`when`(withdrawnParticipationRepository.deleteByRetentionExpiresAtBefore(now)).thenReturn(0L)
+        Mockito.`when`(withdrawnPaymentOrderRepository.deleteByRetentionExpiresAtBefore(now)).thenReturn(0L)
+        Mockito.`when`(withdrawnAccountRepository.deleteByRejoinAvailableAtBefore(now)).thenReturn(0L)
+
+        service.purgeExpired()
+
+        Mockito.verify(withdrawnRefundRequestRepository).deleteByRetentionExpiresAtBefore(now)
+        Mockito.verify(withdrawnParticipationRepository).deleteByRetentionExpiresAtBefore(now)
+        Mockito.verify(withdrawnPaymentOrderRepository).deleteByRetentionExpiresAtBefore(now)
+        Mockito.verify(withdrawnAccountRepository).deleteByRejoinAvailableAtBefore(now)
     }
 }

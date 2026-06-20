@@ -28,6 +28,7 @@ import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.TimePolicy
 import com.moongchijang.security.crypto.PersonalInfoManager
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -439,6 +440,6 @@ class OwnerGroupBuyService(
         val DETAIL_PARTICIPATION_STATUSES = listOf(ParticipationStatus.PAID_WAITING_GOAL, ParticipationStatus.CONFIRMED)
         const val UNKNOWN_PAYMENT_METHOD = "UNKNOWN"
         const val UNKNOWN_PAYMENT_STATUS = "UNKNOWN"
-        val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
+        val SEOUL_ZONE_ID: ZoneId = TimePolicy.BUSINESS_ZONE_ID
     }
 }

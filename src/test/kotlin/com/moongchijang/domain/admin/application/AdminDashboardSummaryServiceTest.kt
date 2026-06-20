@@ -17,7 +17,7 @@ import org.mockito.Mockito.`when`
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 
 class AdminDashboardSummaryServiceTest {
 
@@ -26,7 +26,7 @@ class AdminDashboardSummaryServiceTest {
         mock(GroupBuyRequestStatusHistoryRepository::class.java)
     private val groupBuyRepository: GroupBuyRepository = mock(GroupBuyRepository::class.java)
     private val participationRepository: ParticipationRepository = mock(ParticipationRepository::class.java)
-    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneId.of("Asia/Seoul"))
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneOffset.UTC)
     private val service = AdminDashboardSummaryService(
         groupBuyRequestRepository = groupBuyRequestRepository,
         groupBuyRequestStatusHistoryRepository = groupBuyRequestStatusHistoryRepository,
@@ -37,13 +37,13 @@ class AdminDashboardSummaryServiceTest {
 
     @Test
     fun `운영 관리 요약을 현재 도메인 기준으로 집계한다`() {
-        val todayStart = LocalDateTime.of(2026, 5, 27, 0, 0)
-        val tomorrowStart = LocalDateTime.of(2026, 5, 28, 0, 0)
-        val yesterdayStart = LocalDateTime.of(2026, 5, 26, 0, 0)
-        val now = LocalDateTime.of(2026, 5, 27, 13, 0)
+        val todayStart = LocalDateTime.of(2026, 5, 26, 15, 0)
+        val tomorrowStart = LocalDateTime.of(2026, 5, 27, 15, 0)
+        val yesterdayStart = LocalDateTime.of(2026, 5, 25, 15, 0)
+        val now = LocalDateTime.of(2026, 5, 27, 4, 0)
         val pendingStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
         val completedStatuses = listOf(GroupBuyRequestStatus.OPENED, GroupBuyRequestStatus.REJECTED)
-        val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 13, 0)
+        val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 4, 0)
 
         `when`(
             groupBuyRepository.countOverdueAdminOrders(
@@ -108,11 +108,11 @@ class AdminDashboardSummaryServiceTest {
 
     @Test
     fun `전일 값이 없으면 현재 값 존재 여부에 따라 증감률을 반환한다`() {
-        val todayStart = LocalDateTime.of(2026, 5, 27, 0, 0)
-        val tomorrowStart = LocalDateTime.of(2026, 5, 28, 0, 0)
-        val yesterdayStart = LocalDateTime.of(2026, 5, 26, 0, 0)
+        val todayStart = LocalDateTime.of(2026, 5, 26, 15, 0)
+        val tomorrowStart = LocalDateTime.of(2026, 5, 27, 15, 0)
+        val yesterdayStart = LocalDateTime.of(2026, 5, 25, 15, 0)
         val pendingStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
-        val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 13, 0)
+        val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 4, 0)
 
         `when`(
             groupBuyRepository.countOverdueAdminOrders(

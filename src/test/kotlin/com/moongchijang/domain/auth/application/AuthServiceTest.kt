@@ -258,6 +258,63 @@ class AuthServiceTest {
     }
 
     @Test
+    fun `관리자 이메일 로그인 성공 시 활성 역할을 ADMIN으로 변경하고 토큰을 반환`() {
+        val now = LocalDateTime.of(2026, 6, 18, 12, 0)
+        val user = UserFixture.createEmailUser(
+            id = 55L,
+            email = "admin@example.com",
+            passwordHash = "hashed-password",
+            nickname = "관리자",
+        )
+        user.grantRole(UserRole.BUYER)
+        user.grantRole(UserRole.ADMIN)
+        setAuditFields(user, now, now)
+
+        Mockito.`when`(userService.findActiveEmailUser("admin@example.com")).thenReturn(user)
+        Mockito.`when`(passwordEncoder.matches("abc12345", "hashed-password")).thenReturn(true)
+        Mockito.`when`(jwtTokenProvider.generateAccessToken(55L)).thenReturn("admin-access-token")
+        Mockito.`when`(tokenService.issueRefreshToken(55L)).thenReturn("admin-refresh-token")
+        Mockito.`when`(jwtTokenProvider.getAccessTokenExpiresInSeconds()).thenReturn(3600L)
+
+        val result = authService.loginAdminWithEmail(
+            EmailLoginRequest(
+                email = "admin@example.com",
+                password = "abc12345",
+            )
+        )
+
+        Assertions.assertEquals("admin-access-token", result.response.accessToken)
+        Assertions.assertEquals("admin-refresh-token", result.refreshToken)
+        Assertions.assertEquals(UserRole.ADMIN, result.response.user.role)
+        Assertions.assertEquals(UserRole.ADMIN, user.role)
+        Assertions.assertEquals(UserRole.ADMIN, user.lastRole)
+    }
+
+    @Test
+    fun `관리자 이메일 로그인 시 ADMIN 권한이 없으면 예외`() {
+        val user = UserFixture.createEmailUser(
+            id = 56L,
+            email = "buyer@example.com",
+            passwordHash = "hashed-password",
+        )
+        user.grantRole(UserRole.BUYER)
+
+        Mockito.`when`(userService.findActiveEmailUser("buyer@example.com")).thenReturn(user)
+        Mockito.`when`(passwordEncoder.matches("abc12345", "hashed-password")).thenReturn(true)
+
+        val exception = assertThrows<CustomException> {
+            authService.loginAdminWithEmail(
+                EmailLoginRequest(
+                    email = "buyer@example.com",
+                    password = "abc12345",
+                )
+            )
+        }
+
+        Assertions.assertEquals(ErrorCode.FORBIDDEN, exception.errorCode)
+    }
+
+    @Test
     fun `이메일 회원가입 시 비밀번호 형식 불일치면 예외`() {
         Mockito.`when`(emailSignupTokenStore.isValid("new@example.com", "signup-token")).thenReturn(true)
 

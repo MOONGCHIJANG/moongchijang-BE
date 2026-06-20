@@ -10,6 +10,8 @@ import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import com.moongchijang.global.time.kstNow
+import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
@@ -25,13 +27,14 @@ class GroupBuyStatusTransitionService(
     private val notificationEventPublisher: NotificationEventPublisher,
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val transactionManager: PlatformTransactionManager,
+    private val clock: Clock,
     @Value("\${groupbuy.status-transition.batch-size:500}")
     private val batchSize: Int
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun transitionExpiredGroupBuys() {
-        transitionExpiredGroupBuysAt(LocalDateTime.now())
+        transitionExpiredGroupBuysAt(clock.kstNow())
     }
 
     fun transitionExpiredGroupBuysAt(now: LocalDateTime) {

@@ -15,4 +15,10 @@ object MaskingUtils {
 
         return "$maskedLocal@$domain"
     }
+
+    fun maskBusinessRegistrationNumber(businessRegistrationNumber: String): String {
+        val digitsOnly = businessRegistrationNumber.replace(Regex("[^0-9]"), "")
+        if (digitsOnly.length < 4) return "***"
+        return "*".repeat((digitsOnly.length - 4).coerceAtLeast(0)) + digitsOnly.takeLast(4)
+    }
 }

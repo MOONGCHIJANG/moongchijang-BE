@@ -97,6 +97,30 @@ jobs:
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
             docker compose --profile dev pull app-dev
             docker compose --profile dev up -d nginx app-dev
+            docker compose --profile monitoring up -d --force-recreate --no-deps prometheus grafana fluent-bit
 
             # 태그 없는 미사용 이미지를 정리해 디스크 사용량 누적을 완화합니다.
             docker image prune -f
+
+      - name: Wait for dev OpenAPI to be ready
+        run: |
+          for i in {1..20}; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" https://api.moongchijang.com/dev/openapi.yaml)
+            if [ "$status" = "200" ]; then
+              echo "Dev OpenAPI is ready"
+              exit 0
+            fi
+
+            echo "Dev OpenAPI not ready yet (status: $status), retrying..."
+            sleep 5
+          done
+
+          echo "Dev OpenAPI did not become ready in time"
+          exit 1
+
+      - name: Trigger Frontend Orval Codegen
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
+          repository: MOONGCHIJANG/moongchijang-FE
+          event-type: backend-deployed

@@ -9,6 +9,9 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestReposit
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
+import com.moongchijang.global.time.kstToday
+import com.moongchijang.global.time.utcNow
+import com.moongchijang.global.time.TimePolicy
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,10 +33,10 @@ class AdminDashboardSummaryService(
 
     fun getSummary(): AdminDashboardSummaryResponse {
         log.info("[AdminDashboardSummaryService] 관리자 대시보드 요약 조회 시작")
-        val now = LocalDateTime.now(clock)
-        val today = LocalDate.now(clock)
-        val todayRange = today.toRange()
-        val yesterdayRange = today.minusDays(1).toRange()
+        val now = clock.utcNow()
+        val today = clock.kstToday()
+        val todayRange = today.toStorageRange()
+        val yesterdayRange = today.minusDays(1).toStorageRange()
         val pendingApprovalStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
         val completedApprovalStatuses = listOf(GroupBuyRequestStatus.OPENED, GroupBuyRequestStatus.REJECTED)
         val orderOverdueBefore = now.minusHours(48)
@@ -117,10 +120,10 @@ class AdminDashboardSummaryService(
         return (current - previous) * 100.0 / previous
     }
 
-    private fun LocalDate.toRange(): DateTimeRange =
+    private fun LocalDate.toStorageRange(): DateTimeRange =
         DateTimeRange(
-            start = atStartOfDay(),
-            end = plusDays(1).atStartOfDay()
+            start = atStartOfDay(TimePolicy.BUSINESS_ZONE_ID).withZoneSameInstant(TimePolicy.STORAGE_ZONE_ID).toLocalDateTime(),
+            end = plusDays(1).atStartOfDay(TimePolicy.BUSINESS_ZONE_ID).withZoneSameInstant(TimePolicy.STORAGE_ZONE_ID).toLocalDateTime(),
         )
 
     private data class DateTimeRange(

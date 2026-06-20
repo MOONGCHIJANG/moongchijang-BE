@@ -9,12 +9,12 @@ import com.moongchijang.domain.notification.domain.repository.NotificationReposi
 import com.moongchijang.domain.user.domain.entity.UserRole
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.TimePolicy
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
-import java.time.ZoneId
 
 @Service
 class NotificationQueryService(
@@ -67,7 +67,7 @@ class NotificationQueryService(
 
         val hasNext = notifications.size > safeLimit
         val content = if (hasNext) notifications.dropLast(1) else notifications
-        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val today = LocalDate.now(TimePolicy.BUSINESS_ZONE_ID)
         val items = content.map { NotificationItemResponse.from(it, today) }
         val nextCursor = content.lastOrNull()?.let { NotificationCursor(it.occurredAt, it.id).encode() }
         log.info(

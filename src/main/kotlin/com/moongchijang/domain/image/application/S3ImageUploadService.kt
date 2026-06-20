@@ -9,6 +9,7 @@ import com.moongchijang.domain.image.application.dto.ImageDeleteResponse
 import com.moongchijang.global.config.AppS3Properties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.TimePolicy
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import software.amazon.awssdk.services.s3.S3Client
@@ -20,7 +21,6 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
 import java.time.Duration
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
 
 @Service
@@ -93,7 +93,7 @@ class S3ImageUploadService(
 
         val extension = extensionFrom(file.fileName)
         val folder = if (file.category == ImageUploadCategory.THUMBNAIL) "thumbnail" else "products"
-        val datePartition = LocalDate.now(ZoneId.of("Asia/Seoul")).toString().replace("-", "")
+        val datePartition = LocalDate.now(TimePolicy.BUSINESS_ZONE_ID).toString().replace("-", "")
         val subject = groupBuyId?.toString() ?: "pending/$userId/$datePartition"
         val prefix = appS3Properties.prefix.trim('/')
         val prefixSegment = if (prefix.isBlank()) "" else "$prefix/"

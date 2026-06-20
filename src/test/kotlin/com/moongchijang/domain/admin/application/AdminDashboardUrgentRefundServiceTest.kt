@@ -19,12 +19,12 @@ import org.springframework.data.domain.PageRequest
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 
 class AdminDashboardUrgentRefundServiceTest {
 
     private val participationRepository: ParticipationRepository = mock(ParticipationRepository::class.java)
-    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T01:00:00Z"), ZoneId.of("Asia/Seoul"))
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-05-28T01:00:00Z"), ZoneOffset.UTC)
     private val service = AdminDashboardUrgentRefundService(
         participationRepository = participationRepository,
         clock = clock,
@@ -33,9 +33,9 @@ class AdminDashboardUrgentRefundServiceTest {
     @Test
     fun `1시간 초과 환불 요청을 경과 시간과 환불 예상 금액으로 반환한다`() {
         val pageable = PageRequest.of(0, 10)
-        val requestedAt = LocalDateTime.now(clock).minusHours(2).minusMinutes(10)
+        val requestedAt = LocalDateTime.of(2026, 5, 27, 22, 50)
         val participation = refundParticipation(id = 101L, cancelledAt = requestedAt)
-        val requestedBefore = LocalDateTime.now(clock).minusHours(1)
+        val requestedBefore = LocalDateTime.of(2026, 5, 28, 0, 0)
         `when`(
             participationRepository.findDashboardUrgentRefundRequests(
                 status = ParticipationStatus.REFUND_PENDING,

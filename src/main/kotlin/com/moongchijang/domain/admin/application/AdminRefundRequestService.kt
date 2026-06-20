@@ -19,6 +19,7 @@ import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.security.crypto.PersonalInfoManager
+import com.moongchijang.global.time.utcNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -44,7 +45,7 @@ class AdminRefundRequestService(
         keyword: String?,
         pageable: Pageable,
     ): AdminRefundRequestPageResponse {
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val normalizedKeyword = keyword?.trim()?.takeIf { it.isNotBlank() }
         val statuses = tab.toParticipationStatuses()
         val reviewStatuses = tab.toOwnerReviewStatuses()
@@ -85,7 +86,7 @@ class AdminRefundRequestService(
 
     fun getRefundRequestDetail(requestId: Long): AdminRefundRequestDetailResponse {
         log.info("[AdminRefundRequestService] 환불 요청 상세 조회 시작: requestId={}", requestId)
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val participation = participationRepository.findPickupDetailById(requestId)
             ?: throw CustomException(ErrorCode.PARTICIPATION_NOT_FOUND)
         val paymentOrder = paymentOrderRepository.findByUserIdAndGroupBuyId(
@@ -115,7 +116,7 @@ class AdminRefundRequestService(
             requestId,
             request.refundAmount
         )
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val participation = participationRepository.findByIdForUpdate(requestId)
             .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
 
@@ -186,7 +187,7 @@ class AdminRefundRequestService(
             requestId,
             rejectionReason.length
         )
-        val now = LocalDateTime.now(clock)
+        val now = clock.utcNow()
         val participation = participationRepository.findByIdForUpdate(requestId)
             .orElseThrow { CustomException(ErrorCode.PARTICIPATION_NOT_FOUND) }
 

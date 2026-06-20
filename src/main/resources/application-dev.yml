@@ -16,6 +16,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
     open-in-view: false
 
   flyway:
@@ -82,11 +86,6 @@ security:
   personal-info:
     secret-key: ${PERSONAL_INFO_SECRET_KEY}
 
-maintenance:
-  personal-info-backfill:
-    enabled: ${PERSONAL_INFO_BACKFILL_ENABLED:false}
-    batch-size: ${PERSONAL_INFO_BACKFILL_BATCH_SIZE:500}
-
 auth:
   refresh:
     expiration-days: ${AUTH_REFRESH_EXPIRATION_DAYS:14}
@@ -144,3 +143,10 @@ business-registration:
     base-url: ${BUSINESS_REGISTRATION_API_BASE_URL:https://api.odcloud.kr}
     status-path: ${BUSINESS_REGISTRATION_API_STATUS_PATH:/api/nts-businessman/v1/status}
     service-key: ${BUSINESS_REGISTRATION_API_SERVICE_KEY:}
+
+monitoring:
+  payment:
+    synthetic:
+      enabled: ${PAYMENT_SYNTHETIC_METRICS_ENABLED:false}
+      fixed-delay-ms: ${PAYMENT_SYNTHETIC_METRICS_FIXED_DELAY_MS:60000}
+      initial-delay-ms: ${PAYMENT_SYNTHETIC_METRICS_INITIAL_DELAY_MS:10000}

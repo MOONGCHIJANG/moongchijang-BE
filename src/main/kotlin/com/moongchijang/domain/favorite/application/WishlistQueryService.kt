@@ -4,19 +4,39 @@ import com.moongchijang.domain.favorite.application.dto.WishFilterType
 import com.moongchijang.domain.favorite.application.dto.WishSortType
 import com.moongchijang.domain.favorite.application.dto.WishlistPageResponse
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.global.time.kstNow
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
 class WishlistQueryService(
     private val favoriteRepository: FavoriteRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
+    private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    fun getWishlist(
+        userId: Long,
+        filter: WishFilterType,
+        excludeClosed: Boolean,
+        sort: WishSortType,
+        pageable: Pageable,
+    ): WishlistPageResponse {
+        return getWishlist(
+            userId = userId,
+            filter = filter,
+            excludeClosed = excludeClosed,
+            sort = sort,
+            pageable = pageable,
+            now = clock.kstNow(),
+        )
+    }
 
     @Transactional(readOnly = true)
     fun getWishlist(
@@ -25,7 +45,7 @@ class WishlistQueryService(
         excludeClosed: Boolean,
         sort: WishSortType,
         pageable: Pageable,
-        now: LocalDateTime = LocalDateTime.now(),
+        now: LocalDateTime,
     ): WishlistPageResponse {
         log.info(
             "[WishlistQueryService] 찜 목록 조회 시작: userId={}, filter={}, excludeClosed={}, sort={}, page={}, size={}",

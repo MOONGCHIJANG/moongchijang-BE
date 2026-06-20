@@ -15,6 +15,7 @@ import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
+import com.moongchijang.global.time.kstToday
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -37,7 +38,7 @@ class AdminSettlementService(
     ): AdminSettlementDashboardResponse {
         log.info("[AdminSettlementService] 정산 대시보드 조회 시작: year={}, month={}", year, month)
         val yearMonth = validateYearMonth(year, month)
-        val today = LocalDate.now(clock)
+        val today = clock.kstToday()
         val range = yearMonth.toDateRange()
         val aggregations = participationRepository.findAdminSettlementAggregations(
             groupBuyStatuses = SETTLEMENT_GROUP_BUY_STATUSES,
@@ -79,7 +80,7 @@ class AdminSettlementService(
             pageable.pageSize,
         )
         val yearMonth = validateYearMonth(year, month)
-        val today = LocalDate.now(clock)
+        val today = clock.kstToday()
         val range = yearMonth.toDateRange().filterByStatus(status, today)
         val page = participationRepository.findAdminSettlementPage(
             groupBuyStatuses = SETTLEMENT_GROUP_BUY_STATUSES,
@@ -104,7 +105,7 @@ class AdminSettlementService(
 
     fun getSettlementDetail(settlementId: Long): AdminSettlementDetailResponse {
         log.info("[AdminSettlementService] 정산 상세 조회 시작: settlementId={}", settlementId)
-        val today = LocalDate.now(clock)
+        val today = clock.kstToday()
         val aggregation = participationRepository.findAdminSettlementDetail(
             groupBuyId = settlementId,
             groupBuyStatuses = SETTLEMENT_GROUP_BUY_STATUSES,
