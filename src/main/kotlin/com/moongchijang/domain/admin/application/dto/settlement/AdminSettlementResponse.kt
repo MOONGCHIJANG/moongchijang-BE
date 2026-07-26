@@ -77,7 +77,7 @@ data class AdminSettlementListItemResponse(
                 participantCount = aggregation.participantCount,
                 totalPaymentAmount = aggregation.totalPaymentAmount,
                 refundDeductionAmount = aggregation.refundDeductionAmount,
-                platformFeeAmount = 0L,
+                platformFeeAmount = aggregation.platformFeeAmount,
                 settlementAmount = aggregation.settlementAmount(),
                 scheduledSettlementDate = scheduledSettlementDate,
                 status = status,
@@ -90,7 +90,7 @@ data class AdminSettlementListItemResponse(
 typealias AdminSettlementDetailResponse = AdminSettlementListItemResponse
 
 fun AdminSettlementAggregation.settlementAmount(): Long =
-    (totalPaymentAmount - refundDeductionAmount).coerceAtLeast(0L)
+    (totalPaymentAmount - refundDeductionAmount - platformFeeAmount).coerceAtLeast(0L)
 
 fun AdminSettlementAggregation.scheduledSettlementDate(): LocalDate =
     pickupCompletedDate.plusDays(ADMIN_SETTLEMENT_DELAY_DAYS)
