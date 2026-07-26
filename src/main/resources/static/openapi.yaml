@@ -5967,7 +5967,7 @@ components:
 
     AdminOrderDetail:
       type: object
-      required: [orderId, groupBuyId, productName, productDescription, storeName, storeAddress, finalQuantity, targetQuantity, pendingRefundCount, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, elapsedHours, progressRate, orderStatus, actionable]
+      required: [orderId, groupBuyId, productName, productDescription, storeName, storeAddress, finalQuantity, targetQuantity, pendingRefundCount, pendingRefundNoticeRequired, pickupDate, pickupTimeStart, pickupTimeEnd, pickupLocation, elapsedHours, progressRate, orderStatus, actionable, notificationHistories]
       properties:
         orderId:
           type: integer
@@ -5996,6 +5996,9 @@ components:
           type: integer
           format: int64
           description: 해당 공구의 환불 대기 건수
+        pendingRefundNoticeRequired:
+          type: boolean
+          description: 환불 처리 중인 건이 있어 운영자 안내문구 노출이 필요한지 여부
         pickupDate: { type: string, format: date }
         pickupTimeStart: { type: string, format: time }
         pickupTimeEnd: { type: string, format: time }
@@ -6028,6 +6031,32 @@ components:
         actionable:
           type: boolean
           description: 발주 확정/연락 등 운영 작업 가능 여부
+        notificationHistories:
+          type: array
+          description: 발주 확정 요청 및 발주 취소 사장님 알림 발송 이력
+          items:
+            $ref: '#/components/schemas/AdminOrderNotificationHistory'
+
+    AdminOrderNotificationHistory:
+      type: object
+      required: [historyId, triggerType, scheduleKey, status, retryCount]
+      properties:
+        historyId: { type: integer, format: int64 }
+        triggerType:
+          type: string
+          enum: [OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE, OWNER_ORDER_CANCELLED_IMMEDIATE]
+        scheduleKey: { type: string }
+        status:
+          type: string
+          enum: [PENDING, SUCCESS, FAILED]
+        retryCount: { type: integer }
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastError:
+          type: string
+          nullable: true
 
     ApiResponseAdminCsTicketPage:
       type: object

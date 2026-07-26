@@ -5,6 +5,10 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
+import com.moongchijang.domain.notification.domain.entity.NotificationDispatchStatus
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.GroupBuyPendingRefundCount
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -33,12 +37,15 @@ class AdminOrderServiceTest {
     private val participationRepository: ParticipationRepository = mock(ParticipationRepository::class.java)
     private val storeStaffRepository: StoreStaffRepository = mock(StoreStaffRepository::class.java)
     private val notificationEventPublisher: NotificationEventPublisher = mock(NotificationEventPublisher::class.java)
+    private val notificationDispatchHistoryRepository: NotificationDispatchHistoryRepository =
+        mock(NotificationDispatchHistoryRepository::class.java)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-27T04:00:00Z"), ZoneOffset.UTC)
     private val service = AdminOrderService(
         groupBuyRepository = groupBuyRepository,
         participationRepository = participationRepository,
         storeStaffRepository = storeStaffRepository,
         notificationEventPublisher = notificationEventPublisher,
+        notificationDispatchHistoryRepository = notificationDispatchHistoryRepository,
         clock = clock
     )
 
@@ -120,15 +127,32 @@ class AdminOrderServiceTest {
                 listOf(ParticipationStatus.REFUND_PENDING)
             )
         ).thenReturn(1L)
+        val history = NotificationDispatchHistory(
+            userId = 101L,
+            triggerType = NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+            targetId = 31L,
+            scheduleKey = "owner-order-confirm-required:31",
+            status = NotificationDispatchStatus.SUCCESS,
+            retryCount = 1,
+            processedAt = now.minusHours(2),
+            id = 301L
+        )
+        stubNotificationHistories(31L, listOf(history))
 
         val result = service.getOrderDetail(31L)
 
         assertEquals(31L, result.orderId)
         assertEquals("뭉치장 베이커리", result.storeName)
         assertEquals(1L, result.pendingRefundCount)
+        assertTrue(result.pendingRefundNoticeRequired)
         assertEquals(3L, result.elapsedHours)
         assertEquals(80, result.progressRate)
         assertTrue(result.actionable)
+        assertEquals(1, result.notificationHistories.size)
+        assertEquals(301L, result.notificationHistories[0].historyId)
+        assertEquals(NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE, result.notificationHistories[0].triggerType)
+        assertEquals(NotificationDispatchStatus.SUCCESS, result.notificationHistories[0].status)
+        assertEquals("owner-order-confirm-required:31", result.notificationHistories[0].scheduleKey)
     }
 
     @Test
@@ -148,11 +172,13 @@ class AdminOrderServiceTest {
                 listOf(ParticipationStatus.REFUND_PENDING)
             )
         ).thenReturn(0L)
+        stubNotificationHistories(35L)
 
         val result = service.getOrderDetail(35L)
 
         assertEquals(35L, result.orderId)
         assertFalse(result.actionable)
+        assertFalse(result.pendingRefundNoticeRequired)
     }
 
     @Test
@@ -172,6 +198,7 @@ class AdminOrderServiceTest {
                 listOf(ParticipationStatus.REFUND_PENDING)
             )
         ).thenReturn(0L)
+        stubNotificationHistories(32L)
 
         val result = service.markOwnerContacted(32L)
 
@@ -197,6 +224,7 @@ class AdminOrderServiceTest {
                 listOf(ParticipationStatus.REFUND_PENDING)
             )
         ).thenReturn(0L)
+        stubNotificationHistories(33L)
 
         val result = service.confirmOrder(33L)
 
@@ -238,6 +266,7 @@ class AdminOrderServiceTest {
             )
         ).thenReturn(0L)
         `when`(storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id)).thenReturn(listOf(201L, 202L))
+        stubNotificationHistories(36L)
 
         val result = service.cancelOrder(36L)
 
@@ -255,4 +284,19 @@ class AdminOrderServiceTest {
             override val groupBuyId: Long = groupBuyId
             override val pendingRefundCount: Long = count
         }
+
+    private fun stubNotificationHistories(
+        groupBuyId: Long,
+        histories: List<NotificationDispatchHistory> = emptyList()
+    ) {
+        `when`(
+            notificationDispatchHistoryRepository.findAdminOrderHistories(
+                groupBuyId,
+                listOf(
+                    NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+                    NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE
+                )
+            )
+        ).thenReturn(histories)
+    }
 }
