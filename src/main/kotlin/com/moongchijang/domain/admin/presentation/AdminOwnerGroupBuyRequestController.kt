@@ -2,6 +2,7 @@ package com.moongchijang.domain.admin.presentation
 
 import com.moongchijang.domain.admin.application.AdminOwnerGroupBuyRequestService
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestActionResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestApproveRequest
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestPageResponse
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestRejectRequest
@@ -56,11 +57,12 @@ class AdminOwnerGroupBuyRequestController(
     @PostMapping("/{requestId}/approve")
     @Operation(summary = "사장님 공구 개설 요청 승인 및 공구 생성")
     fun approve(
-        @PathVariable requestId: Long
+        @PathVariable requestId: Long,
+        @Valid @RequestBody request: AdminOwnerGroupBuyRequestApproveRequest
     ): ResponseEntity<ApiResponse<AdminOwnerGroupBuyRequestActionResponse>> {
         val response = ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(ApiResponse.success(adminOwnerGroupBuyRequestService.approve(requestId)))
+            .body(ApiResponse.success(adminOwnerGroupBuyRequestService.approve(requestId, request)))
         return response
     }
 

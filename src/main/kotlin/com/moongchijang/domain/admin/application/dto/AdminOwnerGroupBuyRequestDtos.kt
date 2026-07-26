@@ -3,7 +3,10 @@ package com.moongchijang.domain.admin.application.dto
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 import org.springframework.data.domain.Page
 import java.time.Duration
@@ -182,6 +185,28 @@ data class AdminOwnerGroupBuyRequestImageResponse(
     val sortOrder: Int
 )
 
+data class AdminOwnerGroupBuyRequestApproveRequest(
+    @field:NotBlank(message = "공구 제목은 필수입니다")
+    @field:Size(max = 100, message = "공구 제목은 100자 이하이어야 합니다")
+    val productName: String,
+
+    @field:NotNull(message = "공구가는 필수입니다")
+    @field:Min(value = 1, message = "공구가는 1원 이상이어야 합니다")
+    val price: Int,
+
+    @field:NotNull(message = "목표 수량은 필수입니다")
+    @field:Min(value = 1, message = "목표 수량은 1개 이상이어야 합니다")
+    val targetQuantity: Int,
+
+    @field:NotNull(message = "픽업일은 필수입니다")
+    val pickupDate: LocalDate,
+
+    @field:NotNull(message = "이미지 장수는 필수입니다")
+    @field:Min(value = 1, message = "이미지는 최소 1장 이상 필요합니다")
+    @field:Max(value = 5, message = "이미지는 최대 5장까지 등록할 수 있습니다")
+    val imageCount: Int
+)
+
 data class AdminOwnerGroupBuyRequestRejectRequest(
     @field:NotBlank(message = "반려 사유는 필수입니다")
     @field:Size(max = 200, message = "반려 사유는 200자 이하이어야 합니다")
@@ -191,7 +216,16 @@ data class AdminOwnerGroupBuyRequestRejectRequest(
 data class AdminOwnerGroupBuyRequestActionResponse(
     val requestId: Long,
     val status: OwnerGroupBuyRequestStatus,
-    val groupBuyId: Long? = null
+    val groupBuyId: Long? = null,
+    val approvalSummary: AdminOwnerGroupBuyRequestApprovalSummaryResponse? = null
+)
+
+data class AdminOwnerGroupBuyRequestApprovalSummaryResponse(
+    val productName: String,
+    val price: Int,
+    val targetQuantity: Int,
+    val pickupDate: LocalDate,
+    val imageCount: Int
 )
 
 private const val REQUEST_TYPE = "OWNER"

@@ -7,6 +7,8 @@ import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepositor
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestActionResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestApprovalSummaryResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestApproveRequest
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestDetailResponse
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestPageResponse
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestRejectRequest
@@ -81,11 +83,16 @@ class AdminOwnerGroupBuyRequestService(
         return response
     }
 
-    fun approve(requestId: Long): AdminOwnerGroupBuyRequestActionResponse {
+    fun approve(
+        requestId: Long,
+        approveRequest: AdminOwnerGroupBuyRequestApproveRequest
+    ): AdminOwnerGroupBuyRequestActionResponse {
         log.info("[AdminOwnerGroupBuyRequestService] 사장님 공구 요청 승인 시작: requestId={}", requestId)
         val request = findRequestForAction(requestId)
         validatePending(request)
         validateApprovalSource(request)
+        val images = ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)
+        validateApprovalConfirmation(request, approveRequest, images.size)
 
         val now = clock.kstNow()
         val groupBuy = groupBuyRepository.save(
@@ -112,7 +119,6 @@ class AdminOwnerGroupBuyRequestService(
             )
         )
 
-        val images = ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)
         groupBuyImageRepository.saveAll(
             images.map {
                 GroupBuyImage(
@@ -136,7 +142,14 @@ class AdminOwnerGroupBuyRequestService(
         val response = AdminOwnerGroupBuyRequestActionResponse(
             requestId = request.id,
             status = request.status,
-            groupBuyId = groupBuy.id
+            groupBuyId = groupBuy.id,
+            approvalSummary = AdminOwnerGroupBuyRequestApprovalSummaryResponse(
+                productName = groupBuy.productName,
+                price = groupBuy.price,
+                targetQuantity = groupBuy.targetQuantity,
+                pickupDate = groupBuy.pickupDate,
+                imageCount = images.size
+            )
         )
         log.info(
             "[AdminOwnerGroupBuyRequestService] 사장님 공구 요청 승인 완료: requestId={}, groupBuyId={}",
@@ -202,6 +215,22 @@ class AdminOwnerGroupBuyRequestService(
             !isPickupAfterDeadline(request.deadline, request.pickupDate, request.pickupTimeStart)
         ) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_APPROVAL_INVALID_PICKUP)
+        }
+    }
+
+    private fun validateApprovalConfirmation(
+        request: OwnerGroupBuyRequest,
+        approveRequest: AdminOwnerGroupBuyRequestApproveRequest,
+        imageCount: Int
+    ) {
+        if (imageCount !in 1..5 ||
+            approveRequest.productName.trim() != request.productName.trim() ||
+            approveRequest.price != request.price ||
+            approveRequest.targetQuantity != request.targetQuantity ||
+            approveRequest.pickupDate != request.pickupDate ||
+            approveRequest.imageCount != imageCount
+        ) {
+            throw CustomException(ErrorCode.INVALID_INPUT, "승인 확인 정보가 요청 정보와 일치하지 않습니다.")
         }
     }
 
