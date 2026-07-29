@@ -10,6 +10,7 @@ import com.moongchijang.domain.notification.application.discord.AdminDiscordAler
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.payment.application.dto.CancelParticipationRequest
@@ -51,6 +52,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.lenient
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageRequest
@@ -836,6 +838,72 @@ class PaymentServiceTest {
         assertEquals(PaymentStatus.CANCELLED, payment.status)
         assertEquals(ParticipationStatus.REFUNDED, participation.status)
         assertEquals(refundedAt, participation.refundedAt)
+        verify(refundRequestSyncService).markCompleted(participation, refundedAt)
+    }
+
+    @Test
+    fun `사용자 요청 환불은 사장님 승인 후 부분 환불로 완료 처리한다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.FAILED)
+        val order = createPaymentOrder(user = user, groupBuy = groupBuy, quantity = 2).apply {
+            approve(LocalDateTime.now().minusMinutes(5))
+        }
+        val payment = Payment(
+            paymentOrder = order,
+            pgPaymentId = "portone-payment-id",
+            orderId = order.orderId,
+            amount = order.totalAmount,
+            method = "CARD",
+            approvedAt = order.approvedAt!!,
+        )
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 2,
+            productAmount = 12_000,
+            feeAmount = 0,
+            totalAmount = 12_000,
+            status = ParticipationStatus.REFUND_PENDING,
+            cancelReason = ParticipationCancelReason.TIME_UNAVAILABLE,
+            cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 0),
+            approvedRefundAmount = 9_000,
+            ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED,
+        ).apply { id = 92L }
+        val refundedAt = LocalDateTime.of(2026, 5, 18, 11, 30)
+        val pageable = pendingRefundPageable()
+        stubTransaction()
+        `when`(
+            participationRepository.findByStatusOrderByCancelledAtAscCreatedAtAsc(
+                ParticipationStatus.REFUND_PENDING,
+                pageable
+            )
+        ).thenReturn(listOf(participation))
+        `when`(participationRepository.findByIdForUpdate(92L)).thenReturn(Optional.of(participation))
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyIdAndStatusForUpdate(1L, 10L, PaymentOrderStatus.APPROVED)).thenReturn(order)
+        `when`(paymentOrderRepository.findByOrderIdForUpdate(order.orderId)).thenReturn(order)
+        `when`(paymentRepository.findByPaymentOrderOrderId(order.orderId)).thenReturn(payment)
+        `when`(portOnePaymentPort.cancelPayment("portone-payment-id", "MINIMUM_QUANTITY_NOT_MET", 9_000))
+            .thenReturn(
+                PortOnePaymentResult(
+                    paymentId = "portone-payment-id",
+                    status = "PARTIAL_CANCELLED",
+                    totalAmount = 9_000,
+                    method = "CARD",
+                    paidAt = order.approvedAt,
+                    cancelledAt = refundedAt,
+                )
+            )
+
+        val result = service.processPendingRefunds()
+
+        assertEquals(1, result.targetCount)
+        assertEquals(1, result.successCount)
+        assertEquals(0, result.failedCount)
+        assertEquals(PaymentOrderStatus.PARTIAL_CANCELLED, order.status)
+        assertEquals(PaymentStatus.PARTIAL_CANCELLED, payment.status)
+        assertEquals(ParticipationStatus.REFUNDED, participation.status)
+        assertEquals(refundedAt, participation.refundedAt)
+        verify(refundRequestSyncService).markCompleted(participation, refundedAt)
     }
 
     @Test
@@ -900,6 +968,43 @@ class PaymentServiceTest {
         assertEquals(PaymentStatus.APPROVED, payment.status)
         assertEquals(ParticipationStatus.REFUND_PENDING, participation.status)
         assertEquals(null, participation.refundedAt)
+    }
+
+    @Test
+    fun `사용자 요청 환불은 사장님 승인 전이면 처리 대상에서 제외한다`() {
+        val user = UserFixture.createKakaoUser(id = 1L)
+        val groupBuy = createGroupBuy(status = GroupBuyStatus.FAILED)
+        val participation = Participation(
+            user = user,
+            groupBuy = groupBuy,
+            quantity = 1,
+            productAmount = 6_000,
+            feeAmount = 0,
+            totalAmount = 6_000,
+            status = ParticipationStatus.REFUND_PENDING,
+            cancelReason = ParticipationCancelReason.TIME_UNAVAILABLE,
+            cancelledAt = LocalDateTime.of(2026, 5, 18, 10, 0),
+            ownerRefundReviewStatus = OwnerRefundReviewStatus.PENDING,
+        ).apply { id = 93L }
+        val pageable = pendingRefundPageable()
+        stubTransaction()
+        `when`(
+            participationRepository.findByStatusOrderByCancelledAtAscCreatedAtAsc(
+                ParticipationStatus.REFUND_PENDING,
+                pageable
+            )
+        ).thenReturn(listOf(participation))
+        `when`(participationRepository.findByIdForUpdate(93L)).thenReturn(Optional.of(participation))
+
+        val result = service.processPendingRefunds()
+
+        assertEquals(1, result.targetCount)
+        assertEquals(0, result.successCount)
+        assertEquals(1, result.failedCount)
+        assertEquals(ParticipationStatus.REFUND_PENDING, participation.status)
+        assertEquals(null, participation.refundedAt)
+        verifyNoInteractions(portOnePaymentPort)
+        verifyNoInteractions(refundRequestSyncService)
     }
 
     @Test
