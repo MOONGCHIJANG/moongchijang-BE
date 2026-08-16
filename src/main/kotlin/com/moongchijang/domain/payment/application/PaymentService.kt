@@ -30,6 +30,7 @@ import com.moongchijang.domain.payment.domain.entity.PaymentOrder
 import com.moongchijang.domain.payment.domain.entity.PaymentOrderStatus
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentRepository
+import com.moongchijang.domain.payment.experiment.PaymentExperimentRuntime
 import com.moongchijang.domain.refund.application.RefundRequestSyncService
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
 import com.moongchijang.domain.user.domain.repository.UserRepository
@@ -1132,10 +1133,36 @@ class PaymentService(
         TransactionTemplate(transactionManager)
 
     private fun <T> withGroupBuyLock(groupBuyId: Long, action: () -> T): T {
+        val experimentOverrides = PaymentExperimentRuntime.overrides
+
+        if (experimentOverrides.enabled && !experimentOverrides.distributedLockEnabled) {
+            log.warn(
+                "[PaymentService][Experiment] distributed lock bypassed: scenario={}, groupBuyId={}",
+                experimentOverrides.scenarioName,
+                groupBuyId,
+            )
+            return action()
+        }
+
         val key = redisLockUtil.lockKey(groupBuyId)
-        log.debug("[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}", groupBuyId, key)
-        val token = redisLockUtil.tryLockOrThrow(key, waitMs = LOCK_WAIT_MS, leaseMs = LOCK_LEASE_MS)
-        log.debug("[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}", groupBuyId, key)
+        val leaseMs = experimentOverrides.lockLeaseMs ?: LOCK_LEASE_MS
+
+        log.debug(
+            "[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}, leaseMs={}",
+            groupBuyId,
+            key,
+            leaseMs,
+        )
+
+        val token = redisLockUtil.tryLockOrThrow(key, waitMs = LOCK_WAIT_MS, leaseMs = leaseMs)
+
+        log.debug(
+            "[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}, leaseMs={}",
+            groupBuyId,
+            key,
+            leaseMs,
+        )
+
         try {
             return action()
         } finally {
