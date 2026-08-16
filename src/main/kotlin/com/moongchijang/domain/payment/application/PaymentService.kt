@@ -622,6 +622,8 @@ class PaymentService(
 
         publishRequestNewParticipantEvent(groupBuy, participation, approvedAt)
 
+        pauseBeforeCommitForExperiment(paymentId)
+
         return PaymentApprovalResult.Success(
             ConfirmPaymentResponse(
                 paymentId = paymentResult.paymentId,
@@ -1187,6 +1189,27 @@ class PaymentService(
             paymentOrderRepository.findByOrderId(orderId)
         } else {
             paymentOrderRepository.findByOrderIdForUpdate(orderId)
+        }
+    }
+
+    private fun pauseBeforeCommitForExperiment(paymentId: String) {
+        val experimentOverrides = PaymentExperimentRuntime.overrides
+        if (!experimentOverrides.enabled || experimentOverrides.sleepBeforeCommitMs <= 0) {
+            return
+        }
+
+        log.warn(
+            "[PaymentService][Experiment] pause before commit: scenario={}, paymentId={}, sleepMs={}",
+            experimentOverrides.scenarioName,
+            paymentId,
+            experimentOverrides.sleepBeforeCommitMs,
+        )
+
+        try {
+            TimeUnit.MILLISECONDS.sleep(experimentOverrides.sleepBeforeCommitMs)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw IllegalStateException("Experiment sleep interrupted: paymentId=$paymentId", e)
         }
     }
 
