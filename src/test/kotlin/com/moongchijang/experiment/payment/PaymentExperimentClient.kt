@@ -13,8 +13,8 @@ class PaymentExperimentClient(
         paymentId: String,
         amount: Int,
         workerIndex: Int,
+        startedAtNanos: Long,
     ): PaymentExperimentResult {
-        val startedAt = System.nanoTime()
         val connection = createJsonPostConnection(
             url = "http://localhost:$port/api/v1/payments/portone/complete",
             accessToken = accessToken,
@@ -37,7 +37,7 @@ class PaymentExperimentClient(
             PaymentExperimentResult(
                 workerIndex = workerIndex,
                 targetPort = port,
-                startedAtNanos = startedAt,
+                startedAtNanos = startedAtNanos,
                 finishedAtNanos = System.nanoTime(),
                 success = statusCode in 200..299,
                 statusCode = statusCode,
@@ -49,7 +49,7 @@ class PaymentExperimentClient(
             PaymentExperimentResult(
                 workerIndex = workerIndex,
                 targetPort = port,
-                startedAtNanos = startedAt,
+                startedAtNanos = startedAtNanos,
                 finishedAtNanos = System.nanoTime(),
                 success = false,
                 statusCode = null,
@@ -66,9 +66,9 @@ class PaymentExperimentClient(
         port: Int,
         paymentId: String,
         workerIndex: Int,
+        startedAtNanos: Long,
         rawPayload: String = defaultWebhookPayload(paymentId),
     ): PaymentExperimentResult {
-        val startedAt = System.nanoTime()
         val connection = createJsonPostConnection(
             url = "http://localhost:$port/api/v1/payments/portone/webhook",
             accessToken = null,
@@ -84,7 +84,7 @@ class PaymentExperimentClient(
             PaymentExperimentResult(
                 workerIndex = workerIndex,
                 targetPort = port,
-                startedAtNanos = startedAt,
+                startedAtNanos = startedAtNanos,
                 finishedAtNanos = System.nanoTime(),
                 success = statusCode in 200..299,
                 statusCode = statusCode,
@@ -96,7 +96,7 @@ class PaymentExperimentClient(
             PaymentExperimentResult(
                 workerIndex = workerIndex,
                 targetPort = port,
-                startedAtNanos = startedAt,
+                startedAtNanos = startedAtNanos,
                 finishedAtNanos = System.nanoTime(),
                 success = false,
                 statusCode = null,

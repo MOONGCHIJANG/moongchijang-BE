@@ -12,5 +12,5 @@ data class PaymentExperimentResult(
     val paymentId: String?,
 ) {
     val elapsedNanos: Long
-        get() = startedAtNanos - finishedAtNanos
+        get() = finishedAtNanos - startedAtNanos
 }
