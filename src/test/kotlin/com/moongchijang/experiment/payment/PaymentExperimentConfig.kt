@@ -1,5 +1,7 @@
 package com.moongchijang.experiment.payment
 
+import com.moongchijang.domain.payment.experiment.PaymentExperimentOverrides
+
 data class PaymentExperimentConfig(
     val name: String,
     val requestCount: Int,
@@ -15,6 +17,18 @@ data class PaymentExperimentConfig(
         require(appPorts.isNotEmpty()) { "appPorts must not be empty." }
         require(lockLeaseMs >= 0) { "lockLeaseMs must be zero or positive." }
         require(sleepBeforeCommitMs >= 0) { "sleepBeforeCommitMs must be zero or positive." }
+    }
+
+    fun toOverrides(): PaymentExperimentOverrides {
+        return PaymentExperimentOverrides(
+            enabled = true,
+            scenarioName = name,
+            distributedLockEnabled = distributedLockEnabled,
+            dbLockEnabled = dbLockEnabled,
+            shortCircuitEnabled = shortCircuitEnabled,
+            lockLeaseMs = if (lockLeaseMs > 0L) lockLeaseMs else null,
+            sleepBeforeCommitMs = sleepBeforeCommitMs,
+        )
     }
 
     companion object {
