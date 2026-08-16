@@ -182,7 +182,7 @@ class PaymentService(
 
             if (order.status == PaymentOrderStatus.APPROVED) {
                 return transactionTemplate().execute {
-                    val approvedOrder = paymentOrderRepository.findByOrderIdForUpdate(request.paymentId)
+                    val approvedOrder = findPaymentOrderForExperiment(request.paymentId)
                         ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
                     recordPaymentAudit(
                         source = PaymentAuditSource.COMPLETE_API,
@@ -324,7 +324,7 @@ class PaymentService(
             if (paymentResult.status == PORTONE_STATUS_PAID) {
                 val approvalResult = withGroupBuyLock(order.groupBuy.id) {
                     transactionTemplate().execute<PaymentApprovalResult> {
-                        val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId)
+                        val lockedOrder = findPaymentOrderForExperiment(paymentId)
                             ?: return@execute PaymentApprovalResult.Failure(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
                         if (lockedOrder.status != PaymentOrderStatus.APPROVED) {
                             approvePayment(
@@ -367,7 +367,7 @@ class PaymentService(
             if (paymentResult.status == PORTONE_STATUS_CANCELLED || paymentResult.status == PORTONE_STATUS_PARTIAL_CANCELLED) {
                 withGroupBuyLock(order.groupBuy.id) {
                     transactionTemplate().execute {
-                        val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                        val lockedOrder = findPaymentOrderForExperiment(paymentId) ?: return@execute
                         when (paymentResult.status) {
                             PORTONE_STATUS_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = false)
                             PORTONE_STATUS_PARTIAL_CANCELLED -> cancelPayment(lockedOrder, paymentResult, partial = true)
@@ -379,7 +379,7 @@ class PaymentService(
             }
 
             transactionTemplate().execute {
-                val lockedOrder = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+                val lockedOrder = findPaymentOrderForExperiment(paymentId) ?: return@execute
                 if (paymentResult.status == PORTONE_STATUS_FAILED && lockedOrder.status == PaymentOrderStatus.READY) {
                     val previousStatus = lockedOrder.status
                     lockedOrder.fail(clock.utcNow())
@@ -488,7 +488,7 @@ class PaymentService(
         paymentResult: PortOnePaymentResult,
         source: PaymentAuditSource,
     ): PaymentApprovalResult {
-        val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId)
+        val order = findPaymentOrderForExperiment(paymentId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
 
         if (order.status == PaymentOrderStatus.APPROVED) {
@@ -720,7 +720,7 @@ class PaymentService(
 
     private fun markOrderFailed(paymentId: String) {
         requiresNewTransactionTemplate().execute {
-            val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+            val order = findPaymentOrderForExperiment(paymentId) ?: return@execute
             if (order.status == PaymentOrderStatus.READY) {
                 val previousStatus = order.status
                 order.fail(clock.utcNow())
@@ -740,7 +740,7 @@ class PaymentService(
 
     private fun updateOrderFromPortOneStatus(paymentId: String, paymentResult: PortOnePaymentResult) {
         requiresNewTransactionTemplate().execute {
-            val order = paymentOrderRepository.findByOrderIdForUpdate(paymentId) ?: return@execute
+            val order = findPaymentOrderForExperiment(paymentId) ?: return@execute
             val previousStatus = order.status
             when (paymentResult.status) {
                 PORTONE_STATUS_CANCELLED -> order.cancel(paymentResult.cancelledAt ?: clock.utcNow())
@@ -885,7 +885,7 @@ class PaymentService(
         validateParticipationOwner(participation, target.userId)
         validateParticipationCancelable(participation)
 
-        val order = paymentOrderRepository.findByOrderIdForUpdate(target.orderId)
+        val order = findPaymentOrderForExperiment(target.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
         validateApprovedPaymentOrder(order)
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
@@ -1003,7 +1003,7 @@ class PaymentService(
             return
         }
 
-        val order = paymentOrderRepository.findByOrderIdForUpdate(target.orderId)
+        val order = findPaymentOrderForExperiment(target.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
         val payment = paymentRepository.findByPaymentOrderOrderId(order.orderId)
             ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
@@ -1172,6 +1172,21 @@ class PaymentService(
             } else {
                 log.debug("[PaymentService] 공구 락 해제 성공: groupBuyId={}, key={}", groupBuyId, key)
             }
+        }
+    }
+
+    private fun findPaymentOrderForExperiment(orderId: String): PaymentOrder? {
+        val experimentOverrides = PaymentExperimentRuntime.overrides
+
+        return if (experimentOverrides.enabled && !experimentOverrides.dbLockEnabled) {
+            log.warn(
+                "[PaymentService][Experiment] payment order DB lock bypassed: scenario={}, orderId={}",
+                experimentOverrides.scenarioName,
+                orderId,
+            )
+            paymentOrderRepository.findByOrderId(orderId)
+        } else {
+            paymentOrderRepository.findByOrderIdForUpdate(orderId)
         }
     }
 
