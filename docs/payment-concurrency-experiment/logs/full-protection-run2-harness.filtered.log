@@ -1,0 +1,29 @@
+    [PaymentConcurrencyExperiment] start config=full-protection requestCount=20
+    [PaymentConcurrencyExperiment] complete worker=14 port=8081 startedAt=138797391531875 paymentId=MCJ-1-dcdf533e342c434495a9
+    [PaymentConcurrencyExperiment] complete worker=17 port=8082 startedAt=138797392336833 paymentId=MCJ-1-15443d150ce54247add0
+    [PaymentConcurrencyExperiment] complete worker=11 port=8082 startedAt=138797390913125 paymentId=MCJ-1-895256a01a524ba9b4d4
+    [PaymentConcurrencyExperiment] complete worker=8 port=8081 startedAt=138797390741416 paymentId=MCJ-1-6091326e3108438692d7
+    [PaymentConcurrencyExperiment] complete worker=5 port=8082 startedAt=138797390379000 paymentId=MCJ-1-1ba4cb1ba45b46c9a49f
+    [PaymentConcurrencyExperiment] complete worker=6 port=8081 startedAt=138797390490541 paymentId=MCJ-1-82e1b3a4e24d44509110
+    [PaymentConcurrencyExperiment] complete worker=16 port=8081 startedAt=138797392089708 paymentId=MCJ-1-d5995b8862a142b4a2a4
+    [PaymentConcurrencyExperiment] complete worker=19 port=8082 startedAt=138797393085583 paymentId=MCJ-1-1409eea7e5b84af39743
+    [PaymentConcurrencyExperiment] complete worker=9 port=8082 startedAt=138797390876916 paymentId=MCJ-1-80502d087d72458796ac
+    [PaymentConcurrencyExperiment] complete worker=7 port=8082 startedAt=138797390630416 paymentId=MCJ-1-c3328a27a61549afaff6
+    [PaymentConcurrencyExperiment] complete worker=18 port=8081 startedAt=138797392852583 paymentId=MCJ-1-b54efb4219364b258c41
+    [PaymentConcurrencyExperiment] complete worker=12 port=8081 startedAt=138797391076500 paymentId=MCJ-1-703d5755d00644ea9450
+    [PaymentConcurrencyExperiment] complete worker=0 port=8081 startedAt=138797390179125 paymentId=MCJ-1-0440613c64f54795968b
+    [PaymentConcurrencyExperiment] complete worker=3 port=8082 startedAt=138797390244208 paymentId=MCJ-1-e361b9bf570a455b8b89
+    [PaymentConcurrencyExperiment] complete worker=10 port=8081 startedAt=138797390892041 paymentId=MCJ-1-5f7fdfee867246869025
+    [PaymentConcurrencyExperiment] complete worker=4 port=8081 startedAt=138797390318125 paymentId=MCJ-1-73a06d4a43234c3b8641
+    [PaymentConcurrencyExperiment] complete worker=13 port=8082 startedAt=138797391372291 paymentId=MCJ-1-79087afb5faf4e28a64e
+    [PaymentConcurrencyExperiment] complete worker=2 port=8081 startedAt=138797390223041 paymentId=MCJ-1-352266793bdb4775a87a
+    [PaymentConcurrencyExperiment] complete worker=1 port=8082 startedAt=138797390195958 paymentId=MCJ-1-d1cb8ed1c99349dcb67e
+    [PaymentConcurrencyExperiment] complete worker=15 port=8082 startedAt=138797391788375 paymentId=MCJ-1-eba46a35e3b949b6a1a8
+    ========== PAYMENT EXPERIMENT SUMMARY ==========
+    config=full-protection
+    total=20
+    success=14
+    failure=6
+    statusSummary={200=14, 409=6}
+    slowest worker=11 port=8082 elapsedMs=1336.22925
+    ===============================================
