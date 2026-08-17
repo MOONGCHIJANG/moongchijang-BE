@@ -1,7 +1,5 @@
 package com.moongchijang.experiment.payment
 
-import com.moongchijang.domain.payment.experiment.PaymentExperimentOverrides
-
 data class PaymentExperimentConfig(
     val name: String,
     val requestCount: Int,

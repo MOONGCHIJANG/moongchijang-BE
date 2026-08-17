@@ -1,4 +1,4 @@
-package com.moongchijang.domain.payment.experiment
+package com.moongchijang.experiment.payment
 
 data class PaymentExperimentOverrides(
     val enabled: Boolean = false,
@@ -13,5 +13,4 @@ data class PaymentExperimentOverrides(
     val sleepBeforeCommitMs: Long = 0,
     val fakePgEnabled: Boolean = false,
     val fakePgStatus: String = "PAID",
-    val fakePgMethod: String? = "CARD",
 )
