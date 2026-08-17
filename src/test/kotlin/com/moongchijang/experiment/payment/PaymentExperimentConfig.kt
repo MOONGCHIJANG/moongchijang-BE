@@ -124,5 +124,21 @@ data class PaymentExperimentConfig(
             fakePgEnabled = true,
             fakePgStatus = "PAID",
         )
+
+        val MANUAL_OVERRIDE_DRIVEN = PaymentExperimentConfig(
+            name = "manual-override-driven",
+            requestCount = 200,
+            appPorts = listOf(8081, 8082),
+            distributedLockEnabled = true,
+            dbLockEnabled = true,
+            shortCircuitEnabled = true,
+            lockWaitMs = 0,
+            lockLeaseMs = 0,
+            lockRetryCount = 0,
+            lockRetryDelayMs = 0,
+            sleepBeforeCommitMs = 0,
+            fakePgEnabled = true,
+            fakePgStatus = "PAID",
+        )
     }
 }
