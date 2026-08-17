@@ -77,6 +77,7 @@
 | `full-protection-100` | 100 | 18 | 82 | 18 | 18 | 현재 baseline 결과 |
 | `full-protection-100-tuned-1` | 100 | 23 | 77 | 23 | 23 | `lockLeaseMs = 120000` |
 | `full-protection-100-tuned-2` | 100 | 22 | 78 | 22 | 22 | `lockLeaseMs = 30000` |
+| `full-protection-100-tuned-3` | 100 | 50 | 42 | 50 | 50 | `lockLeaseMs = 120000`, `lockWaitMs = 1500` |
 
 ### 6.1 해석
 
@@ -86,6 +87,8 @@
 - 그래서 100건 결과는 먼저 baseline으로 남겨 두고, 이후 조정 실험은 별도 시나리오로 나눠 기록하는 방향으로 잡았다.
 - `full-protection-100-tuned-1`, `full-protection-100-tuned-2`를 추가로 돌려 보니 둘 다 baseline `18`보다는 높은 값이 나왔다.
 - 다만 `23`, `22` 수준이라 큰 폭의 개선이라기보다는, lease 값을 바꾸면 승인 완료 수가 소폭 흔들리는 정도로 보는 편이 맞겠다고 판단했다.
+- 이후 `full-protection-100-tuned-3`에서 `lockWaitMs`까지 같이 조정해 보니 승인 완료 수가 `50`까지 올라갔고, 공구 상태도 `ACHIEVED`로 전이됐다.
+- 이 결과를 보고 나서는 lease 시간 자체보다 "락을 얼마 동안 기다리게 둘 것인가"가 더 큰 변수일 수 있겠다고 정리했다.
 
 ### 6.2 100건 튜닝 실험 메모
 
@@ -93,10 +96,13 @@
 | --- | --- | ---: | ---: | ---: | --- |
 | `full-protection-100-tuned-1` | `lockLeaseMs = 120000` | 23 | 77 | 23 | baseline보다 소폭 상승 |
 | `full-protection-100-tuned-2` | `lockLeaseMs = 30000` | 22 | 78 | 22 | `tuned-1`과 큰 차이는 없음 |
+| `full-protection-100-tuned-3` | `lockLeaseMs = 120000`, `lockWaitMs = 1500` | 50 | 42 | 50 | 목표 수량 달성, `ACHIEVED` 전이 확인 |
 
 - 두 tuned 시나리오 모두 `APPROVED = participation = current_quantity`는 맞았다.
 - 그래서 lease 조정은 "정합성 보완"보다는 "처리량 미세 조정"에 가까운 변수라고 정리했다.
 - baseline `18`, tuned `22~23`을 같이 두고 보면, 지금 병목은 lease 값 하나보다 락 경쟁 자체에 더 가깝다고 해석하는 편이 자연스럽다.
+- `tuned-3`까지 같이 놓고 보니, lease 값만 바꾸는 것보다 lock wait 시간을 늘려 락 획득 실패를 줄이는 쪽이 더 직접적인 개선이었다.
+- 다만 `FAILED 8`, `READY 42`가 남아 있어서 여기서 끝난 건 아니고, 다음 단계에서는 실패 사유와 재시도 정책까지 같이 봐야겠다고 정리했다.
 
 ## 7. 현재까지의 핵심 관찰
 
@@ -104,7 +110,9 @@
 2. 20건과 50건에서는 `full-protection`이 가장 많은 요청을 끝까지 반영했다.
 3. `lock-released-before-commit` 실험으로, 락을 쓰더라도 커밋 전에 락이 풀리면 보호력이 약해질 수 있음을 직접 확인했다.
 4. 100건 구간에서는 `full-protection`도 기대만큼 높은 승인 수를 만들지 못했고, 이 지점부터는 튜닝 실험이 필요하다고 판단했다.
-5. lease 값을 조정한 `tuned-1`, `tuned-2`는 baseline보다 높은 값이 나왔지만, 개선 폭이 크지 않아 다음 단계에서는 실패 원인 자체를 줄이는 방향을 더 봐야겠다고 판단했다.
+5. lease 값만 조정한 `tuned-1`, `tuned-2`는 baseline보다 높은 값이 나왔지만, 개선 폭은 크지 않았다.
+6. `lockWaitMs`까지 같이 조정한 `tuned-3`에서는 승인 완료 수가 `50`까지 올라가고 공구도 `ACHIEVED`로 전이됐다.
+7. 지금까지 결과만 보면, 이 실험에서는 DB 락보다 먼저 분산락 대기 전략이 실제 처리량에 더 큰 영향을 줬다고 보는 편이 자연스럽다.
 
 ## 8. 로그 관리 원칙
 
@@ -123,6 +131,6 @@
 
 ## 9. 다음 단계 메모
 
-- `full-protection-100-tuned-1`, `full-protection-100-tuned-2`의 실패 사유를 로그로 다시 확인한다.
-- 실패 사유가 계속 락 획득 실패에 몰려 있다면, 다음 단계는 lease 조정보다 락 획득 전략이나 재시도 정책을 보는 편이 맞는지 확인한다.
+- `full-protection-100-tuned-3`의 실패 사유를 먼저 다시 확인한다.
+- 실패 사유가 여전히 락 획득 실패 위주라면, 다음 단계는 lease 조정보다 락 획득 전략이나 재시도 정책을 보는 편이 맞는지 확인한다.
 - 기존 baseline 결과는 유지하고, 이후 실험도 `full-protection-100-tuned-*` 같은 새 이름으로 기록한다.
