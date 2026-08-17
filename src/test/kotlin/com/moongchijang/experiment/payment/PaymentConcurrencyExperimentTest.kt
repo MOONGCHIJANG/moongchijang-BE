@@ -11,7 +11,11 @@ class PaymentConcurrencyExperimentTest {
     @Disabled("로컬 MySQL/Redis, 앱 2개, override 주입 및 reset.sql 실행 후 수동 실행")
     @Test
     fun `결제 완료 동시성 실험을 수동 실행한다`() {
-        val config = PaymentExperimentConfig.FULL_PROTECTION.copy(requestCount = 20)
+        val config = PaymentExperimentConfig.FULL_PROTECTION.copy(
+            requestCount = 100,
+            lockWaitMs = 1_500,
+            lockLeaseMs = 120_000,
+        )
         val groupBuyId = 1L
 
         val requests = experimentClient.preparePaymentRequests(

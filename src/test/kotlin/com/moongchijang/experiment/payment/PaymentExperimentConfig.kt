@@ -9,6 +9,7 @@ data class PaymentExperimentConfig(
     val distributedLockEnabled: Boolean,
     val dbLockEnabled: Boolean,
     val shortCircuitEnabled: Boolean,
+    val lockWaitMs: Long,
     val lockLeaseMs: Long,
     val sleepBeforeCommitMs: Long,
     val fakePgEnabled: Boolean,
@@ -17,6 +18,7 @@ data class PaymentExperimentConfig(
     init {
         require(requestCount > 0) { "requestCount must be positive." }
         require(appPorts.isNotEmpty()) { "appPorts must not be empty." }
+        require(lockWaitMs >= 0) { "lockWaitMs must be zero or positive." }
         require(lockLeaseMs >= 0) { "lockLeaseMs must be zero or positive." }
         require(sleepBeforeCommitMs >= 0) { "sleepBeforeCommitMs must be zero or positive." }
     }
@@ -28,6 +30,7 @@ data class PaymentExperimentConfig(
             distributedLockEnabled = distributedLockEnabled,
             dbLockEnabled = dbLockEnabled,
             shortCircuitEnabled = shortCircuitEnabled,
+            lockWaitMs = if (lockWaitMs > 0L) lockWaitMs else null,
             lockLeaseMs = if (lockLeaseMs > 0L) lockLeaseMs else null,
             sleepBeforeCommitMs = sleepBeforeCommitMs,
             fakePgEnabled = fakePgEnabled,
@@ -43,6 +46,7 @@ data class PaymentExperimentConfig(
             distributedLockEnabled = true,
             dbLockEnabled = true,
             shortCircuitEnabled = true,
+            lockWaitMs = 500,
             lockLeaseMs = 55_000,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
@@ -56,6 +60,7 @@ data class PaymentExperimentConfig(
             distributedLockEnabled = true,
             dbLockEnabled = false,
             shortCircuitEnabled = true,
+            lockWaitMs = 500,
             lockLeaseMs = 55_000,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
@@ -69,6 +74,7 @@ data class PaymentExperimentConfig(
             distributedLockEnabled = false,
             dbLockEnabled = false,
             shortCircuitEnabled = false,
+            lockWaitMs = 500,
             lockLeaseMs = 0,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
@@ -82,6 +88,7 @@ data class PaymentExperimentConfig(
             distributedLockEnabled = false,
             dbLockEnabled = false,
             shortCircuitEnabled = false,
+            lockWaitMs = 500,
             lockLeaseMs = 0,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
@@ -95,6 +102,7 @@ data class PaymentExperimentConfig(
             distributedLockEnabled = true,
             dbLockEnabled = true,
             shortCircuitEnabled = true,
+            lockWaitMs = 500,
             lockLeaseMs = 100,
             sleepBeforeCommitMs = 500,
             fakePgEnabled = true,

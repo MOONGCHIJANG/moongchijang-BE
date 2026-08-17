@@ -1167,21 +1167,24 @@ class PaymentService(
         }
 
         val key = redisLockUtil.lockKey(groupBuyId)
+        val waitMs = experimentOverrides.lockWaitMs ?: LOCK_WAIT_MS
         val leaseMs = experimentOverrides.lockLeaseMs ?: LOCK_LEASE_MS
 
         log.debug(
-            "[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}, leaseMs={}",
+            "[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}, waitMs={}, leaseMs={}",
             groupBuyId,
             key,
+            waitMs,
             leaseMs,
         )
 
-        val token = redisLockUtil.tryLockOrThrow(key, waitMs = LOCK_WAIT_MS, leaseMs = leaseMs)
+        val token = redisLockUtil.tryLockOrThrow(key, waitMs = waitMs, leaseMs = leaseMs)
 
         log.debug(
-            "[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}, leaseMs={}",
+            "[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}, waitMs={}, leaseMs={}",
             groupBuyId,
             key,
+            waitMs,
             leaseMs,
         )
 

@@ -6,6 +6,7 @@ data class PaymentExperimentOverrides(
     val distributedLockEnabled: Boolean = true,
     val dbLockEnabled: Boolean = true,
     val shortCircuitEnabled: Boolean = true,
+    val lockWaitMs: Long? = null,
     val lockLeaseMs: Long? = null,
     val sleepBeforeCommitMs: Long = 0,
     val fakePgEnabled: Boolean = false,
