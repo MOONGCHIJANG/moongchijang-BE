@@ -103,7 +103,7 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         UPDATE GroupBuy gb
         SET gb.currentQuantity = gb.currentQuantity + :quantity
         WHERE gb.id = :groupBuyId
-        AND gb.status = :status
+        AND gb.status IN :statuses
         AND gb.deadline > CURRENT_TIMESTAMP
         AND (gb.maxQuantity - gb.currentQuantity) >= :quantity
         """
@@ -111,7 +111,10 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
     fun increaseCurrentQuantityIfAvailable(
         @Param("groupBuyId") groupBuyId: Long,
         @Param("quantity") quantity: Int,
-        @Param("status") status: GroupBuyStatus = GroupBuyStatus.IN_PROGRESS
+        @Param("statuses") statuses: Collection<GroupBuyStatus> = listOf(
+            GroupBuyStatus.IN_PROGRESS,
+            GroupBuyStatus.ACHIEVED
+        )
     ): Int
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
