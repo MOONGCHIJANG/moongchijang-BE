@@ -71,6 +71,7 @@ class PaymentService(
     private val refundRequestSyncService: RefundRequestSyncService,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     private val paymentMetricsRecorder: PaymentMetricsRecorder,
+    private val paymentCompletionLockProperties: PaymentCompletionLockProperties,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -1167,10 +1168,18 @@ class PaymentService(
         }
 
         val key = redisLockUtil.lockKey(groupBuyId)
-        val waitMs = experimentOverrides.lockWaitMs ?: LOCK_WAIT_MS
-        val leaseMs = experimentOverrides.lockLeaseMs ?: LOCK_LEASE_MS
-        val retryCount = experimentOverrides.lockRetryCount
-        val retryDelayMs = experimentOverrides.lockRetryDelayMs
+        val waitMs = experimentOverrides.lockWaitMs ?: paymentCompletionLockProperties.waitMs
+        val leaseMs = experimentOverrides.lockLeaseMs ?: paymentCompletionLockProperties.leaseMs
+        val retryCount = if (experimentOverrides.enabled) {
+            experimentOverrides.lockRetryCount
+        } else {
+            paymentCompletionLockProperties.retryCount
+        }
+        val retryDelayMs = if (experimentOverrides.enabled) {
+            experimentOverrides.lockRetryDelayMs
+        } else {
+            paymentCompletionLockProperties.retryDelayMs
+        }
 
         log.debug(
             "[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}, waitMs={}, leaseMs={}, retryCount={}, retryDelayMs={}",
@@ -1363,8 +1372,6 @@ class PaymentService(
         TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos)
 
     companion object {
-        private const val LOCK_WAIT_MS = 500L
-        private const val LOCK_LEASE_MS = 10_000L
         private const val PENDING_REFUND_BATCH_SIZE = 100
         private const val PENDING_REFUND_CANCEL_REASON = "MINIMUM_QUANTITY_NOT_MET"
         private const val RESULT_SUCCESS = "success"
