@@ -1,7 +1,7 @@
 package com.moongchijang.experiment.payment
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
 import java.net.HttpURLConnection
 import java.net.URI
 
@@ -9,7 +9,7 @@ class PaymentExperimentClient(
     private val connectTimeoutMs: Int = 3_000,
     private val readTimeoutMs: Int = 10_000,
 ) {
-    private val objectMapper = jacksonObjectMapper()
+    private val objectMapper = ObjectMapper()
 
     fun completePayment(
         port: Int,
@@ -98,7 +98,10 @@ class PaymentExperimentClient(
             }
 
             val response: ExperimentApiResponse<PaymentExperimentPreparationResponseDto> =
-                objectMapper.readValue(responseBody)
+                objectMapper.readValue(
+                    responseBody,
+                    object : TypeReference<ExperimentApiResponse<PaymentExperimentPreparationResponseDto>>() {},
+                )
 
             response.data.requests.map {
                 PreparedPaymentRequest(
