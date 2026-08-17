@@ -1169,33 +1169,64 @@ class PaymentService(
         val key = redisLockUtil.lockKey(groupBuyId)
         val waitMs = experimentOverrides.lockWaitMs ?: LOCK_WAIT_MS
         val leaseMs = experimentOverrides.lockLeaseMs ?: LOCK_LEASE_MS
+        val retryCount = experimentOverrides.lockRetryCount
+        val retryDelayMs = experimentOverrides.lockRetryDelayMs
 
         log.debug(
-            "[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}, waitMs={}, leaseMs={}",
+            "[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}, waitMs={}, leaseMs={}, retryCount={}, retryDelayMs={}",
             groupBuyId,
             key,
             waitMs,
             leaseMs,
+            retryCount,
+            retryDelayMs,
         )
 
-        val token = redisLockUtil.tryLockOrThrow(key, waitMs = waitMs, leaseMs = leaseMs)
+        var attempt = 0
+        while (true) {
+            try {
+                val token = redisLockUtil.tryLockOrThrow(key, waitMs = waitMs, leaseMs = leaseMs)
 
-        log.debug(
-            "[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}, waitMs={}, leaseMs={}",
-            groupBuyId,
-            key,
-            waitMs,
-            leaseMs,
-        )
+                log.debug(
+                    "[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}, waitMs={}, leaseMs={}, attempt={}",
+                    groupBuyId,
+                    key,
+                    waitMs,
+                    leaseMs,
+                    attempt + 1,
+                )
 
-        try {
-            return action()
-        } finally {
-            val unlocked = redisLockUtil.unlock(key, token)
-            if (!unlocked) {
-                log.warn("[PaymentService] 공구 락 해제 실패: groupBuyId={}, key={}", groupBuyId, key)
-            } else {
-                log.debug("[PaymentService] 공구 락 해제 성공: groupBuyId={}, key={}", groupBuyId, key)
+                try {
+                    return action()
+                } finally {
+                    val unlocked = redisLockUtil.unlock(key, token)
+                    if (!unlocked) {
+                        log.warn("[PaymentService] 공구 락 해제 실패: groupBuyId={}, key={}", groupBuyId, key)
+                    } else {
+                        log.debug("[PaymentService] 공구 락 해제 성공: groupBuyId={}, key={}", groupBuyId, key)
+                    }
+                }
+            } catch (e: CustomException) {
+                if (e.errorCode != ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED || attempt >= retryCount) {
+                    throw e
+                }
+
+                attempt++
+                log.warn(
+                    "[PaymentService][Experiment] 공구 락 재시도 대기: scenario={}, groupBuyId={}, attempt={}, retryCount={}, retryDelayMs={}",
+                    experimentOverrides.scenarioName,
+                    groupBuyId,
+                    attempt,
+                    retryCount,
+                    retryDelayMs,
+                )
+
+                try {
+                    TimeUnit.MILLISECONDS.sleep(retryDelayMs)
+                } catch (ie: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    throw CustomException(ErrorCode.GROUPBUY_LOCK_INTERRUPTED)
+                }
             }
         }
     }

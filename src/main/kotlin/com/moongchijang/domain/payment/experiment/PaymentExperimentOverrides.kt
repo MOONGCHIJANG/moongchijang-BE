@@ -8,6 +8,8 @@ data class PaymentExperimentOverrides(
     val shortCircuitEnabled: Boolean = true,
     val lockWaitMs: Long? = null,
     val lockLeaseMs: Long? = null,
+    val lockRetryCount: Int = 0,
+    val lockRetryDelayMs: Long = 0,
     val sleepBeforeCommitMs: Long = 0,
     val fakePgEnabled: Boolean = false,
     val fakePgStatus: String = "PAID",

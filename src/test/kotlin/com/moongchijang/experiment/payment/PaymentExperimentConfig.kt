@@ -11,6 +11,8 @@ data class PaymentExperimentConfig(
     val shortCircuitEnabled: Boolean,
     val lockWaitMs: Long,
     val lockLeaseMs: Long,
+    val lockRetryCount: Int,
+    val lockRetryDelayMs: Long,
     val sleepBeforeCommitMs: Long,
     val fakePgEnabled: Boolean,
     val fakePgStatus: String,
@@ -20,6 +22,8 @@ data class PaymentExperimentConfig(
         require(appPorts.isNotEmpty()) { "appPorts must not be empty." }
         require(lockWaitMs >= 0) { "lockWaitMs must be zero or positive." }
         require(lockLeaseMs >= 0) { "lockLeaseMs must be zero or positive." }
+        require(lockRetryCount >= 0) { "lockRetryCount must be zero or positive." }
+        require(lockRetryDelayMs >= 0) { "lockRetryDelayMs must be zero or positive." }
         require(sleepBeforeCommitMs >= 0) { "sleepBeforeCommitMs must be zero or positive." }
     }
 
@@ -32,6 +36,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = shortCircuitEnabled,
             lockWaitMs = if (lockWaitMs > 0L) lockWaitMs else null,
             lockLeaseMs = if (lockLeaseMs > 0L) lockLeaseMs else null,
+            lockRetryCount = lockRetryCount,
+            lockRetryDelayMs = lockRetryDelayMs,
             sleepBeforeCommitMs = sleepBeforeCommitMs,
             fakePgEnabled = fakePgEnabled,
             fakePgStatus = fakePgStatus,
@@ -48,6 +54,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = true,
             lockWaitMs = 500,
             lockLeaseMs = 55_000,
+            lockRetryCount = 0,
+            lockRetryDelayMs = 0,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
             fakePgStatus = "PAID",
@@ -62,6 +70,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = true,
             lockWaitMs = 500,
             lockLeaseMs = 55_000,
+            lockRetryCount = 0,
+            lockRetryDelayMs = 0,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
             fakePgStatus = "PAID",
@@ -76,6 +86,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = false,
             lockWaitMs = 500,
             lockLeaseMs = 0,
+            lockRetryCount = 0,
+            lockRetryDelayMs = 0,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
             fakePgStatus = "PAID",
@@ -90,6 +102,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = false,
             lockWaitMs = 500,
             lockLeaseMs = 0,
+            lockRetryCount = 0,
+            lockRetryDelayMs = 0,
             sleepBeforeCommitMs = 0,
             fakePgEnabled = true,
             fakePgStatus = "PAID",
@@ -104,6 +118,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = true,
             lockWaitMs = 500,
             lockLeaseMs = 100,
+            lockRetryCount = 0,
+            lockRetryDelayMs = 0,
             sleepBeforeCommitMs = 500,
             fakePgEnabled = true,
             fakePgStatus = "PAID",
