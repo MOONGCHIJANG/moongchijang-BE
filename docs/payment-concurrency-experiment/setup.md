@@ -213,6 +213,8 @@ cd ..
 
 - 시드 SQL: `docs/payment-concurrency-experiment/seed.sql`
 - 초기화 SQL: `docs/payment-concurrency-experiment/reset.sql`
+- 결과 요약: `docs/payment-concurrency-experiment/results.md`
+- 로그 보관 폴더: `docs/payment-concurrency-experiment/logs`
 
 ## 6.1 빈 로컬 DB에서 실험용 사용자 1명 만들기
 
