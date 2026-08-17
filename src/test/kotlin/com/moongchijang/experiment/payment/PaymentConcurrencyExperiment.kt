@@ -11,12 +11,10 @@ class PaymentConcurrencyExperiment(
 ) {
     fun runCompletePaymentExperiment(
         config: PaymentExperimentConfig,
-        accessToken: String,
-        paymentIds: List<String>,
-        amount: Int,
+        requests: List<PreparedPaymentRequest>,
     ): List<PaymentExperimentResult> {
-        require(paymentIds.size == config.requestCount) {
-            "paymentIds size must match requestCount. paymentIds=${paymentIds.size}, requestCount=${config.requestCount}"
+        require(requests.size == config.requestCount) {
+            "requests size must match requestCount. requests=${requests.size}, requestCount=${config.requestCount}"
         }
 
         val startLatch = CountDownLatch(1)
@@ -26,9 +24,7 @@ class PaymentConcurrencyExperiment(
         return try {
             val futures = buildCompletePaymentFutures(
                 config = config,
-                accessToken = accessToken,
-                paymentIds = paymentIds,
-                amount = amount,
+                requests = requests,
                 startLatch = startLatch,
                 doneLatch = doneLatch,
                 executor = executor,
@@ -93,28 +89,26 @@ class PaymentConcurrencyExperiment(
 
     private fun buildCompletePaymentFutures(
         config: PaymentExperimentConfig,
-        accessToken: String,
-        paymentIds: List<String>,
-        amount: Int,
+        requests: List<PreparedPaymentRequest>,
         startLatch: CountDownLatch,
         doneLatch: CountDownLatch,
         executor: ExecutorService
     ): List<Future<PaymentExperimentResult>> {
-        return paymentIds.mapIndexed { workerIndex, paymentId ->
+        return requests.mapIndexed { workerIndex, request ->
             val targetPort = resolveTargetPort(config.appPorts, workerIndex)
             executor.submit(
                 Callable {
                     startLatch.await()
                     val requestStartedAt = System.nanoTime()
                     println(
-                        "[PaymentConcurrencyExperiment] complete worker=$workerIndex port=$targetPort startedAt=$requestStartedAt paymentId=$paymentId"
+                        "[PaymentConcurrencyExperiment] complete worker=$workerIndex port=$targetPort startedAt=$requestStartedAt paymentId=${request.paymentId}"
                     )
                     try {
                         client.completePayment(
                             port = targetPort,
-                            accessToken = accessToken,
-                            paymentId = paymentId,
-                            amount = amount,
+                            accessToken = request.accessToken,
+                            paymentId = request.paymentId,
+                            amount = request.amount,
                             workerIndex = workerIndex,
                             startedAtNanos = requestStartedAt,
                         )

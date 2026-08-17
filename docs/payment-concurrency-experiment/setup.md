@@ -199,10 +199,10 @@ cd ..
 
 실험 준비 단계에서 해야 할 일:
 
-1. 실험용 사용자로 로그인해 access token 확보
-2. 각 사용자로 주문 생성 API 호출
-3. 응답에서 `paymentId` 수집
-4. 수집한 `paymentId` 목록을 동시성 하네스에 주입
+1. 두 앱에 override를 주입한다.
+2. `reset.sql`로 이전 실험 흔적을 지운다.
+3. 실험 준비 API로 유저/주문을 자동 생성한다.
+4. 하네스가 반환된 `accessToken + paymentId + amount` 조합으로 동시 요청을 보낸다.
 
 중요:
 
@@ -216,7 +216,7 @@ cd ..
 
 ## 6.1 빈 로컬 DB에서 실험용 사용자 1명 만들기
 
-로컬 DB가 비어 있다면, 주문 생성 전에 먼저 로그인 가능한 실험용 `BUYER` 계정 1개를 만든다.
+로컬 DB가 비어 있다면, 가장 처음 한 번은 실험용 기본 계정 1개를 만들어 두는 편이 편하다.
 
 이 프로젝트는 사용자 생성 시 아래 값을 애플리케이션 로직으로 만든다.
 
@@ -288,8 +288,8 @@ curl -X POST http://localhost:8081/api/v1/auth/email/signup \
 
 이후 실험 준비 단계에서는:
 
-- `accessToken`으로 주문 생성 API 호출
 - `user.id`를 `docs/payment-concurrency-experiment/seed.sql`의 `@experiment_user_id`에 반영
+- 이후 다중 유저/주문 준비는 실험 준비 API가 자동으로 처리한다.
 
 ## 6.2 실험 override 주입
 
@@ -328,6 +328,41 @@ curl -X DELETE http://localhost:8081/internal/experiments/payment-overrides
 curl -X DELETE http://localhost:8082/internal/experiments/payment-overrides
 ```
 
+## 6.3 유저/주문 자동 준비
+
+수동으로 여러 유저를 회원가입시키고 로그인하는 대신, 실험 준비 API가 아래를 자동으로 처리한다.
+
+- 실험용 이메일 사용자 N명 조회 또는 생성
+- 각 사용자 access token 발급
+- 각 사용자별 주문 1건 생성
+- 하네스가 바로 사용할 `accessToken + paymentId + amount` 반환
+
+엔드포인트:
+
+- `POST /internal/experiments/payment-preparation`
+
+예시:
+
+```bash
+curl -X POST http://localhost:8081/internal/experiments/payment-preparation \
+  -H "Content-Type: application/json" \
+  -d '{
+    "groupBuyId": 1,
+    "userCount": 20,
+    "quantityPerOrder": 1
+  }'
+```
+
+응답에는 아래 정보가 들어 있다.
+
+- `userId`
+- `email`
+- `accessToken`
+- `paymentId`
+- `amount`
+
+실제 실험에서는 테스트 코드가 이 엔드포인트를 먼저 호출한 뒤, 응답의 각 항목을 동시 요청 입력으로 사용한다.
+
 ## 7. 실험 전 상태 기준
 
 각 실험 시작 전 아래 상태를 보장해야 한다.
@@ -355,7 +390,7 @@ curl -X DELETE http://localhost:8082/internal/experiments/payment-overrides
 3. `ALL_OFF`
 4. `LOCK_RELEASED_BEFORE_COMMIT`
 
-처음에는 소수 주문으로 전체 파이프라인이 정상 동작하는지 먼저 확인한 뒤, 주문 수를 늘려가는 방식을 권장한다.
+처음에는 소수 주문으로 전체 파이프라인이 정상 동작하는지 먼저 확인한 뒤, 준비 API의 `userCount`를 늘려가는 방식을 권장한다.
 
 ## 10. 초기화 포인트
 
@@ -374,8 +409,8 @@ curl -X DELETE http://localhost:8082/internal/experiments/payment-overrides
 아래 값은 실제 로컬 데이터 상태에 맞춰 채워야 한다.
 
 - 실험용 `groupBuyId`
-- 실험용 buyer user 수
+- 실험용 buyer user 수 (`payment-preparation.userCount`)
 - `target_quantity`
-- 주문 생성에 사용할 `quantity`
+- 주문 생성에 사용할 `quantity` (`payment-preparation.quantityPerOrder`)
 - 실험 대상 공구의 `deadline`, `pickup_date`, `pickup_time_*`
 - 초기화 대상 row 범위를 구분할 실험용 식별 규칙

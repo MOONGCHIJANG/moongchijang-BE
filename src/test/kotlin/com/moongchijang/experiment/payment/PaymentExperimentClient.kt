@@ -1,5 +1,7 @@
 package com.moongchijang.experiment.payment
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import java.net.HttpURLConnection
 import java.net.URI
 
@@ -7,6 +9,8 @@ class PaymentExperimentClient(
     private val connectTimeoutMs: Int = 3_000,
     private val readTimeoutMs: Int = 10_000,
 ) {
+    private val objectMapper = jacksonObjectMapper()
+
     fun completePayment(
         port: Int,
         accessToken: String,
@@ -57,6 +61,52 @@ class PaymentExperimentClient(
                 errorMessage = e.message,
                 paymentId = paymentId,
             )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    fun preparePaymentRequests(
+        port: Int,
+        groupBuyId: Long,
+        userCount: Int,
+        quantityPerOrder: Int = 1,
+    ): List<PreparedPaymentRequest> {
+        val connection = createJsonPostConnection(
+            url = "http://localhost:$port/internal/experiments/payment-preparation",
+            accessToken = null,
+        )
+
+        return try {
+            val requestBody = """
+                {
+                  "groupBuyId": $groupBuyId,
+                  "userCount": $userCount,
+                  "quantityPerOrder": $quantityPerOrder
+                }
+            """.trimIndent()
+
+            connection.outputStream.use { output ->
+                output.write(requestBody.toByteArray(Charsets.UTF_8))
+            }
+
+            val statusCode = connection.responseCode
+            val responseBody = readResponseBody(connection, statusCode)
+
+            if (statusCode !in 200..299) {
+                error("preparePaymentRequests failed: status=$statusCode body=$responseBody")
+            }
+
+            val response: ExperimentApiResponse<PaymentExperimentPreparationResponseDto> =
+                objectMapper.readValue(responseBody)
+
+            response.data.requests.map {
+                PreparedPaymentRequest(
+                    accessToken = it.accessToken,
+                    paymentId = it.paymentId,
+                    amount = it.amount,
+                )
+            }
         } finally {
             connection.disconnect()
         }
@@ -151,3 +201,21 @@ class PaymentExperimentClient(
         """.trimIndent()
     }
 }
+
+data class ExperimentApiResponse<T>(
+    val success: Boolean,
+    val data: T,
+    val error: Any? = null,
+)
+
+data class PaymentExperimentPreparationResponseDto(
+    val requests: List<PreparedPaymentRequestDto>,
+)
+
+data class PreparedPaymentRequestDto(
+    val userId: Long,
+    val email: String,
+    val accessToken: String,
+    val paymentId: String,
+    val amount: Int,
+)
