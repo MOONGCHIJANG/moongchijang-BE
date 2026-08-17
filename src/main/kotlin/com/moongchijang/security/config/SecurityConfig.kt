@@ -49,6 +49,7 @@ class SecurityConfig(
                     "/api/v1/auth/phone/verification-codes",
                     "/api/v1/auth/phone/verification-codes/verify",
                     "/api/v1/payments/portone/webhook",
+                    "/internal/experiments/payment-overrides",
                     "/openapi.yaml",
                     "/dev/openapi.yaml",
                     "/swagger-ui/**",
