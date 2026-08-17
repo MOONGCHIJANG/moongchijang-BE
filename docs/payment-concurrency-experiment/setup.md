@@ -55,6 +55,17 @@ cd ..
 - Flyway 마이그레이션이 정상 완료되었는지
 - 두 앱이 같은 DB/Redis를 바라보는지
 
+### 2.5 락/재시도 기본 환경변수
+
+앱 기본값은 환경변수로도 제어할 수 있다.
+
+- `PAYMENT_COMPLETION_LOCK_WAIT_MS`
+- `PAYMENT_COMPLETION_LOCK_LEASE_MS`
+- `PAYMENT_COMPLETION_LOCK_RETRY_COUNT`
+- `PAYMENT_COMPLETION_LOCK_RETRY_DELAY_MS`
+
+실험에서는 이 기본값 위에 override API를 덮어쓰는 방식으로 시나리오별 값을 바꿨다.
+
 ## 3. 데이터 준비 전략
 
 ### 3.1 기본 원칙
@@ -214,6 +225,44 @@ cd ..
 
 - 로컬에서는 실제 PortOne 결제 조회가 불가능하므로, `complete`/`webhook` 실험 전에는 실험용 override API로 fake PG 응답을 켜야 한다.
 - fake PG 응답을 켜면 외부 PG 조회 대신 `PAID` 상태의 가짜 결제 결과를 반환하고, 승인 이후 정합성 로직만 검증할 수 있다.
+
+## 6.3 override API에서 실제로 쓴 필드
+
+실험 중 시나리오별 설정은 아래 API로 주입했다.
+
+- `POST /internal/experiments/payment-overrides`
+
+대표 예시는 다음과 같다.
+
+```json
+{
+  "enabled": true,
+  "scenarioName": "full-protection",
+  "distributedLockEnabled": true,
+  "dbLockEnabled": true,
+  "shortCircuitEnabled": true,
+  "lockWaitMs": 1500,
+  "lockLeaseMs": 120000,
+  "lockRetryCount": 1,
+  "lockRetryDelayMs": 100,
+  "sleepBeforeCommitMs": 0,
+  "fakePgEnabled": true,
+  "fakePgStatus": "PAID",
+  "fakePgMethod": "CARD"
+}
+```
+
+주요 필드 의미:
+
+- `distributedLockEnabled`: Redis 분산락 사용 여부
+- `dbLockEnabled`: DB 비관적 락 사용 여부
+- `shortCircuitEnabled`: 이미 처리된 주문을 빠르게 종료할지 여부
+- `lockWaitMs`: 락을 얻기 위해 기다리는 시간
+- `lockLeaseMs`: 락 점유 유지 시간
+- `lockRetryCount`: 락 획득 실패 후 재시도 횟수
+- `lockRetryDelayMs`: 락 재시도 사이 대기 시간
+- `sleepBeforeCommitMs`: 커밋 직전 지연을 강제로 넣는 값
+- `fakePgEnabled`: 외부 PG 조회 대신 가짜 PG 응답 사용 여부
 
 관련 파일:
 
