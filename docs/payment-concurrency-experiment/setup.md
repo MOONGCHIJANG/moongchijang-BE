@@ -78,7 +78,7 @@ cd ..
 
 - `stores` 1건
 - `group_buys` 1건
-- 로그인 가능한 기존 `BUYER` 계정 1건 이상
+- 로그인 가능한 기본 `BUYER` 계정 1건 이상
 - 필요 시 `user_role_assignments`
 
 ## 4. 최소 테이블 관계
@@ -149,11 +149,11 @@ cd ..
 
 ### 5.3 `users`
 
-주문 생성 API를 여러 번 호출할 구매자 계정이 필요하다.
+현재 실험 흐름에서는 주문 생성용 구매자 계정을 매번 수동으로 여러 명 만들지 않는다.
 
 권장 방식:
 
-- SQL로 새 사용자를 직접 넣기보다, 이미 로그인 가능한 로컬 `BUYER` 계정을 재사용한다.
+- SQL로 새 사용자를 직접 넣기보다, 로그인 가능한 기본 `BUYER` 계정 1개만 준비한다.
 
 이유:
 
@@ -161,16 +161,13 @@ cd ..
 - `email_hash`는 별도 해시 로직으로 생성된다.
 - 실험의 핵심은 인증 재현이 아니라 결제 승인 동시성 재현이다.
 
-실무적으로는 아래 순서가 가장 단순하다.
+현재 실험에서는 아래 순서로 진행했다.
 
 1. 로컬에서 회원가입 또는 기존 계정으로 로그인 가능 여부 확인
 2. 그 계정의 `user_id` 확인
-3. 그 `user_id`로 주문 생성 API를 반복 호출
+3. 이후 실험 준비 API가 이 기본 계정을 기준으로 필요한 수만큼 실험용 유저와 주문을 자동 생성하도록 사용
 
-주의:
-
-- 현재 구현 기준으로는 `participation`이 생성되기 전까지 같은 유저가 같은 공구에 대해 여러 `READY` 주문을 만들 수 있다.
-- 따라서 1차 실험은 유저 1명으로도 시작 가능하다.
+즉, 실제 실험에서는 "기본 계정 1명만 준비"하고, 동시 요청에 필요한 나머지 실험용 유저들은 테스트 실행 시 자동 생성되도록 사용했다.
 
 ### 5.4 `user_role_assignments`
 
@@ -183,25 +180,34 @@ cd ..
 
 이미 사용 중인 로컬 계정에 `BUYER` 역할이 정상 부여되어 있다면 추가 insert가 필요 없을 수 있다.
 
-## 6. 주문 준비 방식
+## 6. 현재 주문 준비 방식
 
-실험용 주문은 DB 직접 insert 대신 아래 API로 생성한다.
+초기에는 주문 생성 API를 직접 여러 번 호출하는 방식도 검토했지만, 실제로는 아래 준비 API를 통해 유저/주문을 한 번에 자동 생성하는 흐름으로 실험을 진행했다.
 
-- `POST /api/v1/group-buys/{groupBuyId}/payment-orders`
+- `POST /internal/experiments/payment-preparation`
 
-요청 예시 필드:
+이 API는 아래 정보를 한 번에 준비한다.
 
-- `quantity`
-- `agreedNoCancelAfterGoal`
-- `agreedRefundBeforeGoal`
-- `agreedNoRefundAfterNoShow`
-- `agreedNoWithdrawal`
+- 실험용 구매자 계정들
+- 각 계정의 access token
+- 실험용 payment order
+- 하네스가 바로 사용할 `paymentId + amount` 조합
 
-실험 준비 단계에서 해야 할 일:
+중요한 점은, 준비할 유저 수와 주문 수를 테스트 코드의 `requestCount`가 직접 결정한다는 것이다.
+
+예시:
+
+- `requestCount = 20`이면 실험용 유저 20명, 주문 20건을 준비
+- `requestCount = 50`이면 실험용 유저 50명, 주문 50건을 준비
+- `requestCount = 100`이면 실험용 유저 100명, 주문 100건을 준비
+
+따라서 이번 실험은 "같은 사용자의 중복 요청"이 아니라, "서로 다른 구매자 N명이 동시에 결제 완료를 시도하는 상황"을 재현하는 방식으로 진행했다.
+
+실험 준비 단계에서는 아래 순서로 진행했다.
 
 1. 두 앱에 override를 주입한다.
 2. `reset.sql`로 이전 실험 흔적을 지운다.
-3. 실험 준비 API로 유저/주문을 자동 생성한다.
+3. 테스트의 `requestCount` 값에 맞춰 실험 준비 API가 유저/주문을 자동 생성한다.
 4. 하네스가 반환된 `accessToken + paymentId + amount` 조합으로 동시 요청을 보낸다.
 
 중요:
@@ -216,27 +222,27 @@ cd ..
 - 결과 요약: `docs/payment-concurrency-experiment/results.md`
 - 로그 보관 폴더: `docs/payment-concurrency-experiment/logs`
 
-## 6.1 빈 로컬 DB에서 실험용 사용자 1명 만들기
+## 6.1 빈 로컬 DB에서 기본 사용자 1명 만들기
 
-로컬 DB가 비어 있다면, 가장 처음 한 번은 실험용 기본 계정 1개를 만들어 두는 편이 편하다.
+로컬 DB가 비어 있다면, 가장 처음 한 번은 기본 `BUYER` 계정 1개를 만들어 두면 된다.
 
 이 프로젝트는 사용자 생성 시 아래 값을 애플리케이션 로직으로 만든다.
 
 - `password_hash`: `BCryptPasswordEncoder`
 - `email_hash`: `HmacSHA256` 기반 해시
 
-따라서 `users`를 SQL로 직접 넣기보다, 인증 API를 통해 실험용 계정을 만드는 편이 안전하다.
+따라서 `users`를 SQL로 직접 넣기보다, 인증 API를 통해 기본 계정을 만드는 편이 안전하다.
 
 준비 조건:
 
 - 앱 1개 이상 기동 완료
 - Redis 기동 완료
 
-권장 이메일:
+예시 이메일:
 
 - `experiment-buyer@moongchijang.local`
 
-권장 비밀번호:
+예시 비밀번호:
 
 - `abc12345`
 
