@@ -204,6 +204,11 @@ cd ..
 3. 응답에서 `paymentId` 수집
 4. 수집한 `paymentId` 목록을 동시성 하네스에 주입
 
+중요:
+
+- 로컬에서는 실제 PortOne 결제 조회가 불가능하므로, `complete`/`webhook` 실험 전에는 실험용 override API로 fake PG 응답을 켜야 한다.
+- fake PG 응답을 켜면 외부 PG 조회 대신 `PAID` 상태의 가짜 결제 결과를 반환하고, 승인 이후 정합성 로직만 검증할 수 있다.
+
 관련 파일:
 
 - 시드 SQL: `docs/payment-concurrency-experiment/seed.sql`
@@ -285,6 +290,43 @@ curl -X POST http://localhost:8081/api/v1/auth/email/signup \
 
 - `accessToken`으로 주문 생성 API 호출
 - `user.id`를 `docs/payment-concurrency-experiment/seed.sql`의 `@experiment_user_id`에 반영
+
+## 6.2 실험 override 주입
+
+실험 시작 전에는 `8081`, `8082` 두 앱에 같은 override를 주입해야 한다.
+
+엔드포인트:
+
+- `POST /internal/experiments/payment-overrides`
+- `DELETE /internal/experiments/payment-overrides`
+
+`FULL_PROTECTION` 예시:
+
+```bash
+curl -X POST http://localhost:8081/internal/experiments/payment-overrides \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "scenarioName": "full-protection",
+    "distributedLockEnabled": true,
+    "dbLockEnabled": true,
+    "shortCircuitEnabled": true,
+    "lockLeaseMs": 55000,
+    "sleepBeforeCommitMs": 0,
+    "fakePgEnabled": true,
+    "fakePgStatus": "PAID",
+    "fakePgMethod": "CARD"
+  }'
+```
+
+`8082`에도 같은 요청을 보낸다. 다른 시나리오에서는 `scenarioName`과 락 관련 필드만 바꾸고, 로컬 실험에서는 `fakePgEnabled = true`를 유지한다.
+
+초기화 예시:
+
+```bash
+curl -X DELETE http://localhost:8081/internal/experiments/payment-overrides
+curl -X DELETE http://localhost:8082/internal/experiments/payment-overrides
+```
 
 ## 7. 실험 전 상태 기준
 

@@ -11,6 +11,8 @@ data class PaymentExperimentConfig(
     val shortCircuitEnabled: Boolean,
     val lockLeaseMs: Long,
     val sleepBeforeCommitMs: Long,
+    val fakePgEnabled: Boolean,
+    val fakePgStatus: String,
 ) {
     init {
         require(requestCount > 0) { "requestCount must be positive." }
@@ -28,6 +30,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = shortCircuitEnabled,
             lockLeaseMs = if (lockLeaseMs > 0L) lockLeaseMs else null,
             sleepBeforeCommitMs = sleepBeforeCommitMs,
+            fakePgEnabled = fakePgEnabled,
+            fakePgStatus = fakePgStatus,
         )
     }
 
@@ -41,6 +45,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = true,
             lockLeaseMs = 55_000,
             sleepBeforeCommitMs = 0,
+            fakePgEnabled = true,
+            fakePgStatus = "PAID",
         )
 
         val DISTRIBUTED_LOCK_ONLY = PaymentExperimentConfig(
@@ -52,6 +58,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = true,
             lockLeaseMs = 55_000,
             sleepBeforeCommitMs = 0,
+            fakePgEnabled = true,
+            fakePgStatus = "PAID",
         )
 
         val CONDITIONAL_UPDATE_ONLY = PaymentExperimentConfig(
@@ -63,6 +71,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = false,
             lockLeaseMs = 0,
             sleepBeforeCommitMs = 0,
+            fakePgEnabled = true,
+            fakePgStatus = "PAID",
         )
 
         val ALL_OFF = PaymentExperimentConfig(
@@ -74,6 +84,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = false,
             lockLeaseMs = 0,
             sleepBeforeCommitMs = 0,
+            fakePgEnabled = true,
+            fakePgStatus = "PAID",
         )
 
         val LOCK_RELEASED_BEFORE_COMMIT = PaymentExperimentConfig(
@@ -85,6 +97,8 @@ data class PaymentExperimentConfig(
             shortCircuitEnabled = true,
             lockLeaseMs = 100,
             sleepBeforeCommitMs = 500,
+            fakePgEnabled = true,
+            fakePgStatus = "PAID",
         )
     }
 }

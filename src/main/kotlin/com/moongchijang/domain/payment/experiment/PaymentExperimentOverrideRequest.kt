@@ -8,6 +8,9 @@ data class PaymentExperimentOverrideRequest(
     val shortCircuitEnabled: Boolean = true,
     val lockLeaseMs: Long? = null,
     val sleepBeforeCommitMs: Long = 0,
+    val fakePgEnabled: Boolean = false,
+    val fakePgStatus: String = "PAID",
+    val fakePgMethod: String? = "CARD",
 ) {
     fun toOverrides(): PaymentExperimentOverrides {
         return PaymentExperimentOverrides(
@@ -18,6 +21,9 @@ data class PaymentExperimentOverrideRequest(
             shortCircuitEnabled = shortCircuitEnabled,
             lockLeaseMs = lockLeaseMs,
             sleepBeforeCommitMs = sleepBeforeCommitMs,
+            fakePgEnabled = fakePgEnabled,
+            fakePgStatus = fakePgStatus,
+            fakePgMethod = fakePgMethod,
         )
     }
 }

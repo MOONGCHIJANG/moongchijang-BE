@@ -717,6 +717,25 @@ class PaymentService(
     }
 
     private fun getPortOnePaymentOrFailOrder(paymentId: String): PortOnePaymentResult {
+        val experimentOverrides = PaymentExperimentRuntime.overrides
+        if (experimentOverrides.enabled && experimentOverrides.fakePgEnabled) {
+            log.warn(
+                "[PaymentService][Experiment] fake PG payment result used: scenario={}, paymentId={}, status={}",
+                experimentOverrides.scenarioName,
+                paymentId,
+                experimentOverrides.fakePgStatus,
+            )
+            return PortOnePaymentResult(
+                paymentId = paymentId,
+                status = experimentOverrides.fakePgStatus,
+                totalAmount = findPaymentOrderForExperiment(paymentId)?.totalAmount
+                    ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND),
+                method = experimentOverrides.fakePgMethod,
+                paidAt = clock.utcNow(),
+                cancelledAt = null,
+            )
+        }
+
         return portOnePaymentPort.getPayment(paymentId)
     }
 
