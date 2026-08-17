@@ -719,6 +719,8 @@ class PaymentService(
     private fun getPortOnePaymentOrFailOrder(paymentId: String): PortOnePaymentResult {
         val experimentOverrides = PaymentExperimentRuntime.overrides
         if (experimentOverrides.enabled && experimentOverrides.fakePgEnabled) {
+            val order = paymentOrderRepository.findByOrderId(paymentId)
+                ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND)
             log.warn(
                 "[PaymentService][Experiment] fake PG payment result used: scenario={}, paymentId={}, status={}",
                 experimentOverrides.scenarioName,
@@ -728,8 +730,7 @@ class PaymentService(
             return PortOnePaymentResult(
                 paymentId = paymentId,
                 status = experimentOverrides.fakePgStatus,
-                totalAmount = findPaymentOrderForExperiment(paymentId)?.totalAmount
-                    ?: throw CustomException(ErrorCode.PAYMENT_ORDER_NOT_FOUND),
+                totalAmount = order.totalAmount,
                 method = experimentOverrides.fakePgMethod,
                 paidAt = clock.utcNow(),
                 cancelledAt = null,
