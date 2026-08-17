@@ -102,8 +102,11 @@ class PaymentExperimentClient(
                     responseBody,
                     object : TypeReference<ExperimentApiResponse<PaymentExperimentPreparationResponseDto>>() {},
                 )
+            val data = requireNotNull(response.data) {
+                "preparePaymentRequests returned empty data: $responseBody"
+            }
 
-            response.data.requests.map {
+            data.requests.map {
                 PreparedPaymentRequest(
                     accessToken = it.accessToken,
                     paymentId = it.paymentId,
@@ -206,19 +209,19 @@ class PaymentExperimentClient(
 }
 
 data class ExperimentApiResponse<T>(
-    val success: Boolean,
-    val data: T,
+    val success: Boolean = false,
+    val data: T? = null,
     val error: Any? = null,
 )
 
 data class PaymentExperimentPreparationResponseDto(
-    val requests: List<PreparedPaymentRequestDto>,
+    val requests: List<PreparedPaymentRequestDto> = emptyList(),
 )
 
 data class PreparedPaymentRequestDto(
-    val userId: Long,
-    val email: String,
-    val accessToken: String,
-    val paymentId: String,
-    val amount: Int,
+    val userId: Long = 0,
+    val email: String = "",
+    val accessToken: String = "",
+    val paymentId: String = "",
+    val amount: Int = 0,
 )
