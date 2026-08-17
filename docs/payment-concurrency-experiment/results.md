@@ -78,6 +78,8 @@
 | `full-protection-100-tuned-1` | 100 | 23 | 77 | 23 | 23 | `lockLeaseMs = 120000` |
 | `full-protection-100-tuned-2` | 100 | 22 | 78 | 22 | 22 | `lockLeaseMs = 30000` |
 | `full-protection-100-tuned-3` | 100 | 50 | 42 | 50 | 50 | `lockLeaseMs = 120000`, `lockWaitMs = 1500` |
+| `full-protection-100-tuned-4` | 100 | 50 | 5 | 50 | 50 | `lockWaitMs = 1500`, `lockLeaseMs = 120000`, `lockRetryCount = 1`, `lockRetryDelayMs = 100` |
+| `full-protection-100-tuned-5` | 100 | 50 | 0 | 50 | 50 | `lockWaitMs = 2000`, `lockLeaseMs = 120000`, `lockRetryCount = 2`, `lockRetryDelayMs = 150` |
 
 ### 6.1 해석
 
@@ -89,6 +91,8 @@
 - 다만 `23`, `22` 수준이라 큰 폭의 개선이라기보다는, lease 값을 바꾸면 승인 완료 수가 소폭 흔들리는 정도로 보는 편이 맞겠다고 판단했다.
 - 이후 `full-protection-100-tuned-3`에서 `lockWaitMs`까지 같이 조정해 보니 승인 완료 수가 `50`까지 올라갔고, 공구 상태도 `ACHIEVED`로 전이됐다.
 - 이 결과를 보고 나서는 lease 시간 자체보다 "락을 얼마 동안 기다리게 둘 것인가"가 더 큰 변수일 수 있겠다고 정리했다.
+- 그 다음 `tuned-4`, `tuned-5`에서는 재시도까지 추가해 봤는데, 둘 다 `APPROVED 50`을 유지한 채 `READY`를 더 줄이는 방향으로 움직였다.
+- 그래서 이 구간부터는 "성공 수를 더 늘린다"기보다, "남은 요청을 READY에 두지 않고 더 명시적인 최종 상태로 수렴시킨다"는 관점으로 보는 편이 자연스럽다고 정리했다.
 
 ### 6.2 100건 튜닝 실험 메모
 
@@ -97,6 +101,8 @@
 | `full-protection-100-tuned-1` | `lockLeaseMs = 120000` | 23 | 77 | 23 | baseline보다 소폭 상승 |
 | `full-protection-100-tuned-2` | `lockLeaseMs = 30000` | 22 | 78 | 22 | `tuned-1`과 큰 차이는 없음 |
 | `full-protection-100-tuned-3` | `lockLeaseMs = 120000`, `lockWaitMs = 1500` | 50 | 42 | 50 | 목표 수량 달성, `ACHIEVED` 전이 확인 |
+| `full-protection-100-tuned-4` | `lockWaitMs = 1500`, `lockLeaseMs = 120000`, `lockRetryCount = 1`, `lockRetryDelayMs = 100` | 50 | 5 | 50 | 목표 수량 유지, READY 대폭 감소 |
+| `full-protection-100-tuned-5` | `lockWaitMs = 2000`, `lockLeaseMs = 120000`, `lockRetryCount = 2`, `lockRetryDelayMs = 150` | 50 | 0 | 50 | 모든 요청이 최종 상태로 수렴 |
 
 - 두 tuned 시나리오 모두 `APPROVED = participation = current_quantity`는 맞았다.
 - 그래서 lease 조정은 "정합성 보완"보다는 "처리량 미세 조정"에 가까운 변수라고 정리했다.
@@ -105,6 +111,15 @@
 - 다만 `FAILED 8`, `READY 42`가 남아 있어서 여기서 끝난 건 아니고, 다음 단계에서는 실패 사유와 재시도 정책까지 같이 봐야겠다고 정리했다.
 - `tuned-3` 로그를 다시 확인해 보니 `FAILED 8`은 전부 `PAYMENT_QUANTITY_EXCEEDED`였고, `READY 42`는 전부 `GROUPBUY_LOCK_ACQUISITION_FAILED`였다.
 - 그래서 이 실험에서는 "실패 8건"과 "반영되지 않은 42건"의 원인을 분리해서 봐야겠다고 정리했다.
+- `tuned-4` 로그를 다시 보니 `SUCCESS 50`, `PAYMENT_QUANTITY_EXCEEDED 45`, `GROUPBUY_LOCK_ACQUISITION_FAILED 5`였다.
+- 이 결과를 보고 나는 재시도 1회만으로도 락 획득 실패를 많이 줄일 수 있다는 점을 확인했다. `tuned-3`에서는 READY가 42건이었는데, `tuned-4`에서는 5건까지 줄었다.
+- `tuned-5` 로그에서는 `SUCCESS 50`, `PAYMENT_QUANTITY_EXCEEDED 50`만 남았고 `GROUPBUY_LOCK_ACQUISITION_FAILED`는 사라졌다.
+- 여기서 흥미로웠던 점은, 성공 수가 50에서 더 늘어나지는 않았지만 모든 요청이 `성공 또는 명시적 실패`로 끝났다는 점이었다. 그래서 이 실험은 "처리량을 늘린다"보다 "중간 상태를 줄이고 최종 결과를 빨리 확정한다"는 방향의 튜닝으로 봤다.
+- 다만 여기서 `PAYMENT_QUANTITY_EXCEEDED`를 그대로 "maxQuantity 100을 초과했다"로 읽으면 코드 의미와 어긋난다. 실제로는 `currentQuantity = 50`, `maxQuantity = 100`인 상태에서 실패했기 때문이다.
+- 코드까지 확인해 보니 원인은 `increaseCurrentQuantityIfAvailable(...)` 조건부 증가 쿼리가 `GroupBuyStatus.IN_PROGRESS`에서만 동작하도록 되어 있었기 때문이다.
+- 즉 `currentQuantity`가 `targetQuantity = 50`에 도달하는 순간 공구 상태가 `ACHIEVED`로 바뀌고, 그 뒤 요청들은 수량이 남아 있어도 조건부 update가 0건 갱신으로 끝난다.
+- 서비스에서는 이 0건 갱신을 그대로 `PAYMENT_QUANTITY_EXCEEDED`로 번역하고 있어서, 실험 로그만 보면 "정원이 다 차서 실패했다"처럼 보이지만 실제로는 "목표 수량 달성 후 상태가 바뀌어 더 이상 증가되지 않았다"에 더 가깝다.
+- 그래서 `tuned-4`, `tuned-5`의 실패는 `maxQuantity = 100`을 다 써서 난 실패라기보다, `targetQuantity = 50` 달성 후 `ACHIEVED` 상태로 전이된 뒤에도 조건부 증가 쿼리가 `IN_PROGRESS`만 허용하고 있었기 때문에 생긴 실패로 정리했다.
 
 ## 7. 현재까지의 핵심 관찰
 
@@ -115,6 +130,8 @@
 5. lease 값만 조정한 `tuned-1`, `tuned-2`는 baseline보다 높은 값이 나왔지만, 개선 폭은 크지 않았다.
 6. `lockWaitMs`까지 같이 조정한 `tuned-3`에서는 승인 완료 수가 `50`까지 올라가고 공구도 `ACHIEVED`로 전이됐다.
 7. 지금까지 결과만 보면, 이 실험에서는 DB 락보다 먼저 분산락 대기 전략이 실제 처리량에 더 큰 영향을 줬다고 보는 편이 자연스럽다.
+8. `tuned-4`, `tuned-5`를 통해 재시도는 성공 수를 무한히 늘리는 수단이라기보다, 락 획득 실패를 줄이고 요청을 더 명확한 최종 상태로 수렴시키는 수단이라는 점을 확인했다.
+9. 이번 코드 기준으로는 `targetQuantity = 50` 달성 후 `ACHIEVED` 상태로 바뀌면, `maxQuantity = 100`이 남아 있어도 조건부 수량 증가 쿼리가 더 이상 동작하지 않았다.
 
 ## 8. 로그 관리 원칙
 
