@@ -58,6 +58,7 @@ docker/.env
 logs/
 !docs/payment-concurrency-experiment/logs/
 !docs/payment-concurrency-experiment/logs/README.md
+!docs/payment-concurrency-experiment/logs/*.log
 *.log
 load-tests/results/*
 !load-tests/results/.gitkeep

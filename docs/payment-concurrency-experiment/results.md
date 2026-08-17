@@ -75,6 +75,8 @@
 | `all-off-100` | 100 | 21 | 79 | 21 | 21 | 재실행 후 동일 값 확인 |
 | `distributed-lock-only-100` | 100 | 17 | 83 | 17 | 17 | 재실행 결과 확정 |
 | `full-protection-100` | 100 | 18 | 82 | 18 | 18 | 현재 baseline 결과 |
+| `full-protection-100-tuned-1` | 100 | 23 | 77 | 23 | 23 | `lockLeaseMs = 120000` |
+| `full-protection-100-tuned-2` | 100 | 22 | 78 | 22 | 22 | `lockLeaseMs = 30000` |
 
 ### 6.1 해석
 
@@ -82,6 +84,19 @@
 - 이 결과를 보고 "보호가 많을수록 항상 승인 수가 더 높다"라고 단순하게 적기는 어렵다고 판단했다.
 - 특히 `distributed-lock-only-100`, `full-protection-100`은 고부하 구간에서 승인 수 변동폭이 있었고, 이 부분은 실패 사유 로그를 함께 보고 다시 해석해야 한다.
 - 그래서 100건 결과는 먼저 baseline으로 남겨 두고, 이후 조정 실험은 별도 시나리오로 나눠 기록하는 방향으로 잡았다.
+- `full-protection-100-tuned-1`, `full-protection-100-tuned-2`를 추가로 돌려 보니 둘 다 baseline `18`보다는 높은 값이 나왔다.
+- 다만 `23`, `22` 수준이라 큰 폭의 개선이라기보다는, lease 값을 바꾸면 승인 완료 수가 소폭 흔들리는 정도로 보는 편이 맞겠다고 판단했다.
+
+### 6.2 100건 튜닝 실험 메모
+
+| 시나리오 | 변경 변수 | APPROVED | READY | 참여 반영 수 | 확인한 점 |
+| --- | --- | ---: | ---: | ---: | --- |
+| `full-protection-100-tuned-1` | `lockLeaseMs = 120000` | 23 | 77 | 23 | baseline보다 소폭 상승 |
+| `full-protection-100-tuned-2` | `lockLeaseMs = 30000` | 22 | 78 | 22 | `tuned-1`과 큰 차이는 없음 |
+
+- 두 tuned 시나리오 모두 `APPROVED = participation = current_quantity`는 맞았다.
+- 그래서 lease 조정은 "정합성 보완"보다는 "처리량 미세 조정"에 가까운 변수라고 정리했다.
+- baseline `18`, tuned `22~23`을 같이 두고 보면, 지금 병목은 lease 값 하나보다 락 경쟁 자체에 더 가깝다고 해석하는 편이 자연스럽다.
 
 ## 7. 현재까지의 핵심 관찰
 
@@ -89,6 +104,7 @@
 2. 20건과 50건에서는 `full-protection`이 가장 많은 요청을 끝까지 반영했다.
 3. `lock-released-before-commit` 실험으로, 락을 쓰더라도 커밋 전에 락이 풀리면 보호력이 약해질 수 있음을 직접 확인했다.
 4. 100건 구간에서는 `full-protection`도 기대만큼 높은 승인 수를 만들지 못했고, 이 지점부터는 튜닝 실험이 필요하다고 판단했다.
+5. lease 값을 조정한 `tuned-1`, `tuned-2`는 baseline보다 높은 값이 나왔지만, 개선 폭이 크지 않아 다음 단계에서는 실패 원인 자체를 줄이는 방향을 더 봐야겠다고 판단했다.
 
 ## 8. 로그 관리 원칙
 
@@ -107,6 +123,6 @@
 
 ## 9. 다음 단계 메모
 
-- `full-protection-100`의 실패 사유를 로그로 확인한다.
-- 실패 사유가 락 획득 실패에 몰려 있다면, 락 획득 전략이나 재시도 정책을 조정한 `tuned` 시나리오를 별도로 만든다.
-- 기존 baseline 결과는 유지하고, 개선 실험은 `full-protection-100-tuned` 같은 새 이름으로 기록한다.
+- `full-protection-100-tuned-1`, `full-protection-100-tuned-2`의 실패 사유를 로그로 다시 확인한다.
+- 실패 사유가 계속 락 획득 실패에 몰려 있다면, 다음 단계는 lease 조정보다 락 획득 전략이나 재시도 정책을 보는 편이 맞는지 확인한다.
+- 기존 baseline 결과는 유지하고, 이후 실험도 `full-protection-100-tuned-*` 같은 새 이름으로 기록한다.

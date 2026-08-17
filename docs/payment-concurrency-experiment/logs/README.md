@@ -14,7 +14,7 @@
 - `full-protection-run2-result.log`
 - `full-protection-run2-audit.log`
 
-로컬에서 먼저 `.experiment-logs`에 저장한 뒤, 최종적으로 남길 로그만 이 폴더로 복사해 두면 된다.
+로컬에서 먼저 `.experiment-logs`에 저장한 뒤, 최종적으로 남길 로그만 이 폴더로 옮겨 두는 방식으로 정리했다.
 
 권장 방식은 "원본 전체 로그"를 그대로 공개하는 것이 아니라, 실험 비교에 필요한 정제 로그만 선별해서 남기는 것이다.
 
@@ -27,16 +27,16 @@
 예시 명령:
 
 ```bash
-cp .experiment-logs/full-protection-run2-harness.filtered.log \
+mv .experiment-logs/full-protection-run2-harness.filtered.log \
   docs/payment-concurrency-experiment/logs/
 ```
 
 ```bash
-cp .experiment-logs/full-protection-run2-result.log \
+mv .experiment-logs/full-protection-run2-result.log \
   docs/payment-concurrency-experiment/logs/
 ```
 
 ```bash
-cp .experiment-logs/full-protection-run2-audit.log \
+mv .experiment-logs/full-protection-run2-audit.log \
   docs/payment-concurrency-experiment/logs/
 ```
