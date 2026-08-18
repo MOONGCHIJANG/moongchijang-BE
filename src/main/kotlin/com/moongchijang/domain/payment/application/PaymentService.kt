@@ -70,6 +70,7 @@ class PaymentService(
     private val refundRequestSyncService: RefundRequestSyncService,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     private val paymentMetricsRecorder: PaymentMetricsRecorder,
+    private val paymentCompletionLockProperties: PaymentCompletionLockProperties,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -1133,17 +1134,65 @@ class PaymentService(
 
     private fun <T> withGroupBuyLock(groupBuyId: Long, action: () -> T): T {
         val key = redisLockUtil.lockKey(groupBuyId)
-        log.debug("[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}", groupBuyId, key)
-        val token = redisLockUtil.tryLockOrThrow(key, waitMs = LOCK_WAIT_MS, leaseMs = LOCK_LEASE_MS)
-        log.debug("[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}", groupBuyId, key)
-        try {
-            return action()
-        } finally {
-            val unlocked = redisLockUtil.unlock(key, token)
-            if (!unlocked) {
-                log.warn("[PaymentService] 공구 락 해제 실패: groupBuyId={}, key={}", groupBuyId, key)
-            } else {
-                log.debug("[PaymentService] 공구 락 해제 성공: groupBuyId={}, key={}", groupBuyId, key)
+        val waitMs = paymentCompletionLockProperties.waitMs
+        val leaseMs = paymentCompletionLockProperties.leaseMs
+        val retryCount = paymentCompletionLockProperties.retryCount
+        val retryDelayMs = paymentCompletionLockProperties.retryDelayMs
+
+        log.debug(
+            "[PaymentService] 공구 락 획득 시도: groupBuyId={}, key={}, waitMs={}, leaseMs={}, retryCount={}, retryDelayMs={}",
+            groupBuyId,
+            key,
+            waitMs,
+            leaseMs,
+            retryCount,
+            retryDelayMs,
+        )
+
+        var attempt = 0
+        while (true) {
+            try {
+                val token = redisLockUtil.tryLockOrThrow(key, waitMs = waitMs, leaseMs = leaseMs)
+
+                log.debug(
+                    "[PaymentService] 공구 락 획득 성공: groupBuyId={}, key={}, waitMs={}, leaseMs={}, attempt={}",
+                    groupBuyId,
+                    key,
+                    waitMs,
+                    leaseMs,
+                    attempt + 1,
+                )
+
+                try {
+                    return action()
+                } finally {
+                    val unlocked = redisLockUtil.unlock(key, token)
+                    if (!unlocked) {
+                        log.warn("[PaymentService] 공구 락 해제 실패: groupBuyId={}, key={}", groupBuyId, key)
+                    } else {
+                        log.debug("[PaymentService] 공구 락 해제 성공: groupBuyId={}, key={}", groupBuyId, key)
+                    }
+                }
+            } catch (e: CustomException) {
+                if (e.errorCode != ErrorCode.GROUPBUY_LOCK_ACQUISITION_FAILED || attempt >= retryCount) {
+                    throw e
+                }
+
+                attempt++
+                log.warn(
+                    "[PaymentService] 공구 락 재시도 대기: groupBuyId={}, attempt={}, retryCount={}, retryDelayMs={}",
+                    groupBuyId,
+                    attempt,
+                    retryCount,
+                    retryDelayMs,
+                )
+
+                try {
+                    TimeUnit.MILLISECONDS.sleep(retryDelayMs)
+                } catch (ie: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    throw CustomException(ErrorCode.GROUPBUY_LOCK_INTERRUPTED)
+                }
             }
         }
     }
@@ -1244,8 +1293,6 @@ class PaymentService(
         TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos)
 
     companion object {
-        private const val LOCK_WAIT_MS = 500L
-        private const val LOCK_LEASE_MS = 10_000L
         private const val PENDING_REFUND_BATCH_SIZE = 100
         private const val PENDING_REFUND_CANCEL_REASON = "MINIMUM_QUANTITY_NOT_MET"
         private const val RESULT_SUCCESS = "success"

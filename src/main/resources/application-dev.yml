@@ -129,6 +129,14 @@ google:
     timeout: ${GOOGLE_SMTP_TIMEOUT:5000}
     write-timeout: ${GOOGLE_SMTP_WRITE_TIMEOUT:5000}
 
+payment:
+  completion:
+    lock:
+      wait-ms: ${PAYMENT_COMPLETION_LOCK_WAIT_MS:500}
+      lease-ms: ${PAYMENT_COMPLETION_LOCK_LEASE_MS:10000}
+      retry-count: ${PAYMENT_COMPLETION_LOCK_RETRY_COUNT:0}
+      retry-delay-ms: ${PAYMENT_COMPLETION_LOCK_RETRY_DELAY_MS:0}
+
 groupbuy:
   status-transition:
     fixed-delay-ms: ${GROUPBUY_STATUS_TRANSITION_FIXED_DELAY_MS:60000}

@@ -121,6 +121,7 @@ class PaymentServiceTest {
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
+    private val paymentCompletionLockProperties = PaymentCompletionLockProperties()
 
     private val portOneProperties = PortOneProperties(
         storeId = "store-test",
@@ -149,6 +150,7 @@ class PaymentServiceTest {
             refundRequestSyncService = refundRequestSyncService,
             s3ImageReferenceResolver = s3ImageReferenceResolver,
             paymentMetricsRecorder = paymentMetricsRecorder,
+            paymentCompletionLockProperties = paymentCompletionLockProperties,
             clock = clock
         )
     }
