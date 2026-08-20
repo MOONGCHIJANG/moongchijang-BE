@@ -95,12 +95,13 @@ jobs:
             grep -q '^DB_URL=' ../.env.dev
             grep -q '^SPRING_PROFILES_ACTIVE=' ../.env.dev
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+            # 이미지 pull 전에 태그 없는 미사용 이미지를 정리해 디스크 여유 공간을 확보합니다.
+            docker image prune -f
+
             docker compose --profile dev pull app-dev
             docker compose --profile dev up -d nginx app-dev
             docker compose --profile monitoring up -d --force-recreate --no-deps prometheus grafana fluent-bit
-
-            # 태그 없는 미사용 이미지를 정리해 디스크 사용량 누적을 완화합니다.
-            docker image prune -f
 
       - name: Wait for dev OpenAPI to be ready
         run: |
