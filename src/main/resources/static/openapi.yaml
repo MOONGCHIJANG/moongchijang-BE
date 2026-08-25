@@ -4506,7 +4506,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [paymentId, storeId, channelKey, orderName, amount, customerName]
+          required: [paymentId, storeId, channelKey, orderName, amount, customerName, customerPhoneNumber, customerEmail]
           properties:
             paymentId: { type: string, description: PortOne SDK requestPayment에 전달할 paymentId }
             storeId: { type: string }
@@ -4514,6 +4514,8 @@ components:
             orderName: { type: string }
             amount: { type: integer }
             customerName: { type: string, nullable: true }
+            customerPhoneNumber: { type: string, nullable: true, description: KG이니시스 customer.phoneNumber 전달용 구매자 연락처 }
+            customerEmail: { type: string, nullable: true, description: KG이니시스 customer.email 전달용 구매자 이메일 }
         error: { nullable: true, example: null }
 
     ApiResponsePaymentConfirmed:
