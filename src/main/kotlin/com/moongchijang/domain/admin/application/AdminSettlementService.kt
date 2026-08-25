@@ -58,7 +58,7 @@ class AdminSettlementService(
             scheduledSettlementAmount = aggregations
                 .filter { it.scheduledSettlementDate().toSettlementStatus(today) == AdminSettlementStatus.SCHEDULED }
                 .sumOf { it.settlementAmount() },
-            platformFeeAmount = 0L,
+            platformFeeAmount = aggregations.sumOf { it.platformFeeAmount },
             totalTransactionAmount = aggregations.sumOf { it.totalPaymentAmount }
         )
         log.info("[AdminSettlementService] 정산 대시보드 조회 완료: year={}, month={}", year, month)
