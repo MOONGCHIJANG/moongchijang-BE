@@ -2,6 +2,7 @@ package com.moongchijang.domain.admin.presentation
 
 import com.moongchijang.domain.admin.application.AdminOwnerGroupBuyRequestService
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestActionResponse
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestApproveRequest
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestRejectRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestStatus
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -10,6 +11,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.springframework.http.HttpStatus
+import java.time.LocalDate
 
 class AdminOwnerGroupBuyRequestControllerTest {
 
@@ -23,13 +25,14 @@ class AdminOwnerGroupBuyRequestControllerTest {
             status = OwnerGroupBuyRequestStatus.APPROVED,
             groupBuyId = 30L
         )
-        `when`(service.approve(10L)).thenReturn(response)
+        val request = approveRequest()
+        `when`(service.approve(10L, request)).thenReturn(response)
 
-        val result = controller.approve(10L)
+        val result = controller.approve(10L, request)
 
         assertEquals(HttpStatus.CREATED, result.statusCode)
         assertEquals(response, result.body?.data)
-        verify(service).approve(10L)
+        verify(service).approve(10L, request)
     }
 
     @Test
@@ -48,4 +51,13 @@ class AdminOwnerGroupBuyRequestControllerTest {
         assertEquals(response, result.body?.data)
         verify(service).reject(11L, request)
     }
+
+    private fun approveRequest(): AdminOwnerGroupBuyRequestApproveRequest =
+        AdminOwnerGroupBuyRequestApproveRequest(
+            productName = "두쫀쿠 세트",
+            price = 9900,
+            targetQuantity = 20,
+            pickupDate = LocalDate.of(2026, 6, 12),
+            imageCount = 2
+        )
 }

@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyImage
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyImageRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestApproveRequest
 import com.moongchijang.domain.admin.application.dto.AdminOwnerGroupBuyRequestRejectRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequest
 import com.moongchijang.domain.owner.domain.entity.OwnerGroupBuyRequestImage
@@ -111,11 +112,16 @@ class AdminOwnerGroupBuyRequestServiceTest {
             (it.arguments[0] as GroupBuy).apply { id = 30L }
         }
 
-        val result = service.approve(requestId)
+        val result = service.approve(requestId, approveRequest(imageCount = 2))
 
         assertEquals(requestId, result.requestId)
         assertEquals(OwnerGroupBuyRequestStatus.APPROVED, result.status)
         assertEquals(30L, result.groupBuyId)
+        assertEquals("두쫀쿠 세트", result.approvalSummary?.productName)
+        assertEquals(9900, result.approvalSummary?.price)
+        assertEquals(20, result.approvalSummary?.targetQuantity)
+        assertEquals(LocalDate.of(2026, 6, 12), result.approvalSummary?.pickupDate)
+        assertEquals(2, result.approvalSummary?.imageCount)
         assertEquals(OwnerGroupBuyRequestStatus.APPROVED, request.status)
         assertEquals(LocalDateTime.of(2026, 6, 1, 12, 0), request.reviewedAt)
         assertEquals(30L, request.approvedGroupBuy?.id)
@@ -148,13 +154,20 @@ class AdminOwnerGroupBuyRequestServiceTest {
             pickupTimeStart = LocalTime.of(13, 0),
             pickupTimeEnd = LocalTime.of(18, 0),
         ).apply { id = requestId }
+        val images = listOf(OwnerGroupBuyRequestImage(request, "owner/1.jpg", 0))
         `when`(ownerGroupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(request))
-        `when`(ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)).thenReturn(emptyList())
+        `when`(ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)).thenReturn(images)
         `when`(groupBuyRepository.save(any(GroupBuy::class.java))).thenAnswer {
             (it.arguments[0] as GroupBuy).apply { id = 33L }
         }
 
-        val result = service.approve(requestId)
+        val result = service.approve(
+            requestId,
+            approveRequest(
+                pickupDate = deadline.toLocalDate(),
+                imageCount = 1
+            )
+        )
 
         assertEquals(OwnerGroupBuyRequestStatus.APPROVED, result.status)
         assertEquals(33L, result.groupBuyId)
@@ -167,10 +180,26 @@ class AdminOwnerGroupBuyRequestServiceTest {
         `when`(ownerGroupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(request))
 
         val ex = assertThrows<CustomException> {
-            service.approve(requestId)
+            service.approve(requestId, approveRequest())
         }
 
         assertEquals(ErrorCode.GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION, ex.errorCode)
+        verify(groupBuyRepository, never()).save(any(GroupBuy::class.java))
+    }
+
+    @Test
+    fun `승인 확인 정보가 요청 정보와 다르면 승인할 수 없다`() {
+        val requestId = 14L
+        val request = ownerRequest(status = OwnerGroupBuyRequestStatus.PENDING).apply { id = requestId }
+        val images = listOf(OwnerGroupBuyRequestImage(request, "owner/1.jpg", 0))
+        `when`(ownerGroupBuyRequestRepository.findWithLockById(requestId)).thenReturn(Optional.of(request))
+        `when`(ownerGroupBuyRequestImageRepository.findAllByRequestIdOrderBySortOrderAsc(requestId)).thenReturn(images)
+
+        val ex = assertThrows<CustomException> {
+            service.approve(requestId, approveRequest(price = 10_900, imageCount = 1))
+        }
+
+        assertEquals(ErrorCode.INVALID_INPUT, ex.errorCode)
         verify(groupBuyRepository, never()).save(any(GroupBuy::class.java))
     }
 
@@ -232,4 +261,19 @@ class AdminOwnerGroupBuyRequestServiceTest {
         ).apply { id = 20L }
 
     private inline fun <reified T> argumentCaptor() = org.mockito.ArgumentCaptor.forClass(T::class.java)
+
+    private fun approveRequest(
+        productName: String = "두쫀쿠 세트",
+        price: Int = 9900,
+        targetQuantity: Int = 20,
+        pickupDate: LocalDate = LocalDate.of(2026, 6, 12),
+        imageCount: Int = 2,
+    ): AdminOwnerGroupBuyRequestApproveRequest =
+        AdminOwnerGroupBuyRequestApproveRequest(
+            productName = productName,
+            price = price,
+            targetQuantity = targetQuantity,
+            pickupDate = pickupDate,
+            imageCount = imageCount
+        )
 }
