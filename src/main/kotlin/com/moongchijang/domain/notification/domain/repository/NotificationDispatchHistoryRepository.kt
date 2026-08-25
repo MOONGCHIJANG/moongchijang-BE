@@ -26,4 +26,18 @@ interface NotificationDispatchHistoryRepository : JpaRepository<NotificationDisp
         statuses: Collection<NotificationDispatchStatus>,
         nextRetryAt: LocalDateTime
     ): List<NotificationDispatchHistory>
+
+    @Query(
+        """
+        SELECT h
+        FROM NotificationDispatchHistory h
+        WHERE h.targetId = :targetId
+          AND h.triggerType IN :triggerTypes
+        ORDER BY COALESCE(h.processedAt, h.createdAt) DESC, h.id DESC
+        """
+    )
+    fun findAdminOrderHistories(
+        @Param("targetId") targetId: Long,
+        @Param("triggerTypes") triggerTypes: Collection<NotificationTriggerType>
+    ): List<NotificationDispatchHistory>
 }

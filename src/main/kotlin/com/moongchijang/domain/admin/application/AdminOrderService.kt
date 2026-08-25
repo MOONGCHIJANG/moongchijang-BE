@@ -8,6 +8,8 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.notification.application.NotificationEventPublisher
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
+import com.moongchijang.domain.notification.domain.repository.NotificationDispatchHistoryRepository
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.store.domain.repository.StoreStaffRepository
@@ -28,6 +30,7 @@ class AdminOrderService(
     private val participationRepository: ParticipationRepository,
     private val storeStaffRepository: StoreStaffRepository,
     private val notificationEventPublisher: NotificationEventPublisher,
+    private val notificationDispatchHistoryRepository: NotificationDispatchHistoryRepository,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(AdminOrderService::class.java)
@@ -68,11 +71,7 @@ class AdminOrderService(
         val groupBuy = groupBuyRepository.findAdminOrderDetailById(orderId)
             .orElseThrow { CustomException(ErrorCode.GROUPBUY_NOT_FOUND) }
 
-        val response = AdminOrderDetailResponse.from(
-            groupBuy = groupBuy,
-            pendingRefundCount = countPendingRefunds(groupBuy.id),
-            now = now
-        )
+        val response = toDetailResponse(groupBuy, now)
         log.info("[AdminOrderService] 주문 상세 조회 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
         return response
     }
@@ -85,7 +84,7 @@ class AdminOrderService(
         validatePendingOrder(groupBuy)
         groupBuy.markOrderOwnerContacted(now)
 
-        val response = AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        val response = toDetailResponse(groupBuy, now)
         log.info("[AdminOrderService] 주문 사장님연락 상태 변경 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
         return response
     }
@@ -98,7 +97,7 @@ class AdminOrderService(
         validatePendingOrder(groupBuy)
         groupBuy.confirmOrder(now)
 
-        val response = AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        val response = toDetailResponse(groupBuy, now)
         log.info("[AdminOrderService] 주문 확정 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
         return response
     }
@@ -112,7 +111,7 @@ class AdminOrderService(
         groupBuy.cancelOrder(now)
         publishOwnerOrderCancelled(groupBuy, now)
 
-        val response = AdminOrderDetailResponse.from(groupBuy, countPendingRefunds(groupBuy.id), now)
+        val response = toDetailResponse(groupBuy, now)
         log.info("[AdminOrderService] 주문 취소 완료: orderId={}, orderStatus={}", orderId, response.orderStatus)
         return response
     }
@@ -142,6 +141,17 @@ class AdminOrderService(
             statuses = listOf(ParticipationStatus.REFUND_PENDING)
         )
 
+    private fun toDetailResponse(groupBuy: GroupBuy, now: LocalDateTime): AdminOrderDetailResponse =
+        AdminOrderDetailResponse.from(
+            groupBuy = groupBuy,
+            pendingRefundCount = countPendingRefunds(groupBuy.id),
+            now = now,
+            notificationHistories = notificationDispatchHistoryRepository.findAdminOrderHistories(
+                targetId = groupBuy.id,
+                triggerTypes = ADMIN_ORDER_NOTIFICATION_TRIGGER_TYPES
+            )
+        )
+
     private fun publishOwnerOrderCancelled(groupBuy: GroupBuy, occurredAt: LocalDateTime) {
         val ownerUserIds = storeStaffRepository.findUserIdsByStoreId(groupBuy.store.id).distinct()
         if (ownerUserIds.isEmpty()) return
@@ -168,4 +178,11 @@ class AdminOrderService(
             AdminOrderStatusFilter.CONFIRMED,
             AdminOrderStatusFilter.ALL -> null
         }
+
+    companion object {
+        private val ADMIN_ORDER_NOTIFICATION_TRIGGER_TYPES = listOf(
+            NotificationTriggerType.OWNER_ORDER_CONFIRM_REQUIRED_IMMEDIATE,
+            NotificationTriggerType.OWNER_ORDER_CANCELLED_IMMEDIATE
+        )
+    }
 }

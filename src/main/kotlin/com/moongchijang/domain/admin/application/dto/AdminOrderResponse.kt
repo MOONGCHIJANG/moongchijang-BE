@@ -3,6 +3,9 @@ package com.moongchijang.domain.admin.application.dto
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyOrderStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.notification.domain.entity.NotificationDispatchHistory
+import com.moongchijang.domain.notification.domain.entity.NotificationDispatchStatus
+import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import org.springframework.data.domain.Page
 import java.time.Duration
 import java.time.LocalDate
@@ -99,6 +102,7 @@ data class AdminOrderDetailResponse(
     val finalQuantity: Int,
     val targetQuantity: Int,
     val pendingRefundCount: Long,
+    val pendingRefundNoticeRequired: Boolean,
     val pickupDate: LocalDate,
     val pickupTimeStart: String,
     val pickupTimeEnd: String,
@@ -111,12 +115,14 @@ data class AdminOrderDetailResponse(
     val orderConfirmedAt: LocalDateTime?,
     val orderCancelledAt: LocalDateTime?,
     val actionable: Boolean,
+    val notificationHistories: List<AdminOrderNotificationHistoryResponse>,
 ) {
     companion object {
         fun from(
             groupBuy: GroupBuy,
             pendingRefundCount: Long,
             now: LocalDateTime,
+            notificationHistories: List<NotificationDispatchHistory>,
         ): AdminOrderDetailResponse {
             val achievedAt = groupBuy.orderAchievedAt()
             return AdminOrderDetailResponse(
@@ -131,6 +137,7 @@ data class AdminOrderDetailResponse(
                 finalQuantity = groupBuy.currentQuantity,
                 targetQuantity = groupBuy.targetQuantity,
                 pendingRefundCount = pendingRefundCount,
+                pendingRefundNoticeRequired = pendingRefundCount > 0,
                 pickupDate = groupBuy.pickupDate,
                 pickupTimeStart = groupBuy.pickupTimeStart.toString(),
                 pickupTimeEnd = groupBuy.pickupTimeEnd.toString(),
@@ -142,9 +149,33 @@ data class AdminOrderDetailResponse(
                 ownerContactedAt = groupBuy.orderOwnerContactedAt,
                 orderConfirmedAt = groupBuy.orderConfirmedAt,
                 orderCancelledAt = groupBuy.orderCancelledAt,
-                actionable = groupBuy.isAdminOrderActionable()
+                actionable = groupBuy.isAdminOrderActionable(),
+                notificationHistories = notificationHistories.map(AdminOrderNotificationHistoryResponse::from)
             )
         }
+    }
+}
+
+data class AdminOrderNotificationHistoryResponse(
+    val historyId: Long,
+    val triggerType: NotificationTriggerType,
+    val scheduleKey: String,
+    val status: NotificationDispatchStatus,
+    val retryCount: Int,
+    val processedAt: LocalDateTime?,
+    val lastError: String?,
+) {
+    companion object {
+        fun from(history: NotificationDispatchHistory): AdminOrderNotificationHistoryResponse =
+            AdminOrderNotificationHistoryResponse(
+                historyId = history.id,
+                triggerType = history.triggerType,
+                scheduleKey = history.scheduleKey,
+                status = history.status,
+                retryCount = history.retryCount,
+                processedAt = history.processedAt,
+                lastError = history.lastError
+            )
     }
 }
 

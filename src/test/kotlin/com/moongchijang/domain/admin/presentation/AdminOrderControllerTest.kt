@@ -75,6 +75,7 @@ class AdminOrderControllerTest {
             finalQuantity = 20,
             targetQuantity = 20,
             pendingRefundCount = 0,
+            pendingRefundNoticeRequired = false,
             pickupDate = LocalDate.of(2026, 6, 1),
             pickupTimeStart = "14:00",
             pickupTimeEnd = "18:00",
@@ -86,6 +87,7 @@ class AdminOrderControllerTest {
             ownerContactedAt = null,
             orderConfirmedAt = null,
             orderCancelledAt = null,
-            actionable = orderStatus == GroupBuyOrderStatus.PENDING
+            actionable = orderStatus == GroupBuyOrderStatus.PENDING,
+            notificationHistories = emptyList()
         )
 }
