@@ -38,6 +38,7 @@ import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
+import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.UserFixture
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -120,6 +121,9 @@ class PaymentServiceTest {
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
+    @Mock
+    private lateinit var personalInfoManager: PersonalInfoManager
+
     private val clock: Clock = Clock.fixed(Instant.parse("2026-05-23T03:00:00Z"), ZoneOffset.UTC)
     private val paymentCompletionLockProperties = PaymentCompletionLockProperties()
 
@@ -151,7 +155,8 @@ class PaymentServiceTest {
             s3ImageReferenceResolver = s3ImageReferenceResolver,
             paymentMetricsRecorder = paymentMetricsRecorder,
             paymentCompletionLockProperties = paymentCompletionLockProperties,
-            clock = clock
+            clock = clock,
+            personalInfoManager = personalInfoManager,
         )
     }
 
@@ -205,11 +210,15 @@ class PaymentServiceTest {
 
     @Test
     fun `결제 주문 생성 성공`() {
-        val user = UserFixture.createKakaoUser(id = 1L, nickname = "은서")
+        val user = UserFixture.createKakaoUser(id = 1L, email = "encrypted-email", nickname = "은서").apply {
+            phoneNumber = "encrypted-phone"
+        }
         val groupBuy = createGroupBuy()
         `when`(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(user)
         `when`(groupBuyRepository.findWithLockById(10L)).thenReturn(Optional.of(groupBuy))
         `when`(participationRepository.existsByUserIdAndGroupBuyId(1L, 10L)).thenReturn(false)
+        `when`(personalInfoManager.decryptIfNeeded("encrypted-phone")).thenReturn("01012345678")
+        `when`(personalInfoManager.decryptIfNeeded("encrypted-email")).thenReturn("buyer@example.com")
         `when`(paymentOrderRepository.save(any(PaymentOrder::class.java))).thenAnswer { it.arguments[0] }
 
         val result = service.createPaymentOrder(10L, 1L, createOrderRequest(quantity = 3))
@@ -220,6 +229,8 @@ class PaymentServiceTest {
         assertEquals("두쫀쿠 3개", result.orderName)
         assertEquals(18000, result.amount)
         assertEquals("은서", result.customerName)
+        assertEquals("01012345678", result.customerPhoneNumber)
+        assertEquals("buyer@example.com", result.customerEmail)
         assertCounter("mcj_payment_order_created_total", 1.0, "result", "success", "reason", "none")
     }
 

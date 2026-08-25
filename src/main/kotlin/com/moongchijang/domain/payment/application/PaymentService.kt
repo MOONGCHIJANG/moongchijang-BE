@@ -38,6 +38,7 @@ import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import com.moongchijang.global.time.utcNow
+import com.moongchijang.security.crypto.PersonalInfoManager
 import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
@@ -72,6 +73,7 @@ class PaymentService(
     private val paymentMetricsRecorder: PaymentMetricsRecorder,
     private val paymentCompletionLockProperties: PaymentCompletionLockProperties,
     private val clock: Clock,
+    private val personalInfoManager: PersonalInfoManager,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -144,6 +146,8 @@ class PaymentService(
                 orderName = "${groupBuy.productName} ${request.quantity}개",
                 amount = order.totalAmount,
                 customerName = user.nickname,
+                customerPhoneNumber = personalInfoManager.decryptIfNeeded(user.phoneNumber),
+                customerEmail = personalInfoManager.decryptIfNeeded(user.email),
             )
         } catch (e: CustomException) {
             paymentMetricsRecorder.recordOrderCreated(RESULT_FAILURE, e.errorCode.name)

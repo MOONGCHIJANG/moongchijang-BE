@@ -7,4 +7,6 @@ data class CreatePaymentOrderResponse(
     val orderName: String,
     val amount: Int,
     val customerName: String?,
+    val customerPhoneNumber: String?,
+    val customerEmail: String?,
 )
