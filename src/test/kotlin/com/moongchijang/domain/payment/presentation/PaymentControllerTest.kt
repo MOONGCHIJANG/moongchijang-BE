@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.moongchijang.domain.payment.application.PaymentMetricsRecorder
 import com.moongchijang.domain.payment.application.PaymentService
 import com.moongchijang.domain.payment.application.PortOneWebhookSignatureVerifier
+import com.moongchijang.domain.payment.application.dto.PortOneWebhookRequest
 import com.moongchijang.global.config.PortOneProperties
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.springframework.http.HttpHeaders
 
 class PaymentControllerTest {
@@ -62,9 +64,39 @@ class PaymentControllerTest {
         )
     }
 
-    private fun controller(portOneWebhookSignatureVerifier: PortOneWebhookSignatureVerifier): PaymentController =
+    @Test
+    fun `PortOne V2 웹훅 payload는 data 필드에서 결제 식별자를 파싱한다`() {
+        val paymentService = mock(PaymentService::class.java)
+        val controller = controller(
+            paymentService = paymentService,
+            portOneWebhookSignatureVerifier = verifier(signatureVerificationEnabled = false),
+        )
+        val rawPayload = """
+            {
+              "type": "Transaction.Paid",
+              "timestamp": "2026-06-26T00:00:00.000Z",
+              "data": {
+                "storeId": "store-test",
+                "paymentId": "MCJ-10-test",
+                "transactionId": "tx-test"
+              }
+            }
+        """.trimIndent()
+
+        controller.handlePortOneWebhook(rawPayload = rawPayload, headers = HttpHeaders())
+
+        verify(paymentService).handlePortOneWebhook(
+            PortOneWebhookRequest(type = "Transaction.Paid", storeId = "store-test", paymentId = "MCJ-10-test"),
+            rawPayload,
+        )
+    }
+
+    private fun controller(
+        portOneWebhookSignatureVerifier: PortOneWebhookSignatureVerifier,
+        paymentService: PaymentService = mock(PaymentService::class.java),
+    ): PaymentController =
         PaymentController(
-            paymentService = mock(PaymentService::class.java),
+            paymentService = paymentService,
             portOneWebhookSignatureVerifier = portOneWebhookSignatureVerifier,
             objectMapper = ObjectMapper(),
             paymentMetricsRecorder = paymentMetricsRecorder,

@@ -1,6 +1,7 @@
 package com.moongchijang.domain.payment.presentation
 
 import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.moongchijang.domain.payment.application.PaymentMetricsRecorder
 import com.moongchijang.domain.payment.application.PaymentService
@@ -90,7 +91,7 @@ class PaymentController(
             throw e
         }
         val request = try {
-            objectMapper.readValue(rawPayload, PortOneWebhookRequest::class.java)
+            parsePortOneWebhookRequest(rawPayload)
         } catch (e: JsonProcessingException) {
             recordInvalidWebhook(stage = "json_parse", headers = headers, rawPayload = rawPayload, errorCode = ErrorCode.PAYMENT_WEBHOOK_INVALID)
             throw CustomException(ErrorCode.PAYMENT_WEBHOOK_INVALID)
@@ -129,6 +130,23 @@ class PaymentController(
             headers.getFirst(WEBHOOK_SIGNATURE_HEADER) != null,
         )
     }
+
+    private fun parsePortOneWebhookRequest(rawPayload: String): PortOneWebhookRequest {
+        val root = objectMapper.readTree(rawPayload)
+        val data = root.path("data")
+
+        return PortOneWebhookRequest(
+            type = root.textOrNull("type"),
+            storeId = root.textOrNull("storeId") ?: data.textOrNull("storeId"),
+            paymentId = root.textOrNull("paymentId") ?: data.textOrNull("paymentId"),
+        )
+    }
+
+    private fun JsonNode.textOrNull(fieldName: String): String? =
+        get(fieldName)
+            ?.takeIf { it.isTextual }
+            ?.asText()
+            ?.takeIf { it.isNotBlank() }
 
     companion object {
         private const val WEBHOOK_ID_HEADER = "webhook-id"
