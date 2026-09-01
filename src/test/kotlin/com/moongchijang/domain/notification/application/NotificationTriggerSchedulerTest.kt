@@ -7,6 +7,7 @@ import com.moongchijang.domain.favorite.domain.repository.FavoriteNotificationTa
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
@@ -49,6 +50,9 @@ class NotificationTriggerSchedulerTest {
     @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
+    @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
+
     private val clock: Clock = Clock.systemUTC()
 
     private val scheduler by lazy {
@@ -60,6 +64,7 @@ class NotificationTriggerSchedulerTest {
             favoriteRepository = favoriteRepository,
             groupBuyRequestRepository = groupBuyRequestRepository,
             storeStaffRepository = storeStaffRepository,
+            adminDiscordAlertService = adminDiscordAlertService,
             clock = clock,
         )
     }

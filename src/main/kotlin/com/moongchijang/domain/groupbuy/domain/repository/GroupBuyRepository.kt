@@ -31,6 +31,22 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
     ): List<GroupBuy>
 
     @Query(
+        """
+        select gb
+        from GroupBuy gb
+        join fetch gb.store
+        where gb.status = :status
+          and gb.deadline between :deadlineFrom and :deadlineTo
+          and gb.currentQuantity < gb.targetQuantity
+        """
+    )
+    fun findDeadlineRiskTargets(
+        @Param("status") status: GroupBuyStatus,
+        @Param("deadlineFrom") deadlineFrom: LocalDateTime,
+        @Param("deadlineTo") deadlineTo: LocalDateTime
+    ): List<GroupBuy>
+
+    @Query(
         value = """
             select gb
             from GroupBuy gb

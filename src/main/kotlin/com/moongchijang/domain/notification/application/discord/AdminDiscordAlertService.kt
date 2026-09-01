@@ -46,6 +46,15 @@ class AdminDiscordAlertService(
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.GROUPBUY, message))
     }
 
+    fun sendGroupBuyDeadlineRisk(groupBuy: GroupBuy) {
+        val message = """
+            [주의] ${groupBuy.store.name} - ${groupBuy.productName}
+            마감 24시간 전 / 현재 달성률 ${achievementRate(groupBuy)}%
+            → 조치 필요
+        """.trimIndent()
+        eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.GROUPBUY, message))
+    }
+
     fun sendRefundFailedSummary(failedCount: Int) {
         val message = """
             [긴급] 환불 실패 발생
@@ -102,6 +111,11 @@ class AdminDiscordAlertService(
 
     private fun toWon(amount: Int): String =
         NumberFormat.getNumberInstance(Locale.KOREA).format(amount)
+
+    private fun achievementRate(groupBuy: GroupBuy): Int {
+        val targetQuantity = groupBuy.targetQuantity.coerceAtLeast(1)
+        return ((groupBuy.currentQuantity * 100L) / targetQuantity).toInt()
+    }
 
     private fun adminGroupBuyRequestLink(requestId: Long): String {
         val baseUrl = discordProperties.adminBaseUrl.trim().trimEnd('/')
