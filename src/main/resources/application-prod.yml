@@ -94,6 +94,7 @@ aligo:
 discord:
   enabled: ${DISCORD_ENABLED:true}
   payment-success-alert-enabled: ${DISCORD_PAYMENT_SUCCESS_ALERT_ENABLED:false}
+  admin-base-url: ${DISCORD_ADMIN_BASE_URL:https://app.moongchijang.com/admin}
   webhook:
     refund: ${DISCORD_WEBHOOK_REFUND:}
     payment: ${DISCORD_WEBHOOK_PAYMENT:}

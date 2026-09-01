@@ -3,6 +3,7 @@ package com.moongchijang.domain.notification.application.discord
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.notification.application.discord.event.AdminDiscordAlertRequestedEvent
+import com.moongchijang.domain.notification.infrastructure.discord.DiscordProperties
 import com.moongchijang.domain.user.domain.entity.SellerBusinessProfile
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -12,14 +13,16 @@ import java.util.Locale
 @Service
 class AdminDiscordAlertService(
     private val eventPublisher: ApplicationEventPublisher,
+    private val discordProperties: DiscordProperties = DiscordProperties(),
 ) {
     fun sendNewGroupBuyRequest(request: GroupBuyRequest) {
         val requester = request.user.nickname ?: "이름미입력"
+        val adminLink = adminGroupBuyRequestLink(request.id)
         val message = """
             [새 요청] ${request.storeName} - ${request.productName}
             요청자: $requester / 희망수량: ${request.desiredQuantity}개
             희망날짜: ${request.desiredPickupDate}
-            → 어드민 확인 필요
+            → $adminLink
         """.trimIndent()
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.ONBOARDING, message))
     }
@@ -99,4 +102,12 @@ class AdminDiscordAlertService(
 
     private fun toWon(amount: Int): String =
         NumberFormat.getNumberInstance(Locale.KOREA).format(amount)
+
+    private fun adminGroupBuyRequestLink(requestId: Long): String {
+        val baseUrl = discordProperties.adminBaseUrl.trim().trimEnd('/')
+        if (baseUrl.isBlank()) {
+            return "어드민 확인 필요"
+        }
+        return "$baseUrl/group-buy-requests/$requestId"
+    }
 }

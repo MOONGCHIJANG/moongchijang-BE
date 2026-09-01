@@ -1,6 +1,7 @@
 package com.moongchijang.domain.notification.application.discord
 
 import com.moongchijang.domain.notification.application.discord.event.AdminDiscordAlertRequestedEvent
+import com.moongchijang.domain.notification.infrastructure.discord.DiscordProperties
 import com.moongchijang.support.GroupBuyFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -15,7 +16,10 @@ class AdminDiscordAlertServiceTest {
     @Test
     fun `새 공구 요청 알림을 보낼 때 온보딩 채널로 전송됨`() {
         val publisher = mock(ApplicationEventPublisher::class.java)
-        val service = AdminDiscordAlertService(publisher)
+        val service = AdminDiscordAlertService(
+            eventPublisher = publisher,
+            discordProperties = DiscordProperties(adminBaseUrl = "https://app.moongchijang.com/admin")
+        )
         val request = GroupBuyFixture.createGroupBuyRequest(storeName = "몽치장베이커리", productName = "소금빵", desiredQuantity = 3)
 
         service.sendNewGroupBuyRequest(request)
@@ -24,6 +28,7 @@ class AdminDiscordAlertServiceTest {
         verify(publisher).publishEvent(captor.capture())
         assertEquals(AdminDiscordChannel.ONBOARDING, captor.value.channel)
         assertTrue(captor.value.message.contains("[새 요청]"))
+        assertTrue(captor.value.message.contains("→ https://app.moongchijang.com/admin/group-buy-requests/20"))
     }
 
     @Test

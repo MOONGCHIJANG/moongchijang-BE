@@ -133,6 +133,7 @@ aligo:
 discord:
   enabled: ${DISCORD_ENABLED:false}
   payment-success-alert-enabled: ${DISCORD_PAYMENT_SUCCESS_ALERT_ENABLED:false}
+  admin-base-url: ${DISCORD_ADMIN_BASE_URL:http://localhost:3000/admin}
   webhook:
     refund: ${DISCORD_WEBHOOK_REFUND:}
     payment: ${DISCORD_WEBHOOK_PAYMENT:}
