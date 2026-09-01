@@ -64,6 +64,15 @@ class AdminDiscordAlertService(
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.REFUND, message))
     }
 
+    fun sendRefundFailed(orderId: String, amount: Int) {
+        val message = """
+            [긴급] 환불 실패 발생
+            주문번호: $orderId / 금액: ${toWon(amount)}원
+            → 수동 처리 필요
+        """.trimIndent()
+        eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.REFUND, message))
+    }
+
     fun sendPaymentFailed(
         orderId: String?,
         pgPaymentId: String?,

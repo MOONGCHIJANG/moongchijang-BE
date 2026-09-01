@@ -62,4 +62,25 @@ class PendingRefundSchedulerTest {
         verify(paymentService, never()).processPendingRefunds(100)
         verify(redisLockUtil, never()).unlock("payment:pending-refund", "lock-token")
     }
+
+    @Test
+    fun `환불대기 처리 실패 상세가 있으면 주문번호와 금액으로 운영자 알림을 보낸다`() {
+        val scheduler = PendingRefundScheduler(
+            paymentService = paymentService,
+            redisLockUtil = redisLockUtil,
+            adminDiscordAlertService = adminDiscordAlertService,
+            batchSize = 100,
+            lockWaitMs = 100,
+            lockLeaseMs = 55_000,
+        )
+        val failure = PendingRefundFailure(orderId = "MCJ-10-test", amount = 12_000)
+        `when`(redisLockUtil.tryLockOrThrow("payment:pending-refund", 100, 55_000)).thenReturn("lock-token")
+        `when`(paymentService.processPendingRefunds(100))
+            .thenReturn(PendingRefundProcessingResult(targetCount = 1, successCount = 0, failedCount = 1, failedRefunds = listOf(failure)))
+
+        scheduler.processPendingRefunds()
+
+        verify(adminDiscordAlertService).sendRefundFailed("MCJ-10-test", 12_000)
+        verify(redisLockUtil).unlock("payment:pending-refund", "lock-token")
+    }
 }

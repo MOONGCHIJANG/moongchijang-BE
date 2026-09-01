@@ -71,6 +71,33 @@ class AdminDiscordAlertServiceTest {
     }
 
     @Test
+    fun `환불 실패 알림을 보낼 때 환불 채널로 전송되고 주문번호와 금액이 포함됨`() {
+        val publisher = mock(ApplicationEventPublisher::class.java)
+        val service = AdminDiscordAlertService(publisher)
+
+        service.sendRefundFailed(orderId = "MCJ-10-test", amount = 12000)
+
+        val captor = ArgumentCaptor.forClass(AdminDiscordAlertRequestedEvent::class.java)
+        verify(publisher).publishEvent(captor.capture())
+        assertEquals(AdminDiscordChannel.REFUND, captor.value.channel)
+        assertTrue(captor.value.message.contains("[긴급] 환불 실패 발생"))
+        assertTrue(captor.value.message.contains("주문번호: MCJ-10-test / 금액: 12,000원"))
+    }
+
+    @Test
+    fun `환불 실패 요약 알림을 보낼 때 환불 채널로 전송됨`() {
+        val publisher = mock(ApplicationEventPublisher::class.java)
+        val service = AdminDiscordAlertService(publisher)
+
+        service.sendRefundFailedSummary(failedCount = 2)
+
+        val captor = ArgumentCaptor.forClass(AdminDiscordAlertRequestedEvent::class.java)
+        verify(publisher).publishEvent(captor.capture())
+        assertEquals(AdminDiscordChannel.REFUND, captor.value.channel)
+        assertTrue(captor.value.message.contains("실패 건수: 2건"))
+    }
+
+    @Test
     fun `결제 성공 알림을 보낼 때 결제 채널로 전송되고 금액 문구가 포함됨`() {
         val publisher = mock(ApplicationEventPublisher::class.java)
         val service = AdminDiscordAlertService(publisher)
