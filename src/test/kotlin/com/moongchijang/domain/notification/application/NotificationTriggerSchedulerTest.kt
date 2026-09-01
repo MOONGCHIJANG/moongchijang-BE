@@ -273,6 +273,30 @@ class NotificationTriggerSchedulerTest {
     }
 
     @Test
+    fun `공구 마감 24시간 전 미달성 위험 알림을 운영자에게 발행`() {
+        val now = LocalDateTime.of(2026, 5, 23, 10, 0)
+        val riskGroupBuy = GroupBuyFixture.createGroupBuy(
+            id = 61L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            deadline = now.plusHours(24).plusMinutes(1),
+            targetQuantity = 50,
+            currentQuantity = 36,
+        )
+
+        `when`(
+            groupBuyRepository.findDeadlineRiskTargets(
+                GroupBuyStatus.IN_PROGRESS,
+                now.plusHours(24),
+                now.plusHours(24).plusMinutes(10)
+            )
+        ).thenReturn(listOf(riskGroupBuy))
+
+        scheduler.triggerGroupBuyDeadlineRiskNotificationsAt(now)
+
+        verify(adminDiscordAlertService).sendGroupBuyDeadlineRisk(riskGroupBuy)
+    }
+
+    @Test
     fun `요청공구 D3 스케줄러를 실행할 때 요청자 대상 알림 발행`() {
         val now = LocalDateTime.of(2026, 5, 23, 7, 0)
         val request = GroupBuyRequest(
