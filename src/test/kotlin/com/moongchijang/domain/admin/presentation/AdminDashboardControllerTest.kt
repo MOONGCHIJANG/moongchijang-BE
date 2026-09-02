@@ -31,6 +31,7 @@ class AdminDashboardControllerTest {
         val response = AdminDashboardSummaryResponse(
             pendingRefundAmount = 10_000L,
             pendingRefundAmountChangeRate = 10.0,
+            reviewPendingRefundCount = 1L,
             pendingApprovalCount = 3L,
             averageReviewMinutes = 45L,
             pendingApprovalChangeRate = -20.0,

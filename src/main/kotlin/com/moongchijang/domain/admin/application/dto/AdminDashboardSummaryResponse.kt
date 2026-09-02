@@ -3,6 +3,7 @@ package com.moongchijang.domain.admin.application.dto
 data class AdminDashboardSummaryResponse(
     val pendingRefundAmount: Long,
     val pendingRefundAmountChangeRate: Double,
+    val reviewPendingRefundCount: Long,
     val pendingApprovalCount: Long,
     val averageReviewMinutes: Long,
     val pendingApprovalChangeRate: Double,

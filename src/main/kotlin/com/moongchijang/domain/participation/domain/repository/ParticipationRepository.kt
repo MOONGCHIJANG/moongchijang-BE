@@ -317,6 +317,22 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         @Param("to") to: LocalDateTime
     ): Long
 
+    @Query(
+        """
+        select count(p)
+        from Participation p
+        where p.status = :status
+          and (
+            p.ownerRefundReviewStatus = :pendingReviewStatus
+            or p.ownerRefundReviewStatus is null
+          )
+        """
+    )
+    fun countPendingAdminRefundReviews(
+        @Param("status") status: ParticipationStatus,
+        @Param("pendingReviewStatus") pendingReviewStatus: OwnerRefundReviewStatus
+    ): Long
+
     fun countByUserIdAndStatusIn(userId: Long, statuses: Collection<ParticipationStatus>): Long
 
     fun countByGroupBuyIdAndStatusIn(groupBuyId: Long, statuses: Collection<ParticipationStatus>): Long

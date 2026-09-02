@@ -6,6 +6,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -55,6 +56,12 @@ class AdminDashboardSummaryServiceTest {
         `when`(participationRepository.sumPaymentOrderAmountByStatus(ParticipationStatus.REFUND_PENDING))
             .thenReturn(30_000L)
         `when`(
+            participationRepository.countPendingAdminRefundReviews(
+                ParticipationStatus.REFUND_PENDING,
+                OwnerRefundReviewStatus.PENDING
+            )
+        ).thenReturn(8L)
+        `when`(
             participationRepository.sumPaymentOrderAmountByStatusAndCancelledAtBetween(
                 ParticipationStatus.REFUND_PENDING,
                 todayStart,
@@ -96,6 +103,7 @@ class AdminDashboardSummaryServiceTest {
 
         assertEquals(30_000L, result.pendingRefundAmount)
         assertEquals(50.0, result.pendingRefundAmountChangeRate)
+        assertEquals(8L, result.reviewPendingRefundCount)
         assertEquals(4L, result.pendingApprovalCount)
         assertEquals(60L, result.averageReviewMinutes)
         assertEquals(50.0, result.pendingApprovalChangeRate)
@@ -149,6 +157,10 @@ class AdminDashboardSummaryServiceTest {
         assertEquals(100.0, result.pendingRefundAmountChangeRate)
         assertEquals(0.0, result.pendingApprovalChangeRate)
         assertEquals(0L, result.averageReviewMinutes)
+        verify(participationRepository).countPendingAdminRefundReviews(
+            ParticipationStatus.REFUND_PENDING,
+            OwnerRefundReviewStatus.PENDING
+        )
         verify(participationRepository).countByStatusAndRefundedAtFromUntil(
             ParticipationStatus.REFUNDED,
             todayStart,

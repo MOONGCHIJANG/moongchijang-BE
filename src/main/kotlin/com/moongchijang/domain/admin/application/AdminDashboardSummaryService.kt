@@ -7,6 +7,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestStatusHistoryRepository
+import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.global.time.kstToday
@@ -62,6 +63,10 @@ class AdminDashboardSummaryService(
         val response = AdminDashboardSummaryResponse(
             pendingRefundAmount = pendingRefundAmount,
             pendingRefundAmountChangeRate = changeRate(todayPendingRefundAmount, yesterdayPendingRefundAmount),
+            reviewPendingRefundCount = participationRepository.countPendingAdminRefundReviews(
+                status = ParticipationStatus.REFUND_PENDING,
+                pendingReviewStatus = OwnerRefundReviewStatus.PENDING
+            ),
             pendingApprovalCount = groupBuyRequestRepository.countByStatusIn(pendingApprovalStatuses),
             averageReviewMinutes = averageReviewMinutes(pendingCreatedAts, now),
             pendingApprovalChangeRate = changeRate(
