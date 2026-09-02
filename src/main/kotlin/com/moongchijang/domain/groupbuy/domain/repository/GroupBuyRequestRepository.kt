@@ -32,7 +32,7 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
             SELECT request
             FROM GroupBuyRequest request
             LEFT JOIN FETCH request.user requester
-            WHERE (:status IS NULL OR request.status = :status)
+            WHERE (:useStatusFilter = false OR request.status IN :statuses)
               AND (
                 :keyword IS NULL
                 OR (:requestIdKeyword IS NOT NULL AND request.id = :requestIdKeyword)
@@ -48,7 +48,7 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
             SELECT COUNT(request)
             FROM GroupBuyRequest request
             LEFT JOIN request.user requester
-            WHERE (:status IS NULL OR request.status = :status)
+            WHERE (:useStatusFilter = false OR request.status IN :statuses)
               AND (
                 :keyword IS NULL
                 OR (:requestIdKeyword IS NOT NULL AND request.id = :requestIdKeyword)
@@ -61,7 +61,8 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
         """
     )
     fun searchAdminRequests(
-        @Param("status") status: GroupBuyRequestStatus?,
+        @Param("useStatusFilter") useStatusFilter: Boolean,
+        @Param("statuses") statuses: Collection<GroupBuyRequestStatus>,
         @Param("keyword") keyword: String?,
         @Param("requestIdKeyword") requestIdKeyword: Long?,
         pageable: Pageable

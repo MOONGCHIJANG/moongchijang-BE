@@ -6,25 +6,34 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHisto
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.user.domain.entity.AuthProvider
 import com.moongchijang.domain.user.domain.entity.User
+import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.data.domain.Page
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 
+@Schema(
+    description = "어드민 공구 요청 상태 필터. IN_REVIEW는 승인 대기 상태(IN_REVIEW, IN_CONTACT)를 함께 조회합니다."
+)
 enum class AdminGroupBuyRequestStatusFilter {
+    @Schema(description = "전체")
     ALL,
+
+    @Schema(description = "승인 대기(IN_REVIEW, IN_CONTACT)")
     IN_REVIEW,
-    IN_CONTACT,
+
+    @Schema(description = "승인 완료")
     OPENED,
+
+    @Schema(description = "반려")
     REJECTED;
 
-    fun toStatus(): GroupBuyRequestStatus? =
+    fun toStatuses(): List<GroupBuyRequestStatus>? =
         when (this) {
             ALL -> null
-            IN_REVIEW -> GroupBuyRequestStatus.IN_REVIEW
-            IN_CONTACT -> GroupBuyRequestStatus.IN_CONTACT
-            OPENED -> GroupBuyRequestStatus.OPENED
-            REJECTED -> GroupBuyRequestStatus.REJECTED
+            IN_REVIEW -> listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
+            OPENED -> listOf(GroupBuyRequestStatus.OPENED)
+            REJECTED -> listOf(GroupBuyRequestStatus.REJECTED)
         }
 }
 

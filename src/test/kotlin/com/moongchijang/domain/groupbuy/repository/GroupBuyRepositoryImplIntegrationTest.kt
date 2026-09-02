@@ -167,7 +167,8 @@ class GroupBuyRepositoryImplIntegrationTest {
         flushAndClear()
 
         val result = groupBuyRequestRepository.searchAdminRequests(
-            status = GroupBuyRequestStatus.IN_REVIEW,
+            useStatusFilter = true,
+            statuses = listOf(GroupBuyRequestStatus.IN_REVIEW),
             keyword = "은서",
             requestIdKeyword = null,
             pageable = pageable
