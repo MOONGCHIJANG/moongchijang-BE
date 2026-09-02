@@ -136,8 +136,10 @@ class GroupBuyRequestService(
         )
         val normalizedKeyword = keyword?.trim()?.takeIf { it.isNotBlank() }
         val requestIdKeyword = normalizedKeyword?.toLongOrNull()
+        val statuses = status.toStatuses()
         val page = groupBuyRequestRepository.searchAdminRequests(
-            status = status.toStatus(),
+            useStatusFilter = statuses != null,
+            statuses = statuses ?: GroupBuyRequestStatus.values().toList(),
             keyword = normalizedKeyword,
             requestIdKeyword = requestIdKeyword,
             pageable = pageable

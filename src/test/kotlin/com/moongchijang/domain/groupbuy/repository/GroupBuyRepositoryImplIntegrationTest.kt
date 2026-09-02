@@ -167,13 +167,66 @@ class GroupBuyRepositoryImplIntegrationTest {
         flushAndClear()
 
         val result = groupBuyRequestRepository.searchAdminRequests(
-            status = GroupBuyRequestStatus.IN_REVIEW,
+            useStatusFilter = true,
+            statuses = listOf(GroupBuyRequestStatus.IN_REVIEW),
             keyword = "은서",
             requestIdKeyword = null,
             pageable = pageable
         )
 
         assertThat(result.content.map { it.id }).containsExactly(matched.id)
+    }
+
+    @Test
+    fun `운영자 공구 요청 검색은 승인 대기 상태 묶음을 함께 조회한다`() {
+        val requester = User(
+            provider = AuthProvider.EMAIL,
+            email = "admin-filter@example.com",
+            passwordHash = "pw",
+            nickname = "필터검증",
+            role = UserRole.BUYER,
+            signupCompleted = true
+        )
+        em.persist(requester)
+        val reviewRequest = GroupBuyRequest(
+            user = requester,
+            storeName = "성심당",
+            productName = "튀김소보로",
+            desiredQuantity = 20,
+            desiredPickupDate = LocalDate.now().plusDays(3),
+            status = GroupBuyRequestStatus.IN_REVIEW
+        )
+        val contactRequest = GroupBuyRequest(
+            user = requester,
+            storeName = "태극당",
+            productName = "모나카",
+            desiredQuantity = 10,
+            desiredPickupDate = LocalDate.now().plusDays(4),
+            status = GroupBuyRequestStatus.IN_CONTACT
+        )
+        val rejectedRequest = GroupBuyRequest(
+            user = requester,
+            storeName = "다른 매장",
+            productName = "단팥빵",
+            desiredQuantity = 5,
+            desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.REJECTED
+        )
+        em.persist(reviewRequest)
+        em.persist(contactRequest)
+        em.persist(rejectedRequest)
+        flushAndClear()
+
+        val result = groupBuyRequestRepository.searchAdminRequests(
+            useStatusFilter = true,
+            statuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT),
+            keyword = null,
+            requestIdKeyword = null,
+            pageable = pageable
+        )
+
+        assertThat(result.content.map { it.id })
+            .containsExactly(contactRequest.id, reviewRequest.id)
     }
 
     private fun searchFeed(

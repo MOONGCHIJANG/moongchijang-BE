@@ -376,7 +376,7 @@ class GroupBuyRequestServiceTest {
             desiredPickupDate = LocalDate.now().plusDays(5)
         ).apply { id = 10L }
 
-        `when`(groupBuyRequestRepository.searchAdminRequests(null, null, null, pageable))
+        `when`(groupBuyRequestRepository.searchAdminRequests(false, GroupBuyRequestStatus.values().toList(), null, null, pageable))
             .thenReturn(PageImpl(listOf(request), pageable, 1))
         val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, null, pageable)
 
@@ -408,7 +408,15 @@ class GroupBuyRequestServiceTest {
             status = GroupBuyRequestStatus.REJECTED
         ).apply { id = 11L }
 
-        `when`(groupBuyRequestRepository.searchAdminRequests(GroupBuyRequestStatus.REJECTED, null, null, pageable))
+        `when`(
+            groupBuyRequestRepository.searchAdminRequests(
+                true,
+                listOf(GroupBuyRequestStatus.REJECTED),
+                null,
+                null,
+                pageable
+            )
+        )
             .thenReturn(PageImpl(listOf(request), pageable, 11))
         val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.REJECTED, null, pageable)
 
@@ -421,13 +429,63 @@ class GroupBuyRequestServiceTest {
         assertEquals(2L, result.content[0].requesterId)
         assertEquals("테스트유저", result.content[0].requesterName)
         assertFalse(result.content[0].actionable)
-        verify(groupBuyRequestRepository).searchAdminRequests(GroupBuyRequestStatus.REJECTED, null, null, pageable)
+        verify(groupBuyRequestRepository).searchAdminRequests(
+            true,
+            listOf(GroupBuyRequestStatus.REJECTED),
+            null,
+            null,
+            pageable
+        )
+    }
+
+    @Test
+    fun `운영자 승인 대기 필터는 검토 중과 컨택 중 요청을 함께 조회한다`() {
+        val pageable = PageRequest.of(0, 20)
+        val reviewRequest = GroupBuyRequest(
+            user = UserFixture.createKakaoUser(id = 1L),
+            storeName = "성심당",
+            productName = "튀김소보로",
+            desiredQuantity = 20,
+            desiredPickupDate = LocalDate.now().plusDays(5),
+            status = GroupBuyRequestStatus.IN_REVIEW
+        ).apply { id = 10L }
+        val contactRequest = GroupBuyRequest(
+            user = UserFixture.createKakaoUser(id = 2L),
+            storeName = "태극당",
+            productName = "모나카",
+            desiredQuantity = 15,
+            desiredPickupDate = LocalDate.now().plusDays(6),
+            status = GroupBuyRequestStatus.IN_CONTACT
+        ).apply { id = 11L }
+        val waitingStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
+
+        `when`(
+            groupBuyRequestRepository.searchAdminRequests(
+                true,
+                waitingStatuses,
+                null,
+                null,
+                pageable
+            )
+        ).thenReturn(PageImpl(listOf(reviewRequest, contactRequest), pageable, 2))
+
+        val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.IN_REVIEW, null, pageable)
+
+        assertEquals(listOf(10L, 11L), result.content.map { it.requestId })
+        assertTrue(result.content.all { it.actionable })
+        verify(groupBuyRequestRepository).searchAdminRequests(
+            true,
+            waitingStatuses,
+            null,
+            null,
+            pageable
+        )
     }
 
     @Test
     fun `운영자 공구 요청 목록이 비어있으면 사용자 조회를 생략한다`() {
         val pageable = PageRequest.of(0, 20)
-        `when`(groupBuyRequestRepository.searchAdminRequests(null, null, null, pageable))
+        `when`(groupBuyRequestRepository.searchAdminRequests(false, GroupBuyRequestStatus.values().toList(), null, null, pageable))
             .thenReturn(PageImpl(emptyList(), pageable, 0))
 
         val result = service.getAdminRequests(AdminGroupBuyRequestStatusFilter.ALL, null, pageable)
@@ -456,7 +514,7 @@ class GroupBuyRequestServiceTest {
             originalPrice = 12_000
         }
 
-        `when`(groupBuyRequestRepository.searchAdminRequests(null, "10", 10L, pageable))
+        `when`(groupBuyRequestRepository.searchAdminRequests(false, GroupBuyRequestStatus.values().toList(), "10", 10L, pageable))
             .thenReturn(PageImpl(listOf(request), pageable, 1))
         `when`(groupBuyRepository.findAllById(listOf(30L))).thenReturn(listOf(groupBuy))
 
@@ -466,7 +524,7 @@ class GroupBuyRequestServiceTest {
         assertEquals(12_000, result.content[0].originalPrice)
         assertEquals(9_900, result.content[0].price)
         assertFalse(result.content[0].actionable)
-        verify(groupBuyRequestRepository).searchAdminRequests(null, "10", 10L, pageable)
+        verify(groupBuyRequestRepository).searchAdminRequests(false, GroupBuyRequestStatus.values().toList(), "10", 10L, pageable)
     }
 
     @Test
