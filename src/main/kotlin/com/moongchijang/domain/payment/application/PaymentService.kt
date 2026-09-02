@@ -464,13 +464,16 @@ class PaymentService(
 
         var successCount = 0
         var failedCount = 0
+        val failedRefunds = mutableListOf<PendingRefundFailure>()
         participations.forEach { participation ->
             try {
-                val success = processPendingRefund(participation.id)
-                if (success) {
-                    successCount++
-                } else {
-                    failedCount++
+                when (val result = processPendingRefund(participation.id)) {
+                    PendingRefundProcessResult.Success -> successCount++
+                    PendingRefundProcessResult.Ignored -> failedCount++
+                    is PendingRefundProcessResult.Failure -> {
+                        failedCount++
+                        failedRefunds += result.failure
+                    }
                 }
             } catch (e: Exception) {
                 log.error("[PaymentService] 환불대기 처리 중 예외 발생: participationId={}", participation.id, e)
@@ -482,7 +485,8 @@ class PaymentService(
         return PendingRefundProcessingResult(
             targetCount = participations.size,
             successCount = successCount,
-            failedCount = failedCount
+            failedCount = failedCount,
+            failedRefunds = failedRefunds,
         )
     }
 
@@ -915,12 +919,12 @@ class PaymentService(
         )
     }
 
-    private fun processPendingRefund(participationId: Long): Boolean {
+    private fun processPendingRefund(participationId: Long): PendingRefundProcessResult {
         val target = transactionTemplate().execute {
             findPendingRefundTarget(participationId)
         } ?: run {
             paymentMetricsRecorder.recordRefund(RESULT_IGNORED, "PENDING_REFUND_TARGET_NOT_FOUND")
-            return false
+            return PendingRefundProcessResult.Ignored
         }
 
         val paymentResult = try {
@@ -937,7 +941,7 @@ class PaymentService(
                 e.errorCode
             )
             paymentMetricsRecorder.recordRefund(RESULT_FAILURE, e.errorCode.name)
-            return false
+            return PendingRefundProcessResult.Failure(target.toFailure())
         }
         if (paymentResult.status != PORTONE_STATUS_CANCELLED && paymentResult.status != PORTONE_STATUS_PARTIAL_CANCELLED) {
             log.warn(
@@ -947,7 +951,7 @@ class PaymentService(
                 paymentResult.status
             )
             paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PORTONE_UNEXPECTED_STATUS")
-            return false
+            return PendingRefundProcessResult.Failure(target.toFailure())
         }
 
         val completed = transactionTemplate().execute {
@@ -958,12 +962,12 @@ class PaymentService(
             true
         } ?: run {
             paymentMetricsRecorder.recordRefund(RESULT_FAILURE, "PENDING_REFUND_COMPLETION_FAILED")
-            false
+            return PendingRefundProcessResult.Failure(target.toFailure())
         }
         if (completed) {
             paymentMetricsRecorder.recordRefund(RESULT_SUCCESS)
         }
-        return completed
+        return PendingRefundProcessResult.Success
     }
 
     private fun findPendingRefundTarget(participationId: Long): PendingRefundTarget? {
@@ -1291,7 +1295,16 @@ class PaymentService(
         val orderId: String,
         val pgPaymentId: String,
         val refundAmount: Int,
-    )
+    ) {
+        fun toFailure(): PendingRefundFailure =
+            PendingRefundFailure(orderId = orderId, amount = refundAmount)
+    }
+
+    private sealed interface PendingRefundProcessResult {
+        data object Success : PendingRefundProcessResult
+        data object Ignored : PendingRefundProcessResult
+        data class Failure(val failure: PendingRefundFailure) : PendingRefundProcessResult
+    }
 
     private fun elapsedMs(startedAtNanos: Long): Long =
         TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos)
@@ -1315,4 +1328,10 @@ data class PendingRefundProcessingResult(
     val targetCount: Int,
     val successCount: Int,
     val failedCount: Int,
+    val failedRefunds: List<PendingRefundFailure> = emptyList(),
+)
+
+data class PendingRefundFailure(
+    val orderId: String,
+    val amount: Int,
 )

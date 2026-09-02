@@ -45,7 +45,12 @@ class PendingRefundScheduler(
                     result.failedCount
                 )
                 if (result.failedCount > 0) {
-                    adminDiscordAlertService.sendRefundFailedSummary(result.failedCount)
+                    result.failedRefunds.forEach { failure ->
+                        adminDiscordAlertService.sendRefundFailed(
+                            orderId = failure.orderId,
+                            amount = failure.amount,
+                        )
+                    }
                 }
             }
         } finally {

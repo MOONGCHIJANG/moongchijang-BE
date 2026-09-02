@@ -3,6 +3,7 @@ package com.moongchijang.domain.notification.application.discord
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.notification.application.discord.event.AdminDiscordAlertRequestedEvent
+import com.moongchijang.domain.notification.infrastructure.discord.DiscordProperties
 import com.moongchijang.domain.user.domain.entity.SellerBusinessProfile
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -12,14 +13,16 @@ import java.util.Locale
 @Service
 class AdminDiscordAlertService(
     private val eventPublisher: ApplicationEventPublisher,
+    private val discordProperties: DiscordProperties = DiscordProperties(),
 ) {
     fun sendNewGroupBuyRequest(request: GroupBuyRequest) {
         val requester = request.user.nickname ?: "이름미입력"
+        val adminLink = adminGroupBuyRequestLink(request.id)
         val message = """
             [새 요청] ${request.storeName} - ${request.productName}
             요청자: $requester / 희망수량: ${request.desiredQuantity}개
             희망날짜: ${request.desiredPickupDate}
-            → 어드민 확인 필요
+            → $adminLink
         """.trimIndent()
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.ONBOARDING, message))
     }
@@ -43,10 +46,28 @@ class AdminDiscordAlertService(
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.GROUPBUY, message))
     }
 
+    fun sendGroupBuyDeadlineRisk(groupBuy: GroupBuy) {
+        val message = """
+            [주의] ${groupBuy.store.name} - ${groupBuy.productName}
+            마감 24시간 전 / 현재 달성률 ${achievementRate(groupBuy)}%
+            → 조치 필요
+        """.trimIndent()
+        eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.GROUPBUY, message))
+    }
+
     fun sendRefundFailedSummary(failedCount: Int) {
         val message = """
             [긴급] 환불 실패 발생
             실패 건수: ${failedCount}건
+            → 수동 처리 필요
+        """.trimIndent()
+        eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.REFUND, message))
+    }
+
+    fun sendRefundFailed(orderId: String, amount: Int) {
+        val message = """
+            [긴급] 환불 실패 발생
+            주문번호: $orderId / 금액: ${toWon(amount)}원
             → 수동 처리 필요
         """.trimIndent()
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.REFUND, message))
@@ -99,4 +120,17 @@ class AdminDiscordAlertService(
 
     private fun toWon(amount: Int): String =
         NumberFormat.getNumberInstance(Locale.KOREA).format(amount)
+
+    private fun achievementRate(groupBuy: GroupBuy): Int {
+        val targetQuantity = groupBuy.targetQuantity.coerceAtLeast(1)
+        return ((groupBuy.currentQuantity * 100L) / targetQuantity).toInt()
+    }
+
+    private fun adminGroupBuyRequestLink(requestId: Long): String {
+        val baseUrl = discordProperties.adminBaseUrl.trim().trimEnd('/')
+        if (baseUrl.isBlank()) {
+            return "어드민 확인 필요"
+        }
+        return "$baseUrl/group-buy-requests/$requestId"
+    }
 }

@@ -7,6 +7,7 @@ import com.moongchijang.domain.favorite.domain.repository.FavoriteNotificationTa
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
@@ -49,6 +50,9 @@ class NotificationTriggerSchedulerTest {
     @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
+    @Mock
+    private lateinit var adminDiscordAlertService: AdminDiscordAlertService
+
     private val clock: Clock = Clock.systemUTC()
 
     private val scheduler by lazy {
@@ -60,6 +64,7 @@ class NotificationTriggerSchedulerTest {
             favoriteRepository = favoriteRepository,
             groupBuyRequestRepository = groupBuyRequestRepository,
             storeStaffRepository = storeStaffRepository,
+            adminDiscordAlertService = adminDiscordAlertService,
             clock = clock,
         )
     }
@@ -265,6 +270,30 @@ class NotificationTriggerSchedulerTest {
             "wish-deadline-d1:22:${d1GroupBuy.deadline}",
             now
         )
+    }
+
+    @Test
+    fun `공구 마감 24시간 전 미달성 위험 알림을 운영자에게 발행`() {
+        val now = LocalDateTime.of(2026, 5, 23, 10, 0)
+        val riskGroupBuy = GroupBuyFixture.createGroupBuy(
+            id = 61L,
+            status = GroupBuyStatus.IN_PROGRESS,
+            deadline = now.plusHours(24).plusMinutes(1),
+            targetQuantity = 50,
+            currentQuantity = 36,
+        )
+
+        `when`(
+            groupBuyRepository.findDeadlineRiskTargets(
+                GroupBuyStatus.IN_PROGRESS,
+                now.plusHours(24),
+                now.plusHours(24).plusMinutes(10)
+            )
+        ).thenReturn(listOf(riskGroupBuy))
+
+        scheduler.triggerGroupBuyDeadlineRiskNotificationsAt(now)
+
+        verify(adminDiscordAlertService).sendGroupBuyDeadlineRisk(riskGroupBuy)
     }
 
     @Test

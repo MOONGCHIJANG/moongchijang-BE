@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
+import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.entity.PickupStatus
@@ -28,6 +29,7 @@ class NotificationTriggerScheduler(
     private val favoriteRepository: FavoriteRepository,
     private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val storeStaffRepository: StoreStaffRepository,
+    private val adminDiscordAlertService: AdminDiscordAlertService,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -75,6 +77,30 @@ class NotificationTriggerScheduler(
     fun triggerWishlistDeadlineNotificationsAt(now: LocalDateTime) {
         dispatchWishlistDeadlineReminder(now, ReminderOffset.DAYS_3)
         dispatchWishlistDeadlineReminder(now, ReminderOffset.DAYS_1)
+    }
+
+    @Scheduled(cron = "0 */10 * * * *", zone = KST_ZONE_ID)
+    fun triggerGroupBuyDeadlineRiskNotifications() {
+        triggerGroupBuyDeadlineRiskNotificationsAt(nowKst())
+    }
+
+    fun triggerGroupBuyDeadlineRiskNotificationsAt(now: LocalDateTime) {
+        val windowFrom = now.plusHours(24)
+        val windowTo = windowFrom.plusMinutes(WINDOW_MINUTES.toLong())
+        val groupBuys = groupBuyRepository.findDeadlineRiskTargets(
+            status = GroupBuyStatus.IN_PROGRESS,
+            deadlineFrom = windowFrom,
+            deadlineTo = windowTo
+        )
+
+        groupBuys.forEach { groupBuy ->
+            adminDiscordAlertService.sendGroupBuyDeadlineRisk(groupBuy)
+        }
+
+        log.info(
+            "[NotificationTriggerScheduler] 운영자 미달성 위험 알림 트리거 완료: windowFrom={}, windowTo={}, groupBuyCount={}",
+            windowFrom, windowTo, groupBuys.size
+        )
     }
 
     @Scheduled(cron = "0 0 7 * * *", zone = KST_ZONE_ID)

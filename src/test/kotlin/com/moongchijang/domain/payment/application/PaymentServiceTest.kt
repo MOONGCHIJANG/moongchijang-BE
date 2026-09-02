@@ -971,6 +971,8 @@ class PaymentServiceTest {
         assertEquals(1, result.targetCount)
         assertEquals(0, result.successCount)
         assertEquals(1, result.failedCount)
+        assertEquals(order.orderId, result.failedRefunds.single().orderId)
+        assertEquals(12_000, result.failedRefunds.single().amount)
         assertCounter(
             "mcj_payment_refund_processed_total",
             1.0,

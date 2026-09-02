@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class DiscordProperties(
     val enabled: Boolean = false,
     val paymentSuccessAlertEnabled: Boolean = false,
+    val adminBaseUrl: String = "",
     val webhook: Webhook = Webhook(),
 ) {
     data class Webhook(
