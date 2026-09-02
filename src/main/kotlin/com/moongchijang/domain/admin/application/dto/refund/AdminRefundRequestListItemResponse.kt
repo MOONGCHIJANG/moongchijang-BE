@@ -47,13 +47,17 @@ data class AdminRefundRequestListItemResponse(
 
     @Schema(description = "처리 상태")
     val status: AdminRefundRequestStatus,
-){
+
+    @Schema(description = "작업 가능 여부")
+    val actionable: Boolean,
+) {
     companion object {
         fun from(
             participation: Participation,
             now: LocalDateTime,
         ): AdminRefundRequestListItemResponse {
             val requestedAt = participation.cancelledAt ?: participation.createdAt ?: now
+            val status = participation.toAdminStatus()
             return AdminRefundRequestListItemResponse(
                 requestId = participation.id,
                 caseFilter = participation.toAdminCaseFilter(),
@@ -70,7 +74,8 @@ data class AdminRefundRequestListItemResponse(
                 requestedAt = requestedAt,
                 slaRemainingHours = calculateSlaRemainingHours(requestedAt, now),
                 slaWarning = isSlaWarning(requestedAt, now),
-                status = participation.toAdminStatus(),
+                status = status,
+                actionable = status.isActionable(),
             )
         }
     }
@@ -89,8 +94,11 @@ private fun Participation.toAdminStatus(): AdminRefundRequestStatus {
     }
 }
 
+private fun AdminRefundRequestStatus.isActionable(): Boolean =
+    this == AdminRefundRequestStatus.REVIEW_PENDING || this == AdminRefundRequestStatus.IN_PROGRESS
+
 private fun Participation.toAdminCaseFilter(): AdminRefundRequestCaseFilter {
-    if (cancelReason == null) {
+    val cancelReason = cancelReason ?: run {
         return if (groupBuy.status == GroupBuyStatus.FAILED) {
             AdminRefundRequestCaseFilter.TARGET_NOT_MET
         } else {
@@ -104,7 +112,6 @@ private fun Participation.toAdminCaseFilter(): AdminRefundRequestCaseFilter {
         ParticipationCancelReason.PREFER_DIRECT_VISIT -> AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL
         ParticipationCancelReason.BOUGHT_ELSEWHERE -> AdminRefundRequestCaseFilter.POST_ACHIEVEMENT_CANCEL
         ParticipationCancelReason.OTHER -> AdminRefundRequestCaseFilter.DISPUTE_OR_DROPOUT_REFUND
-        null -> AdminRefundRequestCaseFilter.ALL
     }
 }
 
