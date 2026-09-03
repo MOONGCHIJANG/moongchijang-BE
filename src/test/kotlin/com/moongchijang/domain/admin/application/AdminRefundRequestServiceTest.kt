@@ -8,6 +8,7 @@ import com.moongchijang.domain.admin.application.dto.refund.AdminRefundRequestTa
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.participation.domain.entity.OwnerRefundReviewStatus
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationCancelReason
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.payment.domain.repository.PaymentOrderRepository
@@ -22,6 +23,7 @@ import com.moongchijang.security.crypto.PersonalInfoManager
 import com.moongchijang.support.GroupBuyFixture
 import com.moongchijang.support.UserFixture
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -88,6 +90,90 @@ class AdminRefundRequestServiceTest {
 
         assertTrue(result.content.isEmpty())
         assertEquals(0L, result.totalElements)
+    }
+
+    @Test
+    fun `환불 요청 목록은 처리 가능 여부를 상태에 따라 반환한다`() {
+        val pageable = PageRequest.of(0, 20)
+        val reviewPending = refundParticipation(id = 201L).apply {
+            ownerRefundReviewStatus = OwnerRefundReviewStatus.PENDING
+        }
+        val inProgress = refundParticipation(id = 202L).apply {
+            ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED
+        }
+        val approved = refundParticipation(id = 203L).apply {
+            status = ParticipationStatus.REFUNDED
+            ownerRefundReviewStatus = OwnerRefundReviewStatus.APPROVED
+        }
+        val rejected = refundParticipation(id = 204L).apply {
+            ownerRefundReviewStatus = OwnerRefundReviewStatus.DISPUTED
+        }
+        `when`(
+            participationRepository.findAdminRefundRequests(
+                statuses = listOf(ParticipationStatus.REFUND_PENDING, ParticipationStatus.REFUNDED),
+                useReviewStatusFilter = false,
+                reviewStatuses = listOf(OwnerRefundReviewStatus.PENDING),
+                includeNullReviewStatus = false,
+                caseFilter = "ALL",
+                cancelReasons = listOf(ParticipationCancelReason.OTHER),
+                keyword = null,
+                pageable = pageable,
+            )
+        ).thenReturn(PageImpl(listOf(reviewPending, inProgress, approved, rejected), pageable, 4))
+
+        val result = service.getRefundRequests(
+            tab = AdminRefundRequestTab.ALL,
+            caseFilter = AdminRefundRequestCaseFilter.ALL,
+            keyword = null,
+            pageable = pageable,
+        )
+
+        assertEquals(
+            listOf(
+                AdminRefundRequestStatus.REVIEW_PENDING,
+                AdminRefundRequestStatus.IN_PROGRESS,
+                AdminRefundRequestStatus.APPROVED,
+                AdminRefundRequestStatus.REJECTED
+            ),
+            result.content.map { it.status }
+        )
+        assertEquals(listOf(true, true, false, false), result.content.map { it.actionable })
+    }
+
+    @Test
+    fun `환불 요청 상세는 완료 또는 마감된 공구를 달성으로 반환한다`() {
+        val participation = refundParticipation(id = 205L).apply {
+            groupBuy.status = GroupBuyStatus.COMPLETED
+        }
+        `when`(participationRepository.findPickupDetailById(205L)).thenReturn(participation)
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyId(anyLong(), anyLong())).thenReturn(null)
+
+        val result = service.getRefundRequestDetail(205L)
+
+        assertTrue(result.achieved)
+    }
+
+    @Test
+    fun `환불 요청 상세는 자동 환불 케이스에 맞는 환불 사유 라벨을 반환한다`() {
+        val targetNotMet = refundParticipation(id = 206L).apply {
+            groupBuy.status = GroupBuyStatus.FAILED
+            cancelReason = null
+        }
+        val ownerFault = refundParticipation(id = 207L).apply {
+            groupBuy.status = GroupBuyStatus.CLOSED
+            cancelReason = null
+        }
+        `when`(participationRepository.findPickupDetailById(206L)).thenReturn(targetNotMet)
+        `when`(participationRepository.findPickupDetailById(207L)).thenReturn(ownerFault)
+        `when`(paymentOrderRepository.findByUserIdAndGroupBuyId(anyLong(), anyLong())).thenReturn(null)
+
+        val targetNotMetResult = service.getRefundRequestDetail(206L)
+        val ownerFaultResult = service.getRefundRequestDetail(207L)
+
+        assertFalse(targetNotMetResult.achieved)
+        assertEquals("목표 미달성", targetNotMetResult.refundReason)
+        assertTrue(ownerFaultResult.achieved)
+        assertEquals("사장님 귀책 취소", ownerFaultResult.refundReason)
     }
 
     @Test
