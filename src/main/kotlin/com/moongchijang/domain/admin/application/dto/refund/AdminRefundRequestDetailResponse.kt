@@ -107,7 +107,7 @@ data class AdminRefundRequestDetailResponse(
                 signupProvider = participation.user.provider.name,
                 groupBuyName = participation.groupBuy.productName,
                 storeName = participation.groupBuy.store.name,
-                achieved = participation.groupBuy.status == GroupBuyStatus.ACHIEVED,
+                achieved = isGroupBuyAchieved(participation.groupBuy.status),
                 pickupDate = participation.groupBuy.pickupDate.format(PICKUP_DATE_FORMATTER),
                 pickupLocation = participation.groupBuy.pickupLocation,
                 paymentAmount = participation.totalAmount,
@@ -116,7 +116,7 @@ data class AdminRefundRequestDetailResponse(
                 paymentMethod = payment?.method,
                 approvalNumber = payment?.pgPaymentId,
                 paidAt = payment?.approvedAt ?: paymentOrder?.approvedAt,
-                refundReason = participation.cancelReason.toRefundReasonLabel(),
+                refundReason = participation.toRefundReasonLabel(),
                 refundReasonDetail = participation.cancelReasonDetail,
                 requestedAt = requestedAt,
                 ownerOpinionSubmittedAt = participation.ownerRefundReviewedAt,
@@ -169,14 +169,24 @@ private fun Participation.toAdminStatus(): AdminRefundRequestStatus {
     }
 }
 
-private fun ParticipationCancelReason?.toRefundReasonLabel(): String {
-    return when (this) {
+private fun isGroupBuyAchieved(status: GroupBuyStatus?): Boolean =
+    status == GroupBuyStatus.ACHIEVED || status == GroupBuyStatus.COMPLETED || status == GroupBuyStatus.CLOSED
+
+private fun Participation.toRefundReasonLabel(): String {
+    val reason = cancelReason ?: run {
+        return if (groupBuy.status == GroupBuyStatus.FAILED) {
+            "목표 미달성"
+        } else {
+            "사장님 귀책 취소"
+        }
+    }
+
+    return when (reason) {
         ParticipationCancelReason.TIME_UNAVAILABLE -> "픽업 불가"
         ParticipationCancelReason.NO_LONGER_WANTED -> "구매 의사 없음"
         ParticipationCancelReason.PREFER_DIRECT_VISIT -> "매장 직접 구매"
         ParticipationCancelReason.BOUGHT_ELSEWHERE -> "타 채널 구매"
         ParticipationCancelReason.OTHER -> "기타"
-        null -> "기타"
     }
 }
 
