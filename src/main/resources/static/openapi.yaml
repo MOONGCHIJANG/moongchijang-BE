@@ -2897,46 +2897,124 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/admin/refunds:
+  /api/v1/admin/refund-requests:
     get:
       tags: [Admin]
-      summary: 환불 처리 현황 목록 (운영자)
+      summary: 운영자 환불 요청 목록 조회
+      description: 환불 요청 탭/케이스/키워드 기준으로 어드민 환불 요청 목록을 조회한다.
       security:
         - bearerAuth: []
       parameters:
-        - name: status
+        - name: tab
           in: query
           schema:
             type: string
-            enum: [ALL, WAITING, COMPLETED]
+            enum: [ALL, REVIEW_PENDING, IN_PROGRESS, APPROVED, REJECTED]
             default: ALL
+          description: 전체 / 검토 대기 / 처리 중 / 승인 완료 / 거절
+        - name: caseFilter
+          in: query
+          schema:
+            type: string
+            enum: [ALL, PRE_ACHIEVEMENT_FREE_CANCEL, POST_ACHIEVEMENT_CANCEL, PICKUP_PERIOD_NO_SHOW, OWNER_FAULT_CANCEL, TARGET_NOT_MET, DISPUTE_OR_DROPOUT_REFUND]
+            default: ALL
+          description: 전체 / 달성 전 자유 취소 / 달성 후 취소 / 픽업 기간 미수령 / 사장님 귀책 취소 / 목표 미달성 / 분쟁·하차 환불
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: 요청 ID, 소비자명, 공구명 검색어
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
       responses:
         '200':
-          description: 환불 목록
+          description: 환불 요청 목록 조회 성공
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseAdminRefundPage'
+                $ref: '#/components/schemas/ApiResponseAdminRefundRequestPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
-  /api/v1/admin/refunds/{participationId}/manual:
-    post:
+  /api/v1/admin/refund-requests/{requestId}:
+    get:
       tags: [Admin]
-      summary: 수동 환불 처리
+      summary: 운영자 환불 요청 상세 조회
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/ParticipationId'
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: 환불 요청 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminRefundRequestDetail'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/refund-requests/{requestId}/approve:
+    patch:
+      tags: [Admin]
+      summary: 운영자 환불 요청 승인 처리
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdminManualRefund'
+              $ref: '#/components/schemas/AdminRefundRequestApproveRequest'
       responses:
         '200':
-          $ref: '#/components/responses/SuccessNoData'
+          description: 환불 요청 승인 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminRefundRequestDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/refund-requests/{requestId}/reject:
+    patch:
+      tags: [Admin]
+      summary: 운영자 환불 요청 거절 처리
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminRefundRequestRejectRequest'
+      responses:
+        '200':
+          description: 환불 요청 거절 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminRefundRequestDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
 
@@ -5732,7 +5810,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [pendingRefundAmount, pendingRefundAmountChangeRate, pendingApprovalCount, averageReviewMinutes, pendingApprovalChangeRate, unconfirmedOrderCount, unconfirmedOrderOver48hCount, todayCompletedRefundCount, todayCompletedApprovalCount, hasOrderOver48h]
+          required: [pendingRefundAmount, pendingRefundAmountChangeRate, reviewPendingRefundCount, pendingApprovalCount, averageReviewMinutes, pendingApprovalChangeRate, unconfirmedOrderCount, unconfirmedOrderOver48hCount, todayCompletedRefundCount, todayCompletedApprovalCount, hasOrderOver48h]
           properties:
             pendingRefundAmount:
               type: integer
@@ -5742,6 +5820,10 @@ components:
               type: number
               format: double
               description: 전일 대비 검토 대기 환불 금액 증감률(%)
+            reviewPendingRefundCount:
+              type: integer
+              format: int64
+              description: 검토 대기 환불 건수. REFUND_PENDING 상태 중 사장님 환불 검토 상태가 PENDING 또는 null인 건수
             pendingApprovalCount:
               type: integer
               format: int64
@@ -6692,46 +6774,185 @@ components:
         pickupDate: { type: string, format: date }
         imageCount: { type: integer }
 
-    ApiResponseAdminRefundPage:
+    ApiResponseAdminRefundRequestPage:
       type: object
       required: [success, data, error]
       properties:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [content, totalElements, totalPages]
+          required: [content, totalElements, totalPages, number, size, hasSlaWarning, slaWarningCount]
           properties:
             content:
               type: array
               items:
-                type: object
-                required: [participationId, userName, productName, storeName, paymentAmount, refundStatus, refundReason, createdAt]
-                properties:
-                  participationId: { type: integer, format: int64 }
-                  userName: { type: string }
-                  productName: { type: string }
-                  storeName: { type: string }
-                  paymentAmount: { type: integer }
-                  refundStatus:
-                    type: string
-                    enum: [WAITING, COMPLETED]
-                  refundReason: { type: string, nullable: true }
-                  createdAt: { type: string, format: date-time }
-            totalElements: { type: integer }
+                $ref: '#/components/schemas/AdminRefundRequestListItem'
+            totalElements: { type: integer, format: int64 }
             totalPages: { type: integer }
+            number: { type: integer, description: 현재 페이지 번호(0-base) }
+            size: { type: integer, description: 페이지 크기 }
+            hasSlaWarning:
+              type: boolean
+              description: 요청 후 1시간 초과 SLA 경고 건 존재 여부
+            slaWarningCount:
+              type: integer
+              description: 요청 후 1시간 초과 SLA 경고 건수
         error: { nullable: true, example: null }
 
-    AdminManualRefund:
+    AdminRefundRequestListItem:
       type: object
-      required: [refundReason]
+      required: [requestId, caseFilter, consumerName, groupBuyName, storeName, paymentAmount, refundAmount, requestedAt, slaRemainingHours, slaWarning, status, actionable]
       properties:
+        requestId:
+          type: integer
+          format: int64
+          description: 환불 요청 ID. 현재는 participationId와 동일
+        caseFilter:
+          type: string
+          enum: [ALL, PRE_ACHIEVEMENT_FREE_CANCEL, POST_ACHIEVEMENT_CANCEL, PICKUP_PERIOD_NO_SHOW, OWNER_FAULT_CANCEL, TARGET_NOT_MET, DISPUTE_OR_DROPOUT_REFUND]
+          description: 환불 케이스
+        consumerName: { type: string, description: 소비자명 }
+        groupBuyName: { type: string, description: 공구명 }
+        storeName: { type: string, description: 매장명 }
+        paymentAmount: { type: integer, description: 결제 금액 }
+        refundAmount:
+          type: integer
+          description: 환불 금액. 승인 완료는 승인 환불 금액, 검토 대기는 0 또는 입력된 승인 금액
+        ownerOpinion:
+          type: string
+          nullable: true
+          description: 사장님 의견
+        requestedAt:
+          type: string
+          format: date-time
+          description: 환불 요청 일시
+        slaRemainingHours:
+          type: integer
+          format: int64
+          description: 24시간 SLA 기준 잔여 시간
+        slaWarning:
+          type: boolean
+          description: 요청 후 1시간 초과 여부
+        status:
+          type: string
+          enum: [REVIEW_PENDING, IN_PROGRESS, APPROVED, REJECTED]
+          description: 어드민 환불 요청 처리 상태
+        actionable:
+          type: boolean
+          description: 작업 가능 여부. REVIEW_PENDING/IN_PROGRESS는 true, APPROVED/REJECTED는 false
+
+    ApiResponseAdminRefundRequestDetail:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/AdminRefundRequestDetail'
+        error: { nullable: true, example: null }
+
+    AdminRefundRequestDetail:
+      type: object
+      required: [requestId, status, slaRemainingHours, slaWarning, signupProvider, groupBuyName, storeName, achieved, pickupDate, pickupLocation, paymentAmount, refundExpectedAmount, refundReason, requestedAt, histories]
+      properties:
+        requestId:
+          type: integer
+          format: int64
+          description: 환불 요청 ID. 현재는 participationId와 동일
+        status:
+          type: string
+          enum: [REVIEW_PENDING, IN_PROGRESS, APPROVED, REJECTED]
+          description: 어드민 환불 요청 처리 상태
+        slaRemainingHours:
+          type: integer
+          format: int64
+          description: 24시간 SLA 기준 잔여 시간
+        slaWarning:
+          type: boolean
+          description: 요청 후 1시간 초과 여부
+        consumerNickname: { type: string, nullable: true, description: 소비자 닉네임 }
+        consumerPhoneNumber: { type: string, nullable: true, description: 소비자 전화번호 }
+        consumerEmail: { type: string, nullable: true, description: 소비자 이메일 }
+        signupProvider:
+          type: string
+          enum: [KAKAO, EMAIL]
+          description: 가입 방식
+        groupBuyName: { type: string, description: 공구명 }
+        storeName: { type: string, description: 매장명 }
+        achieved:
+          type: boolean
+          description: 공구 달성 여부. ACHIEVED, COMPLETED, CLOSED 상태는 true로 응답
+        pickupDate: { type: string, format: date, description: 픽업일(YYYY-MM-DD) }
+        pickupLocation: { type: string, description: 픽업 장소 }
+        paymentAmount: { type: integer, description: 결제 금액 }
+        refundExpectedAmount:
+          type: integer
+          description: 환불 예정 금액
+        paymentMethod: { type: string, nullable: true, description: 결제 수단 }
+        approvalNumber: { type: string, nullable: true, description: 승인 번호 }
+        paidAt: { type: string, format: date-time, nullable: true, description: 결제 일시 }
         refundReason:
           type: string
-          enum: [NOT_ACHIEVED, EARLY_EXIT, PAYMENT_ERROR, OTHER]
-        detailReason:
+          description: 환불 사유 라벨. 자동 환불은 목표 미달성 또는 사장님 귀책 취소로 응답
+          example: 목표 미달성
+        refundReasonDetail:
           type: string
-          maxLength: 100
           nullable: true
+          description: 환불 상세 설명
+        requestedAt:
+          type: string
+          format: date-time
+          description: 환불 요청 일시
+        ownerOpinionSubmittedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 사장님 의견 제출 일시
+        ownerOpinion:
+          type: string
+          nullable: true
+          description: 사장님 의견 내용
+        histories:
+          type: array
+          description: 처리 이력
+          items:
+            $ref: '#/components/schemas/AdminRefundRequestHistoryItem'
+
+    AdminRefundRequestHistoryItem:
+      type: object
+      required: [type, occurredAt]
+      properties:
+        type:
+          type: string
+          description: 이력 타입
+          example: REQUESTED
+        occurredAt:
+          type: string
+          format: date-time
+          description: 이력 시각
+        memo:
+          type: string
+          nullable: true
+          description: 이력 메모
+
+    AdminRefundRequestApproveRequest:
+      type: object
+      required: [refundAmount]
+      properties:
+        refundAmount:
+          type: integer
+          minimum: 0
+          description: 환불 승인 금액
+          example: 12000
+
+    AdminRefundRequestRejectRequest:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          maxLength: 200
+          description: 환불 요청 거절 사유
+          example: 증빙 자료 불충분으로 환불이 어렵습니다.
 
     ApiResponseAdminSettlementDashboard:
       type: object
