@@ -19,6 +19,7 @@ data class ProductDetailResponse(
     val storageType: ProductStorageType,
     val store: ProductStoreResponse,
     val pickup: ProductPickupResponse,
+    val isWishlisted: Boolean,
     val canPurchase: Boolean,
     val unavailableReason: ProductUnavailableReason?,
 )

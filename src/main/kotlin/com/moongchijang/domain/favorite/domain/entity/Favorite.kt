@@ -1,6 +1,7 @@
 package com.moongchijang.domain.favorite.domain.entity
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.domain.product.domain.entity.Product
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.Entity
@@ -20,6 +21,10 @@ import jakarta.persistence.UniqueConstraint
         UniqueConstraint(
             name = "uk_favorites_user_group_buy",
             columnNames = ["user_id", "group_buy_id"]
+        ),
+        UniqueConstraint(
+            name = "uk_favorites_user_product",
+            columnNames = ["user_id", "product_id"]
         )
     ]
 )
@@ -30,11 +35,21 @@ class Favorite(
     var user: User,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_buy_id", nullable = false)
-    var groupBuy: GroupBuy,
+    @JoinColumn(name = "group_buy_id")
+    var groupBuy: GroupBuy? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    var product: Product? = null,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
 
-) : BaseEntity()
+) : BaseEntity() {
+    init {
+        require((groupBuy == null) xor (product == null)) {
+            "Favorite must reference exactly one target"
+        }
+    }
+}

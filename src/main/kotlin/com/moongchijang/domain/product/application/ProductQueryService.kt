@@ -1,5 +1,6 @@
 package com.moongchijang.domain.product.application
 
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.product.application.dto.PickupDateResponse
 import com.moongchijang.domain.product.application.dto.PickupTimeSlotResponse
 import com.moongchijang.domain.product.application.dto.ProductDetailResponse
@@ -28,12 +29,13 @@ class ProductQueryService(
     private val productImageRepository: ProductImageRepository,
     private val storeHolidayRepository: StoreHolidayRepository,
     private val storePickupTimeSlotRepository: StorePickupTimeSlotRepository,
+    private val favoriteRepository: FavoriteRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     private val clock: Clock,
 ) {
 
     @Transactional(readOnly = true)
-    fun getDetail(productId: Long): ProductDetailResponse {
+    fun getDetail(productId: Long, userId: Long?): ProductDetailResponse {
         val product = productRepository.findWithStoreById(productId)
             ?: throw CustomException(ErrorCode.PRODUCT_NOT_FOUND)
         val store = product.store
@@ -118,6 +120,7 @@ class ProductQueryService(
                     )
                 },
             ),
+            isWishlisted = userId?.let { favoriteRepository.existsByUserIdAndProductId(it, product.id) } ?: false,
             canPurchase = unavailableReason == null,
             unavailableReason = unavailableReason,
         )

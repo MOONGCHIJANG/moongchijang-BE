@@ -12,12 +12,16 @@ interface FavoriteRepository : JpaRepository<Favorite, Long>, FavoriteRepository
 
     fun existsByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Boolean
 
+    fun existsByUserIdAndProductId(userId: Long, productId: Long): Boolean
+
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Favorite f where f.user.id = :userId")
     fun deleteByUserId(@Param("userId") userId: Long): Int
 
     fun deleteByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Int
+
+    fun deleteByUserIdAndProductId(userId: Long, productId: Long): Int
 
     fun findByUserIdAndGroupBuyId(userId: Long, groupBuyId: Long): Favorite?
 

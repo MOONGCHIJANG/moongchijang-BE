@@ -1,5 +1,6 @@
 package com.moongchijang.domain.product.application
 
+import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
 import com.moongchijang.domain.product.application.dto.ProductUnavailableReason
 import com.moongchijang.domain.product.domain.entity.Product
 import com.moongchijang.domain.product.domain.entity.ProductImage
@@ -50,6 +51,9 @@ class ProductQueryServiceTest {
     private lateinit var storePickupTimeSlotRepository: StorePickupTimeSlotRepository
 
     @Mock
+    private lateinit var favoriteRepository: FavoriteRepository
+
+    @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
     private val clock = Clock.fixed(Instant.parse("2026-10-24T15:00:00Z"), ZoneOffset.UTC)
@@ -65,6 +69,7 @@ class ProductQueryServiceTest {
             productImageRepository = productImageRepository,
             storeHolidayRepository = storeHolidayRepository,
             storePickupTimeSlotRepository = storePickupTimeSlotRepository,
+            favoriteRepository = favoriteRepository,
             s3ImageReferenceResolver = s3ImageReferenceResolver,
             clock = clock,
         )
@@ -112,7 +117,7 @@ class ProductQueryServiceTest {
                 )
             )
 
-        val result = service.getDetail(product.id)
+        val result = service.getDetail(product.id, null)
 
         assertThat(result.pickup.availableFrom).isEqualTo(LocalDate.of(2026, 10, 27))
         assertThat(result.pickup.availableUntil).isEqualTo(LocalDate.of(2026, 11, 8))
@@ -123,6 +128,7 @@ class ProductQueryServiceTest {
         )
         assertThat(result.imageUrls).containsExactly("products/detail-1.jpg", "products/detail-2.jpg")
         assertThat(result.canPurchase).isTrue()
+        assertThat(result.isWishlisted).isFalse()
         assertThat(result.unavailableReason).isNull()
     }
 
@@ -145,7 +151,7 @@ class ProductQueryServiceTest {
                 )
             )
 
-        val result = service.getDetail(product.id)
+        val result = service.getDetail(product.id, null)
 
         assertThat(result.canPurchase).isFalse()
         assertThat(result.unavailableReason).isEqualTo(ProductUnavailableReason.STORE_NOT_FOR_SALE)
@@ -155,9 +161,25 @@ class ProductQueryServiceTest {
     fun `상품이 존재하지 않으면 예외를 발생시킨다`() {
         `when`(productRepository.findWithStoreById(999L)).thenReturn(null)
 
-        val exception = assertThrows<CustomException> { service.getDetail(999L) }
+        val exception = assertThrows<CustomException> { service.getDetail(999L, null) }
 
         assertThat(exception.errorCode).isEqualTo(ErrorCode.PRODUCT_NOT_FOUND)
+    }
+
+    @Test
+    fun `로그인 사용자의 상품 찜 여부를 반환한다`() {
+        val store = createStore()
+        val product = createProduct(store)
+        `when`(productRepository.findWithStoreById(product.id)).thenReturn(product)
+        `when`(productImageRepository.findAllByProductIdOrderBySortOrderAscIdAsc(product.id)).thenReturn(emptyList())
+        `when`(storeHolidayRepository.findAllByStoreIdAndActiveTrue(store.id)).thenReturn(emptyList())
+        `when`(storePickupTimeSlotRepository.findAllByStoreIdAndActiveTrueOrderByDayOfWeekAscStartTimeAsc(store.id))
+            .thenReturn(emptyList())
+        `when`(favoriteRepository.existsByUserIdAndProductId(30L, product.id)).thenReturn(true)
+
+        val result = service.getDetail(product.id, 30L)
+
+        assertThat(result.isWishlisted).isTrue()
     }
 
     private fun createStore(
