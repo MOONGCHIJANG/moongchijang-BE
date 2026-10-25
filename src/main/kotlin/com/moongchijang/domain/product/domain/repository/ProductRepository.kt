@@ -9,6 +9,9 @@ import org.springframework.data.repository.query.Param
 
 interface ProductRepository : JpaRepository<Product, Long> {
 
+    @Query("SELECT p FROM Product p JOIN FETCH p.store WHERE p.id = :productId")
+    fun findWithStoreById(@Param("productId") productId: Long): Product?
+
     @Query(
         """
         SELECT p

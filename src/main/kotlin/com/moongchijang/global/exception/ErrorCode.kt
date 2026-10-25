@@ -109,6 +109,7 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     STORE_NOT_FOUND(404_250, "매장을 찾을 수 없습니다.", 404),
     INVALID_REGION_TYPE_LABEL(400_251, "유효하지 않은 지역 값입니다.", 400),
     INVALID_DISTRICT_TYPE_LABEL(400_252, "유효하지 않은 세부지역 값입니다.", 400),
+    PRODUCT_NOT_FOUND(404_260, "상품을 찾을 수 없습니다.", 404),
 
     // GroupBuy(300~349)
     GROUPBUY_FEED_TOO_MANY_DISTRICTS(400_300, "지역 필터는 최대 10개까지 선택할 수 있습니다.", 400),
