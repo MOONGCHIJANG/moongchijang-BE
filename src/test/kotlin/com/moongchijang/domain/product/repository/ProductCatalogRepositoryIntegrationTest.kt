@@ -81,6 +81,28 @@ class ProductCatalogRepositoryIntegrationTest {
     }
 
     @Test
+    fun `상품 카테고리 코드는 공백 제거와 대문자 정규화를 적용한다`() {
+        val product = Product(
+            store = persistStore("카테고리 테스트 매장"),
+            categoryCode = " fresh_food ",
+            name = "카테고리 테스트 상품",
+            description = "상품 설명",
+            unitPrice = 3_000,
+            minQuantity = 10,
+            maxQuantity = 100,
+            preparationDays = 2,
+            storageType = ProductStorageType.ROOM_TEMPERATURE,
+            thumbnailKey = "products/thumbnail.jpg",
+        )
+        em.persist(product)
+        flushAndClear()
+
+        val saved = productRepository.findById(product.id).orElseThrow()
+
+        assertThat(saved.categoryCode).isEqualTo("FRESH_FOOD")
+    }
+
+    @Test
     fun `활성 휴무일과 요일별 픽업 시간대를 조회한다`() {
         val store = persistStore("픽업 정책 테스트 매장")
         em.persist(

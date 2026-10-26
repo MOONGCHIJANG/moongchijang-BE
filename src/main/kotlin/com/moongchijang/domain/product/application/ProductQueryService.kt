@@ -88,6 +88,7 @@ class ProductQueryService(
 
         return ProductDetailResponse(
             productId = product.id,
+            categoryCode = product.categoryCode,
             name = product.name,
             description = product.description,
             thumbnailUrl = s3ImageReferenceResolver.resolveForRead(product.thumbnailKey),

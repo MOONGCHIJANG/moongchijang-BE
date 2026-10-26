@@ -119,6 +119,7 @@ class ProductQueryServiceTest {
 
         val result = service.getDetail(product.id, null)
 
+        assertThat(result.categoryCode).isEqualTo(Product.DEFAULT_CATEGORY_CODE)
         assertThat(result.pickup.availableFrom).isEqualTo(LocalDate.of(2026, 10, 27))
         assertThat(result.pickup.availableUntil).isEqualTo(LocalDate.of(2026, 11, 8))
         assertThat(result.pickup.availableDates.map { it.date }).containsExactly(
