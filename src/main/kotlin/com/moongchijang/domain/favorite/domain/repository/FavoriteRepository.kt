@@ -14,6 +14,19 @@ interface FavoriteRepository : JpaRepository<Favorite, Long>, FavoriteRepository
 
     fun existsByUserIdAndProductId(userId: Long, productId: Long): Boolean
 
+    @Query(
+        """
+        SELECT f.product.id
+        FROM Favorite f
+        WHERE f.user.id = :userId
+          AND f.product.id IN :productIds
+        """
+    )
+    fun findProductIdsByUserIdAndProductIdIn(
+        @Param("userId") userId: Long,
+        @Param("productIds") productIds: Collection<Long>,
+    ): Set<Long>
+
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Favorite f where f.user.id = :userId")

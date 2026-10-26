@@ -22,6 +22,9 @@ class Product(
     @JoinColumn(name = "store_id", nullable = false)
     var store: Store,
 
+    @Column(name = "category_code", nullable = false, length = 50)
+    var categoryCode: String = DEFAULT_CATEGORY_CODE,
+
     @Column(nullable = false, length = 100)
     var name: String,
 
@@ -54,4 +57,13 @@ class Product(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L,
-) : BaseEntity()
+) : BaseEntity() {
+    init {
+        require(categoryCode.isNotBlank()) { "categoryCode must not be blank" }
+        categoryCode = categoryCode.trim().uppercase()
+    }
+
+    companion object {
+        const val DEFAULT_CATEGORY_CODE = "ETC"
+    }
+}

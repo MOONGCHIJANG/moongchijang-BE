@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface StoreHolidayRepository : JpaRepository<StoreHoliday, Long> {
     fun findAllByStoreIdAndActiveTrue(storeId: Long): List<StoreHoliday>
+
+    fun findAllByStoreIdInAndActiveTrue(storeIds: Collection<Long>): List<StoreHoliday>
 }

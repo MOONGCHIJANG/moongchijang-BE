@@ -61,6 +61,7 @@ class SecurityConfig(
                     "/api/v1/group-buys/progress",
                     "/api/v1/group-buys/*/progress",
                     "/api/v1/group-buys/*/share",
+                    "/api/v1/products",
                     "/api/v1/products/*",
                 ).permitAll()
                 it.requestMatchers(

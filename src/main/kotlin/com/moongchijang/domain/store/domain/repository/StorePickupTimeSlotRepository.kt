@@ -12,4 +12,8 @@ interface StorePickupTimeSlotRepository : JpaRepository<StorePickupTimeSlot, Lon
         storeId: Long,
         dayOfWeek: Int,
     ): List<StorePickupTimeSlot>
+
+    fun findAllByStoreIdInAndActiveTrueOrderByStoreIdAscDayOfWeekAscStartTimeAsc(
+        storeIds: Collection<Long>,
+    ): List<StorePickupTimeSlot>
 }
