@@ -37,6 +37,21 @@ class Store(
     @Column(name = "district", nullable = false, length = 80)
     var district: DistrictType,
 
+    @Column(name = "place_id", length = 100)
+    var placeId: String? = null,
+
+    @Column(name = "business_registration_number", length = 20)
+    var businessRegistrationNumber: String? = null,
+
+    @Column(name = "representative_name", length = 50)
+    var representativeName: String? = null,
+
+    @Column(name = "business_address", length = 255)
+    var businessAddress: String? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sales_status", nullable = false, length = 30)
+    var salesStatus: StoreSalesStatus = StoreSalesStatus.ACTIVE,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
