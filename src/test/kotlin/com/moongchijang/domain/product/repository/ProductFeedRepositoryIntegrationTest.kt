@@ -6,10 +6,14 @@ import com.moongchijang.domain.product.domain.entity.ProductStorageType
 import com.moongchijang.domain.product.domain.repository.ProductFeedCriteria
 import com.moongchijang.domain.product.domain.repository.ProductFeedCursor
 import com.moongchijang.domain.product.domain.repository.ProductFeedSort
+import com.moongchijang.domain.product.domain.repository.ProductPickupDateCondition
 import com.moongchijang.domain.product.domain.repository.ProductRepository
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
+import com.moongchijang.domain.store.domain.entity.StoreHoliday
+import com.moongchijang.domain.store.domain.entity.StoreHolidayType
+import com.moongchijang.domain.store.domain.entity.StorePickupTimeSlot
 import com.moongchijang.domain.store.domain.entity.StoreSalesStatus
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
@@ -18,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
+import java.time.LocalTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -94,6 +100,61 @@ class ProductFeedRepositoryIntegrationTest {
             criteria = ProductFeedCriteria(
                 maxPreparationDays = 3,
                 maxMinQuantity = 10,
+            ),
+            cursor = null,
+            limit = 20,
+        )
+
+        assertThat(products.map { it.id }).containsExactly(expected.id)
+    }
+
+    @Test
+    fun `이번 주 실제 픽업 시간대가 있고 휴무가 아닌 상품만 조회한다`() {
+        val availableStore = persistStore(
+            name = "수요일 픽업 매장",
+            region = RegionType.SEOUL,
+            district = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG,
+        )
+        val holidayStore = persistStore(
+            name = "수요일 휴무 매장",
+            region = RegionType.SEOUL,
+            district = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG,
+        )
+        val noSlotStore = persistStore(
+            name = "픽업 시간대 없는 매장",
+            region = RegionType.SEOUL,
+            district = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG,
+        )
+        val expected = persistProduct(availableStore, "픽업 가능 상품", preparationDays = 2)
+        persistProduct(holidayStore, "휴무 상품", preparationDays = 2)
+        persistProduct(noSlotStore, "시간대 없는 상품", preparationDays = 2)
+        listOf(availableStore, holidayStore).forEach { store ->
+            em.persist(
+                StorePickupTimeSlot(
+                    store = store,
+                    dayOfWeek = 3,
+                    startTime = LocalTime.of(10, 0),
+                    endTime = LocalTime.of(11, 0),
+                )
+            )
+        }
+        em.persist(
+            StoreHoliday(
+                store = holidayStore,
+                holidayType = StoreHolidayType.TEMPORARY,
+                holidayDate = LocalDate.of(2026, 10, 28),
+            )
+        )
+        flushAndClear()
+
+        val products = productRepository.findFeed(
+            criteria = ProductFeedCriteria(
+                pickupDateConditions = listOf(
+                    ProductPickupDateCondition(
+                        date = LocalDate.of(2026, 10, 28),
+                        maxPreparationDays = 2,
+                    )
+                )
             ),
             cursor = null,
             limit = 20,
