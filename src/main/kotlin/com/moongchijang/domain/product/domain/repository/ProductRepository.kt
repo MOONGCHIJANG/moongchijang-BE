@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
-interface ProductRepository : JpaRepository<Product, Long> {
+interface ProductRepository : JpaRepository<Product, Long>, ProductRepositoryCustom {
 
     @Query("SELECT p FROM Product p JOIN FETCH p.store WHERE p.id = :productId")
     fun findWithStoreById(@Param("productId") productId: Long): Product?
