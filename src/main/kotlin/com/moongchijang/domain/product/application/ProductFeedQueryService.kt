@@ -37,13 +37,22 @@ class ProductFeedQueryService(
 ) {
 
     @Transactional(readOnly = true)
-    fun getFeed(request: ProductFeedRequest, userId: Long?): ProductFeedResponse {
+    fun getFeed(
+        request: ProductFeedRequest,
+        userId: Long?,
+        candidateProductIds: Set<Long>? = null,
+    ): ProductFeedResponse {
         validate(request)
+
+        if (candidateProductIds?.isEmpty() == true) {
+            return ProductFeedResponse(items = emptyList(), nextCursor = null, hasNext = false)
+        }
 
         val today = clock.kstToday()
         val now = clock.kstNow()
         val safeLimit = request.limit.coerceIn(MIN_LIMIT, MAX_LIMIT)
         val criteria = ProductFeedCriteria(
+            productIds = candidateProductIds,
             categoryCodes = request.categoryCodes.map { it.trim().uppercase() }.toSet(),
             districts = expandAllDistricts(request.districts),
             maxPreparationDays = if (request.pickupThisWeek) {

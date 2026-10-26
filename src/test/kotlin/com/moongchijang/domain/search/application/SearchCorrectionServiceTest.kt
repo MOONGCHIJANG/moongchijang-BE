@@ -1,6 +1,6 @@
 package com.moongchijang.domain.search.application
 
-import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.product.domain.repository.ProductRepository
 import com.moongchijang.domain.search.domain.SearchCorrection
 import com.moongchijang.domain.search.domain.SearchCorrectionType
 import com.moongchijang.domain.search.domain.repository.SearchCorrectionRepository
@@ -11,8 +11,8 @@ import org.mockito.Mockito
 
 class SearchCorrectionServiceTest {
     private val searchCorrectionRepository: SearchCorrectionRepository = Mockito.mock(SearchCorrectionRepository::class.java)
-    private val groupBuyRepository: GroupBuyRepository = Mockito.mock(GroupBuyRepository::class.java)
-    private val service = SearchCorrectionService(searchCorrectionRepository, groupBuyRepository)
+    private val productRepository: ProductRepository = Mockito.mock(ProductRepository::class.java)
+    private val service = SearchCorrectionService(searchCorrectionRepository, productRepository)
 
     @Test
     @DisplayName("검색어를 정규화한 뒤 보정 사전을 조회하고 target keyword를 반환한다")
@@ -38,7 +38,7 @@ class SearchCorrectionServiceTest {
 
         assertThat(corrected).isNull()
         Mockito.verifyNoInteractions(searchCorrectionRepository)
-        Mockito.verifyNoInteractions(groupBuyRepository)
+        Mockito.verifyNoInteractions(productRepository)
     }
 
     @Test
@@ -53,7 +53,7 @@ class SearchCorrectionServiceTest {
             .thenReturn(null)
         Mockito.`when`(searchCorrectionRepository.findAllByEnabledTrue())
             .thenReturn(listOf(correction))
-        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS", 500))
+        Mockito.`when`(productRepository.findActiveSearchKeywords("ACTIVE", "ACTIVE", 500))
             .thenReturn(emptyList())
 
         val corrected = service.correct("카례")
@@ -68,7 +68,7 @@ class SearchCorrectionServiceTest {
             .thenReturn(null)
         Mockito.`when`(searchCorrectionRepository.findAllByEnabledTrue())
             .thenReturn(emptyList())
-        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS", 500))
+        Mockito.`when`(productRepository.findActiveSearchKeywords("ACTIVE", "ACTIVE", 500))
             .thenReturn(listOf("카레라면"))
 
         val corrected = service.correct("카례")
@@ -83,7 +83,7 @@ class SearchCorrectionServiceTest {
             .thenReturn(null)
         Mockito.`when`(searchCorrectionRepository.findAllByEnabledTrue())
             .thenReturn(emptyList())
-        Mockito.`when`(groupBuyRepository.findActiveSearchKeywords("IN_PROGRESS", 500))
+        Mockito.`when`(productRepository.findActiveSearchKeywords("ACTIVE", "ACTIVE", 500))
             .thenReturn(listOf("양즈간루"))
 
         val corrected = service.correct("앙즈간루")

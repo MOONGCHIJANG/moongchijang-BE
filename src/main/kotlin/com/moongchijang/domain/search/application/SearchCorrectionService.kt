@@ -1,15 +1,16 @@
 package com.moongchijang.domain.search.application
 
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
-import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
+import com.moongchijang.domain.product.domain.entity.ProductStatus
+import com.moongchijang.domain.product.domain.repository.ProductRepository
 import com.moongchijang.domain.search.domain.repository.SearchCorrectionRepository
+import com.moongchijang.domain.store.domain.entity.StoreSalesStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class SearchCorrectionService(
     private val searchCorrectionRepository: SearchCorrectionRepository,
-    private val groupBuyRepository: GroupBuyRepository,
+    private val productRepository: ProductRepository,
 ) {
     @Transactional(readOnly = true)
     fun correct(query: String): String? {
@@ -51,8 +52,9 @@ class SearchCorrectionService(
         val dictionaryTargets = searchCorrectionRepository.findAllByEnabledTrue()
             .map { SearchQueryNormalizer.normalize(it.targetKeyword) }
 
-        val activeFeedTerms = groupBuyRepository.findActiveSearchKeywords(
-            status = GroupBuyStatus.IN_PROGRESS.name,
+        val activeFeedTerms = productRepository.findActiveSearchKeywords(
+            productStatus = ProductStatus.ACTIVE.name,
+            storeSalesStatus = StoreSalesStatus.ACTIVE.name,
             limit = ACTIVE_KEYWORD_LIMIT,
         )
             .flatMap { extractTerms(SearchQueryNormalizer.normalize(it), queryLength) }

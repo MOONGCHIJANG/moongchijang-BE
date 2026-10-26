@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 data class ProductFeedCriteria(
+    val productIds: Set<Long>? = null,
     val categoryCodes: Set<String> = emptySet(),
     val districts: Set<DistrictType> = emptySet(),
     val maxPreparationDays: Int? = null,
