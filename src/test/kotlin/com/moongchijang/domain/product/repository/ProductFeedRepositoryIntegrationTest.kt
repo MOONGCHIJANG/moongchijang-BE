@@ -109,6 +109,26 @@ class ProductFeedRepositoryIntegrationTest {
     }
 
     @Test
+    fun `검색 후보 상품 ID 안에서만 피드를 조회한다`() {
+        val store = persistStore(
+            name = "검색 매장",
+            region = RegionType.SEOUL,
+            district = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG,
+        )
+        val expected = persistProduct(store, "검색 대상 상품")
+        persistProduct(store, "검색 제외 상품")
+        flushAndClear()
+
+        val products = productRepository.findFeed(
+            criteria = ProductFeedCriteria(productIds = setOf(expected.id)),
+            cursor = null,
+            limit = 20,
+        )
+
+        assertThat(products.map { it.id }).containsExactly(expected.id)
+    }
+
+    @Test
     fun `이번 주 실제 픽업 시간대가 있고 휴무가 아닌 상품만 조회한다`() {
         val availableStore = persistStore(
             name = "수요일 픽업 매장",

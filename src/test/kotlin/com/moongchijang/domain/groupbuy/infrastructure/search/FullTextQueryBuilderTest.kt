@@ -1,5 +1,6 @@
 package com.moongchijang.domain.groupbuy.infrastructure.search
 
+import com.moongchijang.domain.search.infrastructure.FullTextQueryBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test

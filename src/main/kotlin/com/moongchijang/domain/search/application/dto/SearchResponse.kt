@@ -1,6 +1,6 @@
 package com.moongchijang.domain.search.application.dto
 
-import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedItemResponse
+import com.moongchijang.domain.product.application.dto.ProductFeedItemResponse
 import com.moongchijang.domain.search.domain.SearchUiState
 
 data class SearchResponse(
@@ -10,6 +10,8 @@ data class SearchResponse(
     val confidence: Double = 0.0,
     val uiState: SearchUiState = SearchUiState.NEED_BOTH,
     val totalCount: Int,
-    val results: List<GroupBuyFeedItemResponse>,
+    val results: List<ProductFeedItemResponse>,
+    val nextCursor: String? = null,
+    val hasNext: Boolean = false,
     val recommendedStores: List<RecommendedStoreDto>? = null,
 )

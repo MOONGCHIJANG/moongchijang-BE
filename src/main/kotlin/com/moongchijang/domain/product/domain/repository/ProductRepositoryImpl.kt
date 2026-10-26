@@ -30,6 +30,7 @@ class ProductRepositoryImpl(
             .and(product.status.eq(ProductStatus.ACTIVE))
             .and(store.salesStatus.eq(StoreSalesStatus.ACTIVE))
 
+        criteria.productIds?.let { where.and(product.id.`in`(it)) }
         criteria.categoryCodes
             .map { it.trim().uppercase() }
             .filter { it.isNotBlank() }

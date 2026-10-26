@@ -1,5 +1,8 @@
 package com.moongchijang.domain.search.application
 
+import com.moongchijang.domain.product.application.ProductFeedQueryService
+import com.moongchijang.domain.product.application.dto.ProductFeedRequest
+import com.moongchijang.domain.search.application.dto.ProductSearchRequest
 import com.moongchijang.domain.search.application.dto.RecommendedStoreDto
 import com.moongchijang.domain.search.application.dto.SearchResponse
 import com.moongchijang.domain.search.domain.SearchUiState
@@ -17,43 +20,71 @@ import java.time.Duration
 @Transactional(readOnly = true)
 class SearchService(
     private val fullTextSearchEngine: FullTextSearchEngine,
+    private val productFeedQueryService: ProductFeedQueryService,
     private val searchHistoryRepository: SearchHistoryRepository,
     private val storeSearchService: StoreSearchService,
     private val redisTemplate: StringRedisTemplate,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    companion object {
-        private const val CACHE_TTL_MINUTES = 10L  // keys(*) 블로킹 대신 짧은 TTL로 freshness 확보
-        private fun cacheKey(query: String) = "search:result:${sha256(query)}"
+    fun search(request: ProductSearchRequest, userId: Long?): SearchResponse {
+        userId?.let { searchHistoryRepository.save(it, request.keyword) }
 
-        private fun sha256(value: String): String =
-            MessageDigest.getInstance("SHA-256")
-                .digest(value.toByteArray())
-                .joinToString("") { "%02x".format(it) }
+        val cacheKey = cacheKey(request, userId)
+        redisTemplate.opsForValue().get(cacheKey)?.let {
+            return objectMapper.readValue(it, SearchResponse::class.java)
+        }
+
+        val match = fullTextSearchEngine.search(request.keyword)
+        val response = if (match.productIds.isEmpty()) {
+            emptyResponse(match)
+        } else {
+            val feed = productFeedQueryService.getFeed(
+                request = ProductFeedRequest(
+                    categoryCodes = request.categoryCodes,
+                    districts = request.districts,
+                    pickupThisWeek = request.pickupThisWeek,
+                    smallQuantity = request.smallQuantity,
+                    newOnly = request.newOnly,
+                    sort = request.sort,
+                    cursor = request.cursor,
+                    limit = request.limit,
+                ),
+                userId = userId,
+                candidateProductIds = match.productIds,
+            )
+            SearchResponse(
+                searchCase = match.searchCase,
+                detectedRegion = match.detectedRegion,
+                detectedProduct = match.detectedProduct,
+                confidence = match.confidence,
+                uiState = if (feed.items.isEmpty() && request.cursor == null) {
+                    SearchUiState.EMPTY_CAN_REQUEST
+                } else {
+                    SearchUiState.RESULTS
+                },
+                totalCount = feed.items.size,
+                results = feed.items,
+                nextCursor = feed.nextCursor,
+                hasNext = feed.hasNext,
+            )
+        }
+        val enriched = enrichWithRecommendation(request.keyword, response)
+
+        redisTemplate.opsForValue().set(
+            cacheKey,
+            objectMapper.writeValueAsString(enriched),
+            Duration.ofMinutes(CACHE_TTL_MINUTES),
+        )
+        return enriched
     }
 
-    fun search(query: String, userId: Long?): SearchResponse {
-        userId?.let { searchHistoryRepository.save(it, query) }
-
-        val cacheKey = cacheKey(query)
-        val cached = redisTemplate.opsForValue().get(cacheKey)
-        if (cached != null) return objectMapper.readValue(cached, SearchResponse::class.java)
-
-        val response = enrichWithRecommendation(query, fullTextSearchEngine.search(query))
-
-        redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), Duration.ofMinutes(CACHE_TTL_MINUTES))
-        return response
-    }
-
-    /**
-     * 결과 0건(EMPTY_CAN_REQUEST)일 때 Naver Local 매장 후보로 응답을 보강한다.
-     * Naver 호출 실패는 검색 전체를 깨뜨리지 않도록 empty list 로 graceful degrade.
-     * cold-start flywheel: 사용자가 추천 매장에 공구 요청 → 다음 검색은 FULLTEXT 엔진이 잡음.
-     */
+    /** 결과가 없을 때 Naver Local 매장 후보로 응답을 보강한다. */
     private fun enrichWithRecommendation(query: String, response: SearchResponse): SearchResponse {
-        if (response.uiState != SearchUiState.EMPTY_CAN_REQUEST) return response
+        if (response.uiState != SearchUiState.EMPTY_CAN_REQUEST) {
+            return response
+        }
         val stores = try {
             storeSearchService.search(query).stores.map(RecommendedStoreDto::from)
         } catch (e: Exception) {
@@ -68,4 +99,40 @@ class SearchService(
     fun clearHistory(userId: Long) = searchHistoryRepository.clear(userId)
 
     fun deleteHistory(userId: Long, keyword: String) = searchHistoryRepository.deleteOne(userId, keyword)
+
+    private fun emptyResponse(match: ProductSearchMatch) = SearchResponse(
+        searchCase = match.searchCase,
+        detectedRegion = match.detectedRegion,
+        detectedProduct = match.detectedProduct,
+        confidence = match.confidence,
+        uiState = SearchUiState.EMPTY_CAN_REQUEST,
+        totalCount = 0,
+        results = emptyList(),
+    )
+
+    private fun cacheKey(request: ProductSearchRequest, userId: Long?): String {
+        val canonical = buildString {
+            append(SearchQueryNormalizer.normalize(request.keyword))
+            append('|').append(request.categoryCodes.map { it.trim().uppercase() }.sorted().joinToString(","))
+            append('|').append(request.districts.map { it.name }.sorted().joinToString(","))
+            append('|').append(request.pickupThisWeek)
+            append('|').append(request.smallQuantity)
+            append('|').append(request.newOnly)
+            append('|').append(request.sort.name)
+            append('|').append(request.cursor.orEmpty())
+            append('|').append(request.limit)
+            append('|').append(userId ?: ANONYMOUS_USER_ID)
+        }
+        return "search:result:${sha256(canonical)}"
+    }
+
+    companion object {
+        private const val CACHE_TTL_MINUTES = 10L
+        private const val ANONYMOUS_USER_ID = 0L
+
+        private fun sha256(value: String): String =
+            MessageDigest.getInstance("SHA-256")
+                .digest(value.toByteArray())
+                .joinToString("") { "%02x".format(it) }
+    }
 }
