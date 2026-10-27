@@ -26,6 +26,7 @@ data class ProductFeedItemResponse(
     val isWishlisted: Boolean,
     val canPurchase: Boolean,
     val unavailableReason: ProductUnavailableReason?,
+    val activeTogetherRoomCount: Long = 0,
 )
 
 data class ProductFeedStoreResponse(
