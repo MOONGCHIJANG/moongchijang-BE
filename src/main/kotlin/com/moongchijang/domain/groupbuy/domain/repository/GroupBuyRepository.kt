@@ -18,6 +18,8 @@ import java.util.Optional
 
 interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepositoryCustom {
 
+    fun existsByOrganizerId(userId: Long): Boolean
+
     @Query(
         """
         select gb

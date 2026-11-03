@@ -7,6 +7,7 @@ import java.time.LocalTime
 data class HomeTogetherStatusResponse(
     val hasActiveRooms: Boolean,
     val showTogetherRoomModule: Boolean,
+    val showFirstVisitGuide: Boolean,
     val togetherTabBadgeCount: Int,
     val isTodayPickupLeader: Boolean,
     val todayPickups: List<HomeTodayPickupResponse>,

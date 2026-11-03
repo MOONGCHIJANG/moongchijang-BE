@@ -73,6 +73,26 @@ class HomeTogetherStatusQueryServiceTest {
         assertThat(result.rooms.single().nextAction).isEqualTo(HomeTogetherRoomAction.PAY)
     }
 
+    @Test
+    fun `비로그인 사용자에게 첫 방문 안내를 제공한다`() {
+        val result = service.getStatus(null)
+
+        assertThat(result.showFirstVisitGuide).isTrue()
+    }
+
+    @Test
+    fun `개설과 참여 이력이 없는 사용자에게만 첫 방문 안내를 제공한다`() {
+        `when`(participationRepository.findAllActiveWithGroupBuyByUserId(2L)).thenReturn(emptyList())
+        `when`(groupBuyRepository.findActiveByOrganizerId(2L, setOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED)))
+            .thenReturn(emptyList())
+        `when`(groupBuyRepository.existsByOrganizerId(2L)).thenReturn(false)
+        `when`(participationRepository.existsByUserId(2L)).thenReturn(false)
+
+        val result = service.getStatus(2L)
+
+        assertThat(result.showFirstVisitGuide).isTrue()
+    }
+
     private fun stubRooms(room: GroupBuy) {
         `when`(participationRepository.findAllActiveWithGroupBuyByUserId(1L)).thenReturn(emptyList())
         `when`(groupBuyRepository.findActiveByOrganizerId(1L, setOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED)))
