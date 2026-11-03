@@ -24,6 +24,22 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
 
     @Query(
         """
+        select p
+        from Participation p
+        join fetch p.groupBuy gb
+        join fetch gb.store
+        left join fetch gb.product
+        where p.user.id = :userId
+          and p.status <> :cancelledStatus
+        """
+    )
+    fun findAllActiveWithGroupBuyByUserId(
+        @Param("userId") userId: Long,
+        @Param("cancelledStatus") cancelledStatus: ParticipationStatus = ParticipationStatus.CANCELLED,
+    ): List<Participation>
+
+    @Query(
+        """
         select case when count(p) > 0 then true else false end
         from Participation p
         join p.groupBuy gb

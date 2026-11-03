@@ -1,6 +1,7 @@
 package com.moongchijang.domain.product.application
 
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.product.application.dto.ProductFeedItemResponse
 import com.moongchijang.domain.product.application.dto.ProductFeedRequest
 import com.moongchijang.domain.product.application.dto.ProductFeedResponse
@@ -14,7 +15,6 @@ import com.moongchijang.domain.product.domain.repository.ProductRepository
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.repository.StoreHolidayRepository
 import com.moongchijang.domain.store.domain.repository.StorePickupTimeSlotRepository
-import com.moongchijang.domain.together.domain.repository.TogetherRoomRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.time.kstNow
@@ -33,7 +33,7 @@ class ProductFeedQueryService(
     private val storeHolidayRepository: StoreHolidayRepository,
     private val storePickupTimeSlotRepository: StorePickupTimeSlotRepository,
     private val favoriteRepository: FavoriteRepository,
-    private val togetherRoomRepository: TogetherRoomRepository,
+    private val groupBuyRepository: GroupBuyRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     private val clock: Clock,
 ) {
@@ -95,7 +95,7 @@ class ProductFeedQueryService(
         }
 
         val productIds = products.map { it.id }
-        val activeRoomCountByProductId = togetherRoomRepository.countByProductIdInAndStatus(productIds)
+        val activeRoomCountByProductId = groupBuyRepository.countByProductIdInAndStatusIn(productIds)
             .associate { it.productId to it.roomCount }
         val storeIds = products.map { it.store.id }.toSet()
         val wishlistedProductIds = userId?.let {

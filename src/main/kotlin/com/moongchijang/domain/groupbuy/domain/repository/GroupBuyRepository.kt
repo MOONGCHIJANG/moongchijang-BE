@@ -18,6 +18,35 @@ import java.util.Optional
 
 interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepositoryCustom {
 
+    @Query(
+        """
+        select gb
+        from GroupBuy gb
+        join fetch gb.store
+        left join fetch gb.product
+        where gb.organizer.id = :userId
+          and gb.status in :statuses
+        """
+    )
+    fun findActiveByOrganizerId(
+        @Param("userId") userId: Long,
+        @Param("statuses") statuses: Set<GroupBuyStatus>,
+    ): List<GroupBuy>
+
+    @Query(
+        """
+        select gb.product.id as productId, count(gb.id) as roomCount
+        from GroupBuy gb
+        where gb.product.id in :productIds
+          and gb.status in :statuses
+        group by gb.product.id
+        """
+    )
+    fun countByProductIdInAndStatusIn(
+        @Param("productIds") productIds: Collection<Long>,
+        @Param("statuses") statuses: Set<GroupBuyStatus> = setOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED),
+    ): List<ProductActiveRoomCount>
+
     fun findByStatusInAndDeadlineLessThanEqual(
         statuses: Collection<GroupBuyStatus>,
         deadline: LocalDateTime,
@@ -152,4 +181,9 @@ interface GroupBuyRepository : JpaRepository<GroupBuy, Long>, GroupBuyRepository
         @Param("storeIds") storeIds: Collection<Long>,
         @Param("statuses") statuses: Collection<GroupBuyStatus>,
     ): List<LocalDate>
+}
+
+interface ProductActiveRoomCount {
+    val productId: Long
+    val roomCount: Long
 }

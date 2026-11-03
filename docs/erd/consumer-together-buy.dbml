@@ -1,0 +1,365 @@
+// Moongchijang 소비자단 "함께 사기 방" 모델 — dbdiagram.io 임포트용 DBML
+// 생성일: 2026-11-01
+// 설계 근거:
+//   - docs/table-redesign-consumer-together-buy.md
+//   - docs/table-change-decisions-eunseo.md (결정 1/2/3 반영)
+// 범위: 소비자 플로우에서 사용되는 테이블. V1~V71 적용 후 상태.
+//
+// 사용법: dbdiagram.io 접속 → Import → 이 파일 붙여넣기.
+
+Project moongchijang_consumer {
+  database_type: 'MySQL'
+  Note: '소비자단 함께 사기(방) 모델. V1~V71 적용 후 상태.'
+}
+
+Table users {
+  id bigint [pk, increment]
+  // 상세 컬럼은 보안상 생략 (암호화된 email/phone 등).
+  Note: '사용자 (총대/참여자 공용)'
+}
+
+Table stores {
+  id bigint [pk, increment]
+  name varchar(100) [not null]
+  address varchar(200) [not null]
+  region varchar(30) [not null]
+  district varchar(80) [not null]
+  phone_number varchar(20)
+  place_id varchar(100)
+  business_registration_number varchar(20)
+  representative_name varchar(50)
+  business_address varchar(255)
+  sales_status varchar(30) [not null, default: 'ACTIVE']
+  preparation_days int [not null, default: 3, note: 'V64 추가 — 매장 준비기간']
+  max_lead_days int [not null, default: 14, note: 'V64 추가 — 선택 가능 최대 일수']
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table store_holidays {
+  id bigint [pk, increment]
+  store_id bigint [not null, ref: > stores.id]
+  holiday_type varchar(20) [not null, note: 'REGULAR_WEEKLY / TEMPORARY / HOLIDAY']
+  day_of_week tinyint
+  holiday_date date
+  reason varchar(255)
+  active boolean [not null, default: true]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (store_id, active, day_of_week) [name: 'idx_store_holidays_store_active_day']
+    (store_id, active, holiday_date) [name: 'idx_store_holidays_store_active_date']
+  }
+}
+
+Table store_pickup_time_slots {
+  id bigint [pk, increment]
+  store_id bigint [not null, ref: > stores.id]
+  day_of_week tinyint [not null]
+  start_time time [not null]
+  end_time time [not null]
+  slot_capacity int
+  active boolean [not null, default: true]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (store_id, day_of_week, start_time, end_time) [unique, name: 'uk_store_pickup_time_slots_schedule']
+    (store_id, active, day_of_week) [name: 'idx_store_pickup_time_slots_store_active_day']
+  }
+}
+
+Table store_submalls {
+  id bigint [pk, increment]
+  store_id bigint [not null, unique, ref: > stores.id]
+  pg_provider varchar(20) [not null]
+  submall_merchant_id varchar(100) [not null]
+  submall_status varchar(20) [not null, note: 'PENDING / APPROVED / SUSPENDED']
+  registered_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    submall_merchant_id [name: 'idx_store_submalls_merchant_id']
+  }
+  Note: 'V66 신규 — PG 서브몰 매핑 (서브몰 정산 구조)'
+}
+
+Table group_buys {
+  id bigint [pk, increment]
+  store_id bigint [not null, ref: > stores.id]
+  organizer_user_id bigint [note: 'V64 추가 — 총대', ref: > users.id]
+  product_name varchar(100) [not null]
+  product_description text [not null]
+  price int [not null]
+  original_price int
+  target_quantity int [not null]
+  min_quantity int [note: 'V64 추가 — 방 성사 최소 수량']
+  current_quantity int [not null]
+  max_quantity int [not null]
+  per_user_limit int
+  is_solo_room boolean [not null, default: false, note: 'V64 추가 — 혼자 사기']
+  resale_prohibition_agreed boolean [not null, default: false, note: 'V64 추가']
+  status varchar(20) [not null]
+  recruitment_start_at datetime [not null]
+  deadline datetime [not null, note: '모집 마감(=결제 마감과 동치)']
+  payment_deadline datetime [note: 'V64 추가 — 자동 계산된 결제 마감']
+  locked_at datetime [note: 'V64 추가 — 결제 시작 시 잠금']
+  confirmation_deadline datetime [note: 'V64 추가 — 최종 확약 마감']
+  paid_at datetime [note: 'V64 추가 — 총대 결제 완료']
+  pickup_date date [not null]
+  pickup_time_start time [not null]
+  pickup_time_end time [not null]
+  pickup_location varchar(200) [not null]
+  pickup_contact varchar(20)
+  store_closed_pickup_change boolean [not null, default: false, note: 'V64 추가 — 임시휴무로 날짜 변경 요청 중']
+  share_count int [not null]
+  achieved_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    organizer_user_id [name: 'idx_group_buys_organizer_user_id']
+    (status, payment_deadline) [name: 'idx_group_buys_status_payment_deadline']
+    locked_at [name: 'idx_group_buys_locked_at']
+  }
+  Note: '"함께 사기 방". 테이블명 유지(결정 1).'
+}
+
+Table group_buy_invites {
+  id bigint [pk, increment]
+  group_buy_id bigint [not null, ref: > group_buys.id]
+  token varchar(64) [not null, unique]
+  created_by_user_id bigint [not null, ref: > users.id, note: '총대 또는 재공유 참여자']
+  share_channel varchar(20) [not null, note: 'KAKAO / LINK_COPY / QR']
+  visit_count int [not null, default: 0]
+  last_visited_at datetime
+  revoked_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    group_buy_id [name: 'idx_group_buy_invites_group_buy_id']
+    created_by_user_id [name: 'idx_group_buy_invites_created_by_user_id']
+  }
+  Note: 'V67 신규 — 초대 링크/채널/방문 로그'
+}
+
+Table participation {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  group_buy_id bigint [not null, ref: > group_buys.id]
+  quantity int [not null]
+  product_amount int [not null, note: '단가 × 수량 스냅샷 (결정 2 — 유지)']
+  status varchar(30) [not null]
+  purpose_agreed boolean [not null, default: false, note: 'V65 추가 — 소비 목적 동의']
+  confirmation_status varchar(20) [not null, default: 'NOT_REQUESTED', note: 'V65 추가']
+  confirmed_at datetime [note: 'V65 추가 — 최종 확약 응답']
+  excluded_at datetime [note: 'V65 추가 — 미확약 자동 제외']
+  reported_as_unpaid_at datetime [note: 'V65 추가 — 미입금 처리']
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (user_id, group_buy_id) [unique, name: 'uk_participation_user_group_buy']
+    confirmation_status [name: 'idx_participation_confirmation_status']
+  }
+  Note: 'fee_amount/total_amount, 참여자 pickup_token, 환불 필드는 후속 PR에서 DROP 예정.'
+}
+
+Table participation_confirmations {
+  id bigint [pk, increment]
+  participation_id bigint [not null, ref: > participation.id]
+  status varchar(20) [not null, note: 'REQUESTED / CONFIRMED / AUTO_EXCLUDED']
+  requested_at datetime [not null]
+  responded_at datetime
+  deadline datetime [not null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (participation_id, status) [name: 'idx_participation_confirmations_participation_status']
+    (deadline, status) [name: 'idx_participation_confirmations_deadline_status']
+  }
+  Note: 'V67 신규 — 최종 확약 이력(감사 로그)'
+}
+
+Table payment_orders {
+  id bigint [pk, increment]
+  order_id varchar(64) [not null, unique]
+  user_id bigint [not null, ref: > users.id]
+  group_buy_id bigint [not null, ref: > group_buys.id]
+  store_submall_id bigint [note: 'V66 추가', ref: > store_submalls.id]
+  quantity int [not null]
+  product_amount int [not null]
+  fee_amount int [not null, note: '후속 PR에서 재검토']
+  total_amount int [not null]
+  agreed_order_summary boolean [not null, default: false, note: 'V65 추가']
+  agreed_production_no_cancel boolean [not null, default: false, note: 'V65 추가']
+  agreed_pickup_store_policy boolean [not null, default: false, note: 'V65 추가']
+  agreed_privacy boolean [not null, default: false, note: 'V65 추가']
+  agreed_intermediary boolean [not null, default: false, note: 'V65 추가']
+  status varchar(30) [not null]
+  approved_at datetime
+  failed_at datetime
+  cancelled_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+  Note: '총대 1인 PG 결제. 기존 agreed_* 4종은 후속 PR DROP 예정.'
+}
+
+Table payments {
+  id bigint [pk, increment]
+  payment_order_id bigint [not null, unique, ref: > payment_orders.id]
+  pg_payment_id varchar(200) [not null, unique]
+  order_id varchar(64) [not null]
+  amount int [not null]
+  method varchar(50)
+  status varchar(30) [not null]
+  approved_at datetime [not null]
+  cancelled_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table room_settlements {
+  id bigint [pk, increment]
+  group_buy_id bigint [not null, unique, ref: > group_buys.id]
+  organizer_user_id bigint [not null, ref: > users.id]
+  bank_code varchar(20) [not null]
+  account_number_encrypted varbinary(255) [not null]
+  account_holder_name_enc varbinary(255) [not null]
+  third_party_consent_at datetime [not null]
+  settlement_deadline datetime [not null, note: '픽업 24시간 전']
+  status varchar(20) [not null, note: 'OPEN / CLOSED / MASKED']
+  closed_at datetime
+  masked_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    organizer_user_id [name: 'idx_room_settlements_organizer_user_id']
+    (status, settlement_deadline) [name: 'idx_room_settlements_status_deadline']
+  }
+  Note: 'V68 신규 — 방 정산 세션(계좌·마감·공개범위). 계좌는 애플리케이션 레벨 AES-GCM.'
+}
+
+Table settlement_transfers {
+  id bigint [pk, increment]
+  room_settlement_id bigint [not null, ref: > room_settlements.id]
+  participation_id bigint [not null, ref: > participation.id]
+  expected_amount int [not null, note: '단가 × 수량 스냅샷']
+  deposit_name varchar(50) [not null, note: '자동생성 "민지3000"']
+  status varchar(20) [not null, note: 'PENDING / SUBMITTED / CONFIRMED / UNPAID']
+  submitted_at datetime [note: '참여자 "송금했어요"']
+  confirmed_at datetime [note: '총대 "확인"']
+  unpaid_at datetime [note: '마감 경과 자동 처리']
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (room_settlement_id, participation_id) [unique, name: 'uk_settlement_transfers_room_participation']
+    (status, submitted_at) [name: 'idx_settlement_transfers_status_submitted_at']
+  }
+  Note: 'V68 신규 — 참여자별 송금 상태(뭉치장은 미검증)'
+}
+
+Table settlement_reminders {
+  id bigint [pk, increment]
+  settlement_transfer_id bigint [not null, ref: > settlement_transfers.id]
+  sent_at datetime [not null]
+  sent_by_user_id bigint [not null, ref: > users.id]
+  created_at datetime [not null]
+
+  indexes {
+    (settlement_transfer_id, sent_at) [name: 'idx_settlement_reminders_transfer_sent_at']
+  }
+  Note: 'V68 신규 — 재발송 1일 1회·최대 3회 레이트리밋'
+}
+
+Table room_pickups {
+  id bigint [pk, increment]
+  group_buy_id bigint [not null, unique, ref: > group_buys.id]
+  qr_token varchar(100) [not null, unique]
+  active_from datetime [not null, note: '픽업일 00:00']
+  used_at datetime
+  used_by_user_id bigint [note: '매장 확인자(점주)', ref: > users.id]
+  no_show_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (active_from, used_at) [name: 'idx_room_pickups_active_from_used_at']
+  }
+  Note: 'V69 신규 — 방당 QR 1장(총대 전용). 참여자 pickup_token 폐기.'
+}
+
+Table participant_receipt_checks {
+  id bigint [pk, increment]
+  participation_id bigint [not null, unique, ref: > participation.id]
+  received_at datetime [not null]
+  created_at datetime [not null]
+  Note: 'V69 신규 — "받았어요" 체크 → 방 완료 트리거'
+}
+
+Table refund_requests {
+  id bigint [pk, increment]
+  participation_id bigint [not null, unique, ref: > participation.id]
+  status varchar(30) [not null]
+  requested_amount int [not null]
+  approved_refund_amount int
+  rejected_reason varchar(200)
+  requested_at datetime [not null]
+  approved_at datetime
+  rejected_at datetime
+  refunded_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+  Note: '본 PR 범위 밖. 참여자 환불 폐지 + 총대 예외환불 재편은 별도 PR.'
+}
+
+Table cs_tickets {
+  id bigint [pk, increment]
+  type varchar(30) [not null, note: 'REFUND/INQUIRY/COMPLAINT + FRAUD_SUSPICION/UNPAID_SETTLEMENT/INAPPROPRIATE_BEHAVIOR (결정 3)']
+  title varchar(100) [not null]
+  description text [not null]
+  priority varchar(20) [not null]
+  status varchar(20) [not null]
+  consumer_id bigint [ref: > users.id, note: '신고 시 신고자']
+  reported_user_id bigint [ref: > users.id, note: 'V70 추가 — 신고 대상']
+  group_buy_id bigint [ref: > group_buys.id]
+  refund_participation_id bigint [ref: > participation.id]
+  ticket_number varchar(30) [unique, note: 'V70 추가 — 신고 접수번호 "FR-20261101-00001"']
+  assignee_name varchar(50)
+  processing_memo varchar(1000)
+  resolved_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (status, created_at) [name: 'idx_cs_tickets_status_created_at']
+    (type, status, created_at) [name: 'idx_cs_tickets_type_status_created_at']
+    reported_user_id [name: 'idx_cs_tickets_reported_user_id']
+    consumer_id [name: 'idx_cs_tickets_consumer_id']
+    group_buy_id [name: 'idx_cs_tickets_group_buy_id']
+    refund_participation_id [name: 'idx_cs_tickets_refund_participation_id']
+  }
+  Note: '결정 3 — fraud_reports 신규 대신 cs_tickets 확장.'
+}
+
+Table organizer_profiles {
+  user_id bigint [pk, ref: > users.id]
+  completed_rooms_cnt int [not null, default: 0]
+  reported_count int [not null, default: 0, note: '비공개']
+  last_completed_at datetime
+  updated_at datetime [not null]
+  Note: 'V71 신규 — 총대 통계. 1:1.'
+}
+
+Table user_shake_qr_settings {
+  user_id bigint [pk, ref: > users.id]
+  enabled boolean [not null, default: true]
+  updated_at datetime [not null]
+  Note: 'V71 신규 — 흔들기 QR 토글'
+}

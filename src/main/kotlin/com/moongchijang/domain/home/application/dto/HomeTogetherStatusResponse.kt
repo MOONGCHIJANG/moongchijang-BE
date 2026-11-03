@@ -1,6 +1,5 @@
 package com.moongchijang.domain.home.application.dto
 
-import com.moongchijang.domain.together.domain.entity.TogetherRoomMemberRole
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -16,7 +15,7 @@ data class HomeTogetherStatusResponse(
 
 data class HomeTodayPickupResponse(
     val roomId: Long,
-    val role: TogetherRoomMemberRole,
+    val role: HomeTogetherRole,
     val productName: String,
     val quantity: Int,
     val storeName: String,
@@ -28,8 +27,8 @@ data class HomeTodayPickupResponse(
 
 data class HomeTogetherRoomSummaryResponse(
     val roomId: Long,
-    val role: TogetherRoomMemberRole,
-    val productId: Long,
+    val role: HomeTogetherRole,
+    val productId: Long?,
     val productName: String,
     val storeName: String,
     val currentQuantity: Int,
@@ -44,4 +43,9 @@ enum class HomeTogetherRoomAction {
     PAY,
     TRANSFER,
     PICKUP,
+}
+
+enum class HomeTogetherRole {
+    ORGANIZER,
+    PARTICIPANT,
 }

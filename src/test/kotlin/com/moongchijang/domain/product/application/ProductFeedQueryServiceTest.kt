@@ -1,6 +1,7 @@
 package com.moongchijang.domain.product.application
 
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.product.application.dto.ProductFeedRequest
 import com.moongchijang.domain.product.domain.entity.Product
 import com.moongchijang.domain.product.domain.entity.ProductStorageType
@@ -15,7 +16,6 @@ import com.moongchijang.domain.store.domain.entity.Store
 import com.moongchijang.domain.store.domain.entity.StorePickupTimeSlot
 import com.moongchijang.domain.store.domain.repository.StoreHolidayRepository
 import com.moongchijang.domain.store.domain.repository.StorePickupTimeSlotRepository
-import com.moongchijang.domain.together.domain.repository.TogetherRoomRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.util.S3ImageReferenceResolver
 import org.assertj.core.api.Assertions.assertThat
@@ -50,7 +50,7 @@ class ProductFeedQueryServiceTest {
     private lateinit var favoriteRepository: FavoriteRepository
 
     @Mock
-    private lateinit var togetherRoomRepository: TogetherRoomRepository
+    private lateinit var groupBuyRepository: GroupBuyRepository
 
     @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
@@ -66,7 +66,7 @@ class ProductFeedQueryServiceTest {
             storeHolidayRepository = storeHolidayRepository,
             storePickupTimeSlotRepository = storePickupTimeSlotRepository,
             favoriteRepository = favoriteRepository,
-            togetherRoomRepository = togetherRoomRepository,
+            groupBuyRepository = groupBuyRepository,
             s3ImageReferenceResolver = s3ImageReferenceResolver,
             clock = clock,
         )
@@ -96,7 +96,7 @@ class ProductFeedQueryServiceTest {
             .thenReturn(listOf(first, second, third))
         `when`(favoriteRepository.findProductIdsByUserIdAndProductIdIn(99L, listOf(1L, 2L)))
             .thenReturn(setOf(1L))
-        `when`(togetherRoomRepository.countByProductIdInAndStatus(listOf(1L, 2L)))
+        `when`(groupBuyRepository.countByProductIdInAndStatusIn(listOf(1L, 2L)))
             .thenReturn(emptyList())
         `when`(storeHolidayRepository.findAllByStoreIdInAndActiveTrue(setOf(store.id)))
             .thenReturn(emptyList())
