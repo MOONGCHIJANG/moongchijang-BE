@@ -1,6 +1,7 @@
 package com.moongchijang.domain.product.application
 
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.product.application.dto.ProductFeedItemResponse
 import com.moongchijang.domain.product.application.dto.ProductFeedRequest
 import com.moongchijang.domain.product.application.dto.ProductFeedResponse
@@ -32,6 +33,7 @@ class ProductFeedQueryService(
     private val storeHolidayRepository: StoreHolidayRepository,
     private val storePickupTimeSlotRepository: StorePickupTimeSlotRepository,
     private val favoriteRepository: FavoriteRepository,
+    private val groupBuyRepository: GroupBuyRepository,
     private val s3ImageReferenceResolver: S3ImageReferenceResolver,
     private val clock: Clock,
 ) {
@@ -93,6 +95,8 @@ class ProductFeedQueryService(
         }
 
         val productIds = products.map { it.id }
+        val activeRoomCountByProductId = groupBuyRepository.countByProductIdInAndStatusIn(productIds)
+            .associate { it.productId to it.roomCount }
         val storeIds = products.map { it.store.id }.toSet()
         val wishlistedProductIds = userId?.let {
             favoriteRepository.findProductIdsByUserIdAndProductIdIn(it, productIds)
@@ -131,6 +135,7 @@ class ProductFeedQueryService(
                 isWishlisted = product.id in wishlistedProductIds,
                 canPurchase = availability.canPurchase,
                 unavailableReason = availability.unavailableReason,
+                activeTogetherRoomCount = activeRoomCountByProductId[product.id] ?: 0,
             )
         }
 

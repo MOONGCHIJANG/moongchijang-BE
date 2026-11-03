@@ -1,6 +1,8 @@
 package com.moongchijang.domain.groupbuy.domain.entity
 
+import com.moongchijang.domain.product.domain.entity.Product
 import com.moongchijang.domain.store.domain.entity.Store
+import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.entity.BaseEntity
 import com.moongchijang.global.time.TimePolicy
 import jakarta.persistence.*
@@ -15,6 +17,14 @@ class GroupBuy(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     var store: Store,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    var product: Product? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organizer_user_id")
+    var organizer: User? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_buy_request_id")
@@ -38,11 +48,20 @@ class GroupBuy(
     @Column(nullable = false)
     var targetQuantity: Int,
 
+    @Column(name = "min_quantity")
+    var minQuantity: Int? = null,
+
     @Column(nullable = false)
     var currentQuantity: Int = 0,
 
     @Column(nullable = false)
     var maxQuantity: Int,
+
+    @Column(name = "is_solo_room", nullable = false)
+    var isSoloRoom: Boolean = false,
+
+    @Column(name = "resale_prohibition_agreed", nullable = false)
+    var resaleProhibitionAgreed: Boolean = false,
 
     @Column(name = "per_user_limit")
     var perUserLimit: Int? = null,
@@ -56,6 +75,18 @@ class GroupBuy(
 
     @Column(nullable = false)
     var deadline: LocalDateTime,
+
+    @Column(name = "payment_deadline")
+    var paymentDeadline: LocalDateTime? = null,
+
+    @Column(name = "locked_at")
+    var lockedAt: LocalDateTime? = null,
+
+    @Column(name = "confirmation_deadline")
+    var confirmationDeadline: LocalDateTime? = null,
+
+    @Column(name = "paid_at")
+    var paidAt: LocalDateTime? = null,
 
     @Column(nullable = false)
     var pickupDate: LocalDate,
@@ -71,6 +102,9 @@ class GroupBuy(
 
     @Column(name = "pickup_contact", length = 20)
     var pickupContact: String? = null,
+
+    @Column(name = "store_closed_pickup_change", nullable = false)
+    var storeClosedPickupChange: Boolean = false,
 
     @Column(nullable = false)
     var shareCount: Int = 0,

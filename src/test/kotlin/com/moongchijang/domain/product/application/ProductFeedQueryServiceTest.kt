@@ -1,6 +1,7 @@
 package com.moongchijang.domain.product.application
 
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
+import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.product.application.dto.ProductFeedRequest
 import com.moongchijang.domain.product.domain.entity.Product
 import com.moongchijang.domain.product.domain.entity.ProductStorageType
@@ -49,6 +50,9 @@ class ProductFeedQueryServiceTest {
     private lateinit var favoriteRepository: FavoriteRepository
 
     @Mock
+    private lateinit var groupBuyRepository: GroupBuyRepository
+
+    @Mock
     private lateinit var s3ImageReferenceResolver: S3ImageReferenceResolver
 
     private val clock = Clock.fixed(Instant.parse("2026-10-25T15:00:00Z"), ZoneOffset.UTC)
@@ -62,6 +66,7 @@ class ProductFeedQueryServiceTest {
             storeHolidayRepository = storeHolidayRepository,
             storePickupTimeSlotRepository = storePickupTimeSlotRepository,
             favoriteRepository = favoriteRepository,
+            groupBuyRepository = groupBuyRepository,
             s3ImageReferenceResolver = s3ImageReferenceResolver,
             clock = clock,
         )
@@ -91,6 +96,8 @@ class ProductFeedQueryServiceTest {
             .thenReturn(listOf(first, second, third))
         `when`(favoriteRepository.findProductIdsByUserIdAndProductIdIn(99L, listOf(1L, 2L)))
             .thenReturn(setOf(1L))
+        `when`(groupBuyRepository.countByProductIdInAndStatusIn(listOf(1L, 2L)))
+            .thenReturn(emptyList())
         `when`(storeHolidayRepository.findAllByStoreIdInAndActiveTrue(setOf(store.id)))
             .thenReturn(emptyList())
         `when`(
