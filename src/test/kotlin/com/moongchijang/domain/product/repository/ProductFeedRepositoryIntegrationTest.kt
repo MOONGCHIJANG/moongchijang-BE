@@ -1,5 +1,7 @@
 package com.moongchijang.domain.product.repository
 
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.product.domain.entity.Product
 import com.moongchijang.domain.product.domain.entity.ProductStatus
 import com.moongchijang.domain.product.domain.entity.ProductStorageType
@@ -23,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 @SpringBootTest
@@ -207,6 +210,33 @@ class ProductFeedRepositoryIntegrationTest {
         assertThat(secondPage.map { it.id }).containsExactly(third.id)
     }
 
+    @Test
+    fun `진행 중인 함께 사기 방 수가 많은 상품부터 조회하고 커서를 적용한다`() {
+        val store = persistStore(
+            name = "인기 정렬 매장",
+            region = RegionType.SEOUL,
+            district = DistrictType.SEOUL_GANGNAM_YEOKSAM_SAMSEONG,
+        )
+        val popular = persistProduct(store, "인기 상품")
+        val second = persistProduct(store, "두 번째 상품")
+        persistProduct(store, "방 없는 상품")
+        repeat(2) { persistGroupBuy(store, popular) }
+        persistGroupBuy(store, second)
+        flushAndClear()
+
+        val criteria = ProductFeedCriteria(sort = ProductFeedSort.TOGETHER_POPULAR)
+        val firstPage = productRepository.findFeed(criteria, cursor = null, limit = 1)
+        val secondPage = productRepository.findFeed(
+            criteria = criteria,
+            cursor = ProductFeedCursor.TogetherPopular(activeRoomCount = 2, id = popular.id),
+            limit = 2,
+        )
+
+        assertThat(firstPage.map { it.id }).containsExactly(popular.id)
+        assertThat(secondPage.map { it.id }).contains(second.id)
+        assertThat(secondPage.map { it.id }).doesNotContain(popular.id)
+    }
+
     private fun persistStore(
         name: String,
         region: RegionType,
@@ -248,6 +278,28 @@ class ProductFeedRepositoryIntegrationTest {
         )
         em.persist(product)
         return product
+    }
+
+    private fun persistGroupBuy(store: Store, product: Product) {
+        em.persist(
+            GroupBuy(
+                store = store,
+                product = product,
+                productName = product.name,
+                productDescription = product.description,
+                price = product.unitPrice,
+                targetQuantity = product.minQuantity,
+                currentQuantity = product.minQuantity,
+                maxQuantity = product.maxQuantity,
+                status = GroupBuyStatus.IN_PROGRESS,
+                recruitmentStartAt = LocalDateTime.of(2026, 10, 26, 0, 0),
+                deadline = LocalDateTime.of(2026, 10, 27, 23, 59),
+                pickupDate = LocalDate.of(2026, 10, 30),
+                pickupTimeStart = LocalTime.of(10, 0),
+                pickupTimeEnd = LocalTime.of(11, 0),
+                pickupLocation = store.address,
+            )
+        )
     }
 
     private fun flushAndClear() {

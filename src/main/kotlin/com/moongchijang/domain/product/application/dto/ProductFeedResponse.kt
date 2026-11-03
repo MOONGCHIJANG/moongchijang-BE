@@ -22,6 +22,7 @@ data class ProductFeedItemResponse(
     val storageType: ProductStorageType,
     val store: ProductFeedStoreResponse,
     val earliestPickupDate: LocalDate?,
+    val holidaySummary: String? = null,
     val isNew: Boolean,
     val isWishlisted: Boolean,
     val canPurchase: Boolean,

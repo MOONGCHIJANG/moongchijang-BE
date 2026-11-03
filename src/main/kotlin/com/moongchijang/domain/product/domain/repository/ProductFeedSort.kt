@@ -4,4 +4,5 @@ enum class ProductFeedSort {
     LATEST,
     PRICE_LOW,
     MIN_QUANTITY,
+    TOGETHER_POPULAR,
 }

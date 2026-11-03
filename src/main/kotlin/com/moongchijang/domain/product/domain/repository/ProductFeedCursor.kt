@@ -12,6 +12,7 @@ sealed interface ProductFeedCursor {
         is Latest -> "${sort.name}|$createdAt|$id"
         is PriceLow -> "${sort.name}|$unitPrice|$id"
         is MinQuantity -> "${sort.name}|$minQuantity|$id"
+        is TogetherPopular -> "${sort.name}|$activeRoomCount|$id"
     }
 
     data class Latest(
@@ -33,6 +34,13 @@ sealed interface ProductFeedCursor {
         override val id: Long,
     ) : ProductFeedCursor {
         override val sort: ProductFeedSort = ProductFeedSort.MIN_QUANTITY
+    }
+
+    data class TogetherPopular(
+        val activeRoomCount: Long,
+        override val id: Long,
+    ) : ProductFeedCursor {
+        override val sort: ProductFeedSort = ProductFeedSort.TOGETHER_POPULAR
     }
 
     companion object {
@@ -60,6 +68,10 @@ sealed interface ProductFeedCursor {
                 )
                 ProductFeedSort.MIN_QUANTITY -> MinQuantity(
                     minQuantity = parts[1].toIntOrNull()?.takeIf { it >= 0 } ?: invalidCursor(),
+                    id = id,
+                )
+                ProductFeedSort.TOGETHER_POPULAR -> TogetherPopular(
+                    activeRoomCount = parts[1].toLongOrNull()?.takeIf { it >= 0 } ?: invalidCursor(),
                     id = id,
                 )
             }

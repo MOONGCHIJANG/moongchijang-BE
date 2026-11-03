@@ -2,6 +2,8 @@ package com.moongchijang.domain.product.domain.repository
 
 import com.moongchijang.domain.product.domain.entity.Product
 import com.moongchijang.domain.product.domain.entity.ProductStatus
+import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
+import com.moongchijang.domain.groupbuy.domain.entity.QGroupBuy
 import com.moongchijang.domain.product.domain.entity.QProduct.product
 import com.moongchijang.domain.store.domain.entity.QStoreHoliday
 import com.moongchijang.domain.store.domain.entity.QStorePickupTimeSlot
@@ -43,15 +45,30 @@ class ProductRepositoryImpl(
         pickupDatePredicate(criteria.pickupDateConditions)?.let { where.and(it) }
         criteria.maxMinQuantity?.let { where.and(product.minQuantity.loe(it)) }
         criteria.createdAtFrom?.let { where.and(product.createdAt.goe(it)) }
-        cursorPredicate(cursor)?.let { where.and(it) }
+        if (criteria.sort != ProductFeedSort.TOGETHER_POPULAR) {
+            cursorPredicate(cursor)?.let { where.and(it) }
+        }
 
-        return queryFactory
+        val query = queryFactory
             .selectFrom(product)
             .join(product.store, store).fetchJoin()
             .where(where)
-            .orderBy(*orderSpecifiers(criteria.sort).toTypedArray())
-            .limit(limit.toLong())
-            .fetch()
+
+        if (criteria.sort == ProductFeedSort.TOGETHER_POPULAR) {
+            val groupBuy = QGroupBuy("productFeedGroupBuy")
+            val activeRoomCount = groupBuy.id.count()
+            query.leftJoin(groupBuy).on(
+                groupBuy.product.eq(product)
+                    .and(groupBuy.status.`in`(ACTIVE_ROOM_STATUSES)),
+            )
+                .groupBy(product.id)
+                .having(popularCursorPredicate(cursor, activeRoomCount))
+                .orderBy(activeRoomCount.desc(), product.id.asc())
+        } else {
+            query.orderBy(*orderSpecifiers(criteria.sort).toTypedArray())
+        }
+
+        return query.limit(limit.toLong()).fetch()
     }
 
     private fun pickupDatePredicate(
@@ -109,11 +126,28 @@ class ProductRepositoryImpl(
         is ProductFeedCursor.MinQuantity ->
             product.minQuantity.gt(cursor.minQuantity)
                 .or(product.minQuantity.eq(cursor.minQuantity).and(product.id.gt(cursor.id)))
+        is ProductFeedCursor.TogetherPopular -> null
+    }
+
+    private fun popularCursorPredicate(
+        cursor: ProductFeedCursor?,
+        activeRoomCount: com.querydsl.core.types.dsl.NumberExpression<Long>,
+    ): BooleanExpression? = when (cursor) {
+        null -> null
+        is ProductFeedCursor.TogetherPopular ->
+            activeRoomCount.lt(cursor.activeRoomCount)
+                .or(activeRoomCount.eq(cursor.activeRoomCount).and(product.id.gt(cursor.id)))
+        else -> null
     }
 
     private fun orderSpecifiers(sort: ProductFeedSort): List<OrderSpecifier<*>> = when (sort) {
         ProductFeedSort.LATEST -> listOf(product.createdAt.desc(), product.id.desc())
         ProductFeedSort.PRICE_LOW -> listOf(product.unitPrice.asc(), product.id.asc())
         ProductFeedSort.MIN_QUANTITY -> listOf(product.minQuantity.asc(), product.id.asc())
+        ProductFeedSort.TOGETHER_POPULAR -> emptyList()
+    }
+
+    companion object {
+        private val ACTIVE_ROOM_STATUSES = setOf(GroupBuyStatus.IN_PROGRESS, GroupBuyStatus.ACHIEVED)
     }
 }
