@@ -1105,6 +1105,9 @@ paths:
     get:
       tags: [Product]
       summary: 홈 피드 상품 목록 조회
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - name: categoryCodes
           in: query
@@ -1148,6 +1151,9 @@ paths:
     get:
       tags: [Product]
       summary: 상품 상세 조회
+      security:
+        - {}
+        - bearerAuth: []
       parameters:
         - name: productId
           in: path
@@ -1222,6 +1228,9 @@ paths:
     get:
       tags: [Home]
       summary: 홈 함께 사기 현황 조회
+      security:
+        - {}
+        - bearerAuth: []
       responses:
         '200':
           description: 함께 사기 진행 현황과 오늘 픽업 정보
