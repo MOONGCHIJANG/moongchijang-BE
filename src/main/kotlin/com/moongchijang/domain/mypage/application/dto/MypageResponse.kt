@@ -180,8 +180,6 @@ data class MypageGroupBuyRequestResponse(
     val productName: String,
     val status: String,
     val storeName: String,
-    val desiredPickupDate: LocalDate,
-    val desiredQuantity: Int,
     val requestId: Long
 ) {
     companion object {
@@ -190,8 +188,6 @@ data class MypageGroupBuyRequestResponse(
                 productName = request.productName,
                 status = request.status.name,
                 storeName = request.storeName,
-                desiredPickupDate = request.desiredPickupDate,
-                desiredQuantity = request.desiredQuantity,
                 requestId = request.id
             )
     }

@@ -20,7 +20,6 @@ import com.moongchijang.domain.user.domain.repository.UserRepository
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.time.kstNow
-import com.moongchijang.global.time.kstToday
 import com.moongchijang.global.time.utcNow
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
@@ -29,7 +28,6 @@ import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -47,10 +45,6 @@ class GroupBuyRequestService(
 
     fun create(userId: Long, request: GroupBuyRequestCreateRequest): GroupBuyRequestIdResponse {
         log.info("[GroupBuyRequestService] 공구요청 생성 시작: userId={}", userId)
-        if (!request.desiredPickupDate.isAfter(clock.kstToday())) {
-            throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_DATE)
-        }
-
         val placeId = request.placeId?.ifBlank { null }
         val roadAddress = request.roadAddress?.ifBlank { null }
         val lotAddress = request.lotAddress?.ifBlank { null }
@@ -69,8 +63,6 @@ class GroupBuyRequestService(
                 latitude = latitude,
                 longitude = longitude,
                 productName = request.productName,
-                desiredQuantity = request.desiredQuantity,
-                desiredPickupDate = request.desiredPickupDate,
                 additionalNote = request.additionalNote
             )
         )

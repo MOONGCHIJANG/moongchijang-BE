@@ -14,7 +14,6 @@ import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
-import java.time.format.DateTimeFormatter
 
 @Component
 class GroupBuyRequestRejectedAlimtalkEventListener(
@@ -60,7 +59,6 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
                 nickname = user.nickname ?: "고객",
                 productName = request.productName,
                 pickupPlace = request.roadAddress ?: request.storeAddress ?: request.storeName,
-                pickupDate = request.desiredPickupDate.format(PICKUP_DATE_FORMATTER),
             )
 
             runCatching {
@@ -83,9 +81,5 @@ class GroupBuyRequestRejectedAlimtalkEventListener(
                 e,
             )
         }
-    }
-
-    companion object {
-        private val PICKUP_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     }
 }

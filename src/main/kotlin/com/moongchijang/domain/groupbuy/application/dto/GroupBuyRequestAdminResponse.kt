@@ -9,7 +9,6 @@ import com.moongchijang.domain.user.domain.entity.User
 import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.data.domain.Page
 import java.time.Duration
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Schema(
@@ -71,8 +70,6 @@ data class AdminGroupBuyRequestListItemResponse(
     val requestId: Long,
     val storeName: String,
     val productName: String,
-    val desiredQuantity: Int,
-    val desiredPickupDate: LocalDate,
     val status: GroupBuyRequestStatus,
     val requesterId: Long,
     val requesterName: String?,
@@ -93,8 +90,6 @@ data class AdminGroupBuyRequestListItemResponse(
                 requestId = request.id,
                 storeName = request.storeName,
                 productName = request.productName,
-                desiredQuantity = request.desiredQuantity,
-                desiredPickupDate = request.desiredPickupDate,
                 status = request.status,
                 requesterId = requesterId(request),
                 requesterName = requester?.nickname,
@@ -119,8 +114,6 @@ data class AdminGroupBuyRequestDetailResponse(
     val latitude: Double?,
     val longitude: Double?,
     val productName: String,
-    val desiredQuantity: Int,
-    val desiredPickupDate: LocalDate,
     val additionalNote: String?,
     val status: GroupBuyRequestStatus,
     val rejectionReason: String?,
@@ -145,8 +138,6 @@ data class AdminGroupBuyRequestDetailResponse(
                 latitude = request.latitude,
                 longitude = request.longitude,
                 productName = request.productName,
-                desiredQuantity = request.desiredQuantity,
-                desiredPickupDate = request.desiredPickupDate,
                 additionalNote = request.additionalNote,
                 status = request.status,
                 rejectionReason = request.rejectionReason,

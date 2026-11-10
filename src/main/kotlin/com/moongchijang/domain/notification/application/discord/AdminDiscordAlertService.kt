@@ -20,8 +20,7 @@ class AdminDiscordAlertService(
         val adminLink = adminGroupBuyRequestLink(request.id)
         val message = """
             [새 요청] ${request.storeName} - ${request.productName}
-            요청자: $requester / 희망수량: ${request.desiredQuantity}개
-            희망날짜: ${request.desiredPickupDate}
+            요청자: $requester
             → $adminLink
         """.trimIndent()
         eventPublisher.publishEvent(AdminDiscordAlertRequestedEvent(AdminDiscordChannel.ONBOARDING, message))

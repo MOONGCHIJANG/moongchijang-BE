@@ -5,7 +5,6 @@ object AligoMessageFormatter {
         nickname: String,
         productName: String,
         pickupPlace: String,
-        pickupDate: String,
     ): String {
         return """
             ${nickname}님, 공구 요청 심사 결과가 나왔어요.
@@ -16,7 +15,6 @@ object AligoMessageFormatter {
             <요청하신 내역>
             - 상품명: ${productName}
             - 픽업 장소: ${pickupPlace}
-            - 픽업 일시: ${pickupDate}
 
             ※ 뭉치장은 늘 행복한 디저트를 웨이팅없이 맛보실 수 있도록 최선을 다하겠습니다.
 

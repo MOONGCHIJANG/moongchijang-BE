@@ -96,11 +96,6 @@ interface GroupBuyRequestRepository : JpaRepository<GroupBuyRequest, Long> {
     )
     fun findCreatedAtByStatusIn(@Param("statuses") statuses: Collection<GroupBuyRequestStatus>): List<LocalDateTime>
 
-    fun findByStatusInAndDesiredPickupDate(
-        statuses: Collection<GroupBuyRequestStatus>,
-        desiredPickupDate: LocalDate
-    ): List<GroupBuyRequest>
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     fun findWithLockById(id: Long): Optional<GroupBuyRequest>
 }

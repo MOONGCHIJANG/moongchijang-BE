@@ -26,9 +26,7 @@ object GroupBuyRequestFixture {
             lotAddress = lotAddress,
             latitude = latitude,
             longitude = longitude,
-            productName = productName,
-            desiredQuantity = desiredQuantity,
-            desiredPickupDate = desiredPickupDate
+            productName = productName
         )
     }
 

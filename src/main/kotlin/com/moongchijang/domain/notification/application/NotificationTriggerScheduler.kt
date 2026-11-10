@@ -1,10 +1,8 @@
 package com.moongchijang.domain.notification.application
 
 import com.moongchijang.domain.favorite.domain.repository.FavoriteRepository
-import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
-import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRequestRepository
 import com.moongchijang.domain.notification.application.discord.AdminDiscordAlertService
 import com.moongchijang.domain.notification.domain.entity.NotificationTriggerType
 import com.moongchijang.domain.participation.domain.entity.ParticipationStatus
@@ -27,7 +25,6 @@ class NotificationTriggerScheduler(
     private val participationRepository: ParticipationRepository,
     private val groupBuyRepository: GroupBuyRepository,
     private val favoriteRepository: FavoriteRepository,
-    private val groupBuyRequestRepository: GroupBuyRequestRepository,
     private val storeStaffRepository: StoreStaffRepository,
     private val adminDiscordAlertService: AdminDiscordAlertService,
     private val clock: Clock,
@@ -100,34 +97,6 @@ class NotificationTriggerScheduler(
         log.info(
             "[NotificationTriggerScheduler] 운영자 미달성 위험 알림 트리거 완료: windowFrom={}, windowTo={}, groupBuyCount={}",
             windowFrom, windowTo, groupBuys.size
-        )
-    }
-
-    @Scheduled(cron = "0 0 7 * * *", zone = KST_ZONE_ID)
-    fun triggerRequestDeadlineMinus3DaysNotification() {
-        triggerRequestDeadlineMinus3DaysNotificationAt(nowKst())
-    }
-
-    fun triggerRequestDeadlineMinus3DaysNotificationAt(now: LocalDateTime) {
-        val targetDate = now.toLocalDate().plusDays(3)
-        val requests = groupBuyRequestRepository.findByStatusInAndDesiredPickupDate(
-            statuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT),
-            desiredPickupDate = targetDate
-        )
-
-        requests.forEach { request ->
-            val requesterUserId = requireNotNull(request.user.id) { "GroupBuyRequest.user.id must not be null" }
-            notificationEventPublisher.publishScheduledTrigger(
-                triggerType = NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS,
-                targetId = request.id,
-                userIds = listOf(requesterUserId),
-                scheduleKey = "request-deadline-d3:${request.id}:$targetDate",
-                occurredAt = now
-            )
-        }
-        log.info(
-            "[NotificationTriggerScheduler] 요청공구 D-3 알림 트리거 완료: targetDate={}, requestCount={}",
-            targetDate, requests.size
         )
     }
 

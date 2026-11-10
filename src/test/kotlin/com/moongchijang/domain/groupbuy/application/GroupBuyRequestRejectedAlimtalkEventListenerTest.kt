@@ -79,7 +79,6 @@ class GroupBuyRequestRejectedAlimtalkEventListenerTest {
             nickname = "문치",
             productName = "황치즈 케이크",
             pickupPlace = "서울 강남구 테헤란로 1",
-            pickupDate = request.desiredPickupDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")),
         )
         verify(aligoAlimtalkClient).send("01012345678", expectedMessage, "UH_8527")
     }

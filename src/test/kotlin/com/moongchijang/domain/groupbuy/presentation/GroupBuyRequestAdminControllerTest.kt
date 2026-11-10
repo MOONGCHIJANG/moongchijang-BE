@@ -59,8 +59,6 @@ class GroupBuyRequestAdminControllerTest {
             latitude = null,
             longitude = null,
             productName = "튀김소보로",
-            desiredQuantity = 20,
-            desiredPickupDate = LocalDate.of(2026, 6, 1),
             additionalNote = "오전 픽업 희망",
             status = GroupBuyRequestStatus.IN_REVIEW,
             rejectionReason = null,
