@@ -27,7 +27,7 @@ class AdminGroupBuyRequestActionControllerTest {
         val request = approveRequest()
         val response = AdminGroupBuyRequestActionResponse(
             requestId = 10L,
-            status = GroupBuyRequestStatus.OPENED,
+            status = GroupBuyRequestStatus.COMPLETED,
             groupBuyId = 30L
         )
         `when`(service.approve(10L, request)).thenReturn(response)
@@ -40,11 +40,11 @@ class AdminGroupBuyRequestActionControllerTest {
     }
 
     @Test
-    fun `공구 요청 반려 시 REJECTED 상태를 반환한다`() {
+    fun `공구 요청 반려 시 UNAVAILABLE 상태를 반환한다`() {
         val request = AdminGroupBuyRequestRejectRequest("재고 확보 불가")
         val response = AdminGroupBuyRequestActionResponse(
             requestId = 11L,
-            status = GroupBuyRequestStatus.REJECTED,
+            status = GroupBuyRequestStatus.UNAVAILABLE,
             groupBuyId = null
         )
         `when`(service.reject(11L, request)).thenReturn(response)

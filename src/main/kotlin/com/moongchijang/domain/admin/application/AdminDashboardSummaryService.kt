@@ -38,8 +38,15 @@ class AdminDashboardSummaryService(
         val today = clock.kstToday()
         val todayRange = today.toStorageRange()
         val yesterdayRange = today.minusDays(1).toStorageRange()
-        val pendingApprovalStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
-        val completedApprovalStatuses = listOf(GroupBuyRequestStatus.OPENED, GroupBuyRequestStatus.REJECTED)
+        val pendingApprovalStatuses = listOf(
+            GroupBuyRequestStatus.REQUEST_RECEIVED,
+            GroupBuyRequestStatus.IN_REVIEW,
+            GroupBuyRequestStatus.STORE_CONFIRMING,
+        )
+        val completedApprovalStatuses = listOf(
+            GroupBuyRequestStatus.COMPLETED,
+            GroupBuyRequestStatus.UNAVAILABLE,
+        )
         val orderOverdueBefore = now.minusHours(48)
         val unconfirmedOrderOver48hCount = groupBuyRepository.countOverdueAdminOrders(
             status = GroupBuyStatus.ACHIEVED,

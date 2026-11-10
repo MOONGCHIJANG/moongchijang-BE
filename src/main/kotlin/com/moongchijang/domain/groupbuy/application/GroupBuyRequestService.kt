@@ -70,7 +70,7 @@ class GroupBuyRequestService(
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
                 groupBuyRequest = saved,
-                status = GroupBuyRequestStatus.IN_REVIEW,
+                status = GroupBuyRequestStatus.REQUEST_RECEIVED,
                 changedAt = saved.createdAt ?: clock.utcNow()
             )
         )
@@ -178,14 +178,14 @@ class GroupBuyRequestService(
         var openedGroupBuyForNotification: GroupBuy? = null
 
         when (request.targetStatus) {
-            GroupBuyRequestStatus.REJECTED -> {
+            GroupBuyRequestStatus.UNAVAILABLE -> {
                 if (rejectionReason.isNullOrBlank()) {
                     throw CustomException(ErrorCode.GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED)
                 }
                 groupBuyRequest.rejectionReason = rejectionReason
                 groupBuyRequest.openedGroupBuyId = null
             }
-            GroupBuyRequestStatus.OPENED -> {
+            GroupBuyRequestStatus.COMPLETED -> {
                 val openedId = openedGroupBuyId
                     ?: throw CustomException(ErrorCode.GROUPBUY_REQUEST_OPENED_GROUP_BUY_REQUIRED)
                 openedGroupBuyForNotification = groupBuyRepository.findWithStoreById(openedId)
@@ -193,10 +193,11 @@ class GroupBuyRequestService(
                 groupBuyRequest.rejectionReason = null
                 groupBuyRequest.openedGroupBuyId = openedId
             }
-            GroupBuyRequestStatus.IN_CONTACT -> {
+            GroupBuyRequestStatus.STORE_CONFIRMING -> {
                 groupBuyRequest.rejectionReason = null
                 groupBuyRequest.openedGroupBuyId = null
             }
+            GroupBuyRequestStatus.REQUEST_RECEIVED,
             GroupBuyRequestStatus.IN_REVIEW -> {
                 throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION)
             }
@@ -229,11 +230,12 @@ class GroupBuyRequestService(
         targetStatus: GroupBuyRequestStatus
     ) {
         val isAllowed = when (currentStatus) {
-            GroupBuyRequestStatus.IN_REVIEW -> targetStatus == GroupBuyRequestStatus.IN_CONTACT
-            GroupBuyRequestStatus.IN_CONTACT ->
-                targetStatus == GroupBuyRequestStatus.OPENED || targetStatus == GroupBuyRequestStatus.REJECTED
-            GroupBuyRequestStatus.OPENED,
-            GroupBuyRequestStatus.REJECTED -> false
+            GroupBuyRequestStatus.REQUEST_RECEIVED -> targetStatus == GroupBuyRequestStatus.IN_REVIEW
+            GroupBuyRequestStatus.IN_REVIEW -> targetStatus == GroupBuyRequestStatus.STORE_CONFIRMING
+            GroupBuyRequestStatus.STORE_CONFIRMING ->
+                targetStatus == GroupBuyRequestStatus.COMPLETED || targetStatus == GroupBuyRequestStatus.UNAVAILABLE
+            GroupBuyRequestStatus.COMPLETED,
+            GroupBuyRequestStatus.UNAVAILABLE -> false
         }
 
         if (!isAllowed) {

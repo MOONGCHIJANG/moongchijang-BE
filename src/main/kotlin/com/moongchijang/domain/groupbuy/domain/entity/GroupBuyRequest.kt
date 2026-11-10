@@ -41,7 +41,7 @@ class GroupBuyRequest(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: GroupBuyRequestStatus = GroupBuyRequestStatus.IN_REVIEW,
+    var status: GroupBuyRequestStatus = GroupBuyRequestStatus.REQUEST_RECEIVED,
 
     @Column
     var rejectionReason: String? = null,
@@ -70,7 +70,7 @@ class GroupBuyRequest(
         @Suppress("UNUSED_PARAMETER") desiredQuantity: Int,
         @Suppress("UNUSED_PARAMETER") desiredPickupDate: java.time.LocalDate,
         additionalNote: String? = null,
-        status: GroupBuyRequestStatus = GroupBuyRequestStatus.IN_REVIEW,
+        status: GroupBuyRequestStatus = GroupBuyRequestStatus.REQUEST_RECEIVED,
         rejectionReason: String? = null,
         openedGroupBuyId: Long? = null,
         id: Long = 0L,
@@ -92,7 +92,7 @@ class GroupBuyRequest(
     )
 
     fun markRejected(reason: String?) {
-        status = GroupBuyRequestStatus.REJECTED
+        status = GroupBuyRequestStatus.UNAVAILABLE
         rejectionReason = reason?.ifBlank { null }
     }
 }

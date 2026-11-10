@@ -12,27 +12,35 @@ import java.time.Duration
 import java.time.LocalDateTime
 
 @Schema(
-    description = "어드민 공구 요청 상태 필터. IN_REVIEW는 승인 대기 상태(IN_REVIEW, IN_CONTACT)를 함께 조회합니다."
+    description = "어드민 입점 요청 상태 필터"
 )
 enum class AdminGroupBuyRequestStatusFilter {
     @Schema(description = "전체")
     ALL,
 
-    @Schema(description = "승인 대기(IN_REVIEW, IN_CONTACT)")
+    @Schema(description = "요청 접수")
+    REQUEST_RECEIVED,
+
+    @Schema(description = "검토 중")
     IN_REVIEW,
 
-    @Schema(description = "승인 완료")
-    OPENED,
+    @Schema(description = "매장 확인 중")
+    STORE_CONFIRMING,
 
-    @Schema(description = "반려")
-    REJECTED;
+    @Schema(description = "입점 완료")
+    COMPLETED,
+
+    @Schema(description = "입점 불가")
+    UNAVAILABLE;
 
     fun toStatuses(): List<GroupBuyRequestStatus>? =
         when (this) {
             ALL -> null
-            IN_REVIEW -> listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
-            OPENED -> listOf(GroupBuyRequestStatus.OPENED)
-            REJECTED -> listOf(GroupBuyRequestStatus.REJECTED)
+            REQUEST_RECEIVED -> listOf(GroupBuyRequestStatus.REQUEST_RECEIVED)
+            IN_REVIEW -> listOf(GroupBuyRequestStatus.IN_REVIEW)
+            STORE_CONFIRMING -> listOf(GroupBuyRequestStatus.STORE_CONFIRMING)
+            COMPLETED -> listOf(GroupBuyRequestStatus.COMPLETED)
+            UNAVAILABLE -> listOf(GroupBuyRequestStatus.UNAVAILABLE)
         }
 }
 
@@ -96,8 +104,7 @@ data class AdminGroupBuyRequestListItemResponse(
                 originalPrice = groupBuy?.originalPrice,
                 price = groupBuy?.price,
                 reviewElapsedMinutes = request.createdAt?.let { Duration.between(it, now).toMinutes().coerceAtLeast(0) },
-                actionable = request.status == GroupBuyRequestStatus.IN_REVIEW ||
-                    request.status == GroupBuyRequestStatus.IN_CONTACT,
+                actionable = request.status == GroupBuyRequestStatus.STORE_CONFIRMING,
                 createdAt = request.createdAt
             )
     }

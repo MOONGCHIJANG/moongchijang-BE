@@ -37,7 +37,7 @@ class GroupBuyRequestStatusCommandService(
         groupBuyRequestStatusHistoryRepository.save(
             GroupBuyRequestStatusHistory(
                 groupBuyRequest = request,
-                status = GroupBuyRequestStatus.REJECTED,
+                status = GroupBuyRequestStatus.UNAVAILABLE,
                 changedAt = effectiveChangedAt
             )
         )
