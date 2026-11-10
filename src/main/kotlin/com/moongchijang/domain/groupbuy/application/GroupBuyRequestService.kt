@@ -193,12 +193,12 @@ class GroupBuyRequestService(
                 groupBuyRequest.rejectionReason = null
                 groupBuyRequest.openedGroupBuyId = openedId
             }
+            GroupBuyRequestStatus.IN_REVIEW,
             GroupBuyRequestStatus.STORE_CONFIRMING -> {
                 groupBuyRequest.rejectionReason = null
                 groupBuyRequest.openedGroupBuyId = null
             }
-            GroupBuyRequestStatus.REQUEST_RECEIVED,
-            GroupBuyRequestStatus.IN_REVIEW -> {
+            GroupBuyRequestStatus.REQUEST_RECEIVED -> {
                 throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION)
             }
         }
