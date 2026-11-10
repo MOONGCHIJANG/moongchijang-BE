@@ -13,6 +13,8 @@ import com.moongchijang.domain.product.domain.repository.ProductRepository
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.domain.store.domain.entity.RegionType
 import com.moongchijang.domain.store.domain.entity.Store
+import com.moongchijang.domain.store.domain.entity.StoreHoliday
+import com.moongchijang.domain.store.domain.entity.StoreHolidayType
 import com.moongchijang.domain.store.domain.entity.StorePickupTimeSlot
 import com.moongchijang.domain.store.domain.repository.StoreHolidayRepository
 import com.moongchijang.domain.store.domain.repository.StorePickupTimeSlotRepository
@@ -99,7 +101,12 @@ class ProductFeedQueryServiceTest {
         `when`(groupBuyRepository.countByProductIdInAndStatusIn(listOf(1L, 2L)))
             .thenReturn(emptyList())
         `when`(storeHolidayRepository.findAllByStoreIdInAndActiveTrue(setOf(store.id)))
-            .thenReturn(emptyList())
+            .thenReturn(
+                listOf(
+                    StoreHoliday(store, StoreHolidayType.REGULAR, dayOfWeek = 1),
+                    StoreHoliday(store, StoreHolidayType.TEMPORARY, holidayDate = LocalDate.of(2026, 10, 30)),
+                )
+            )
         `when`(
             storePickupTimeSlotRepository
                 .findAllByStoreIdInAndActiveTrueOrderByStoreIdAscDayOfWeekAscStartTimeAsc(setOf(store.id))
@@ -134,6 +141,7 @@ class ProductFeedQueryServiceTest {
         assertThat(result.items.map { it.productId }).containsExactly(1L, 2L)
         assertThat(result.items.first().isWishlisted).isTrue()
         assertThat(result.items.first().earliestPickupDate).isEqualTo(LocalDate.of(2026, 10, 28))
+        assertThat(result.items.first().holidaySummary).isEqualTo("매주 월요일 휴무 · 임시 휴무 1일")
         assertThat(result.items.first().canPurchase).isTrue()
         assertThat(result.items.first().thumbnailUrl).isEqualTo("https://cdn.test/thumbnail.jpg")
         assertThat(result.hasNext).isTrue()
@@ -150,6 +158,13 @@ class ProductFeedQueryServiceTest {
         )
 
         assertThrows<CustomException> { service.getFeed(request, null) }
+    }
+
+    @Test
+    fun `함께 사기 인기 정렬 커서를 인코딩하고 디코딩한다`() {
+        val cursor = ProductFeedCursor.TogetherPopular(activeRoomCount = 4, id = 12L)
+
+        assertThat(ProductFeedCursor.decode(cursor.encode(), ProductFeedSort.TOGETHER_POPULAR)).isEqualTo(cursor)
     }
 
     private fun createStore(): Store = Store(

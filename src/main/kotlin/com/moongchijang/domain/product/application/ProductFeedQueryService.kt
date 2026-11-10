@@ -13,6 +13,8 @@ import com.moongchijang.domain.product.domain.repository.ProductFeedSort
 import com.moongchijang.domain.product.domain.repository.ProductPickupDateCondition
 import com.moongchijang.domain.product.domain.repository.ProductRepository
 import com.moongchijang.domain.store.domain.entity.DistrictType
+import com.moongchijang.domain.store.domain.entity.StoreHoliday
+import com.moongchijang.domain.store.domain.entity.StoreHolidayType
 import com.moongchijang.domain.store.domain.repository.StoreHolidayRepository
 import com.moongchijang.domain.store.domain.repository.StorePickupTimeSlotRepository
 import com.moongchijang.global.exception.CustomException
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 
@@ -131,6 +134,7 @@ class ProductFeedQueryService(
                     district = product.store.district,
                 ),
                 earliestPickupDate = availability.pickup.availableDates.firstOrNull()?.date,
+                holidaySummary = createHolidaySummary(holidaysByStoreId[product.store.id].orEmpty(), today),
                 isNew = product.createdAt?.let { !it.isBefore(newProductThreshold) } ?: false,
                 isWishlisted = product.id in wishlistedProductIds,
                 canPurchase = availability.canPurchase,
@@ -141,7 +145,13 @@ class ProductFeedQueryService(
 
         return ProductFeedResponse(
             items = items,
-            nextCursor = if (hasNext) createCursor(products.last(), request.sort).encode() else null,
+            nextCursor = if (hasNext) {
+                createCursor(
+                    product = products.last(),
+                    sort = request.sort,
+                    activeRoomCount = activeRoomCountByProductId[products.last().id] ?: 0,
+                ).encode()
+            } else null,
             hasNext = hasNext,
         )
     }
@@ -172,7 +182,11 @@ class ProductFeedQueryService(
         }
         .toSet()
 
-    private fun createCursor(product: Product, sort: ProductFeedSort): ProductFeedCursor = when (sort) {
+    private fun createCursor(
+        product: Product,
+        sort: ProductFeedSort,
+        activeRoomCount: Long,
+    ): ProductFeedCursor = when (sort) {
         ProductFeedSort.LATEST -> ProductFeedCursor.Latest(
             createdAt = checkNotNull(product.createdAt) { "Persisted product must have createdAt" },
             id = product.id,
@@ -185,6 +199,30 @@ class ProductFeedQueryService(
             minQuantity = product.minQuantity,
             id = product.id,
         )
+        ProductFeedSort.TOGETHER_POPULAR -> ProductFeedCursor.TogetherPopular(
+            activeRoomCount = activeRoomCount,
+            id = product.id,
+        )
+    }
+
+    private fun createHolidaySummary(holidays: List<StoreHoliday>, today: LocalDate): String? {
+        val regularHolidayNames = holidays
+            .asSequence()
+            .filter { it.holidayType == StoreHolidayType.REGULAR }
+            .mapNotNull { it.dayOfWeek }
+            .distinct()
+            .sorted()
+            .map { DAY_OF_WEEK_NAMES[it] }
+            .toList()
+        val upcomingTemporaryHolidayCount = holidays
+            .asSequence()
+            .filter { it.holidayType == StoreHolidayType.TEMPORARY }
+            .mapNotNull { it.holidayDate }
+            .count { !it.isBefore(today) }
+        return buildList {
+            if (regularHolidayNames.isNotEmpty()) add("매주 ${regularHolidayNames.joinToString("·")} 휴무")
+            if (upcomingTemporaryHolidayCount > 0) add("임시 휴무 ${upcomingTemporaryHolidayCount}일")
+        }.joinToString(" · ").ifBlank { null }
     }
 
     companion object {
@@ -195,5 +233,14 @@ class ProductFeedQueryService(
         private const val MAX_DISTRICT_COUNT = 10
         private const val SMALL_QUANTITY_MAX = 10
         private const val NEW_PRODUCT_DAYS = 7L
+        private val DAY_OF_WEEK_NAMES = mapOf(
+            1 to "월요일",
+            2 to "화요일",
+            3 to "수요일",
+            4 to "목요일",
+            5 to "금요일",
+            6 to "토요일",
+            7 to "일요일",
+        )
     }
 }

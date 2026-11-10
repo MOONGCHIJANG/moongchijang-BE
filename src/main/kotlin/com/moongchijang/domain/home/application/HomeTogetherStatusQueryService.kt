@@ -27,7 +27,7 @@ class HomeTogetherStatusQueryService(
 ) {
 
     fun getStatus(userId: Long?): HomeTogetherStatusResponse {
-        if (userId == null) return emptyResponse()
+        if (userId == null) return emptyResponse(showFirstVisitGuide = true)
 
         val now = clock.kstNow()
         val activeRooms = linkedMapOf<Long, GroupBuy>()
@@ -43,7 +43,11 @@ class HomeTogetherStatusQueryService(
             activeRooms[room.id] = room
             roles[room.id] = HomeTogetherRole.ORGANIZER
         }
-        if (activeRooms.isEmpty()) return emptyResponse()
+        if (activeRooms.isEmpty()) {
+            val hasTogetherExperience = groupBuyRepository.existsByOrganizerId(userId) ||
+                participationRepository.existsByUserId(userId)
+            return emptyResponse(showFirstVisitGuide = !hasTogetherExperience)
+        }
 
         val rooms = activeRooms.values.toList()
         val roomIds = rooms.map { it.id }
@@ -85,6 +89,7 @@ class HomeTogetherStatusQueryService(
         return HomeTogetherStatusResponse(
             hasActiveRooms = true,
             showTogetherRoomModule = summaries.isNotEmpty(),
+            showFirstVisitGuide = false,
             togetherTabBadgeCount = actionsByRoomId.values.count { it != HomeTogetherRoomAction.NONE },
             isTodayPickupLeader = organizerTodayPickupIds.isNotEmpty(),
             todayPickups = todayPickupRooms.sortedBy { it.pickupTimeStart }.map { room ->
@@ -140,9 +145,10 @@ class HomeTogetherStatusQueryService(
     private fun recruitmentOrder(status: GroupBuyStatus): Int =
         if (status == GroupBuyStatus.IN_PROGRESS) 0 else 1
 
-    private fun emptyResponse() = HomeTogetherStatusResponse(
+    private fun emptyResponse(showFirstVisitGuide: Boolean = false) = HomeTogetherStatusResponse(
         hasActiveRooms = false,
         showTogetherRoomModule = false,
+        showFirstVisitGuide = showFirstVisitGuide,
         togetherTabBadgeCount = 0,
         isTodayPickupLeader = false,
         todayPickups = emptyList(),

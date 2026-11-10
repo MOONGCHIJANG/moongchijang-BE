@@ -21,6 +21,7 @@ import java.util.Optional
 
 interface ParticipationRepository : JpaRepository<Participation, Long> {
     fun findAllByUserId(userId: Long): List<Participation>
+    fun existsByUserId(userId: Long): Boolean
 
     @Query(
         """
