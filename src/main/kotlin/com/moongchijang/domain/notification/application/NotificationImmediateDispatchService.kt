@@ -200,7 +200,6 @@ class NotificationImmediateDispatchService(
                     }
 
                 variables["상품명"] = groupBuyRequest.productName
-                variables["목표참여개수"] = groupBuyRequest.desiredQuantity.toString()
                 groupBuyRequest.openedGroupBuyId?.let { openedGroupBuyId ->
                     groupBuyRepository.findWithStoreById(openedGroupBuyId).ifPresent { groupBuy ->
                         variables["현재참여개수"] = groupBuy.currentQuantity.toString()

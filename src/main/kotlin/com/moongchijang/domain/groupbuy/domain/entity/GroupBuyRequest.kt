@@ -3,7 +3,6 @@ package com.moongchijang.domain.groupbuy.domain.entity
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.entity.BaseEntity
 import jakarta.persistence.*
-import java.time.LocalDate
 
 @Entity
 @Table(name = "group_buy_requests")
@@ -37,12 +36,6 @@ class GroupBuyRequest(
     @Column(nullable = false, length = 100)
     val productName: String,
 
-    @Column(nullable = false)
-    val desiredQuantity: Int,
-
-    @Column(nullable = false)
-    val desiredPickupDate: LocalDate,
-
     @Column(length = 500)
     val additionalNote: String? = null,
 
@@ -60,6 +53,44 @@ class GroupBuyRequest(
     var id: Long = 0L
 
 ) : BaseEntity() {
+    @Deprecated(
+        message = "희망 수량과 희망 픽업일은 입점 요청에 사용하지 않습니다.",
+        level = DeprecationLevel.WARNING
+    )
+    constructor(
+        user: User,
+        storeName: String,
+        storeAddress: String? = null,
+        placeId: String? = null,
+        roadAddress: String? = null,
+        lotAddress: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        productName: String,
+        @Suppress("UNUSED_PARAMETER") desiredQuantity: Int,
+        @Suppress("UNUSED_PARAMETER") desiredPickupDate: java.time.LocalDate,
+        additionalNote: String? = null,
+        status: GroupBuyRequestStatus = GroupBuyRequestStatus.IN_REVIEW,
+        rejectionReason: String? = null,
+        openedGroupBuyId: Long? = null,
+        id: Long = 0L,
+    ) : this(
+        user = user,
+        storeName = storeName,
+        storeAddress = storeAddress,
+        placeId = placeId,
+        roadAddress = roadAddress,
+        lotAddress = lotAddress,
+        latitude = latitude,
+        longitude = longitude,
+        productName = productName,
+        additionalNote = additionalNote,
+        status = status,
+        rejectionReason = rejectionReason,
+        openedGroupBuyId = openedGroupBuyId,
+        id = id,
+    )
+
     fun markRejected(reason: String?) {
         status = GroupBuyRequestStatus.REJECTED
         rejectionReason = reason?.ifBlank { null }

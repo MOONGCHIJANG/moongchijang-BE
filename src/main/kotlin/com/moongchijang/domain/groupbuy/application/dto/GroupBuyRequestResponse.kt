@@ -2,7 +2,6 @@ package com.moongchijang.domain.groupbuy.application.dto
 
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequest
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyRequestStatusHistory
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 data class GroupBuyRequestIdResponse(
@@ -19,8 +18,6 @@ data class GroupBuyRequestResponse(
     val latitude: Double?,
     val longitude: Double?,
     val productName: String,
-    val desiredQuantity: Int,
-    val desiredPickupDate: LocalDate,
     val additionalNote: String?,
     val status: String,
     val rejectionReason: String?,
@@ -47,8 +44,6 @@ data class GroupBuyRequestResponse(
             latitude = request.latitude,
             longitude = request.longitude,
             productName = request.productName,
-            desiredQuantity = request.desiredQuantity,
-            desiredPickupDate = request.desiredPickupDate,
             additionalNote = request.additionalNote,
             status = request.status.name,
             rejectionReason = request.rejectionReason,

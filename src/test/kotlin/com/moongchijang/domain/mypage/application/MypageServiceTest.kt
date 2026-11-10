@@ -368,8 +368,6 @@ class MypageServiceTest {
         assertEquals("소금빵", result[0].productName)
         assertEquals(GroupBuyRequestStatus.IN_CONTACT.name, result[0].status)
         assertEquals("문치 베이커리", result[0].storeName)
-        assertEquals(LocalDate.of(2026, 5, 27), result[0].desiredPickupDate)
-        assertEquals(5, result[0].desiredQuantity)
 
         verify(groupBuyRequestRepository).findByUser_IdOrderByCreatedAtDesc(userId)
     }

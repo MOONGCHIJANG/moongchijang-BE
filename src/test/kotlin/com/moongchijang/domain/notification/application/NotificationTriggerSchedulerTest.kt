@@ -45,9 +45,6 @@ class NotificationTriggerSchedulerTest {
     private lateinit var favoriteRepository: FavoriteRepository
 
     @Mock
-    private lateinit var groupBuyRequestRepository: GroupBuyRequestRepository
-
-    @Mock
     private lateinit var storeStaffRepository: StoreStaffRepository
 
     @Mock
@@ -62,7 +59,6 @@ class NotificationTriggerSchedulerTest {
             participationRepository = participationRepository,
             groupBuyRepository = groupBuyRepository,
             favoriteRepository = favoriteRepository,
-            groupBuyRequestRepository = groupBuyRequestRepository,
             storeStaffRepository = storeStaffRepository,
             adminDiscordAlertService = adminDiscordAlertService,
             clock = clock,
@@ -294,36 +290,6 @@ class NotificationTriggerSchedulerTest {
         scheduler.triggerGroupBuyDeadlineRiskNotificationsAt(now)
 
         verify(adminDiscordAlertService).sendGroupBuyDeadlineRisk(riskGroupBuy)
-    }
-
-    @Test
-    fun `요청공구 D3 스케줄러를 실행할 때 요청자 대상 알림 발행`() {
-        val now = LocalDateTime.of(2026, 5, 23, 7, 0)
-        val request = GroupBuyRequest(
-            user = com.moongchijang.support.UserFixture.createKakaoUser(id = 7L),
-            storeName = "테스트 매장",
-            storeAddress = "서울",
-            productName = "소금빵",
-            desiredQuantity = 10,
-            desiredPickupDate = now.toLocalDate().plusDays(3)
-        ).apply { id = 31L }
-
-        `when`(
-            groupBuyRequestRepository.findByStatusInAndDesiredPickupDate(
-                listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT),
-                now.toLocalDate().plusDays(3)
-            )
-        ).thenReturn(listOf(request))
-
-        scheduler.triggerRequestDeadlineMinus3DaysNotificationAt(now)
-
-        verify(notificationEventPublisher).publishScheduledTrigger(
-            NotificationTriggerType.REQUEST_DEADLINE_MINUS_3_DAYS,
-            31L,
-            listOf(7L),
-            "request-deadline-d3:31:${now.toLocalDate().plusDays(3)}",
-            now
-        )
     }
 
     @Test
