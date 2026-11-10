@@ -2688,7 +2688,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [ALL, IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+            enum: [ALL, REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
             default: ALL
         - name: keyword
           in: query
@@ -4350,7 +4350,7 @@ components:
     # ── GroupBuyRequest ────────────────────────────────────────
     GroupBuyRequestCreate:
       type: object
-      required: [storeName, productName, desiredQuantity, desiredPickupDate]
+      required: [storeName, productName]
       properties:
         storeName:
           type: string
@@ -4388,13 +4388,6 @@ components:
         productName:
           type: string
           maxLength: 100
-        desiredQuantity:
-          type: integer
-          minimum: 1
-        desiredPickupDate:
-          type: string
-          format: date
-          description: 오늘 이후 날짜
         additionalNote:
           type: string
           maxLength: 500
@@ -4414,7 +4407,7 @@ components:
 
     GroupBuyRequestDetail:
       type: object
-      required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, rejectionReason, openedGroupBuyId, statusHistory, createdAt]
+      required: [requestId, storeName, productName, status, rejectionReason, openedGroupBuyId, statusHistory, createdAt]
       properties:
         requestId: { type: integer, format: int64 }
         storeName: { type: string }
@@ -4425,17 +4418,15 @@ components:
         latitude: { type: number, format: double, nullable: true }
         longitude: { type: number, format: double, nullable: true }
         productName: { type: string }
-        desiredQuantity: { type: integer }
-        desiredPickupDate: { type: string, format: date }
         additionalNote: { type: string, nullable: true }
         status:
           type: string
-          enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+          enum: [REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
           description: |
-            IN_REVIEW=검토 중 / IN_CONTACT=매장 컨택 중 /
-            OPENED=공구 개설 완료 / REJECTED=개설 불가
-        rejectionReason: { type: string, nullable: true, description: status=REJECTED 시 노출 }
-        openedGroupBuyId: { type: integer, format: int64, nullable: true, description: status=OPENED 시 개설된 공구 id }
+            REQUEST_RECEIVED=요청 접수 / IN_REVIEW=검토 중 /
+            STORE_CONFIRMING=매장 확인 중 / COMPLETED=입점 완료 / UNAVAILABLE=입점 불가
+        rejectionReason: { type: string, nullable: true, description: status=UNAVAILABLE 시 노출 }
+        openedGroupBuyId: { type: integer, format: int64, nullable: true, description: status=COMPLETED 시 개설된 공구 id }
         statusHistory:
           type: array
           items:
@@ -4444,7 +4435,7 @@ components:
             properties:
               status:
                 type: string
-                enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+                enum: [REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
               changedAt: { type: string, format: date-time, description: "UTC 기준 상태 변경 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         createdAt: { type: string, format: date-time, description: "UTC 기준 요청 생성 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
 
@@ -5035,15 +5026,13 @@ components:
           type: array
           items:
             type: object
-            required: [productName, status, storeName, desiredPickupDate, desiredQuantity, requestId]
+            required: [productName, status, storeName, requestId]
             properties:
               productName: { type: string }
               status:
                 type: string
-                enum: [SUBMITTED, IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+                enum: [REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
               storeName: { type: string }
-              desiredPickupDate: { type: string, format: date }
-              desiredQuantity: { type: integer }
               requestId: { type: integer, format: int64 }
         error: { nullable: true, example: null }
 
@@ -6343,16 +6332,14 @@ components:
               type: array
               items:
                 type: object
-                required: [requestId, storeName, productName, desiredQuantity, desiredPickupDate, status, requesterId, actionable, createdAt]
+                required: [requestId, storeName, productName, status, requesterId, actionable, createdAt]
                 properties:
                   requestId: { type: integer, format: int64 }
                   storeName: { type: string }
                   productName: { type: string }
-                  desiredQuantity: { type: integer }
-                  desiredPickupDate: { type: string, format: date }
                   status:
                     type: string
-                    enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+                    enum: [REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
                   requesterId: { type: integer, format: int64 }
                   requesterName: { type: string, nullable: true }
                   originalPrice:
@@ -6385,7 +6372,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [requestId, requester, storeName, productName, desiredQuantity, desiredPickupDate, status, statusHistory, createdAt]
+          required: [requestId, requester, storeName, productName, status, statusHistory, createdAt]
           properties:
             requestId: { type: integer, format: int64 }
             requester:
@@ -6408,12 +6395,10 @@ components:
             latitude: { type: number, format: double, nullable: true }
             longitude: { type: number, format: double, nullable: true }
             productName: { type: string }
-            desiredQuantity: { type: integer }
-            desiredPickupDate: { type: string, format: date }
             additionalNote: { type: string, nullable: true }
             status:
               type: string
-              enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+              enum: [REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
             rejectionReason: { type: string, nullable: true }
             openedGroupBuyId: { type: integer, format: int64, nullable: true }
             statusHistory:
@@ -6424,7 +6409,7 @@ components:
                 properties:
                   status:
                     type: string
-                    enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+                    enum: [REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
                   changedAt: { type: string, format: date-time }
             createdAt: { type: string, format: date-time, nullable: true }
         error: { nullable: true, example: null }
@@ -6435,17 +6420,17 @@ components:
       properties:
         targetStatus:
           type: string
-          enum: [IN_REVIEW, IN_CONTACT, OPENED, REJECTED]
+          enum: [REQUEST_RECEIVED, IN_REVIEW, STORE_CONFIRMING, COMPLETED, UNAVAILABLE]
         rejectionReason:
           type: string
           maxLength: 500
           nullable: true
-          description: targetStatus=REJECTED 시 필수
+          description: targetStatus=UNAVAILABLE 시 필수
         openedGroupBuyId:
           type: integer
           format: int64
           nullable: true
-          description: targetStatus=OPENED 시 필수. 실제 개설된 공구 id이며 존재 검증 후 개설 알림 발송에 사용
+          description: targetStatus=COMPLETED 시 필수. 실제 개설된 공구 id이며 존재 검증 후 개설 알림 발송에 사용
 
     AdminGroupBuyRequestApprove:
       type: object
@@ -6511,7 +6496,7 @@ components:
             requestId: { type: integer, format: int64 }
             status:
               type: string
-              enum: [OPENED, REJECTED]
+              enum: [COMPLETED, UNAVAILABLE]
             groupBuyId:
               type: integer
               format: int64
