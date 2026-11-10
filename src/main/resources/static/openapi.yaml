@@ -1098,6 +1098,138 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  # ─────────────────────────────────────────────────────────────
+  # Product & Home
+  # ─────────────────────────────────────────────────────────────
+  /api/v1/products:
+    get:
+      tags: [Product]
+      summary: 홈 피드 상품 목록 조회
+      parameters:
+        - name: categoryCodes
+          in: query
+          schema: { type: array, items: { type: string } }
+          style: form
+          explode: true
+        - name: districts
+          in: query
+          schema: { type: array, items: { type: string } }
+          style: form
+          explode: true
+        - name: pickupThisWeek
+          in: query
+          schema: { type: boolean, default: false }
+        - name: smallQuantity
+          in: query
+          schema: { type: boolean, default: false }
+        - name: newOnly
+          in: query
+          schema: { type: boolean, default: false }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [LATEST, PRICE_LOW, MIN_QUANTITY, TOGETHER_POPULAR], default: LATEST }
+        - name: cursor
+          in: query
+          schema: { type: string, nullable: true }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: 상품 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseProductFeed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/products/{productId}:
+    get:
+      tags: [Product]
+      summary: 상품 상세 조회
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 상품 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseProductDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/products/{productId}/share:
+    get:
+      tags: [Product]
+      summary: 상품 공유 메타데이터 조회
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 상품 공유 메타데이터
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseProductShare'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/products/{productId}/wishlist:
+    post:
+      tags: [Wishlist]
+      summary: 상품 찜 추가
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '201':
+          $ref: '#/components/responses/SuccessNoData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Wishlist]
+      summary: 상품 찜 해제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessNoData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/home/together:
+    get:
+      tags: [Home]
+      summary: 홈 함께 사기 현황 조회
+      responses:
+        '200':
+          description: 함께 사기 진행 현황과 오늘 픽업 정보
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseHomeTogetherStatus'
+
   /api/v1/group-buy-requests:
     post:
       tags: [GroupBuyRequest]
@@ -1142,12 +1274,6 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/RequestId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdminOwnerGroupBuyRequestApprove'
       responses:
         '200':
           description: 요청 상세
@@ -4345,6 +4471,196 @@ components:
             pickupDate: { type: string, format: date }
             pickupTimeStart: { type: string, format: time, nullable: true }
             pickupTimeEnd: { type: string, format: time, nullable: true }
+        error: { nullable: true, example: null }
+
+    # ── Product & Home ─────────────────────────────────────────
+    ApiResponseProductFeed:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [items, hasNext]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductFeedItem'
+            nextCursor: { type: string, nullable: true }
+            hasNext: { type: boolean }
+        error: { nullable: true, example: null }
+
+    ProductFeedItem:
+      type: object
+      required: [productId, categoryCode, name, unitPrice, minQuantity, maxQuantity, storageType, store, isNew, isWishlisted, canPurchase, activeTogetherRoomCount]
+      properties:
+        productId: { type: integer, format: int64 }
+        categoryCode: { type: string }
+        name: { type: string }
+        thumbnailUrl: { type: string, nullable: true }
+        unitPrice: { type: integer }
+        minQuantity: { type: integer }
+        maxQuantity: { type: integer }
+        storageType: { type: string, enum: [ROOM_TEMPERATURE, REFRIGERATED, FROZEN] }
+        store:
+          $ref: '#/components/schemas/ProductFeedStore'
+        earliestPickupDate: { type: string, format: date, nullable: true }
+        holidaySummary: { type: string, nullable: true }
+        isNew: { type: boolean }
+        isWishlisted: { type: boolean }
+        canPurchase: { type: boolean }
+        unavailableReason:
+          type: string
+          nullable: true
+          enum: [PRODUCT_NOT_FOR_SALE, STORE_NOT_FOR_SALE, NO_AVAILABLE_PICKUP_DATE]
+        activeTogetherRoomCount: { type: integer, format: int64 }
+
+    ProductFeedStore:
+      type: object
+      required: [storeId, name, region, district]
+      properties:
+        storeId: { type: integer, format: int64 }
+        name: { type: string }
+        region: { type: string }
+        district: { type: string }
+
+    ApiResponseProductDetail:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/ProductDetail'
+        error: { nullable: true, example: null }
+
+    ProductDetail:
+      type: object
+      required: [productId, categoryCode, name, description, imageUrls, unitPrice, minQuantity, maxQuantity, storageType, store, pickup, isWishlisted, canPurchase]
+      properties:
+        productId: { type: integer, format: int64 }
+        categoryCode: { type: string }
+        name: { type: string }
+        description: { type: string }
+        thumbnailUrl: { type: string, nullable: true }
+        imageUrls:
+          type: array
+          items: { type: string }
+        unitPrice: { type: integer }
+        minQuantity: { type: integer }
+        maxQuantity: { type: integer }
+        storageType: { type: string, enum: [ROOM_TEMPERATURE, REFRIGERATED, FROZEN] }
+        store:
+          type: object
+          required: [storeId, name, region, district, address]
+          properties:
+            storeId: { type: integer, format: int64 }
+            name: { type: string }
+            region: { type: string }
+            district: { type: string }
+            address: { type: string }
+            phoneNumber: { type: string, nullable: true }
+            placeId: { type: string, nullable: true }
+        pickup:
+          type: object
+          required: [preparationDays, availableFrom, availableUntil, availableDates, holidays]
+          properties:
+            preparationDays: { type: integer }
+            availableFrom: { type: string, format: date }
+            availableUntil: { type: string, format: date }
+            availableDates:
+              type: array
+              items:
+                type: object
+                required: [date, timeSlots]
+                properties:
+                  date: { type: string, format: date }
+                  timeSlots:
+                    type: array
+                    items:
+                      type: object
+                      required: [startTime, endTime]
+                      properties:
+                        startTime: { type: string, format: time }
+                        endTime: { type: string, format: time }
+            holidays:
+              type: array
+              items:
+                type: object
+                required: [type]
+                properties:
+                  type: { type: string, enum: [REGULAR, TEMPORARY] }
+                  dayOfWeek: { type: integer, nullable: true }
+                  date: { type: string, format: date, nullable: true }
+                  reason: { type: string, nullable: true }
+        isWishlisted: { type: boolean }
+        canPurchase: { type: boolean }
+        unavailableReason:
+          type: string
+          nullable: true
+          enum: [PRODUCT_NOT_FOR_SALE, STORE_NOT_FOR_SALE, NO_AVAILABLE_PICKUP_DATE]
+
+    ApiResponseProductShare:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [productId, productName, storeName, shareUrl]
+          properties:
+            productId: { type: integer, format: int64 }
+            productName: { type: string }
+            storeName: { type: string }
+            imageUrl: { type: string, nullable: true }
+            shareUrl: { type: string }
+        error: { nullable: true, example: null }
+
+    ApiResponseHomeTogetherStatus:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [hasActiveRooms, showTogetherRoomModule, showFirstVisitGuide, togetherTabBadgeCount, isTodayPickupLeader, todayPickups, rooms]
+          properties:
+            hasActiveRooms: { type: boolean }
+            showTogetherRoomModule: { type: boolean }
+            showFirstVisitGuide: { type: boolean }
+            togetherTabBadgeCount: { type: integer }
+            isTodayPickupLeader: { type: boolean }
+            todayPickups:
+              type: array
+              items:
+                type: object
+                required: [roomId, role, productName, quantity, storeName, pickupDate, pickupTimeStart, pickupTimeEnd, canOpenQr]
+                properties:
+                  roomId: { type: integer, format: int64 }
+                  role: { type: string, enum: [ORGANIZER, PARTICIPANT] }
+                  productName: { type: string }
+                  quantity: { type: integer }
+                  storeName: { type: string }
+                  pickupDate: { type: string, format: date }
+                  pickupTimeStart: { type: string, format: time }
+                  pickupTimeEnd: { type: string, format: time }
+                  canOpenQr: { type: boolean }
+            rooms:
+              type: array
+              items:
+                type: object
+                required: [roomId, role, productName, storeName, currentQuantity, minQuantity, maxQuantity, paymentDeadlineAt, nextAction]
+                properties:
+                  roomId: { type: integer, format: int64 }
+                  role: { type: string, enum: [ORGANIZER, PARTICIPANT] }
+                  productId: { type: integer, format: int64, nullable: true }
+                  productName: { type: string }
+                  storeName: { type: string }
+                  currentQuantity: { type: integer }
+                  minQuantity: { type: integer }
+                  maxQuantity: { type: integer }
+                  paymentDeadlineAt: { type: string, format: date-time }
+                  nextAction: { type: string, enum: [NONE, PAY, TRANSFER, PICKUP] }
         error: { nullable: true, example: null }
 
     # ── GroupBuyRequest ────────────────────────────────────────
