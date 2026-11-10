@@ -161,7 +161,7 @@ class GroupBuyRepositoryImplIntegrationTest {
                 productName = "단팥빵",
                 desiredQuantity = 10,
                 desiredPickupDate = LocalDate.now().plusDays(3),
-                status = GroupBuyRequestStatus.REJECTED
+                status = GroupBuyRequestStatus.UNAVAILABLE
             )
         )
         flushAndClear()
@@ -202,7 +202,7 @@ class GroupBuyRepositoryImplIntegrationTest {
             productName = "모나카",
             desiredQuantity = 10,
             desiredPickupDate = LocalDate.now().plusDays(4),
-            status = GroupBuyRequestStatus.IN_CONTACT
+            status = GroupBuyRequestStatus.STORE_CONFIRMING
         )
         val rejectedRequest = GroupBuyRequest(
             user = requester,
@@ -210,7 +210,7 @@ class GroupBuyRepositoryImplIntegrationTest {
             productName = "단팥빵",
             desiredQuantity = 5,
             desiredPickupDate = LocalDate.now().plusDays(5),
-            status = GroupBuyRequestStatus.REJECTED
+            status = GroupBuyRequestStatus.UNAVAILABLE
         )
         em.persist(reviewRequest)
         em.persist(contactRequest)
@@ -219,7 +219,7 @@ class GroupBuyRepositoryImplIntegrationTest {
 
         val result = groupBuyRequestRepository.searchAdminRequests(
             useStatusFilter = true,
-            statuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT),
+            statuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.STORE_CONFIRMING),
             keyword = null,
             requestIdKeyword = null,
             pageable = pageable

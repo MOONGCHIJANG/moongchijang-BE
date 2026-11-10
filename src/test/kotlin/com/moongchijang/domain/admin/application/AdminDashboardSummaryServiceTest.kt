@@ -42,8 +42,12 @@ class AdminDashboardSummaryServiceTest {
         val tomorrowStart = LocalDateTime.of(2026, 5, 27, 15, 0)
         val yesterdayStart = LocalDateTime.of(2026, 5, 25, 15, 0)
         val now = LocalDateTime.of(2026, 5, 27, 4, 0)
-        val pendingStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
-        val completedStatuses = listOf(GroupBuyRequestStatus.OPENED, GroupBuyRequestStatus.REJECTED)
+        val pendingStatuses = listOf(
+            GroupBuyRequestStatus.REQUEST_RECEIVED,
+            GroupBuyRequestStatus.IN_REVIEW,
+            GroupBuyRequestStatus.STORE_CONFIRMING,
+        )
+        val completedStatuses = listOf(GroupBuyRequestStatus.COMPLETED, GroupBuyRequestStatus.UNAVAILABLE)
         val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 4, 0)
 
         `when`(
@@ -119,7 +123,11 @@ class AdminDashboardSummaryServiceTest {
         val todayStart = LocalDateTime.of(2026, 5, 26, 15, 0)
         val tomorrowStart = LocalDateTime.of(2026, 5, 27, 15, 0)
         val yesterdayStart = LocalDateTime.of(2026, 5, 25, 15, 0)
-        val pendingStatuses = listOf(GroupBuyRequestStatus.IN_REVIEW, GroupBuyRequestStatus.IN_CONTACT)
+        val pendingStatuses = listOf(
+            GroupBuyRequestStatus.REQUEST_RECEIVED,
+            GroupBuyRequestStatus.IN_REVIEW,
+            GroupBuyRequestStatus.STORE_CONFIRMING,
+        )
         val orderOverdueBefore = LocalDateTime.of(2026, 5, 25, 4, 0)
 
         `when`(

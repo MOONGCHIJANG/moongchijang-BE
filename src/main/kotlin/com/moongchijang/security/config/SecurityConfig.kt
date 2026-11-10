@@ -63,6 +63,7 @@ class SecurityConfig(
                     "/api/v1/group-buys/*/share",
                     "/api/v1/products",
                     "/api/v1/products/*",
+                    "/api/v1/home/together",
                 ).permitAll()
                 it.requestMatchers(
                     HttpMethod.POST,

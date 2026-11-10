@@ -52,7 +52,7 @@ class GroupBuyRequestStatusCommandServiceTest {
 
         service.rejectRequest(requestId = 301L, reason = "품절", changedAt = now)
 
-        assertEquals(GroupBuyRequestStatus.REJECTED, request.status)
+        assertEquals(GroupBuyRequestStatus.UNAVAILABLE, request.status)
         assertEquals("품절", request.rejectionReason)
         verify(notificationEventPublisher).publishRequestRejected(
             requestId = 301L,

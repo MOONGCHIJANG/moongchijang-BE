@@ -85,12 +85,12 @@ class AdminGroupBuyRequestActionService(
                 )
             }
         )
-        markRequest(groupBuyRequest, GroupBuyRequestStatus.OPENED, openedGroupBuyId = groupBuy.id)
+        markRequest(groupBuyRequest, GroupBuyRequestStatus.COMPLETED, openedGroupBuyId = groupBuy.id)
         eventPublisher.publishEvent(AdminGroupBuyOpenedEvent(groupBuy.id))
 
         val response = AdminGroupBuyRequestActionResponse(
             requestId = groupBuyRequest.id,
-            status = GroupBuyRequestStatus.OPENED,
+            status = GroupBuyRequestStatus.COMPLETED,
             groupBuyId = groupBuy.id
         )
         log.info(
@@ -111,10 +111,10 @@ class AdminGroupBuyRequestActionService(
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_REJECTION_REASON_REQUIRED)
         }
 
-        markRequest(groupBuyRequest, GroupBuyRequestStatus.REJECTED, rejectionReason = reason)
+        markRequest(groupBuyRequest, GroupBuyRequestStatus.UNAVAILABLE, rejectionReason = reason)
         val response = AdminGroupBuyRequestActionResponse(
             requestId = groupBuyRequest.id,
-            status = GroupBuyRequestStatus.REJECTED,
+            status = GroupBuyRequestStatus.UNAVAILABLE,
             groupBuyId = null
         )
         log.info("[AdminGroupBuyRequestActionService] 공구요청 반려 완료: requestId={}", requestId)
@@ -127,9 +127,7 @@ class AdminGroupBuyRequestActionService(
     }
 
     private fun validateActionable(groupBuyRequest: GroupBuyRequest) {
-        if (groupBuyRequest.status == GroupBuyRequestStatus.OPENED ||
-            groupBuyRequest.status == GroupBuyRequestStatus.REJECTED
-        ) {
+        if (groupBuyRequest.status != GroupBuyRequestStatus.STORE_CONFIRMING) {
             throw CustomException(ErrorCode.GROUPBUY_REQUEST_INVALID_STATUS_TRANSITION)
         }
     }

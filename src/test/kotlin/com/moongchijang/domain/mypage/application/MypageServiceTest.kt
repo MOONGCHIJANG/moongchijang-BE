@@ -357,7 +357,7 @@ class MypageServiceTest {
             productName = "소금빵",
             desiredQuantity = 5,
             desiredPickupDate = LocalDate.of(2026, 5, 27),
-            status = GroupBuyRequestStatus.IN_CONTACT
+            status = GroupBuyRequestStatus.STORE_CONFIRMING
         ).apply { id = 20L }
         `when`(groupBuyRequestRepository.findByUser_IdOrderByCreatedAtDesc(userId)).thenReturn(listOf(request))
 
@@ -366,7 +366,7 @@ class MypageServiceTest {
         assertEquals(1, result.size)
         assertEquals(20L, result[0].requestId)
         assertEquals("소금빵", result[0].productName)
-        assertEquals(GroupBuyRequestStatus.IN_CONTACT.name, result[0].status)
+        assertEquals(GroupBuyRequestStatus.STORE_CONFIRMING.name, result[0].status)
         assertEquals("문치 베이커리", result[0].storeName)
 
         verify(groupBuyRequestRepository).findByUser_IdOrderByCreatedAtDesc(userId)
