@@ -20,7 +20,7 @@ info:
     - 비즈니스 계산(D-day, 마감 여부, 픽업 오늘/내일 판단, 월별 집계)은 KST(`Asia/Seoul`) 기준으로 처리합니다.
     - `format: date-time` 필드는 현재 `LocalDateTime` 직렬화 형식을 사용하므로 `yyyy-MM-dd'T'HH:mm:ss` 형태의 오프셋 없는 문자열로 응답합니다.
     - 일정/픽업 관련 사용자 노출 시각은 KST 기준으로 해석하며, 감사/이력성 시각은 UTC 기준 저장값을 같은 형식으로 반환합니다.
-  version: v1
+  version: v2
 
 servers:
   - url: https://api.moongchijang.com
@@ -36,25 +36,34 @@ tags:
   - name: Admin Auth
     description: 관리자 로그인 및 토큰 발급
   - name: GroupBuy
-    description: 공구 피드 · 상세 · 달성률
+    description: 함께 사기 방 생성 · 모집 · 초대 · 확약 · 총대 결제
   - name: GroupBuyRequest
     description: 공구 개설 요청 (소비자)
   - name: Wishlist
     description: 찜 추가 · 해제 · 목록
   - name: Participation
-    description: 공구 참여 · 결제 · 취소 · 환불
+    description: 방 참여 수량 · 확약 · 수령 확인
   - name: Pickup
-    description: 픽업 안내 · QR 코드
+    description: 총대 전용 방 단위 픽업 · QR 코드
   - name: Notification
     description: 알림 목록 · 읽음 처리
   - name: MyPage
-    description: 마이페이지 (참여중 · 완료 · 환불 · 요청 내역)
+    description: v2 함께 사기 탭 · 프로필 · 신고 · 총대 예외 환불
   - name: Owner
     description: 사장님 전용 (QR 스캔 · 홈 · 예약 목록)
   - name: Admin
     description: 운영자 전용 (공구요청 · 공구관리 · 환불 · 정산)
   - name: ImageUpload
     description: S3 Presigned URL 발급 · 이미지 삭제
+
+  - name: Store
+    description: 매장 픽업 가능 일정 및 운영 정책
+
+  - name: Settlement
+    description: 참여자 계좌이체 정산 · 입금 확인 · 미납 관리
+
+  - name: Report
+    description: 사기 의심 · 미정산 · 부적절 행위 신고
 
 paths:
 
@@ -197,6 +206,7 @@ paths:
       summary: 탈퇴 진입 컨텍스트 조회
       description: |
         소비자/사장님 탈퇴 가능 상태와 권장 탈퇴 화면 정보를 조회한다.
+        v2 소비자는 총대 또는 참여자로서 진행 중인 함께 사기 방, 결제 완료 후 픽업 전 방, 미정산 송금이 하나라도 있으면 탈퇴할 수 없다.
         이 응답은 진입/라우팅 가이드 용도이며, 실제 탈퇴 실행 시점에는 최종 검증이 다시 수행된다.
       security:
         - bearerAuth: []
@@ -893,37 +903,101 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
+    post:
+      tags: [GroupBuy]
+      summary: 함께 사기 방 생성
+      description: |
+        총대가 매장 상품, 픽업 날짜·시간대, 본인 수량을 선택해 v2 함께 사기 방을 생성한다.
+        단가·최소/최대 수량·픽업 가능 여부·결제 마감은 서버의 매장 상품 및 픽업 정책을 기준으로 검증·계산한다.
+        `isSoloRoom=true`이면 초대·참여자 모집 없이 총대만 결제 가능한 방으로 생성된다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyRoomCreateRequest'
+      responses:
+        '201':
+          description: 방 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyRoomCreated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 선택한 픽업일·시간대 또는 상품이 더 이상 생성 가능하지 않음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+
   /api/v1/group-buys/{groupBuyId}:
     get:
       tags: [GroupBuy]
-      summary: 공구 상세 조회
-      description: 공구의 상품·매장·픽업·이미지 정보를 조회한다. 비로그인 허용.
+      summary: 함께 사기 방 상세 조회
+      description: |
+        방의 상품·매장·모집 현황·픽업·확약·현재 사용자의 참여 상태를 조회한다. 비로그인도 방 정보와 모집 현황은 조회할 수 있지만 참여·정산·총대 기능은 인증 후에만 사용할 수 있다.
+        방이 가득 참, 잠김 또는 종료 상태이면 `status`와 `availableActions`로 안내 화면의 CTA를 결정한다.
       parameters:
         - $ref: '#/components/parameters/GroupBuyId'
       responses:
         '200':
-          description: 공구 상세
+          description: 함께 사기 방 상세
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseGroupBuyDetailResponse'
+                $ref: '#/components/schemas/ApiResponseTogetherBuyRoom'
         '404':
           $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [GroupBuy]
+      summary: 총대의 방 수량 또는 픽업 일시 변경
+      description: |
+        총대만 결제 전 `RECRUITING` 또는 `READY_TO_PAY` 상태에서 본인 수량과 픽업 일시를 변경할 수 있다.
+        픽업 일시가 바뀌면 결제 마감도 서버가 재계산하고, 참여자에게 변경 알림을 발송한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyRoomUpdateRequest'
+      responses:
+        '200':
+          description: 변경된 방 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyRoom'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
   /api/v1/group-buys/{groupBuyId}/progress:
     get:
       tags: [GroupBuy]
-      summary: 단일 공구 달성률 조회 (폴링용)
+      summary: 함께 사기 방 모집 현황 조회 (폴링용)
       parameters:
         - $ref: '#/components/parameters/GroupBuyId'
       responses:
         '200':
-          description: 달성률
+          description: 모집 수량·최소 수량·최대 수량·결제 가능 여부
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseGroupBuyProgress'
-
+                $ref: '#/components/schemas/ApiResponseTogetherBuyProgress'
   /api/v1/group-buys/{groupBuyId}/viewers/heartbeat:
     post:
       tags: [GroupBuy]
@@ -1728,35 +1802,35 @@ paths:
 
   /api/v1/group-buys/{groupBuyId}/checkout:
     get:
-      tags: [Participation]
-      summary: 참여하기 화면 결제 정보 조회
+      tags: [GroupBuy]
+      summary: 총대 결제 화면 정보 조회
+      description: |
+        총대 전용 결제 화면에 필요한 확약 참여자별 분담 내역, 총 결제 금액, 매장 판매자 정보, 필수 동의 항목을 반환한다.
+        참여자별 PG 결제가 아닌 방 합계 1회 결제이며, `canCreatePaymentOrder=false`면 `blockingReason`을 안내한다.
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/GroupBuyId'
-        - name: quantity
-          in: query
-          required: true
-          schema:
-            type: integer
-            minimum: 1
-          description: 참여 수량
       responses:
         '200':
-          description: 상품 요약 및 결제 금액 정보
+          description: 총대 결제 정보
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseCheckoutInfo'
+                $ref: '#/components/schemas/ApiResponseOrganizerPaymentCheckout'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
-
   /api/v1/group-buys/{groupBuyId}/payment-orders:
     post:
-      tags: [Participation]
-      summary: PortOne 결제 주문 생성
+      tags: [GroupBuy]
+      summary: 총대 단일 PG 결제 주문 생성
+      description: |
+        총대가 v2 필수 동의 5개를 모두 제출한 뒤 방 합계 금액의 PG 결제 주문을 생성한다.
+        방이 잠김 상태이고 확약 마감이 완료된 경우에만 생성할 수 있으며, 중복 결제 주문 생성을 방지한다.
       security:
         - bearerAuth: []
       parameters:
@@ -1766,25 +1840,25 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentOrderCreate'
+              $ref: '#/components/schemas/OrganizerPaymentOrderCreateRequest'
       responses:
         '200':
           description: PortOne SDK 요청에 필요한 결제 주문 정보 반환
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponsePaymentOrderCreated'
+                $ref: '#/components/schemas/ApiResponseOrganizerPaymentOrderCreated'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Conflict'
-
   /api/v1/payments/portone/complete:
     post:
-      tags: [Participation]
-      summary: PortOne 결제 완료 서버 검증
+      tags: [GroupBuy]
+      summary: 총대 단일 PG 결제 완료 서버 검증
+      description: PG 결제를 서버에서 검증해 방을 `PAID`로 전이하고, 확약 참여자에게 정산 요청을 시작한다. 검증 실패 시 방 잠금을 해제해 총대가 다시 결제할 수 있게 한다.
       security:
         - bearerAuth: []
       requestBody:
@@ -1792,21 +1866,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentConfirm'
+              $ref: '#/components/schemas/OrganizerPaymentConfirmationRequest'
       responses:
         '200':
-          description: 결제 검증 및 참여 확정 처리 결과
+          description: 결제 검증 및 방 결제 완료 처리 결과
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponsePaymentConfirmed'
+                $ref: '#/components/schemas/ApiResponseOrganizerPaymentConfirmed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Conflict'
-
   /api/v1/payments/portone/webhook:
     post:
       tags: [Participation]
@@ -1848,8 +1921,9 @@ paths:
   /api/v1/participations/{participationId}/cancel:
     post:
       tags: [Participation]
-      summary: 참여 취소 (달성 전 이탈)
-      description: 공구 달성 전에만 취소 가능하며 결제 금액이 자동 환불된다.
+      summary: 참여 취소 (v1 레거시)
+      description: v2에서는 참여자별 결제·자동 환불이 없어졌으므로 `DELETE /api/v1/group-buys/{groupBuyId}/participation`을 사용한다.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -1880,7 +1954,9 @@ paths:
   /api/v1/participations/{participationId}/pickup:
     get:
       tags: [Pickup]
-      summary: 픽업 안내 정보 조회
+      summary: 참여자별 픽업 안내 조회 (v1 레거시)
+      description: v2에서는 총대가 방 단위로 픽업하므로 `GET /api/v1/group-buys/{groupBuyId}/pickup`을 사용한다.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -1896,11 +1972,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
-
   /api/v1/participations/{participationId}/qr:
     get:
       tags: [Pickup]
-      summary: QR 픽업 코드 조회
+      summary: 참여자별 QR 코드 조회 (v1 레거시)
+      description: v2에서는 참여자 QR을 발급하지 않는다. 총대만 `GET /api/v1/group-buys/{groupBuyId}/pickup/qr`을 호출할 수 있다.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -1912,16 +1989,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseQrCode'
-
   /api/v1/pickups/me/nearest-qr:
     get:
       tags: [Pickup]
-      summary: 피드용 가장 가까운 픽업 QR 조회
+      summary: 참여자별 가장 가까운 픽업 QR 조회 (v1 레거시)
       description: |
         피드 진입 시 사용자의 가장 가까운 픽업 QR 후보를 조회한다.
         당일 픽업 예정 건이 있으면 픽업 시작 시간이 가장 빠른 건을 반환하고,
         당일 건이 여러 개면 hasMultipleToday=true로 내려준다.
         당일 픽업 건이 없고 향후 픽업 예정 건만 있으면 LOCKED 상태와 qrCode=null로 반환한다.
+      deprecated: true
       security:
         - bearerAuth: []
       responses:
@@ -1931,16 +2008,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseNearestPickupQr'
-
   /api/v1/pickups/{qrCode}/verify:
     post:
       tags: [Pickup]
-      summary: QR 코드 스캔 검증 및 수령 처리
+      summary: 방 단위 QR 스캔 검증 및 총대 픽업 처리
       description: |
         현재 활성 역할이 SELLER 또는 ADMIN일 때만 호출할 수 있다.
-        SELLER 역할 사용자가 본인 매장 공구의 소비자 QR을 스캔하면 READY → PICKED_UP으로 자동 전환한다.
-        ADMIN 역할 사용자는 운영 대리 처리 용도로 매장 소속 검증 없이 처리할 수 있다.
-        응답에는 사장님 스캔 결과 화면에 필요한 유저이름, 상품명, 수량, 픽업 상태를 포함한다.
+        v2 QR은 방(주문) 단위 1개이며 픽업일 00시부터 총대에게만 노출된다. 1회 사용 후 무효화된다.
+        SELLER는 본인 매장 방만 처리할 수 있고, ADMIN은 운영 대리 처리할 수 있다.
       security:
         - bearerAuth: []
       parameters:
@@ -1956,7 +2031,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponsePickupVerify'
+                $ref: '#/components/schemas/ApiResponseRoomPickupVerification'
         '400':
           $ref: '#/components/responses/BadRequest'
         '403':
@@ -2084,7 +2159,9 @@ paths:
   /api/v1/users/me/participations:
     get:
       tags: [MyPage]
-      summary: 내 참여 내역 상태별 조회
+      summary: 내 참여 내역 상태별 조회 (v1 레거시)
+      description: v2에서는 `GET /api/v1/users/me/together-buys`를 사용한다.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -2104,12 +2181,12 @@ paths:
                 $ref: '#/components/schemas/ApiResponseMypageParticipationList'
         '400':
           $ref: '#/components/responses/BadRequest'
-
   /api/v1/users/me/participations/in-progress:
     get:
       tags: [MyPage]
-      summary: 진행 중 탭 참여 공구 목록 조회
-      description: 페이지네이션 기반으로 진행 중 탭 카드를 조회한다. 정렬 기준은 참여일시(participatedAt) 내림차순이다.
+      summary: 진행 중 탭 참여 공구 목록 조회 (v1 레거시)
+      description: v2에서는 모집·결제·정산을 하나의 `IN_PROGRESS` 구간으로 보는 `GET /api/v1/users/me/together-buys`를 사용한다.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -2124,12 +2201,12 @@ paths:
                 $ref: '#/components/schemas/ApiResponseInProgressParticipationPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /api/v1/users/me/participations/pickup-waiting:
     get:
       tags: [MyPage]
-      summary: 픽업 대기 탭 참여 완료 공구 이력 조회
-      description: 페이지네이션 기반으로 픽업 대기 탭 카드를 조회한다. 정렬 기준은 참여일시(participatedAt) 내림차순이다.
+      summary: 픽업 대기 탭 참여 완료 공구 이력 조회 (v1 레거시)
+      description: v2에서는 `PICKUP` 구간의 `GET /api/v1/users/me/together-buys`를 사용한다.
+      deprecated: true
       security:
         - bearerAuth: []
       parameters:
@@ -2144,7 +2221,6 @@ paths:
                 $ref: '#/components/schemas/ApiResponsePickupWaitingParticipationPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /api/v1/users/me/group-buy-requests:
     get:
       tags: [MyPage]
@@ -2162,8 +2238,9 @@ paths:
   /api/v1/users/me/tabs/counts:
     get:
       tags: [MyPage]
-      summary: 마이페이지 탭별 건수 조회
-      description: 진행 중 · 픽업 대기 · 픽업 완료 · 환불/취소 · 개설요청 건수를 반환한다 (탭 칩 괄호 숫자용).
+      summary: 마이페이지 탭별 건수 조회 (v1 레거시)
+      description: v2에서는 `GET /api/v1/users/me/together-buys/summary`를 사용한다.
+      deprecated: true
       security:
         - bearerAuth: []
       responses:
@@ -2173,12 +2250,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseTabCounts'
-
   /api/v1/mypage/summary:
     get:
       tags: [MyPage]
-      summary: 마이페이지 탭별 건수 조회
-      description: 진행 중 · 픽업 대기 · 픽업 완료 · 환불/취소 · 개설요청 건수를 반환한다.
+      summary: 마이페이지 탭별 건수 조회 (v1 레거시)
+      description: v2에서는 `GET /api/v1/users/me/together-buys/summary`를 사용한다.
+      deprecated: true
       security:
         - bearerAuth: []
       responses:
@@ -2188,11 +2265,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseTabCounts'
-
   /api/v1/mypage/refunds:
     get:
       tags: [MyPage]
-      summary: 내 환불 내역 조회
+      summary: 내 환불 내역 조회 (v1 레거시)
+      description: v2에서는 총대 예외 환불만 `GET /api/v1/users/me/organizer-refunds`로 제공한다.
+      deprecated: true
       security:
         - bearerAuth: []
       responses:
@@ -2202,12 +2280,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseRefundList'
-
   /api/v1/users/me/refunds:
     get:
       tags: [MyPage]
-      summary: 내 환불 내역 조회 (마이페이지 alias)
-      description: /api/v1/mypage/refunds 와 동일한 응답을 반환한다. 신규 클라이언트는 본 경로를 사용한다.
+      summary: 내 환불 내역 조회 (v1 레거시 alias)
+      description: v2에서는 총대 예외 환불만 `GET /api/v1/users/me/organizer-refunds`로 제공한다.
+      deprecated: true
       security:
         - bearerAuth: []
       responses:
@@ -2217,7 +2295,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseRefundList'
-
   /api/v1/mypage/group-buy-requests:
     get:
       tags: [MyPage]
@@ -3316,6 +3393,700 @@ paths:
 # ─────────────────────────────────────────────────────────────────
 # Components
 # ─────────────────────────────────────────────────────────────────
+  /api/v1/stores/{storeId}/pickup-availability:
+    get:
+      tags: [Store]
+      summary: 방 개설용 픽업 가능 날짜·시간대 조회
+      description: |
+        함께 사기 방 생성 화면의 캘린더에 사용할 매장별 픽업 가능 날짜와 1시간 단위 시간대를 반환한다.
+        지난 날짜, 준비 기간 이내 날짜, 최대 리드타임 초과 날짜, 정기·임시 휴무일은 선택 불가로 반환한다.
+        `paymentDeadline`은 선택한 픽업일에서 매장 준비 기간을 뺀 날의 23:59이며, 당일 마감 여부도 함께 제공한다.
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: from
+          in: query
+          required: false
+          description: 조회 시작일. 생략하면 서버 기준 오늘이다.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: 조회 종료일. 생략하면 매장 최대 리드타임까지다.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 픽업 가능 날짜·시간대
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseStorePickupAvailability'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/stores/{storeId}/pickup-policy:
+    get:
+      tags: [Store]
+      summary: 매장 픽업 정책 조회
+      description: 매장 소유자 또는 운영자가 준비 기간, 최대 리드타임, 정기 휴무, 임시 휴무, 픽업 시간대를 조회한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 매장 픽업 정책
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseStorePickupPolicy'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Store]
+      summary: 매장 픽업 정책 변경
+      description: 현재 역할이 해당 매장 SELLER 또는 ADMIN일 때만 수정할 수 있다. 시간대별 수량 제한은 미확정 정책이므로 `capacity`가 null이면 제한하지 않는다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StorePickupPolicyUpdateRequest'
+      responses:
+        '200':
+          description: 변경된 매장 픽업 정책
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseStorePickupPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/group-buys/{groupBuyId}/dissolve:
+    post:
+      tags: [GroupBuy]
+      summary: 총대의 방 해산
+      description: 총대가 결제 전 `RECRUITING` 또는 `READY_TO_PAY` 상태의 방을 해산한다. 참여자에게 종료 알림을 보내며 결제 전이므로 환불은 발생하지 않는다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 해산된 방 상세
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyRoom'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/invites:
+    post:
+      tags: [GroupBuy]
+      summary: 함께 사기 초대 링크 생성
+      description: 총대 또는 이미 참여한 사용자가 카카오 공유·링크 복사·QR 공유용 초대 링크를 생성한다. 응답에는 공유 카드에 필요한 최신 방 요약을 포함한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyInviteCreateRequest'
+      responses:
+        '201':
+          description: 초대 링크 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyInvite'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/invites/{inviteToken}:
+    get:
+      tags: [GroupBuy]
+      summary: 초대 링크로 방 미리보기 조회
+      description: |
+        로그인 전에도 초대받은 방의 상품·매장·모집 현황을 조회한다. 초대 링크 방문은 집계할 수 있다.
+        로그인 또는 가입 완료 뒤에는 동일 토큰을 포함한 딥링크로 방 상세 화면에 복귀한다.
+      parameters:
+        - name: inviteToken
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 16
+      responses:
+        '200':
+          description: 초대 링크 방 미리보기
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyInvitePreview'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          description: 만료되었거나 해제된 초대 링크
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+
+  /api/v1/group-buys/{groupBuyId}/participants:
+    get:
+      tags: [GroupBuy]
+      summary: 방 참여자 목록 조회
+      description: 총대 또는 해당 방의 참여자만 조회할 수 있다. 총대는 본인이 최상단에 오며, 참여자별 닉네임·수량·금액·확약 상태를 확인할 수 있다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 방 참여자 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyParticipantRoster'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/group-buys/{groupBuyId}/participation:
+    put:
+      tags: [Participation]
+      summary: 내 참여 수량 담기 또는 변경
+      description: |
+        로그인한 사용자의 방 참여 수량을 생성·변경한다. 서버는 동시성 상황에서 잔여 수량을 다시 검증한다.
+        요청 수량이 잔여 수량보다 크면 가능한 최대 수량으로 조정해 200을 반환하고 `quantityAdjusted=true`를 제공한다.
+        총대 결제 요청으로 방이 잠긴 뒤 또는 결제가 시작된 뒤에는 변경할 수 없다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyParticipationUpsertRequest'
+      responses:
+        '200':
+          description: 반영된 참여 수량
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyParticipation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [Participation]
+      summary: 내 참여 취소
+      description: 결제 요청 전까지만 참여 수량을 모두 취소할 수 있다. 취소 뒤 합계가 최소 수량 미만이면 방은 다시 결제 불가 상태가 된다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 참여 취소 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseEmpty'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/confirmations:
+    post:
+      tags: [GroupBuy]
+      summary: 참여자 최종 확약 요청
+      description: |
+        최소 수량을 충족한 총대가 방을 잠그고 참여자 전원에게 최종 확약을 요청한다.
+        마감까지 확약하지 않은 참여자는 자동 제외되며, 서버가 수량·금액을 재계산한 뒤 총대에게 결제 가능 여부를 알린다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyConfirmationRequest'
+      responses:
+        '201':
+          description: 최종 확약 요청 생성
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyConfirmation'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/participation/confirmation:
+    put:
+      tags: [Participation]
+      summary: 내 참여 최종 확약 또는 빠지기
+      description: 최종 확약 요청을 받은 참여자가 확약하거나 방에서 빠진다. `confirmed=false`는 즉시 참여 취소로 처리한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyConfirmationDecisionRequest'
+      responses:
+        '200':
+          description: 확약 또는 참여 취소 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyParticipation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # ─────────────────────────────────────────────────────────────
+  # v2 Settlement & Report
+  # ─────────────────────────────────────────────────────────────
+
+  /api/v1/group-buys/{groupBuyId}/settlement/account:
+    put:
+      tags: [Settlement]
+      summary: 총대 정산 계좌 등록 또는 변경
+      description: |
+        총대가 방 결제 완료 후 참여자에게 공개할 정산 계좌를 등록한다.
+        제3자 제공 동의가 필수이며, 확약 완료 참여자에게만 예금주·은행·계좌번호를 공개한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuySettlementAccountUpsertRequest'
+      responses:
+        '200':
+          description: 등록된 정산 계좌
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuySettlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/settlement:
+    get:
+      tags: [Settlement]
+      summary: 방 정산 현황 조회
+      description: |
+        참여자는 자신의 송금 상태와 총대 계좌를, 총대는 확약 참여자 전체의 송금 상태·합계를 조회한다.
+        개인정보 보호를 위해 정산 기간에만 확약 완료 참여자의 계좌정보를 공개하며 종료 뒤에는 마스킹한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 정산 세션 및 송금 현황
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuySettlement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/group-buys/{groupBuyId}/settlement/transfers/me:
+    put:
+      tags: [Settlement]
+      summary: 내 송금 완료 표시
+      description: |
+        참여자가 총대 계좌로 이체한 뒤 송금 완료를 표시한다. 플랫폼은 실제 입금을 검증하거나 중개하지 않는다.
+        입금자명은 닉네임과 금액 접미어를 권장하며, 총대는 별도 확인 후 상태를 확정한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyTransferSubmissionRequest'
+      responses:
+        '200':
+          description: 내 송금 상태
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuySettlementTransfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/settlement/transfers/{transferId}:
+    patch:
+      tags: [Settlement]
+      summary: 총대의 송금 확인 또는 되돌리기
+      description: 총대가 픽업 전까지 참여자의 송금 완료를 확인하거나 다시 미확인 상태로 되돌린다. 정산 거절 상태는 사용하지 않는다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyTransferReviewRequest'
+      responses:
+        '200':
+          description: 변경된 송금 상태
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuySettlementTransfer'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/settlement/transfers/{transferId}/reminders:
+    post:
+      tags: [Settlement]
+      summary: 미송금 참여자에게 정산 알림 재발송
+      description: 총대만 호출할 수 있다. 참여자당 하루 1회, 전체 최대 3회까지만 재발송할 수 있다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 재발송 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuySettlementTransfer'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/cs-tickets/reports:
+    post:
+      tags: [Report]
+      summary: 함께 사기 신고 접수
+      description: 사기 의심, 미정산, 부적절 행위를 기존 CS 티켓으로 접수한다. 플랫폼은 참여자 간 송금을 중개하거나 환불하지 않는다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TogetherBuyReportCreateRequest'
+      responses:
+        '201':
+          description: 신고 접수 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyReportReceipt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/cs-tickets/report-guidance:
+    get:
+      tags: [Report]
+      summary: 신고 및 분쟁 안내 조회
+      description: 송금 분쟁 시 플랫폼의 비중개 원칙, 신고 범위, 경찰청 사이버범죄 신고 경로를 반환한다.
+      responses:
+        '200':
+          description: 신고 안내
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyReportGuidance'
+
+  # ─────────────────────────────────────────────────────────────
+  # v2 Pickup & My together-buy page
+  # ─────────────────────────────────────────────────────────────
+
+  /api/v1/group-buys/{groupBuyId}/pickup:
+    get:
+      tags: [Pickup]
+      summary: 방 단위 픽업 안내 조회
+      description: 참여자는 수령 예정 정보와 총대 연락 수단을, 총대는 픽업에 필요한 매장·수량·QR 활성 시각을 조회한다. 참여자 QR은 제공하지 않는다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 방 픽업 안내
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyPickupGuide'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/group-buys/{groupBuyId}/pickup/qr:
+    get:
+      tags: [Pickup]
+      summary: 총대 전용 방 픽업 QR 조회
+      description: |
+        총대만 호출할 수 있다. QR은 픽업일 00:00부터 활성화되며 방당 1개만 존재하고 매장 스캔 후 1회 사용으로 무효화된다.
+        응답의 `availableAt` 이전에는 `qrCode`가 null이며, 프론트는 활성 안내를 표시해야 한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 방 단위 QR 정보
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyPickupQr'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/group-buys/{groupBuyId}/receipt:
+    post:
+      tags: [Participation]
+      summary: 내 수령 완료 표시
+      description: 참여자가 총대에게 물품을 받은 뒤 수령 완료를 표시한다. 판매자 픽업 처리는 총대의 방 QR 스캔으로만 완료된다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GroupBuyId'
+      responses:
+        '200':
+          description: 수령 완료 처리 결과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyReceipt'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/pickups/me/today:
+    get:
+      tags: [Pickup]
+      summary: 오늘 총대 픽업 대상 조회
+      description: 오늘 픽업일인 총대의 방 목록을 반환한다. 흔들기 QR 기능은 이 목록이 비어 있지 않고 설정이 켜진 경우에만 노출한다.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 오늘 총대 픽업 대상
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTodayOrganizerPickups'
+
+  /api/v1/users/me/shake-qr-setting:
+    get:
+      tags: [Pickup]
+      summary: 흔들기 QR 설정 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 현재 설정
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseShakeQrSetting'
+    patch:
+      tags: [Pickup]
+      summary: 흔들기 QR 설정 변경
+      description: 설정이 켜져 있어도 오늘 총대 픽업 대상이 없으면 QR을 자동으로 열지 않는다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShakeQrSettingUpdateRequest'
+      responses:
+        '200':
+          description: 변경된 설정
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseShakeQrSetting'
+
+  /api/v1/users/me/together-buys:
+    get:
+      tags: [MyPage]
+      summary: 내 함께 사기 방 목록 조회
+      description: |
+        v2 마이페이지의 함께 사기 탭을 위한 목록이다. 구간은 `IN_PROGRESS`(모집·결제·정산), `PICKUP`, `COMPLETED_OR_CANCELLED` 세 가지다.
+        카드에는 상품·매장·픽업일시·내 수량·내 금액·방 상태·확약 상태·다음 행동을 포함한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: segment
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/TogetherBuyMyPageSegment'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 함께 사기 탭 카드 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyMyPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/users/me/together-buys/summary:
+    get:
+      tags: [MyPage]
+      summary: 내 함께 사기 탭별 건수 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 탭별 건수
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyMyPageSummary'
+
+  /api/v1/users/me/reports:
+    get:
+      tags: [MyPage]
+      summary: 내 함께 사기 신고 내역 조회
+      description: CS 티켓 중 함께 사기 신고 유형만 반환한다. 신고 횟수는 본인에게만 노출한다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 내 신고 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTogetherBuyReportPage'
+
+  /api/v1/users/me/organizer-refunds:
+    get:
+      tags: [MyPage]
+      summary: 총대 예외 환불 내역 조회
+      description: 매장 귀책으로 발생한 총대 결제 건의 예외 환불 내역만 반환한다. 참여자 개인 환불 내역은 v2에서 제공하지 않는다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 총대 예외 환불 목록
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrganizerRefundPage'
+
+# ─────────────────────────────────────────────────────────────────
+# Components
+# ─────────────────────────────────────────────────────────────────
+
 components:
 
   securitySchemes:
@@ -3572,7 +4343,7 @@ components:
 
     BuyerWithdrawalContext:
       type: object
-      required: [canProceed, hasPendingPickup, hasActiveParticipation, blockingReason]
+      required: [canProceed, hasPendingPickup, hasActiveParticipation, hasUnsettledTransfer, blockingReason, blockingReasons]
       properties:
         canProceed:
           type: boolean
@@ -3582,9 +4353,17 @@ components:
           description: 수령 예정 공구 존재 여부
         hasActiveParticipation:
           type: boolean
-          description: 참여 중 공구(PAID_WAITING_GOAL) 존재 여부
+          description: 모집·확약·결제·정산 중인 v2 함께 사기 방 존재 여부
+        hasUnsettledTransfer:
+          type: boolean
+          description: 본인이 총대이거나 참여자인 미정산 송금 존재 여부
         blockingReason:
           $ref: '#/components/schemas/BuyerWithdrawalBlockingReason'
+        blockingReasons:
+          type: array
+          description: 동시에 존재하는 탈퇴 차단 사유 전체
+          items:
+            $ref: '#/components/schemas/BuyerWithdrawalBlockingReason'
 
     SellerWithdrawalContext:
       type: object
@@ -3610,7 +4389,7 @@ components:
     BuyerWithdrawalBlockingReason:
       type: string
       description: 소비자 탈퇴 차단 사유
-      enum: [NONE, PENDING_PICKUP]
+      enum: [NONE, ACTIVE_TOGETHER_BUY, PENDING_PICKUP, UNSETTLED_TRANSFER]
 
     SellerWithdrawalBlockingReason:
       type: string
@@ -6084,7 +6863,7 @@ components:
             reviewedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 검토 완료 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
             requestedAt: { type: string, format: date-time, nullable: true, description: "UTC 기준 요청 생성 시각. 응답 형식은 `yyyy-MM-dd'T'HH:mm:ss`" }
         error: { nullable: true, example: null }
-    
+
     ApiResponseReservationPage:
       type: object
       required: [success, data, error]
@@ -7878,4 +8657,1424 @@ components:
         success: { type: boolean, example: true }
         data:
           $ref: '#/components/schemas/ImageDeleteResponse'
+        error: { nullable: true, example: null }
+
+    TogetherBuyRoomStatus:
+      type: string
+      description: 함께 사기 방 상태
+      enum:
+        - RECRUITING
+        - READY_TO_PAY
+        - LOCKED
+        - PAID
+        - SETTLING
+        - PICKUP_READY
+        - COMPLETED
+        - CLOSED_FAILED
+        - CLOSED_BY_ORGANIZER
+        - CLOSED_BY_STORE
+
+    TogetherBuyParticipantRole:
+      type: string
+      enum: [ORGANIZER, PARTICIPANT]
+
+    TogetherBuyParticipationStatus:
+      type: string
+      description: 방 참여 및 수령 상태
+      enum: [JOINED, CANCELLED, CONFIRMED, EXCLUDED, UNPAID, RECEIVED]
+
+    TogetherBuyConfirmationStatus:
+      type: string
+      enum: [NOT_REQUESTED, PENDING, CONFIRMED, DECLINED, EXCLUDED]
+
+    TogetherBuyMyPageSegment:
+      type: string
+      description: v2 함께 사기 탭 구간
+      enum: [IN_PROGRESS, PICKUP, COMPLETED_OR_CANCELLED]
+
+    StorePickupDateAvailability:
+      type: object
+      required: [date, selectable, paymentDeadline, sameDayPaymentWarning, slots]
+      properties:
+        date:
+          type: string
+          format: date
+        selectable:
+          type: boolean
+        unavailableReason:
+          type: string
+          nullable: true
+          enum: [PAST_DATE, PREPARATION_PERIOD, MAX_LEAD_DAYS, REGULAR_HOLIDAY, TEMPORARY_HOLIDAY, NO_ACTIVE_SLOT, FULL]
+        paymentDeadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: 선택 가능일이면 픽업일에서 준비 기간을 뺀 날 23:59이다.
+        sameDayPaymentWarning:
+          type: boolean
+          description: 결제 마감일이 오늘이어서 즉시 결제 주의 문구를 보여야 하는지 여부
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorePickupSlotAvailability'
+
+    StorePickupSlotAvailability:
+      type: object
+      required: [startTime, endTime, selectable]
+      properties:
+        startTime:
+          type: string
+          format: time
+          example: '14:00:00'
+        endTime:
+          type: string
+          format: time
+          example: '15:00:00'
+        selectable:
+          type: boolean
+        unavailableReason:
+          type: string
+          nullable: true
+          enum: [STORE_CLOSED, FULL, INACTIVE]
+        remainingQuantity:
+          type: integer
+          nullable: true
+          minimum: 0
+
+    StorePickupAvailability:
+      type: object
+      required: [storeId, preparationDays, maxAdvanceDays, dates]
+      properties:
+        storeId:
+          type: integer
+          format: int64
+        preparationDays:
+          type: integer
+          minimum: 0
+          description: 선택일 이전에 확보해야 하는 준비일 수
+        maxAdvanceDays:
+          type: integer
+          minimum: 1
+          description: 오늘부터 선택할 수 있는 최대 선행일 수
+        dates:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorePickupDateAvailability'
+
+    ApiResponseStorePickupAvailability:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/StorePickupAvailability'
+        error: { nullable: true, example: null }
+
+    StoreBusinessHour:
+      type: object
+      required: [dayOfWeek, isClosed]
+      properties:
+        dayOfWeek:
+          type: integer
+          minimum: 1
+          maximum: 7
+          description: 월=1, 일=7
+        isClosed:
+          type: boolean
+        openTime:
+          type: string
+          format: time
+          nullable: true
+        closeTime:
+          type: string
+          format: time
+          nullable: true
+
+    StoreHoliday:
+      type: object
+      required: [date, source]
+      properties:
+        date:
+          type: string
+          format: date
+        reason:
+          type: string
+          nullable: true
+          maxLength: 100
+        source:
+          type: string
+          enum: [NAVER, ADMIN, OWNER]
+
+    StorePickupTimeSlot:
+      type: object
+      required: [dayOfWeek, startTime, endTime, active]
+      properties:
+        dayOfWeek:
+          type: integer
+          minimum: 1
+          maximum: 7
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+        active:
+          type: boolean
+        slotCapacity:
+          type: integer
+          nullable: true
+          minimum: 1
+
+    StorePickupPolicy:
+      type: object
+      required: [storeId, preparationDays, maxAdvanceDays, businessHours, holidays, timeSlots]
+      properties:
+        storeId:
+          type: integer
+          format: int64
+        preparationDays:
+          type: integer
+          minimum: 0
+        maxAdvanceDays:
+          type: integer
+          minimum: 1
+        businessHours:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreBusinessHour'
+        holidays:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreHoliday'
+        timeSlots:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorePickupTimeSlot'
+
+    StorePickupPolicyUpdateRequest:
+      type: object
+      required: [preparationDays, maxAdvanceDays, businessHours, holidays, timeSlots]
+      properties:
+        preparationDays:
+          type: integer
+          minimum: 0
+        maxAdvanceDays:
+          type: integer
+          minimum: 1
+        businessHours:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items:
+            $ref: '#/components/schemas/StoreBusinessHour'
+        holidays:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreHoliday'
+        timeSlots:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorePickupTimeSlot'
+
+    ApiResponseStorePickupPolicy:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/StorePickupPolicy'
+        error: { nullable: true, example: null }
+
+    TogetherBuyRoomCreateRequest:
+      type: object
+      required: [storeId, storeProductId, pickupDate, pickupSlotStart, pickupSlotEnd, organizerQuantity, resaleProhibitionAgreed, isSoloRoom]
+      properties:
+        storeId:
+          type: integer
+          format: int64
+        storeProductId:
+          type: integer
+          format: int64
+          description: 매장 상품 설정 식별자. 단가와 최소·최대 수량은 서버가 이 값으로 조회한다.
+        pickupDate:
+          type: string
+          format: date
+        pickupSlotStart:
+          type: string
+          format: time
+        pickupSlotEnd:
+          type: string
+          format: time
+        organizerQuantity:
+          type: integer
+          minimum: 1
+        resaleProhibitionAgreed:
+          type: boolean
+          description: 재판매 금지 동의. true만 허용한다.
+          enum: [true]
+        isSoloRoom:
+          type: boolean
+          description: true면 총대 단독 구매 방이며 초대·참여를 받지 않는다.
+
+    TogetherBuyRoomUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        organizerQuantity:
+          type: integer
+          minimum: 1
+        pickupDate:
+          type: string
+          format: date
+        pickupSlotStart:
+          type: string
+          format: time
+        pickupSlotEnd:
+          type: string
+          format: time
+
+    TogetherBuyOrganizer:
+      type: object
+      required: [userId, nickname, completedRoomCount]
+      properties:
+        userId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+        completedRoomCount:
+          type: integer
+          minimum: 0
+          description: 총대 완료 방 수. 신고 누적은 본인 외에 공개하지 않는다.
+
+    TogetherBuyStore:
+      type: object
+      required: [storeId, name, address]
+      properties:
+        storeId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        address:
+          type: string
+        phoneNumber:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+
+    TogetherBuyProduct:
+      type: object
+      required: [storeProductId, name, unitPrice, minQuantity, maxQuantity]
+      properties:
+        storeProductId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        unitPrice:
+          type: integer
+          minimum: 0
+        minQuantity:
+          type: integer
+          minimum: 1
+        maxQuantity:
+          type: integer
+          minimum: 1
+
+    TogetherBuyPickup:
+      type: object
+      required: [date, slotStart, slotEnd, address]
+      properties:
+        date:
+          type: string
+          format: date
+        slotStart:
+          type: string
+          format: time
+        slotEnd:
+          type: string
+          format: time
+        address:
+          type: string
+        mapUrl:
+          type: string
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+
+    TogetherBuyProgress:
+      type: object
+      required: [status, totalQuantity, minQuantity, maxQuantity, remainingQuantity, participantCount, canRequestConfirmation]
+      properties:
+        status:
+          $ref: '#/components/schemas/TogetherBuyRoomStatus'
+        totalQuantity:
+          type: integer
+          minimum: 0
+        minQuantity:
+          type: integer
+          minimum: 1
+        maxQuantity:
+          type: integer
+          minimum: 1
+        remainingQuantity:
+          type: integer
+          minimum: 0
+        participantCount:
+          type: integer
+          minimum: 0
+        canRequestConfirmation:
+          type: boolean
+          description: 최소 수량 충족 및 총대 권한이 있으면 true
+
+    TogetherBuyAvailableActions:
+      type: object
+      required: [canJoin, canUpdateParticipation, canCancelParticipation, canRequestConfirmation, canPay, canSettle, canViewPickupQr]
+      properties:
+        canJoin: { type: boolean }
+        canUpdateParticipation: { type: boolean }
+        canCancelParticipation: { type: boolean }
+        canRequestConfirmation: { type: boolean }
+        canPay: { type: boolean }
+        canSettle: { type: boolean }
+        canViewPickupQr: { type: boolean }
+
+    TogetherBuyMyParticipation:
+      type: object
+      required: [role, status, quantity, productAmount, confirmationStatus]
+      properties:
+        participationId:
+          type: integer
+          format: int64
+          nullable: true
+        role:
+          $ref: '#/components/schemas/TogetherBuyParticipantRole'
+        status:
+          $ref: '#/components/schemas/TogetherBuyParticipationStatus'
+        quantity:
+          type: integer
+          minimum: 1
+        productAmount:
+          type: integer
+          description: 단가 × 수량의 스냅샷 금액
+        confirmationStatus:
+          $ref: '#/components/schemas/TogetherBuyConfirmationStatus'
+        receivedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    TogetherBuyRoom:
+      type: object
+      required: [groupBuyId, status, organizer, store, product, pickup, progress, paymentDeadline, isSoloRoom, resaleProhibitionAgreed, availableActions, createdAt]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/TogetherBuyRoomStatus'
+        organizer:
+          $ref: '#/components/schemas/TogetherBuyOrganizer'
+        store:
+          $ref: '#/components/schemas/TogetherBuyStore'
+        product:
+          $ref: '#/components/schemas/TogetherBuyProduct'
+        pickup:
+          $ref: '#/components/schemas/TogetherBuyPickup'
+        progress:
+          $ref: '#/components/schemas/TogetherBuyProgress'
+        paymentDeadline:
+          type: string
+          format: date-time
+        confirmationDeadline:
+          type: string
+          format: date-time
+          nullable: true
+        isSoloRoom:
+          type: boolean
+        resaleProhibitionAgreed:
+          type: boolean
+        myParticipation:
+          allOf:
+            - $ref: '#/components/schemas/TogetherBuyMyParticipation'
+          nullable: true
+          description: 비로그인 또는 미참여자면 null
+        availableActions:
+          $ref: '#/components/schemas/TogetherBuyAvailableActions'
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseTogetherBuyRoom:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyRoom'
+        error: { nullable: true, example: null }
+
+    ApiResponseTogetherBuyRoomCreated:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyRoom'
+        error: { nullable: true, example: null }
+
+    ApiResponseTogetherBuyProgress:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyProgress'
+        error: { nullable: true, example: null }
+
+    TogetherBuyParticipationUpsertRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+
+    TogetherBuyParticipation:
+      type: object
+      required: [participationId, userId, nickname, role, status, quantity, productAmount, confirmationStatus, quantityAdjusted]
+      properties:
+        participationId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+        role:
+          $ref: '#/components/schemas/TogetherBuyParticipantRole'
+        status:
+          $ref: '#/components/schemas/TogetherBuyParticipationStatus'
+        quantity:
+          type: integer
+          minimum: 1
+        productAmount:
+          type: integer
+          description: 단가 × 수량의 스냅샷 금액
+        confirmationStatus:
+          $ref: '#/components/schemas/TogetherBuyConfirmationStatus'
+        quantityAdjusted:
+          type: boolean
+          description: 잔여 수량 때문에 요청 수량이 자동 조정되었는지 여부
+
+    ApiResponseTogetherBuyParticipation:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyParticipation'
+        error: { nullable: true, example: null }
+
+    TogetherBuyParticipantRoster:
+      type: object
+      required: [organizerParticipationId, participants]
+      properties:
+        organizerParticipationId:
+          type: integer
+          format: int64
+        participants:
+          type: array
+          description: 총대가 항상 첫 번째 항목이다.
+          items:
+            $ref: '#/components/schemas/TogetherBuyParticipation'
+
+    ApiResponseTogetherBuyParticipantRoster:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyParticipantRoster'
+        error: { nullable: true, example: null }
+
+    TogetherBuyConfirmationRequest:
+      type: object
+      properties:
+        confirmationDeadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: 생략 시 서버 정책상 기본 마감시각을 사용한다.
+
+    TogetherBuyConfirmationDecisionRequest:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed:
+          type: boolean
+          description: false면 즉시 참여 취소 처리한다.
+
+    TogetherBuyConfirmation:
+      type: object
+      required: [groupBuyId, status, confirmationDeadline, confirmedParticipantCount, pendingParticipantCount]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [REQUESTED, COMPLETED, EXPIRED]
+        confirmationDeadline:
+          type: string
+          format: date-time
+        confirmedParticipantCount:
+          type: integer
+          minimum: 0
+        pendingParticipantCount:
+          type: integer
+          minimum: 0
+
+    ApiResponseTogetherBuyConfirmation:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyConfirmation'
+        error: { nullable: true, example: null }
+
+    TogetherBuyInviteCreateRequest:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 생략 시 방의 결제 마감시각을 사용한다.
+
+    TogetherBuyInvite:
+      type: object
+      required: [inviteToken, shareUrl, expiresAt]
+      properties:
+        inviteToken:
+          type: string
+        shareUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+
+    ApiResponseTogetherBuyInvite:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyInvite'
+        error: { nullable: true, example: null }
+
+    TogetherBuyInvitePreview:
+      type: object
+      required: [room, ogTitle, ogDescription]
+      properties:
+        room:
+          $ref: '#/components/schemas/TogetherBuyRoom'
+        ogTitle:
+          type: string
+        ogDescription:
+          type: string
+        ogImageUrl:
+          type: string
+          nullable: true
+
+    ApiResponseTogetherBuyInvitePreview:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyInvitePreview'
+        error: { nullable: true, example: null }
+
+    # ── v2 Together Buy: organizer payment ─────────────────────
+
+    OrganizerPaymentAgreements:
+      type: object
+      required:
+        - orderAndPaymentAgreed
+        - productionNoCancellationAgreed
+        - noShowPickupPolicyAgreed
+        - privacyCollectionAgreed
+        - intermediaryNonInvolvementAgreed
+      properties:
+        orderAndPaymentAgreed:
+          type: boolean
+          description: 주문 및 결제 동의
+        productionNoCancellationAgreed:
+          type: boolean
+          description: 제조 시작 후 취소 불가 동의
+        noShowPickupPolicyAgreed:
+          type: boolean
+          description: 미수령 픽업 정책 동의
+        privacyCollectionAgreed:
+          type: boolean
+          description: 개인정보 수집 및 이용 동의
+        intermediaryNonInvolvementAgreed:
+          type: boolean
+          description: 플랫폼 비중개 및 비관여 동의
+
+    OrganizerPaymentSellerInfo:
+      type: object
+      required: [businessName, representativeName, businessRegistrationNumber, address, phoneNumber]
+      properties:
+        businessName:
+          type: string
+        representativeName:
+          type: string
+        businessRegistrationNumber:
+          type: string
+        address:
+          type: string
+        phoneNumber:
+          type: string
+
+    OrganizerPaymentAllocation:
+      type: object
+      required: [participationId, nickname, quantity, amount]
+      properties:
+        participationId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        amount:
+          type: integer
+          minimum: 0
+
+    OrganizerPaymentCheckout:
+      type: object
+      required: [groupBuyId, canCreatePaymentOrder, totalQuantity, totalAmount, seller, allocations, agreements]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        canCreatePaymentOrder:
+          type: boolean
+        blockingReason:
+          type: string
+          nullable: true
+          enum: [MIN_QUANTITY_NOT_MET, CONFIRMATION_IN_PROGRESS, CONFIRMATION_NOT_COMPLETE, PAYMENT_DEADLINE_PASSED, ALREADY_PAID]
+        totalQuantity:
+          type: integer
+          minimum: 1
+        totalAmount:
+          type: integer
+          minimum: 0
+        seller:
+          $ref: '#/components/schemas/OrganizerPaymentSellerInfo'
+        allocations:
+          type: array
+          description: 총대와 확약 참여자의 수량·금액 분담 내역
+          items:
+            $ref: '#/components/schemas/OrganizerPaymentAllocation'
+        agreements:
+          $ref: '#/components/schemas/OrganizerPaymentAgreements'
+
+    ApiResponseOrganizerPaymentCheckout:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OrganizerPaymentCheckout'
+        error: { nullable: true, example: null }
+
+    OrganizerPaymentOrderCreateRequest:
+      type: object
+      required: [agreements]
+      properties:
+        agreements:
+          $ref: '#/components/schemas/OrganizerPaymentAgreements'
+
+    OrganizerPaymentOrderCreated:
+      type: object
+      required: [paymentOrderId, merchantUid, orderName, amount, currency]
+      properties:
+        paymentOrderId:
+          type: integer
+          format: int64
+        merchantUid:
+          type: string
+          description: PortOne 결제 요청 식별자
+        orderName:
+          type: string
+        amount:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          enum: [KRW]
+        storeSubmallMerchantId:
+          type: string
+          nullable: true
+          description: 매장 서브몰 직정산에 쓰이는 PG 판매자 식별자
+
+    ApiResponseOrganizerPaymentOrderCreated:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OrganizerPaymentOrderCreated'
+        error: { nullable: true, example: null }
+
+    OrganizerPaymentConfirmationRequest:
+      type: object
+      required: [paymentOrderId, paymentId]
+      properties:
+        paymentOrderId:
+          type: integer
+          format: int64
+        paymentId:
+          type: string
+          description: PortOne 결제 완료 식별자
+
+    OrganizerPaymentConfirmed:
+      type: object
+      required: [groupBuyId, status, paidAt, receiptUrl, settlementStarted]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/TogetherBuyRoomStatus'
+        paidAt:
+          type: string
+          format: date-time
+        receiptUrl:
+          type: string
+          format: uri
+          description: PG 결제 영수증 조회 URL
+        settlementStarted:
+          type: boolean
+
+    ApiResponseOrganizerPaymentConfirmed:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OrganizerPaymentConfirmed'
+        error: { nullable: true, example: null }
+
+    # ── v2 Together Buy: settlement and report ─────────────────
+
+    TogetherBuySettlementStatus:
+      type: string
+      enum: [NOT_STARTED, AWAITING_ACCOUNT, OPEN, CLOSED, OVERDUE]
+
+    TogetherBuyTransferStatus:
+      type: string
+      enum: [PENDING, SUBMITTED, CONFIRMED, UNPAID]
+
+    TogetherBuySettlementAccountUpsertRequest:
+      type: object
+      required: [bankCode, bankName, accountNumber, accountHolder, thirdPartyProvisionAgreed]
+      properties:
+        bankCode:
+          type: string
+          example: '004'
+        bankName:
+          type: string
+          example: 국민은행
+        accountNumber:
+          type: string
+          minLength: 4
+          maxLength: 50
+        accountHolder:
+          type: string
+        thirdPartyProvisionAgreed:
+          type: boolean
+          enum: [true]
+          description: 확약 완료 참여자에게 정산 계좌정보를 제공하는 것에 대한 동의
+
+    TogetherBuySettlementAccount:
+      type: object
+      required: [bankCode, bankName, accountHolder, accountNumberMasked, visibleToCurrentUser]
+      properties:
+        bankCode:
+          type: string
+        bankName:
+          type: string
+        accountHolder:
+          type: string
+        accountNumber:
+          type: string
+          nullable: true
+          description: 정산 기간의 확약 완료 참여자 또는 총대에게만 전체 값이 제공된다.
+        accountNumberMasked:
+          type: string
+          example: '123-****-5678'
+        visibleToCurrentUser:
+          type: boolean
+
+    TogetherBuySettlementTransfer:
+      type: object
+      required: [transferId, participationId, nickname, expectedAmount, status, reminderCount]
+      properties:
+        transferId:
+          type: integer
+          format: int64
+        participationId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+        expectedAmount:
+          type: integer
+          minimum: 0
+        status:
+          $ref: '#/components/schemas/TogetherBuyTransferStatus'
+        depositorName:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        confirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reminderCount:
+          type: integer
+          minimum: 0
+          maximum: 3
+        nextReminderAvailableAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    TogetherBuySettlement:
+      type: object
+      required: [groupBuyId, status, settlementDeadline, accountVisible, totalExpectedAmount, totalSubmittedAmount, totalConfirmedAmount, transfers]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/TogetherBuySettlementStatus'
+        settlementDeadline:
+          type: string
+          format: date-time
+          description: 픽업일 24시간 전. 미송금 금액은 총대 부담으로 기록된다.
+        accountVisible:
+          type: boolean
+        account:
+          allOf:
+            - $ref: '#/components/schemas/TogetherBuySettlementAccount'
+          nullable: true
+        totalExpectedAmount:
+          type: integer
+          minimum: 0
+        totalSubmittedAmount:
+          type: integer
+          minimum: 0
+        totalConfirmedAmount:
+          type: integer
+          minimum: 0
+        myTransfer:
+          allOf:
+            - $ref: '#/components/schemas/TogetherBuySettlementTransfer'
+          nullable: true
+        transfers:
+          type: array
+          description: 총대에게는 전체 목록, 참여자에게는 자신의 항목만 반환한다.
+          items:
+            $ref: '#/components/schemas/TogetherBuySettlementTransfer'
+
+    ApiResponseTogetherBuySettlement:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuySettlement'
+        error: { nullable: true, example: null }
+
+    TogetherBuyTransferSubmissionRequest:
+      type: object
+      required: [depositorName]
+      properties:
+        depositorName:
+          type: string
+          maxLength: 30
+          description: 실제 이체자명. 닉네임과 금액 접미어 표기를 권장한다.
+
+    TogetherBuyTransferReviewRequest:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed:
+          type: boolean
+          description: true면 입금 확인, false면 다시 미확인 상태로 되돌린다.
+
+    ApiResponseTogetherBuySettlementTransfer:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuySettlementTransfer'
+        error: { nullable: true, example: null }
+
+    TogetherBuyReportType:
+      type: string
+      enum: [FRAUD_SUSPICION, UNPAID_SETTLEMENT, INAPPROPRIATE_BEHAVIOR]
+
+    TogetherBuyReportStatus:
+      type: string
+      enum: [RECEIVED, IN_REVIEW, RESOLVED, CLOSED]
+
+    TogetherBuyReportCreateRequest:
+      type: object
+      required: [groupBuyId, reportedUserId, type, description]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        reportedUserId:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/TogetherBuyReportType'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    TogetherBuyReportReceipt:
+      type: object
+      required: [ticketId, ticketNumber, type, status, createdAt]
+      properties:
+        ticketId:
+          type: integer
+          format: int64
+        ticketNumber:
+          type: string
+          example: FR-20261012-00001
+        type:
+          $ref: '#/components/schemas/TogetherBuyReportType'
+        status:
+          $ref: '#/components/schemas/TogetherBuyReportStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseTogetherBuyReportReceipt:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyReportReceipt'
+        error: { nullable: true, example: null }
+
+    TogetherBuyReportGuidance:
+      type: object
+      required: [platformPolicy, cyberCrimeReportUrl]
+      properties:
+        platformPolicy:
+          type: string
+          description: 플랫폼은 참여자 간 송금을 중개하거나 직접 환불하지 않는다는 안내문
+        cyberCrimeReportUrl:
+          type: string
+          format: uri
+          description: 경찰청 사이버범죄 신고 안내 URL
+
+    ApiResponseTogetherBuyReportGuidance:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyReportGuidance'
+        error: { nullable: true, example: null }
+
+    # ── v2 Together Buy: pickup and MyPage ─────────────────────
+
+    TogetherBuyPickupGuide:
+      type: object
+      required: [groupBuyId, organizer, store, product, pickup, totalQuantity, qrAvailableAt, roomPickupStatus]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        organizer:
+          $ref: '#/components/schemas/TogetherBuyOrganizer'
+        store:
+          $ref: '#/components/schemas/TogetherBuyStore'
+        product:
+          $ref: '#/components/schemas/TogetherBuyProduct'
+        pickup:
+          $ref: '#/components/schemas/TogetherBuyPickup'
+        totalQuantity:
+          type: integer
+          minimum: 1
+        organizerContact:
+          type: string
+          nullable: true
+          description: 참여자에게만 노출할 총대 연락 수단
+        qrAvailableAt:
+          type: string
+          format: date-time
+        roomPickupStatus:
+          type: string
+          enum: [SCHEDULED, AVAILABLE, USED, EXPIRED]
+
+    ApiResponseTogetherBuyPickupGuide:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyPickupGuide'
+        error: { nullable: true, example: null }
+
+    TogetherBuyPickupQr:
+      type: object
+      required: [groupBuyId, availableAt, active, used]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        qrCode:
+          type: string
+          format: uuid
+          nullable: true
+          description: 활성 시에만 제공하는 방 단위 1회용 QR 토큰
+        availableAt:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+        used:
+          type: boolean
+        usedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApiResponseTogetherBuyPickupQr:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyPickupQr'
+        error: { nullable: true, example: null }
+
+    TogetherBuyReceipt:
+      type: object
+      required: [groupBuyId, participationId, receivedAt]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        participationId:
+          type: integer
+          format: int64
+        receivedAt:
+          type: string
+          format: date-time
+
+    ApiResponseTogetherBuyReceipt:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyReceipt'
+        error: { nullable: true, example: null }
+
+    TodayOrganizerPickup:
+      type: object
+      required: [groupBuyId, productName, storeName, pickup, qrActive]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        storeName:
+          type: string
+        pickup:
+          $ref: '#/components/schemas/TogetherBuyPickup'
+        qrActive:
+          type: boolean
+
+    ApiResponseTodayOrganizerPickups:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [pickups]
+          properties:
+            pickups:
+              type: array
+              items:
+                $ref: '#/components/schemas/TodayOrganizerPickup'
+        error: { nullable: true, example: null }
+
+    ShakeQrSettingUpdateRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    ShakeQrSetting:
+      type: object
+      required: [enabled, canOpenTodayPickupQr]
+      properties:
+        enabled:
+          type: boolean
+        canOpenTodayPickupQr:
+          type: boolean
+          description: 오늘 총대 픽업 대상이 있어 QR 열기 동작을 수행할 수 있는지 여부
+
+    ApiResponseShakeQrSetting:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/ShakeQrSetting'
+        error: { nullable: true, example: null }
+
+    TogetherBuyMyPageCard:
+      type: object
+      required: [groupBuyId, productName, storeName, pickup, myQuantity, myAmount, roomStatus, confirmationStatus, nextAction]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        productImageUrl:
+          type: string
+          nullable: true
+        storeName:
+          type: string
+        pickup:
+          $ref: '#/components/schemas/TogetherBuyPickup'
+        myQuantity:
+          type: integer
+          minimum: 1
+        myAmount:
+          type: integer
+          minimum: 0
+        roomStatus:
+          $ref: '#/components/schemas/TogetherBuyRoomStatus'
+        confirmationStatus:
+          $ref: '#/components/schemas/TogetherBuyConfirmationStatus'
+        nextAction:
+          type: string
+          enum: [NONE, JOIN_ROOM, CONFIRM_PARTICIPATION, PAY_AS_ORGANIZER, REGISTER_SETTLEMENT_ACCOUNT, TRANSFER_TO_ORGANIZER, CHECK_TRANSFER, VIEW_PICKUP_GUIDE, SHOW_PICKUP_QR, MARK_RECEIVED]
+        nextActionDueAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    TogetherBuyMyPage:
+      type: object
+      required: [segment, content, page, size, totalPages, totalElements, hasNext]
+      properties:
+        segment:
+          $ref: '#/components/schemas/TogetherBuyMyPageSegment'
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TogetherBuyMyPageCard'
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          minimum: 1
+        totalPages:
+          type: integer
+          minimum: 0
+        totalElements:
+          type: integer
+          minimum: 0
+        hasNext:
+          type: boolean
+
+    ApiResponseTogetherBuyMyPage:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyMyPage'
+        error: { nullable: true, example: null }
+
+    TogetherBuyMyPageSummary:
+      type: object
+      required: [inProgressCount, pickupCount, completedOrCancelledCount]
+      properties:
+        inProgressCount:
+          type: integer
+          minimum: 0
+        pickupCount:
+          type: integer
+          minimum: 0
+        completedOrCancelledCount:
+          type: integer
+          minimum: 0
+
+    ApiResponseTogetherBuyMyPageSummary:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TogetherBuyMyPageSummary'
+        error: { nullable: true, example: null }
+
+    TogetherBuyReportItem:
+      type: object
+      required: [ticketId, ticketNumber, groupBuyId, type, status, createdAt]
+      properties:
+        ticketId:
+          type: integer
+          format: int64
+        ticketNumber:
+          type: string
+        groupBuyId:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/TogetherBuyReportType'
+        status:
+          $ref: '#/components/schemas/TogetherBuyReportStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseTogetherBuyReportPage:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [content, page, size, totalPages, totalElements, hasNext]
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/TogetherBuyReportItem'
+            page: { type: integer }
+            size: { type: integer }
+            totalPages: { type: integer }
+            totalElements: { type: integer }
+            hasNext: { type: boolean }
+        error: { nullable: true, example: null }
+
+    OrganizerRefundItem:
+      type: object
+      required: [refundId, groupBuyId, productName, storeName, amount, status, requestedAt]
+      properties:
+        refundId:
+          type: integer
+          format: int64
+        groupBuyId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        storeName:
+          type: string
+        amount:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [REQUESTED, APPROVED, COMPLETED, REJECTED]
+        requestedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApiResponseOrganizerRefundPage:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [content, page, size, totalPages, totalElements, hasNext]
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrganizerRefundItem'
+            page: { type: integer }
+            size: { type: integer }
+            totalPages: { type: integer }
+            totalElements: { type: integer }
+            hasNext: { type: boolean }
+        error: { nullable: true, example: null }
+
+    ApiResponseRoomPickupVerification:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [groupBuyId, roomPickupStatus, pickedUpAt]
+          properties:
+            groupBuyId:
+              type: integer
+              format: int64
+            roomPickupStatus:
+              type: string
+              enum: [USED]
+            pickedUpAt:
+              type: string
+              format: date-time
+            pickupProcessedByUserId:
+              type: integer
+              format: int64
+              nullable: true
         error: { nullable: true, example: null }
