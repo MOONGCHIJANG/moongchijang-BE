@@ -240,6 +240,44 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/organizer/room-opening-policy:
+    get:
+      tags: [Organizer]
+      summary: 총대 방 개설 한도 및 이력 조회
+      description: |
+        총대의 동시 진행 방 수, 방당 모집 금액·참여 인원 한도와 완료·실패 이력을 조회한다.
+        이 응답은 화면 노출용이며, 실제 방 개설 요청 시 서버가 한도와 자격을 다시 검증한다.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 방 개설 정책 및 이력
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrganizerRoomOpeningPolicy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/transaction-restrictions:
+    get:
+      tags: [Organizer]
+      summary: 거래 제재 상태 조회
+      description: |
+        미납 누적에 따른 함께 사기 참여 제한과 이상 거래 탐지에 따른 총대 활동 보류 상태를 조회한다.
+        제재 여부는 화면 진입 안내용이며, 참여·방 개설 요청 시 서버가 최종 검증한다.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 거래 제재 상태
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTransactionRestrictionStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /api/v1/users/me/role:
     patch:
       tags: [Auth]
@@ -4207,6 +4245,109 @@ components:
         settlementInfoDisclosureAgreed:
           type: boolean
           example: true
+
+    ApiResponseOrganizerRoomOpeningPolicy:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/OrganizerRoomOpeningPolicy'
+        error: { nullable: true, example: null }
+
+    OrganizerRoomOpeningPolicy:
+      type: object
+      required:
+        - activeRoomCount
+        - maxConcurrentRooms
+        - availableRoomSlots
+        - maxTargetAmount
+        - maxParticipants
+        - completedRoomCount
+        - failedRoomCount
+        - roomOpeningAllowed
+        - blockedReason
+      properties:
+        activeRoomCount:
+          type: integer
+          description: 현재 총대로 진행 중인 방 수
+          example: 2
+        maxConcurrentRooms:
+          type: integer
+          description: 동시에 개설·진행할 수 있는 방 수 한도
+          example: 5
+        availableRoomSlots:
+          type: integer
+          description: 추가로 개설할 수 있는 방 수
+          example: 3
+        maxTargetAmount:
+          type: integer
+          nullable: true
+          description: 방당 모집 금액 한도. 완료 이력 3회 미만 총대는 100,000원이며, 제한이 없으면 null
+          example: 100000
+        maxParticipants:
+          type: integer
+          description: 방당 총대 외 참여자 수 한도
+          example: 5
+        completedRoomCount:
+          type: integer
+          description: 총대 역할로 완료한 방 수
+          example: 3
+        failedRoomCount:
+          type: integer
+          description: 총대 역할로 실패·해산된 방 수
+          example: 1
+        roomOpeningAllowed:
+          type: boolean
+          description: 현재 방 개설 가능 여부
+          example: true
+        blockedReason:
+          type: string
+          nullable: true
+          description: 방 개설이 제한된 사유
+          enum: [ORGANIZER_REGISTRATION_INCOMPLETE, ACTIVE_ROOM_LIMIT_EXCEEDED, SUSPICIOUS_TRANSACTION_REVIEW]
+
+    ApiResponseTransactionRestrictionStatus:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/TransactionRestrictionStatus'
+        error: { nullable: true, example: null }
+
+    TransactionRestrictionStatus:
+      type: object
+      required: [unpaidCount, participationRestricted, organizerActivityOnHold, restrictions]
+      properties:
+        unpaidCount:
+          type: integer
+          description: 정산 마감 시점까지 미입금한 누적 횟수
+          example: 1
+        participationRestricted:
+          type: boolean
+          description: 미납 누적에 따른 함께 사기 참여 제한 여부
+          example: false
+        organizerActivityOnHold:
+          type: boolean
+          description: 이상 거래 탐지에 따른 총대 방 개설 보류 여부
+          example: false
+        restrictions:
+          type: array
+          description: 현재 적용 중인 제한 목록
+          items:
+            type: object
+            required: [type, reason, startedAt]
+            properties:
+              type:
+                type: string
+                enum: [PARTICIPATION_RESTRICTION, ORGANIZER_ACTIVITY_HOLD]
+              reason:
+                type: string
+              startedAt:
+                type: string
+                format: date-time
+                description: UTC 기준 제한 시작 시각
 
     PasswordChangeRequest:
       type: object
