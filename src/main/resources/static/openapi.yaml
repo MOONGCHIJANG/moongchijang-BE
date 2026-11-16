@@ -1489,7 +1489,9 @@ paths:
   /api/v1/group-buys/{groupBuyId}/wishlist:
     post:
       tags: [Wishlist]
-      summary: 찜 추가
+      summary: 공구 찜 추가 (레거시)
+      deprecated: true
+      description: 상품 단위 찜 API(`/api/v1/products/{productId}/wishlist`)로 전환한다.
       security:
         - bearerAuth: []
       parameters:
@@ -1501,7 +1503,9 @@ paths:
           $ref: '#/components/responses/Unauthorized'
     delete:
       tags: [Wishlist]
-      summary: 찜 해제
+      summary: 공구 찜 해제 (레거시)
+      deprecated: true
+      description: 상품 단위 찜 API(`/api/v1/products/{productId}/wishlist`)로 전환한다.
       security:
         - bearerAuth: []
       parameters:
@@ -1515,29 +1519,21 @@ paths:
   /api/v1/wishlists:
     get:
       tags: [Wishlist]
-      summary: 찜 목록 조회
+      summary: 상품 찜 목록 조회
+      description: |
+        사용자가 찜한 상품을 최신순·인기순·가격순으로 조회한다.
+        찜 카드는 상품·매장 정보와 최소 수량, 픽업 가능 시작일을 제공하며
+        공구 진행률·참여자 수·마감 임박 정보는 제공하지 않는다.
       security:
         - bearerAuth: []
       parameters:
-        - name: filter
-          in: query
-          schema:
-            type: string
-            enum: [ALL, CLOSING_SOON, OPEN]
-            default: ALL
-          description: ALL=전체 / CLOSING_SOON=마감임박(D-3) / OPEN=모집중
-        - name: excludeClosed
-          in: query
-          schema:
-            type: boolean
-            default: false
-          description: true면 마감 공고 제외, false면 마감 포함
         - name: sort
           in: query
           schema:
             type: string
-            enum: [LATEST, DEADLINE]
+            enum: [LATEST, POPULAR, PRICE_ASC]
             default: LATEST
+          description: LATEST=최근 찜한 순 / POPULAR=진행 중인 함께 사기 방이 많은 순 / PRICE_ASC=낮은 단가 순
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
       responses:
@@ -4495,23 +4491,17 @@ components:
 
     WishlistItemResponse:
       type: object
-      required: [groupBuyId, thumbnailUrl, dDay, dDayLabel, storeName, regionLabel, productName, pickupDate, pickupDateLabel, deadline, deadlineLabel, achievementRate, price, currentParticipantCount, targetParticipantCount, isWishlisted]
+      required: [productId, thumbnailUrl, storeName, regionLabel, productName, unitPrice, minQuantity, pickupAvailableFrom, activeTogetherRoomCount, isWishlisted]
       properties:
-        groupBuyId: { type: integer, format: int64 }
+        productId: { type: integer, format: int64, description: 상품 ID }
         thumbnailUrl: { type: string, nullable: true, description: 대표 썸네일 URL }
-        dDay: { type: integer, description: "마감 D-day (예: D-3 -> 3)" }
-        dDayLabel: { type: string, description: "마감 뱃지 문자열 (예: D-3)" }
         storeName: { type: string }
         regionLabel: { type: string, description: 시/도 한글 라벨, example: 서울 }
         productName: { type: string }
-        pickupDate: { type: string, format: date, description: 픽업 날짜 원본 값 }
-        pickupDateLabel: { type: string, description: 픽업 날짜 표시 문자열, example: "4/15(화)" }
-        deadline: { type: string, format: date-time, description: 마감 일시 원본 값 }
-        deadlineLabel: { type: string, description: 마감 날짜 표시 문자열, example: "4/12(토) 21:00" }
-        achievementRate: { type: integer, description: 달성률 % (0~100) }
-        price: { type: integer }
-        currentParticipantCount: { type: integer, description: 현재 참여 인원 수 }
-        targetParticipantCount: { type: integer, description: 목표 참여 인원 수 }
+        unitPrice: { type: integer, description: 상품 단가, example: 18000 }
+        minQuantity: { type: integer, description: 최소 구매 수량, example: 2 }
+        pickupAvailableFrom: { type: string, format: date, nullable: true, description: 픽업 가능 시작일 }
+        activeTogetherRoomCount: { type: integer, description: 진행 중인 함께 사기 방 수. POPULAR 정렬 기준으로 사용, example: 3 }
         isWishlisted: { type: boolean, description: 찜 여부 }
 
     ApiResponseGroupBuyFeedPageResponse:
@@ -5097,7 +5087,7 @@ components:
         success: { type: boolean, example: true }
         data:
           type: object
-          required: [content, totalElements, totalPages, number, size, urgentCount]
+          required: [content, totalElements, totalPages, number, size]
           properties:
             content:
               type: array
@@ -5107,9 +5097,6 @@ components:
             totalPages: { type: integer }
             number: { type: integer }
             size: { type: integer }
-            urgentCount:
-              type: integer
-              description: 마감 24시간 이내 건수 (0이면 배너 미노출)
         error: { nullable: true, example: null }
 
     # ── Participation ──────────────────────────────────────────
