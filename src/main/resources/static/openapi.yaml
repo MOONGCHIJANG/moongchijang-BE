@@ -9136,8 +9136,62 @@ components:
       properties:
         success: { type: boolean, example: true }
         data:
-          $ref: '#/components/schemas/TogetherBuyRoom'
+          $ref: '#/components/schemas/TogetherBuyRoomCreated'
         error: { nullable: true, example: null }
+
+    TogetherBuyRoomCreated:
+      type: object
+      required: [groupBuyId, status, organizer, store, product, pickup, progress, paymentDeadline, isSoloRoom, resaleProhibitionAgreed, createdAt]
+      properties:
+        groupBuyId:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [RECRUITING]
+        organizer:
+          type: object
+          required: [userId, nickname]
+          properties:
+            userId: { type: integer, format: int64 }
+            nickname: { type: string, nullable: true }
+        store:
+          type: object
+          required: [storeId, name, address]
+          properties:
+            storeId: { type: integer, format: int64 }
+            name: { type: string }
+            address: { type: string }
+            phoneNumber: { type: string, nullable: true }
+        product:
+          type: object
+          required: [storeProductId, name, unitPrice, minQuantity, maxQuantity]
+          properties:
+            storeProductId: { type: integer, format: int64 }
+            name: { type: string }
+            unitPrice: { type: integer, minimum: 0 }
+            minQuantity: { type: integer, minimum: 1 }
+            maxQuantity: { type: integer, minimum: 1 }
+        pickup:
+          type: object
+          required: [date, slotStart, slotEnd, address]
+          properties:
+            date: { type: string, format: date }
+            slotStart: { type: string, format: time }
+            slotEnd: { type: string, format: time }
+            address: { type: string }
+        progress:
+          type: object
+          required: [totalQuantity, minQuantity, maxQuantity, remainingQuantity]
+          properties:
+            totalQuantity: { type: integer, minimum: 1 }
+            minQuantity: { type: integer, minimum: 1 }
+            maxQuantity: { type: integer, minimum: 1 }
+            remainingQuantity: { type: integer, minimum: 0 }
+        paymentDeadline: { type: string, format: date-time }
+        isSoloRoom: { type: boolean }
+        resaleProhibitionAgreed: { type: boolean }
+        createdAt: { type: string, format: date-time }
 
     ApiResponseTogetherBuyProgress:
       type: object
