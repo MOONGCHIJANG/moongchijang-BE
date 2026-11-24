@@ -2,6 +2,7 @@ package com.moongchijang.domain.groupbuy.presentation
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyService
 import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
+import com.moongchijang.domain.groupbuy.application.TogetherBuyRoomCommandService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedPageResponse
@@ -10,11 +11,15 @@ import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressItem
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyProgressResponse
 import com.moongchijang.domain.groupbuy.application.dto.ShareMetaResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyRoomCreateRequest
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyRoomCreatedResponse
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
 import com.moongchijang.global.response.ApiResponse
 import com.moongchijang.security.principal.CustomUserPrincipal
+import com.moongchijang.security.authorization.RequireCurrentRole
+import com.moongchijang.domain.user.domain.entity.UserRole
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -25,14 +30,17 @@ import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import jakarta.validation.Valid
 import java.util.UUID
 
 @RestController
@@ -40,7 +48,8 @@ import java.util.UUID
 @Tag(name = "GroupBuy", description = "공구 피드/상세/달성률")
 class GroupBuyController(
     private val groupBuyService: GroupBuyService,
-    private val groupBuyViewerService: GroupBuyViewerService
+    private val groupBuyViewerService: GroupBuyViewerService,
+    private val togetherBuyRoomCommandService: TogetherBuyRoomCommandService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -74,6 +83,17 @@ class GroupBuyController(
         log.info("[GroupBuyController] 공구 피드 조회 응답 완료: totalElements={}", response.totalElements)
 
         return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @PostMapping
+    @RequireCurrentRole(UserRole.BUYER)
+    @Operation(summary = "함께 사기 방 생성")
+    fun createTogetherBuyRoom(
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: TogetherBuyRoomCreateRequest,
+    ): ResponseEntity<ApiResponse<TogetherBuyRoomCreatedResponse>> {
+        val response = togetherBuyRoomCommandService.create(principal.id, request)
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response))
     }
 
     @GetMapping("/{groupBuyId}")
