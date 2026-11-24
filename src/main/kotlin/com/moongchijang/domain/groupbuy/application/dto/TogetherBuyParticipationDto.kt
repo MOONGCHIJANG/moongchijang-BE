@@ -19,6 +19,11 @@ data class TogetherBuyParticipationResponse(
     val quantityAdjusted: Boolean,
 )
 
+data class TogetherBuyParticipantRosterResponse(
+    val organizerParticipationId: Long,
+    val participants: List<TogetherBuyParticipationResponse>,
+)
+
 enum class TogetherBuyParticipantRole {
     ORGANIZER,
     PARTICIPANT,

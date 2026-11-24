@@ -84,6 +84,21 @@ interface ParticipationRepository : JpaRepository<Participation, Long> {
         select p
         from Participation p
         join fetch p.user
+        where p.groupBuy.id = :groupBuyId
+          and p.status <> :cancelledStatus
+        order by p.createdAt asc
+        """
+    )
+    fun findAllActiveWithUserByGroupBuyId(
+        @Param("groupBuyId") groupBuyId: Long,
+        @Param("cancelledStatus") cancelledStatus: ParticipationStatus = ParticipationStatus.CANCELLED,
+    ): List<Participation>
+
+    @Query(
+        """
+        select p
+        from Participation p
+        join fetch p.user
         join fetch p.groupBuy gb
         join fetch gb.store
         where p.id = :participationId

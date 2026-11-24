@@ -3,6 +3,7 @@ package com.moongchijang.domain.groupbuy.presentation
 import com.moongchijang.domain.groupbuy.application.GroupBuyService
 import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipationCommandService
+import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipantRosterQueryService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyRoomCommandService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
 import com.moongchijang.domain.user.domain.entity.UserRole
@@ -21,11 +22,13 @@ class GroupBuyControllerTest {
     private val groupBuyViewerService: GroupBuyViewerService = Mockito.mock(GroupBuyViewerService::class.java)
     private val togetherBuyRoomCommandService: TogetherBuyRoomCommandService = Mockito.mock(TogetherBuyRoomCommandService::class.java)
     private val togetherBuyParticipationCommandService: TogetherBuyParticipationCommandService = Mockito.mock(TogetherBuyParticipationCommandService::class.java)
+    private val togetherBuyParticipantRosterQueryService: TogetherBuyParticipantRosterQueryService = Mockito.mock(TogetherBuyParticipantRosterQueryService::class.java)
     private val controller = GroupBuyController(
         groupBuyService,
         groupBuyViewerService,
         togetherBuyRoomCommandService,
         togetherBuyParticipationCommandService,
+        togetherBuyParticipantRosterQueryService,
     )
 
     @Test
