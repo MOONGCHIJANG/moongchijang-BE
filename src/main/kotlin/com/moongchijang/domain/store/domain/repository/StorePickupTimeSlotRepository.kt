@@ -4,6 +4,8 @@ import com.moongchijang.domain.store.domain.entity.StorePickupTimeSlot
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface StorePickupTimeSlotRepository : JpaRepository<StorePickupTimeSlot, Long> {
+    fun findAllByStoreIdOrderByDayOfWeekAscStartTimeAsc(storeId: Long): List<StorePickupTimeSlot>
+
     fun findAllByStoreIdAndActiveTrueOrderByDayOfWeekAscStartTimeAsc(
         storeId: Long,
     ): List<StorePickupTimeSlot>
@@ -16,4 +18,6 @@ interface StorePickupTimeSlotRepository : JpaRepository<StorePickupTimeSlot, Lon
     fun findAllByStoreIdInAndActiveTrueOrderByStoreIdAscDayOfWeekAscStartTimeAsc(
         storeIds: Collection<Long>,
     ): List<StorePickupTimeSlot>
+
+    fun deleteAllByStoreId(storeId: Long)
 }

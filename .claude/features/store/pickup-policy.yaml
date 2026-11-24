@@ -1,0 +1,35 @@
+meta:
+  id: STORE_PICKUP_POLICY
+  domain: store
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/store/presentation/StorePickupPolicyController.kt
+    - src/main/kotlin/com/moongchijang/domain/store/application/StorePickupPolicyService.kt
+    - src/main/kotlin/com/moongchijang/domain/store/application/dto/StorePickupPolicyDto.kt
+    - src/main/kotlin/com/moongchijang/domain/store/domain/entity/StoreBusinessHour.kt
+    - src/main/kotlin/com/moongchijang/domain/store/domain/entity/StoreHoliday.kt
+    - src/main/kotlin/com/moongchijang/domain/store/domain/entity/StorePickupTimeSlot.kt
+    - src/main/resources/db/migration/V76__create_store_business_hours_and_holiday_source.sql
+  related_requirements:
+    - store pickup availability
+    - store pickup policy management
+    - together buy room creation
+
+overview:
+  summary: 매장별 준비 기간, 영업·휴무일, 1시간 픽업 시간대를 관리하고 방 개설 화면에 선택 가능 일정을 제공한다.
+
+business_rules:
+  - 픽업일은 오늘부터 매장 준비 기간 이후이면서 최대 리드타임 이내여야 한다.
+  - 결제 마감은 픽업일에서 준비 기간을 뺀 날짜의 23:59(KST)다.
+  - 정기 휴무일, 임시 휴무일, 비활성 또는 정원 소진 시간대는 선택할 수 없다.
+  - 정책 조회·수정은 해당 매장에 배정된 SELLER 또는 ADMIN만 가능하다.
+  - 매장 정책 수정은 ADMIN·OWNER 출처의 휴무일만 교체하며 NAVER 출처 휴무일은 보존한다.
+  - 시간대는 1시간 단위이고 영업시간 내에 중복 없이 등록해야 한다.
+
+testing_strategy:
+  unit:
+    - StorePickupPolicyServiceTest
+  manual:
+    - GET /api/v1/stores/{storeId}/pickup-availability
+    - GET/PATCH /api/v1/stores/{storeId}/pickup-policy
