@@ -3,6 +3,7 @@ package com.moongchijang.domain.groupbuy.presentation
 import com.moongchijang.domain.groupbuy.application.GroupBuyService
 import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipationCommandService
+import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipantRosterQueryService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyRoomCommandService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
@@ -16,6 +17,7 @@ import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyRoomCreateReq
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyRoomCreatedResponse
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationResponse
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationUpsertRequest
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipantRosterResponse
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -56,6 +58,7 @@ class GroupBuyController(
     private val groupBuyViewerService: GroupBuyViewerService,
     private val togetherBuyRoomCommandService: TogetherBuyRoomCommandService,
     private val togetherBuyParticipationCommandService: TogetherBuyParticipationCommandService,
+    private val togetherBuyParticipantRosterQueryService: TogetherBuyParticipantRosterQueryService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -123,6 +126,17 @@ class GroupBuyController(
     ): ResponseEntity<ApiResponse<Unit>> {
         togetherBuyParticipationCommandService.cancel(groupBuyId, principal.id)
         return ResponseEntity.ok(ApiResponse.success(Unit))
+    }
+
+    @GetMapping("/{groupBuyId}/participants")
+    @RequireCurrentRole(UserRole.BUYER)
+    @Operation(summary = "함께 사기 방 참여자 목록 조회")
+    fun getTogetherBuyParticipantRoster(
+        @PathVariable groupBuyId: Long,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+    ): ResponseEntity<ApiResponse<TogetherBuyParticipantRosterResponse>> {
+        val response = togetherBuyParticipantRosterQueryService.getRoster(groupBuyId, principal.id)
+        return ResponseEntity.ok(ApiResponse.success(response))
     }
 
     @GetMapping("/{groupBuyId}")
