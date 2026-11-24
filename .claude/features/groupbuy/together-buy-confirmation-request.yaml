@@ -1,0 +1,38 @@
+meta:
+  id: TOGETHER_BUY_CONFIRMATION_REQUEST
+  domain: groupbuy
+  status: implemented
+  priority: high
+  code_paths:
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/presentation/GroupBuyController.kt
+    - src/main/kotlin/com/moongchijang/domain/groupbuy/application/TogetherBuyConfirmationCommandService.kt
+    - src/main/kotlin/com/moongchijang/domain/participation/domain/entity/ParticipationConfirmation.kt
+  openapi_paths:
+    - POST /api/v1/group-buys/{groupBuyId}/confirmations
+  related_requirements:
+    - "4.1"
+
+overview:
+  summary: 최소 수량을 충족한 함께 사기 방의 총대가 참여자 최종 확약을 요청한다.
+
+business_rules:
+  - 총대만 모집 마감 전의 IN_PROGRESS 방에서 요청할 수 있다.
+  - 현재 수량이 최소 수량 이상이어야 한다.
+  - 기본 확약 마감은 요청 시점부터 1시간이며 모집 마감을 넘지 않는다.
+  - 요청 시 활성 참여자를 REQUESTED 상태로 전환하고 참여자별 확약 이력을 남긴다.
+  - 확약 요청이 있으면 수량 변경과 참여 취소를 차단한다.
+  - 개별 확약 응답과 미응답 자동 제외는 후속 기능이다.
+
+error_cases:
+  - FORBIDDEN
+  - GROUPBUY_NOT_FOUND
+  - GROUPBUY_CONFIRMATION_NOT_AVAILABLE
+  - GROUPBUY_CONFIRMATION_ALREADY_REQUESTED
+  - GROUPBUY_CONFIRMATION_IN_PROGRESS
+  - GROUPBUY_CONFIRMATION_DEADLINE_INVALID
+
+testing_strategy:
+  unit:
+    - TogetherBuyConfirmationCommandServiceTest 정상 요청·권한·최소 수량·마감·중복 요청
+    - TogetherBuyParticipationCommandServiceTest 확약 중 수량 변경 차단
+    - TogetherBuyParticipantRosterQueryServiceTest 확약 대기 상태 노출

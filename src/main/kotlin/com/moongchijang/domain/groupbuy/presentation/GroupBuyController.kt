@@ -4,6 +4,7 @@ import com.moongchijang.domain.groupbuy.application.GroupBuyService
 import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipationCommandService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipantRosterQueryService
+import com.moongchijang.domain.groupbuy.application.TogetherBuyConfirmationCommandService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyRoomCommandService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
@@ -18,6 +19,8 @@ import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyRoomCreatedRe
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationResponse
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationUpsertRequest
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipantRosterResponse
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyConfirmationRequest
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyConfirmationResponse
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -59,6 +62,7 @@ class GroupBuyController(
     private val togetherBuyRoomCommandService: TogetherBuyRoomCommandService,
     private val togetherBuyParticipationCommandService: TogetherBuyParticipationCommandService,
     private val togetherBuyParticipantRosterQueryService: TogetherBuyParticipantRosterQueryService,
+    private val togetherBuyConfirmationCommandService: TogetherBuyConfirmationCommandService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -137,6 +141,18 @@ class GroupBuyController(
     ): ResponseEntity<ApiResponse<TogetherBuyParticipantRosterResponse>> {
         val response = togetherBuyParticipantRosterQueryService.getRoster(groupBuyId, principal.id)
         return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @PostMapping("/{groupBuyId}/confirmations")
+    @RequireCurrentRole(UserRole.BUYER)
+    @Operation(summary = "함께 사기 참여자 최종 확약 요청")
+    fun requestTogetherBuyConfirmation(
+        @PathVariable groupBuyId: Long,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @RequestBody(required = false) request: TogetherBuyConfirmationRequest?,
+    ): ResponseEntity<ApiResponse<TogetherBuyConfirmationResponse>> {
+        val response = togetherBuyConfirmationCommandService.request(groupBuyId, principal.id, request)
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response))
     }
 
     @GetMapping("/{groupBuyId}")

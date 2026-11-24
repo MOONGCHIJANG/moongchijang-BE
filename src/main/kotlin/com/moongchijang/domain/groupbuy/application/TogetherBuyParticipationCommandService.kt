@@ -1,10 +1,10 @@
 package com.moongchijang.domain.groupbuy.application
 
-import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyConfirmationStatus
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipantRole
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationResponse
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationStatus
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationUpsertRequest
+import com.moongchijang.domain.groupbuy.application.dto.toTogetherBuyConfirmationStatus
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
@@ -83,6 +83,9 @@ class TogetherBuyParticipationCommandService(
         if (groupBuy.status != GroupBuyStatus.IN_PROGRESS) {
             throw CustomException(ErrorCode.GROUPBUY_NOT_RECRUITING)
         }
+        if (groupBuy.isParticipantConfirmationRequested()) {
+            throw CustomException(ErrorCode.GROUPBUY_CONFIRMATION_IN_PROGRESS)
+        }
         if (!groupBuy.deadline.isAfter(clock.kstNow())) {
             throw CustomException(ErrorCode.GROUPBUY_DEADLINE_PASSED)
         }
@@ -104,7 +107,7 @@ class TogetherBuyParticipationCommandService(
         status = TogetherBuyParticipationStatus.JOINED,
         quantity = quantity,
         productAmount = productAmount,
-        confirmationStatus = TogetherBuyConfirmationStatus.NOT_REQUESTED,
+        confirmationStatus = confirmationStatus.toTogetherBuyConfirmationStatus(),
         quantityAdjusted = quantityAdjusted,
     )
 }

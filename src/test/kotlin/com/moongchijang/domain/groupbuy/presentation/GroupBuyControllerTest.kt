@@ -4,6 +4,10 @@ import com.moongchijang.domain.groupbuy.application.GroupBuyService
 import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipationCommandService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipantRosterQueryService
+import com.moongchijang.domain.groupbuy.application.TogetherBuyConfirmationCommandService
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyConfirmationRequest
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyConfirmationRequestStatus
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyConfirmationResponse
 import com.moongchijang.domain.groupbuy.application.TogetherBuyRoomCommandService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
 import com.moongchijang.domain.user.domain.entity.UserRole
@@ -23,12 +27,14 @@ class GroupBuyControllerTest {
     private val togetherBuyRoomCommandService: TogetherBuyRoomCommandService = Mockito.mock(TogetherBuyRoomCommandService::class.java)
     private val togetherBuyParticipationCommandService: TogetherBuyParticipationCommandService = Mockito.mock(TogetherBuyParticipationCommandService::class.java)
     private val togetherBuyParticipantRosterQueryService: TogetherBuyParticipantRosterQueryService = Mockito.mock(TogetherBuyParticipantRosterQueryService::class.java)
+    private val togetherBuyConfirmationCommandService: TogetherBuyConfirmationCommandService = Mockito.mock(TogetherBuyConfirmationCommandService::class.java)
     private val controller = GroupBuyController(
         groupBuyService,
         groupBuyViewerService,
         togetherBuyRoomCommandService,
         togetherBuyParticipationCommandService,
         togetherBuyParticipantRosterQueryService,
+        togetherBuyConfirmationCommandService,
     )
 
     @Test
@@ -110,5 +116,24 @@ class GroupBuyControllerTest {
 
         Mockito.verify(groupBuyViewerService).heartbeat(104L, 88L, "user-session-not-used")
         assertEquals(null, result.headers.getFirst("Set-Cookie"))
+    }
+
+    @Test
+    fun `총대가 최종 확약을 요청하면 201을 반환한다`() {
+        val principal = CustomUserPrincipal(id = 77L, email = "organizer@example.com", role = UserRole.BUYER)
+        val request = TogetherBuyConfirmationRequest()
+        val response = TogetherBuyConfirmationResponse(
+            groupBuyId = 105L,
+            status = TogetherBuyConfirmationRequestStatus.REQUESTED,
+            confirmationDeadline = java.time.LocalDateTime.of(2026, 6, 1, 11, 0),
+            confirmedParticipantCount = 0,
+            pendingParticipantCount = 2,
+        )
+        Mockito.`when`(togetherBuyConfirmationCommandService.request(105L, 77L, request)).thenReturn(response)
+
+        val result = controller.requestTogetherBuyConfirmation(105L, principal, request)
+
+        assertEquals(201, result.statusCode.value())
+        assertEquals(response, result.body?.data)
     }
 }

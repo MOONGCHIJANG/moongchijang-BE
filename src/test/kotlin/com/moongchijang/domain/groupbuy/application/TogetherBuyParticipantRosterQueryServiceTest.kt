@@ -5,6 +5,7 @@ import com.moongchijang.domain.groupbuy.domain.entity.GroupBuy
 import com.moongchijang.domain.groupbuy.domain.entity.GroupBuyStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.entity.Participation
+import com.moongchijang.domain.participation.domain.entity.ParticipationConfirmationStatus
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
 import com.moongchijang.domain.user.domain.entity.User
 import com.moongchijang.global.exception.CustomException
@@ -72,6 +73,22 @@ class TogetherBuyParticipantRosterQueryServiceTest {
         }
 
         assertThat(exception.errorCode).isEqualTo(ErrorCode.FORBIDDEN)
+    }
+
+    @Test
+    fun `최종 확약 요청 뒤 참여자 목록은 대기 상태를 보여준다`() {
+        val room = room()
+        val organizer = requireNotNull(room.organizer)
+        val organizerParticipation = participation(room, organizer, quantity = 2, id = 10L).apply {
+            confirmationStatus = ParticipationConfirmationStatus.REQUESTED
+        }
+        `when`(groupBuyRepository.findWithStoreById(room.id)).thenReturn(Optional.of(room))
+        `when`(participationRepository.findAllActiveWithUserByGroupBuyId(room.id))
+            .thenReturn(listOf(organizerParticipation))
+
+        val response = service.getRoster(room.id, organizer.id!!)
+
+        assertThat(response.participants.single().confirmationStatus.name).isEqualTo("PENDING")
     }
 
     private fun room(): GroupBuy = GroupBuyFixture.createGroupBuy(

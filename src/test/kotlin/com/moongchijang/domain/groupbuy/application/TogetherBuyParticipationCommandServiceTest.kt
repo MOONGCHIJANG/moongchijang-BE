@@ -129,6 +129,20 @@ class TogetherBuyParticipationCommandServiceTest {
     }
 
     @Test
+    fun `최종 확약 요청 중인 방에서는 참여 수량을 변경할 수 없다`() {
+        val user = UserFixture.createKakaoUser(id = 2L)
+        val room = room().apply { confirmationDeadline = LocalDateTime.of(2026, 6, 1, 3, 0) }
+        `when`(groupBuyRepository.findWithLockById(room.id)).thenReturn(Optional.of(room))
+
+        val exception = assertThrows<CustomException> {
+            service.upsert(room.id, user.id!!, TogetherBuyParticipationUpsertRequest(quantity = 1))
+        }
+
+        assertThat(exception.errorCode).isEqualTo(ErrorCode.GROUPBUY_CONFIRMATION_IN_PROGRESS)
+        verify(participationRepository, never()).save(any(Participation::class.java))
+    }
+
+    @Test
     fun `단독 구매 방에는 총대 외 참여자를 추가할 수 없다`() {
         val user = UserFixture.createKakaoUser(id = 2L)
         val room = room().apply { isSoloRoom = true }

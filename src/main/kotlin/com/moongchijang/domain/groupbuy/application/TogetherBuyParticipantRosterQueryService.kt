@@ -1,10 +1,10 @@
 package com.moongchijang.domain.groupbuy.application
 
-import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyConfirmationStatus
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipantRole
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipantRosterResponse
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationResponse
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationStatus
+import com.moongchijang.domain.groupbuy.application.dto.toTogetherBuyConfirmationStatus
 import com.moongchijang.domain.groupbuy.domain.repository.GroupBuyRepository
 import com.moongchijang.domain.participation.domain.entity.Participation
 import com.moongchijang.domain.participation.domain.repository.ParticipationRepository
@@ -54,7 +54,7 @@ class TogetherBuyParticipantRosterQueryService(
             status = TogetherBuyParticipationStatus.JOINED,
             quantity = quantity,
             productAmount = productAmount,
-            confirmationStatus = TogetherBuyConfirmationStatus.NOT_REQUESTED,
+            confirmationStatus = confirmationStatus.toTogetherBuyConfirmationStatus(),
             quantityAdjusted = false,
         )
 }

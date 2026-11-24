@@ -1,5 +1,6 @@
 package com.moongchijang.domain.groupbuy.application.dto
 
+import com.moongchijang.domain.participation.domain.entity.ParticipationConfirmationStatus
 import jakarta.validation.constraints.Min
 
 data class TogetherBuyParticipationUpsertRequest(
@@ -35,4 +36,15 @@ enum class TogetherBuyParticipationStatus {
 
 enum class TogetherBuyConfirmationStatus {
     NOT_REQUESTED,
+    PENDING,
+    CONFIRMED,
+    DECLINED,
+    EXCLUDED,
+}
+
+fun ParticipationConfirmationStatus.toTogetherBuyConfirmationStatus(): TogetherBuyConfirmationStatus = when (this) {
+    ParticipationConfirmationStatus.NOT_REQUESTED -> TogetherBuyConfirmationStatus.NOT_REQUESTED
+    ParticipationConfirmationStatus.REQUESTED -> TogetherBuyConfirmationStatus.PENDING
+    ParticipationConfirmationStatus.CONFIRMED -> TogetherBuyConfirmationStatus.CONFIRMED
+    ParticipationConfirmationStatus.AUTO_EXCLUDED -> TogetherBuyConfirmationStatus.EXCLUDED
 }

@@ -68,6 +68,16 @@ class Participation(
     var status: ParticipationStatus = ParticipationStatus.PENDING,
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "confirmation_status", nullable = false, length = 20)
+    var confirmationStatus: ParticipationConfirmationStatus = ParticipationConfirmationStatus.NOT_REQUESTED,
+
+    @Column(name = "confirmed_at")
+    var confirmedAt: LocalDateTime? = null,
+
+    @Column(name = "excluded_at")
+    var excludedAt: LocalDateTime? = null,
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "pickup_status", nullable = false, length = 30)
     var pickupStatus: PickupStatus = PickupStatus.NOT_READY,
 
@@ -122,5 +132,11 @@ class Participation(
         pickupProcessedBy = processedBy
         pickupStatus = PickupStatus.PICKED_UP
         this.pickedUpAt = pickedUpAt
+    }
+
+    fun requestConfirmation() {
+        confirmationStatus = ParticipationConfirmationStatus.REQUESTED
+        confirmedAt = null
+        excludedAt = null
     }
 }
