@@ -35,6 +35,10 @@ class StoreHoliday(
     @Column(length = 255)
     var reason: String? = null,
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var source: StoreHolidaySource = StoreHolidaySource.ADMIN,
+
     @Column(nullable = false)
     var active: Boolean = true,
 

@@ -53,6 +53,12 @@ class Store(
     @Column(name = "sales_status", nullable = false, length = 30)
     var salesStatus: StoreSalesStatus = StoreSalesStatus.ACTIVE,
 
+    @Column(name = "preparation_days", nullable = false)
+    var preparationDays: Int = 3,
+
+    @Column(name = "max_lead_days", nullable = false)
+    var maxLeadDays: Int = 14,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
