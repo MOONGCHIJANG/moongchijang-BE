@@ -107,6 +107,14 @@ class Participation(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L
 ) : BaseEntity() {
+    fun changeQuantity(quantity: Int, unitPrice: Int) {
+        require(quantity > 0) { "참여 수량은 1개 이상이어야 합니다." }
+        this.quantity = quantity
+        productAmount = unitPrice * quantity
+        feeAmount = 0
+        totalAmount = productAmount
+    }
+
     fun markPickedUp(
         processedBy: User,
         pickedUpAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)

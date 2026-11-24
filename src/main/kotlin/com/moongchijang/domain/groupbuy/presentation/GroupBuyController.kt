@@ -2,6 +2,7 @@ package com.moongchijang.domain.groupbuy.presentation
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyService
 import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
+import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipationCommandService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyRoomCommandService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyDetailResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyFeedFilter
@@ -13,6 +14,8 @@ import com.moongchijang.domain.groupbuy.application.dto.ShareMetaResponse
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyRoomCreateRequest
 import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyRoomCreatedResponse
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationResponse
+import com.moongchijang.domain.groupbuy.application.dto.TogetherBuyParticipationUpsertRequest
 import com.moongchijang.domain.store.domain.entity.DistrictType
 import com.moongchijang.global.exception.CustomException
 import com.moongchijang.global.exception.ErrorCode
@@ -34,8 +37,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
@@ -50,6 +55,7 @@ class GroupBuyController(
     private val groupBuyService: GroupBuyService,
     private val groupBuyViewerService: GroupBuyViewerService,
     private val togetherBuyRoomCommandService: TogetherBuyRoomCommandService,
+    private val togetherBuyParticipationCommandService: TogetherBuyParticipationCommandService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -94,6 +100,29 @@ class GroupBuyController(
     ): ResponseEntity<ApiResponse<TogetherBuyRoomCreatedResponse>> {
         val response = togetherBuyRoomCommandService.create(principal.id, request)
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response))
+    }
+
+    @PutMapping("/{groupBuyId}/participation")
+    @RequireCurrentRole(UserRole.BUYER)
+    @Operation(summary = "함께 사기 참여 수량 담기 또는 변경")
+    fun upsertTogetherBuyParticipation(
+        @PathVariable groupBuyId: Long,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+        @Valid @RequestBody request: TogetherBuyParticipationUpsertRequest,
+    ): ResponseEntity<ApiResponse<TogetherBuyParticipationResponse>> {
+        val response = togetherBuyParticipationCommandService.upsert(groupBuyId, principal.id, request)
+        return ResponseEntity.ok(ApiResponse.success(response))
+    }
+
+    @DeleteMapping("/{groupBuyId}/participation")
+    @RequireCurrentRole(UserRole.BUYER)
+    @Operation(summary = "함께 사기 참여 취소")
+    fun cancelTogetherBuyParticipation(
+        @PathVariable groupBuyId: Long,
+        @AuthenticationPrincipal principal: CustomUserPrincipal,
+    ): ResponseEntity<ApiResponse<Unit>> {
+        togetherBuyParticipationCommandService.cancel(groupBuyId, principal.id)
+        return ResponseEntity.ok(ApiResponse.success(Unit))
     }
 
     @GetMapping("/{groupBuyId}")

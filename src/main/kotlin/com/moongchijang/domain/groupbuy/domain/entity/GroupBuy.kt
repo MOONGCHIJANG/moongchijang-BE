@@ -155,6 +155,12 @@ class GroupBuy(
 
 ) : BaseEntity()
 {
+    fun adjustCurrentQuantityBy(delta: Int) {
+        val adjustedQuantity = currentQuantity + delta
+        require(adjustedQuantity in 0..maxQuantity) { "공구 현재 수량은 0 이상 최대 수량 이하여야 합니다." }
+        currentQuantity = adjustedQuantity
+    }
+
     fun transitionToAchieved(achievedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)) {
         requireStatus(GroupBuyStatus.IN_PROGRESS)
         status = GroupBuyStatus.ACHIEVED
