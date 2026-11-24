@@ -2,6 +2,7 @@ package com.moongchijang.domain.groupbuy.presentation
 
 import com.moongchijang.domain.groupbuy.application.GroupBuyService
 import com.moongchijang.domain.groupbuy.application.GroupBuyViewerService
+import com.moongchijang.domain.groupbuy.application.TogetherBuyParticipationCommandService
 import com.moongchijang.domain.groupbuy.application.TogetherBuyRoomCommandService
 import com.moongchijang.domain.groupbuy.application.dto.GroupBuyViewerCountResponse
 import com.moongchijang.domain.user.domain.entity.UserRole
@@ -19,7 +20,13 @@ class GroupBuyControllerTest {
     private val groupBuyService: GroupBuyService = Mockito.mock(GroupBuyService::class.java)
     private val groupBuyViewerService: GroupBuyViewerService = Mockito.mock(GroupBuyViewerService::class.java)
     private val togetherBuyRoomCommandService: TogetherBuyRoomCommandService = Mockito.mock(TogetherBuyRoomCommandService::class.java)
-    private val controller = GroupBuyController(groupBuyService, groupBuyViewerService, togetherBuyRoomCommandService)
+    private val togetherBuyParticipationCommandService: TogetherBuyParticipationCommandService = Mockito.mock(TogetherBuyParticipationCommandService::class.java)
+    private val controller = GroupBuyController(
+        groupBuyService,
+        groupBuyViewerService,
+        togetherBuyRoomCommandService,
+        togetherBuyParticipationCommandService,
+    )
 
     @Test
     fun `비로그인 조회자 heartbeat 요청 시 쿠키가 없으면 viewerSessionId를 발급한다`() {
