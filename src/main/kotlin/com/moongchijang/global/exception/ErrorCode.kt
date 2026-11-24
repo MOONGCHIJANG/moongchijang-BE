@@ -124,6 +124,10 @@ enum class ErrorCode(val code: Int, val message: String, val httpStatus: Int) {
     GROUPBUY_ROOM_PRODUCT_NOT_AVAILABLE(409_308, "방을 만들 수 없는 상품 또는 매장입니다.", 409),
     GROUPBUY_ROOM_PICKUP_NOT_AVAILABLE(409_309, "선택한 픽업 날짜 또는 시간대를 사용할 수 없습니다.", 409),
     GROUPBUY_ROOM_INVALID_QUANTITY(400_308, "방 생성 수량이 상품 수량 조건에 맞지 않습니다.", 400),
+    GROUPBUY_CONFIRMATION_NOT_AVAILABLE(409_310, "최소 수량을 충족한 모집 중인 방만 최종 확약을 요청할 수 있습니다.", 409),
+    GROUPBUY_CONFIRMATION_ALREADY_REQUESTED(409_311, "이미 최종 확약을 요청한 방입니다.", 409),
+    GROUPBUY_CONFIRMATION_IN_PROGRESS(409_312, "최종 확약 진행 중에는 참여 수량을 변경하거나 취소할 수 없습니다.", 409),
+    GROUPBUY_CONFIRMATION_DEADLINE_INVALID(400_309, "최종 확약 마감 시각이 올바르지 않습니다.", 400),
 
     // Payment(350~399)
     PAYMENT_INVALID_QUANTITY(400_350, "참여 수량이 올바르지 않습니다.", 400),

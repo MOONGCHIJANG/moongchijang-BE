@@ -161,6 +161,13 @@ class GroupBuy(
         currentQuantity = adjustedQuantity
     }
 
+    fun requestParticipantConfirmation(deadline: LocalDateTime) {
+        require(confirmationDeadline == null) { "이미 최종 확약을 요청한 방입니다." }
+        confirmationDeadline = deadline
+    }
+
+    fun isParticipantConfirmationRequested(): Boolean = confirmationDeadline != null
+
     fun transitionToAchieved(achievedAt: LocalDateTime = LocalDateTime.now(TimePolicy.STORAGE_ZONE_ID)) {
         requireStatus(GroupBuyStatus.IN_PROGRESS)
         status = GroupBuyStatus.ACHIEVED
